@@ -2914,60 +2914,57 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 animate-in fade-in duration-500 items-start">
-      {/* Top Header & Mode Switcher Bar */}
-      <div className="lg:col-span-12 bg-gradient-to-r from-[#070D1D] via-[#0A1124] to-[#070D1D] p-5 sm:p-6 rounded-3xl border border-indigo-500/20 shadow-2xl relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500 items-start">
+      {/* Top Header & Mode Switcher Bar — Crisp 1px Scientific Workstation */}
+      <div className="lg:col-span-12 bg-[#070A12] p-4 sm:p-5 rounded-sm border border-slate-800 relative overflow-hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-inner">
-              <Brain className="w-6 h-6 animate-pulse" />
+          <div className="space-y-1">
+            <div className="flex items-center gap-3 flex-wrap">
+              <span className="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold">
+                [DL-XRD // NEURAL NETWORK CRYSTALLOGRAPHY & PHASE IDENTIFICATION ENGINE]
+              </span>
+              <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
+                ● AI CORE READY ({engineConfig.activation} · {engineConfig.filters} Filters)
+              </span>
             </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h1 className="text-xl sm:text-2xl font-black text-white tracking-tight">
-                  Deep Learning XRD Phase Identification
-                </h1>
-                <span className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/30 text-xs font-mono font-black text-emerald-400 uppercase tracking-widest">
-                  AI Ready
-                </span>
-              </div>
-              <p className="text-xs text-slate-400 mt-0.5">
-                Multi-phase identification, crystal structure indexing, and automated Rietveld quantification
-              </p>
-            </div>
+            <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
+              Deep Learning XRD Phase Identification & Neural Crystallography Workstation
+            </h1>
+            <p className="text-xs text-slate-400">
+              Physics-informed neural phase retrieval, 230 space-group extinction gating, Dirichlet simplex QPA unmixing, and automated Rietveld quantification
+            </p>
           </div>
 
           {/* Quick Guide & Mode Toggle */}
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="flex flex-wrap items-center gap-2">
             <button
               onClick={() => setShowQuickGuide(!showQuickGuide)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-bold transition-all border ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-mono font-bold transition-all border cursor-pointer ${
                 showQuickGuide 
-                  ? "bg-indigo-600/30 border-indigo-400 text-indigo-200" 
-                  : "bg-slate-900/80 border-slate-700/80 text-slate-300 hover:text-white hover:border-slate-600"
+                  ? "bg-indigo-600/25 border-indigo-500 text-indigo-200" 
+                  : "bg-[#0B0F19] border-slate-800 text-slate-300 hover:text-white hover:border-slate-700"
               }`}
             >
-              <HelpCircle className="w-4 h-4 text-indigo-400" />
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
               <span>{showQuickGuide ? "Hide Guide" : "Quick Guide"}</span>
             </button>
 
             {/* Mode Switcher */}
-            <div className="bg-[#03060C] p-1 rounded-2xl border border-slate-800 flex items-center">
+            <div className="bg-[#0B0F19] p-0.5 rounded-sm border border-slate-800 flex items-center">
               <button
                 onClick={() => {
                   setViewMode('standard');
                   setShowAdvancedHyperparameters(false);
                   setShowArchitectureDiagnostics(false);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-mono font-bold transition-all cursor-pointer ${
                   viewMode === 'standard'
-                    ? "bg-gradient-to-r from-indigo-600 to-violet-600 text-white shadow-md"
+                    ? "bg-indigo-600 text-white"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Standard (Friendly)</span>
+                <span>Standard</span>
               </button>
               <button
                 onClick={() => {
@@ -2975,9 +2972,9 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   setShowAdvancedHyperparameters(true);
                   setShowArchitectureDiagnostics(true);
                 }}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-black transition-all ${
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-mono font-bold transition-all cursor-pointer ${
                   viewMode === 'expert'
-                    ? "bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white shadow-md"
+                    ? "bg-indigo-600 text-white"
                     : "text-slate-400 hover:text-slate-200"
                 }`}
               >
@@ -2994,72 +2991,69 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-5 pt-5 border-t border-slate-800/80 grid grid-cols-1 md:grid-cols-3 gap-4"
+            className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-3"
           >
-            <div className="bg-[#050A14] p-4 rounded-2xl border border-indigo-500/20">
-              <div className="flex items-center gap-2 mb-1.5 text-indigo-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-indigo-500/20 flex items-center justify-center text-xs">1</div>
-                Choose XRD Data
+            <div className="bg-[#0B0F19] p-3.5 rounded-sm border border-slate-800">
+              <div className="flex items-center gap-2 mb-1 text-indigo-400 text-xs font-mono font-bold uppercase tracking-wider">
+                <span>01. Select Benchmark or Upload Scan</span>
               </div>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Click any of the <strong className="text-white">Quick Presets</strong> below (like LiCoO₂, Silicon 640d, or TiO₂) or upload your own 2θ-Intensity XRD text file.
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Click any of the <strong className="text-white">Benchmark Scans</strong> (α-SiO₂ + TiO₂, LiCoO₂ Cathode, Fe-BCC + Spinel, or BaTiO₃) or upload a 2θ–Intensity XRD pattern.
               </p>
             </div>
-            <div className="bg-[#050A14] p-4 rounded-2xl border border-violet-500/20">
-              <div className="flex items-center gap-2 mb-1.5 text-violet-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-violet-500/20 flex items-center justify-center text-xs">2</div>
-                Click Initialize
+            <div className="bg-[#0B0F19] p-3.5 rounded-sm border border-slate-800">
+              <div className="flex items-center gap-2 mb-1 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
+                <span>02. Probe Neural Layers & CAD Schematic</span>
               </div>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Hit <strong className="text-white">Initialize Deep Phase ID</strong>. The pre-trained ResNet-1D model extracts peak footprints in milliseconds.
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Inspect 1D dilated convolutions, long-range harmonic self-attention, Bravais systematic absence gates, and 1D Grad-CAM attribution in real time.
               </p>
             </div>
-            <div className="bg-[#050A14] p-4 rounded-2xl border border-emerald-500/20">
-              <div className="flex items-center gap-2 mb-1.5 text-emerald-400 text-xs font-black uppercase tracking-wider">
-                <div className="w-5 h-5 rounded-full bg-emerald-500/20 flex items-center justify-center text-xs">3</div>
-                Explore Results
+            <div className="bg-[#0B0F19] p-3.5 rounded-sm border border-slate-800">
+              <div className="flex items-center gap-2 mb-1 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider">
+                <span>03. Execute Phase ID & Quantify</span>
               </div>
-              <p className="text-sm text-slate-400 leading-relaxed">
-                Inspect matched phases, crystal symmetry, space groups, and quantitative weight fractions in the interactive visualizer.
+              <p className="text-xs text-slate-400 leading-relaxed">
+                Run <strong className="text-white">Execute Neural Phase ID</strong> to compute ICDD PDF-2 cosine matches, Dirichlet simplex wt% unmixing, and PyTorch model exports.
               </p>
             </div>
           </motion.div>
         )}
 
-        {/* 5-Stage Deep Learning Pipeline Quick-Jump Navigation Ribbon */}
-        <div className="mt-4 pt-4 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-2 relative z-10">
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-400 mr-1">
-              Pipeline Stages:
+        {/* 6-Stage Deep Learning Pipeline Quick-Jump Navigation Ribbon */}
+        <div className="mt-3.5 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 relative z-10">
+          <div className="flex flex-wrap items-center gap-1.5">
+            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mr-1">
+              Stages:
             </span>
             {[
               {
-                label: '1. Neural Workbench & Saliency',
+                label: '01. Neural Workbench & CAD',
                 anchor: 'dl-workbench-anchor',
                 badge: 'PINN / Grad-CAM'
               },
               {
-                label: '2. Data Ingestion & PDF-2 DB',
+                label: '02. Data Ingestion & PDF-2 DB',
                 anchor: 'dl-ingestion-anchor',
                 badge: `${parsedPoints.length} pks`
               },
               {
-                label: '3. Executive Phase ID & RIR',
+                label: '03. Executive Phase ID & RIR',
                 anchor: 'dl-executive-scorecard-anchor',
                 badge: `${result?.candidates?.length || 0} hits`
               },
               {
-                label: '4. Spectral Alignment',
+                label: '04. Spectral Alignment',
                 anchor: 'ml-techniques-studio-anchor',
                 onClick: () => setResultsSubTab('alignment')
               },
               {
-                label: '5. ML Architecture Studio',
+                label: '05. ML Architecture Studio',
                 anchor: 'ml-techniques-studio-anchor',
                 onClick: () => setResultsSubTab('ml_techniques')
               },
               {
-                label: '6. Synthesis Intelligence',
+                label: '06. Synthesis Intelligence',
                 anchor: 'synthesis-intelligence-studio',
                 badge: 'Wulff / JMAK'
               }
@@ -3072,12 +3066,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   document.getElementById(item.anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                   playSynthTone('tick');
                 }}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-900/90 hover:bg-indigo-950/60 border border-slate-800 hover:border-indigo-500/40 text-xs font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
+                className="px-2.5 py-1 rounded-sm bg-[#0B0F19] hover:bg-indigo-950/50 border border-slate-800 hover:border-indigo-500/50 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
               >
                 <span>{item.label}</span>
                 {item.badge && (
-                  <span className="px-1.5 py-0.5 rounded bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono text-indigo-300">
-                    {item.badge}
+                  <span className="text-[10px] font-mono tabular-nums text-indigo-400">
+                    [{item.badge}]
                   </span>
                 )}
               </button>
@@ -3085,9 +3079,8 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           </div>
 
           {selectedCandidate && (
-            <div className="flex items-center gap-2 text-xs font-mono text-emerald-400 bg-emerald-950/30 border border-emerald-500/30 px-3 py-1 rounded-xl">
-              <CheckCircle2 className="w-3.5 h-3.5" />
-              <span>Primary Match: <strong>{selectedCandidate.phase_name}</strong> ({selectedCandidate.confidence_score.toFixed(1)}%)</span>
+            <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-emerald-400">
+              <span>● Primary Match: <strong>{selectedCandidate.phase_name}</strong> ({selectedCandidate.confidence_score.toFixed(1)}%)</span>
             </div>
           )}
         </div>
@@ -3121,23 +3114,23 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
       </div>
 
       {/* Input Configuration & Top Panels */}
-      <div id="dl-ingestion-anchor" className="lg:col-span-12 flex flex-col gap-8">
+      <div id="dl-ingestion-anchor" className="lg:col-span-12 flex flex-col gap-6">
         {/* Advanced Engine Configuration (Collapsible for cleaner friendly view) */}
         {!showAdvancedHyperparameters && viewMode === 'standard' ? (
-          <div className="bg-[#050A14] p-5 rounded-3xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
-            <div className="flex items-center gap-3.5">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/30 flex items-center justify-center text-indigo-400 flex-shrink-0">
-                <Settings2 className="w-5 h-5" />
+          <div className="bg-[#070A12] p-4 rounded-sm border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-sm bg-[#0B0F19] border border-slate-800 flex items-center justify-center text-indigo-400 flex-shrink-0">
+                <Settings2 className="w-4 h-4" />
               </div>
               <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-black text-white">Engine Hyperparameters & Calibration</h3>
-                  <span className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/30 text-xs font-mono font-bold text-indigo-300">
-                    Auto-Tuned (Optimized)
+                <div className="flex items-center gap-2.5 flex-wrap">
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">Engine Hyperparameters & Calibration</h3>
+                  <span className="text-[11px] font-mono font-bold text-indigo-400">
+                    ● Auto-Tuned ({activePreset})
                   </span>
                 </div>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  ResNet-{engineConfig.depth} • {engineConfig.activation} • Kernel {engineConfig.kernelSize} • LR {engineConfig.learningRate} • Caglioti Broadening Active
+                <p className="text-xs font-mono tabular-nums text-slate-400 mt-0.5">
+                  ResNet-{engineConfig.depth} · {engineConfig.activation} · Kernel K={engineConfig.kernelSize} · LR {engineConfig.learningRate} · Caglioti Broadening Active
                 </p>
               </div>
             </div>
@@ -3145,14 +3138,14 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               <button
                 onClick={runAutoTuner}
                 disabled={isAutoTuning}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-violet-600/20 hover:bg-violet-600/30 border border-violet-500/30 text-violet-300 text-xs font-bold transition-all disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 text-xs font-mono font-bold transition-all disabled:opacity-50 cursor-pointer"
               >
-                <Sparkles className="w-3.5 h-3.5 text-violet-300 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "4s" }} />
+                <Sparkles className="w-3.5 h-3.5 text-indigo-300 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "4s" }} />
                 <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
               </button>
               <button
                 onClick={() => setShowAdvancedHyperparameters(true)}
-                className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white border border-slate-700 text-xs font-bold transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#0B0F19] hover:bg-slate-900 text-slate-200 hover:text-white border border-slate-800 text-xs font-mono font-bold transition-all cursor-pointer"
               >
                 <span>Customize Parameters</span>
                 <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
@@ -3160,27 +3153,19 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             </div>
           </div>
         ) : (
-          <div className="bg-[#050A14] p-6 rounded-[2rem] shadow-2xl border border-slate-800/80/80 hover:border-slate-700 relative overflow-hidden group transition-all duration-500">
-            {/* Custom Background Graphic */}
-            <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.03] group-hover:opacity-[0.06] transition-opacity duration-1000 mix-blend-screen">
-              <img src={convolutionalEngineBg} alt="Advanced Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
-              <div className="absolute inset-0 bg-gradient-to-t from-[#050A14] via-[#050A14]/90 to-[#050A14]/40" />
-            </div>
-            <div className="absolute top-0 right-0 w-40 h-40 bg-indigo-500/10 rounded-full blur-[80px] group-hover:bg-indigo-500/20 transition-all duration-700 pointer-events-none" />
-
+          <div className="bg-[#070A12] p-5 rounded-sm border border-slate-800 relative overflow-hidden group transition-all">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6 relative z-10">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 relative z-10 pb-3 border-b border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 bg-slate-800 rounded-xl border border-slate-700 flex items-center justify-center shadow-inner relative overflow-hidden">
-                  <div className="absolute inset-0 bg-indigo-500/10 blur-md rounded-full pointer-events-none" />
-                  <Settings className="w-6 h-6 text-indigo-400 relative z-10" />
+                <div className="w-9 h-9 bg-[#0B0F19] rounded-sm border border-slate-800 flex items-center justify-center">
+                  <Settings className="w-4 h-4 text-indigo-400" />
                 </div>
                 <div>
-                  <h3 className="font-black text-white text-md tracking-tight">
-                    Engine Hyperparameters
+                  <h3 className="font-mono font-bold text-white text-sm uppercase tracking-wider">
+                    Engine Hyperparameters & Neural Convolution Stencil
                   </h3>
-                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest leading-none mt-1">
-                    Neural Network Core
+                  <p className="text-[11px] text-slate-400 font-mono">
+                    Configure kernel width, activation non-linearity, Caglioti dispersion, and optimizer schedule
                   </p>
                 </div>
               </div>
@@ -3188,22 +3173,17 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <button
                   onClick={runAutoTuner}
                   disabled={isAutoTuning}
-                  className="flex items-center gap-1 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-black uppercase text-xs tracking-widest px-3 py-1.5 rounded-full border border-violet-500/30 transition-all shadow-[0_0_15px_rgba(99,102,241,0.2)] hover:shadow-[0_0_20px_rgba(99,102,241,0.4)] disabled:opacity-50 inline-flex align-middle"
+                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold uppercase text-xs px-3 py-1.5 rounded-sm transition-all disabled:opacity-50 cursor-pointer"
                 >
-                  <Sparkles className="w-3 h-3 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "3s" }} />
+                  <Sparkles className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "3s" }} />
                   <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
                 </button>
-                <div className="bg-slate-800 border border-slate-700 px-2.5 py-1.5 rounded-full flex items-center gap-1.5 shadow-inner">
-                  <div
-                    className={`w-2 h-2 rounded-full ${isSimulating || isAutoTuning ? "bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.8)]" : "bg-slate-500"}`}
-                  />
-                  <span className="text-xs font-black text-slate-300 uppercase tracking-widest">
-                    {isSimulating ? "Running" : isAutoTuning ? "Optimizing" : "Ready"}
-                  </span>
-                </div>
+                <span className="text-xs font-mono font-bold text-emerald-400 px-2">
+                  ● {isSimulating ? "Running" : isAutoTuning ? "Optimizing" : "Ready"}
+                </span>
                 <button
                   onClick={() => setShowAdvancedHyperparameters(false)}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-full bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 text-xs font-bold transition-all ml-1"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm bg-[#0B0F19] hover:bg-slate-900 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono font-bold transition-all cursor-pointer"
                 >
                   <span>Hide</span>
                   <ChevronUp className="w-3.5 h-3.5 text-slate-400" />

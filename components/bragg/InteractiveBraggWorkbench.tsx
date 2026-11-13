@@ -18,6 +18,7 @@ import {
 import { BraggResult } from '../../types';
 import { parseSingleHKL, validateHKLAgainstCrystalSystem } from '../../utils/braggCore';
 import { playSynthTone } from '../../utils/sound';
+import { BraggCadSchematic } from './BraggCadSchematic';
 
 export interface AnodeTargetPreset {
   id: string;
@@ -421,61 +422,89 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
   const photonEnergyKeV = wavelength > 0 ? 12.39842 / wavelength : 0;
 
   return (
-    <div className="bg-white dark:bg-slate-900 rounded-3xl border border-slate-200/90 dark:border-slate-800/90 shadow-xl overflow-hidden transition-colors">
-      {/* Top Bar: 1-Click Standard Reference Samples & X-Ray Anode Switcher */}
-      <div className="p-4 sm:p-5 bg-slate-50/90 dark:bg-slate-950/80 border-b border-slate-200/80 dark:border-slate-800/80 space-y-4">
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-wider text-indigo-600 dark:text-indigo-400 font-bold">
-              <Compass className="w-3.5 h-3.5" />
-              <span>Interactive Bragg Diffractometer Control Center</span>
-              <span className="text-slate-400 dark:text-slate-600">·</span>
-              <span className="text-emerald-600 dark:text-emerald-400">Real-Time Reactive Solver</span>
+    <div className="bg-[#0B0F19] rounded-sm border border-slate-800 shadow-2xl overflow-hidden text-slate-100">
+      {/* Top Bar: Instrument Header + Live Bragg & Ewald CAD Schematic */}
+      <div className="p-4 sm:p-5 bg-[#070A12] border-b border-slate-800 space-y-4">
+        <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-center">
+          <div className="xl:col-span-7 space-y-3">
+            <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
+              <span>● BRAGG DIFFRACTOMETER CORE</span>
+              <span className="text-slate-700">|</span>
+              <span className="text-emerald-400">REAL-TIME KINEMATIC SOLVER</span>
+              <span className="text-slate-700">|</span>
+              <span className="text-slate-400">E = {photonEnergyKeV.toFixed(2)} keV</span>
             </div>
-            <h3 className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight mt-0.5">
-              {sampleId ? `Sample: ${sampleId}` : 'Live 2θ ↔ d-Spacing & Sin²θ Indexing Workbench'}
+            <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+              {sampleId ? `Specimen: ${sampleId}` : 'Live 2θ ↔ d-Spacing & Sin²θ Indexing Workbench'}
             </h3>
+            <p className="text-xs text-slate-400 leading-relaxed max-w-2xl">
+              Compute interplanar spacings <span className="font-mono text-cyan-300">d_hkl = nλ / (2 sinθ)</span>,
+              momentum transfer vectors <span className="font-mono text-emerald-400">Q = 4πsinθ / λ</span>, and
+              perform systematic <span className="font-mono text-amber-300">sin²θ / sin²θ₁</span> Bravais auto-indexing.
+            </p>
+
+            {/* Downstream Analysis Quick-Bridge */}
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={onSaveSnapshot}
+                className="px-3.5 py-2 rounded-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+                title="Save current diffractometer state to calculation history"
+              >
+                <Zap className="w-3.5 h-3.5" />
+                <span>Save Snapshot</span>
+              </button>
+              {onJumpToModule && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => onJumpToModule('scherrer')}
+                    className="px-3 py-2 rounded-sm bg-[#0B0F19] hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-cyan-500/50 font-mono text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <span>Scherrer Size</span>
+                    <ArrowRight className="w-3 h-3 text-cyan-400" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onJumpToModule('wh')}
+                    className="px-3 py-2 rounded-sm bg-[#0B0F19] hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-cyan-500/50 font-mono text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <span>Williamson–Hall</span>
+                    <ArrowRight className="w-3 h-3 text-cyan-400" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => onJumpToModule('rietveld')}
+                    className="px-3 py-2 rounded-sm bg-[#0B0F19] hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-cyan-500/50 font-mono text-xs font-semibold flex items-center gap-1.5 cursor-pointer transition-colors"
+                  >
+                    <span>Rietveld Fit</span>
+                    <ArrowRight className="w-3 h-3 text-emerald-400" />
+                  </button>
+                </>
+              )}
+            </div>
           </div>
 
-          {/* Downstream Analysis Quick-Bridge */}
-          <div className="flex flex-wrap items-center gap-2">
-            <button
-              type="button"
-              onClick={onSaveSnapshot}
-              className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition-all"
-              title="Save current diffractometer state to calculation history"
-            >
-              <Zap className="w-3.5 h-3.5" />
-              <span>Save Snapshot to History</span>
-            </button>
-            {onJumpToModule && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => onJumpToModule('scherrer')}
-                  className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <span>Scherrer Size</span>
-                  <ArrowRight className="w-3 h-3 text-slate-400" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() => onJumpToModule('wh')}
-                  className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-semibold flex items-center gap-1 cursor-pointer transition-colors"
-                >
-                  <span>Williamson-Hall</span>
-                  <ArrowRight className="w-3 h-3 text-slate-400" />
-                </button>
-              </>
-            )}
+          <div className="xl:col-span-5">
+            <BraggCadSchematic
+              wavelength={wavelength}
+              activeTwoTheta={activePeak.twoTheta}
+              activeDSpacing={activePeak.dSpacing}
+              activeQVector={activePeak.qVector}
+              activeHkl={activePeak.hkl}
+              crystalSystem={crystalSystem}
+              reflectionCount={results.length}
+            />
           </div>
         </div>
 
         {/* Row 1: One-Click Reference Standards */}
-        <div className="space-y-1.5">
-          <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
-            <span className="font-semibold">1-Click Reference Standards (Loads Peaks, HKLs & Symmetry Instantly):</span>
-            <span className="font-mono text-[10px]">
+        <div className="space-y-1.5 pt-3 border-t border-slate-800">
+          <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
+            <span className="uppercase tracking-wider">
+              1-Click Certified NIST &amp; Crystal Reference Standards:
+            </span>
+            <span className="text-cyan-400 tabular-nums">
               λ = {wavelength.toFixed(5)} Å · E = {photonEnergyKeV.toFixed(2)} keV
             </span>
           </div>
@@ -498,17 +527,17 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                     setActivePeakIndex(0);
                     playSynthTone('switch');
                   }}
-                  className={`p-2.5 rounded-xl border text-left transition-all cursor-pointer ${
+                  className={`p-2.5 rounded-sm border text-left transition-colors cursor-pointer ${
                     isSelected
-                      ? 'bg-indigo-600/15 dark:bg-indigo-500/20 border-indigo-500 text-slate-900 dark:text-white shadow-xs'
-                      : 'bg-white dark:bg-slate-900 border-slate-200/90 dark:border-slate-800 hover:border-indigo-400/60 text-slate-700 dark:text-slate-300'
+                      ? 'bg-[#0F172A] border-cyan-500 text-white'
+                      : 'bg-[#0B0F19] border-slate-800 hover:border-slate-700 text-slate-300'
                   }`}
                 >
                   <div className="flex items-center justify-between text-[10px] font-mono">
-                    <span className="font-bold text-indigo-600 dark:text-indigo-400">{mat.formula}</span>
-                    <span className="text-slate-400">a={mat.a0.toFixed(2)}Å</span>
+                    <span className="font-bold text-cyan-400">{mat.formula}</span>
+                    <span className="text-slate-500 tabular-nums">a={mat.a0.toFixed(2)}Å</span>
                   </div>
-                  <div className="text-xs font-bold text-slate-900 dark:text-white truncate mt-0.5">
+                  <div className="text-xs font-semibold text-slate-100 truncate mt-0.5">
                     {mat.name}
                   </div>
                 </button>
@@ -517,11 +546,11 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
           </div>
         </div>
 
-        {/* Row 2: Radiation Source (Anode) Switcher with Constant-d Angle Transformation */}
-        <div className="pt-2 border-t border-slate-200/70 dark:border-slate-800/70 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        {/* Row 2: Radiation Source (Anode) Switcher */}
+        <div className="pt-3 border-t border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[11px] font-semibold text-slate-500 dark:text-slate-400 mr-1">
-              X-Ray Anode Target:
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-400 mr-1">
+              X-Ray Anode:
             </span>
             {ANODE_TARGETS.map((anode) => {
               const isAct = Math.abs(wavelength - anode.wavelength) < 0.0005;
@@ -531,10 +560,10 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                   type="button"
                   onClick={() => handleAnodeSwitch(anode.wavelength)}
                   title={`${anode.label} (${anode.wavelength} Å, ${anode.energyKeV} keV) — ${anode.notes}`}
-                  className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer border ${
+                  className={`px-2.5 py-1 rounded-sm text-[11px] font-mono transition-colors cursor-pointer border tabular-nums ${
                     isAct
-                      ? 'bg-cyan-600 text-white border-cyan-500 font-bold shadow-xs'
-                      : 'bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/50'
+                      ? 'bg-cyan-950/90 text-cyan-300 border-cyan-500/70 font-bold'
+                      : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
                   }`}
                 >
                   {anode.symbol} ({anode.wavelength.toFixed(4)}Å)
@@ -543,74 +572,70 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
             })}
           </div>
 
-          <label className="flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer select-none shrink-0">
+          <label className="flex items-center gap-2 text-xs font-mono text-slate-400 cursor-pointer select-none shrink-0">
             <input
               type="checkbox"
               checked={preserveDOnAnodeChange}
               onChange={(e) => setPreserveDOnAnodeChange(e.target.checked)}
-              className="rounded border-slate-300 dark:border-slate-700 text-indigo-600 focus:ring-indigo-500"
+              className="rounded-sm border-slate-700 bg-[#0B0F19] text-cyan-500 focus:ring-cyan-500"
             />
-            <span>Shift 2θ peaks automatically when changing anode λ (keep d_hkl constant)</span>
+            <span>Preserve constant d_hkl on anode switch</span>
           </label>
         </div>
       </div>
 
       {/* Sub-Navigation Tabs inside Workbench */}
-      <div className="px-4 sm:px-5 pt-3 border-b border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 bg-white dark:bg-slate-900">
-        <div className="flex items-center gap-1 p-1 bg-slate-100 dark:bg-slate-950 rounded-xl border border-slate-200/60 dark:border-slate-800">
+      <div className="px-4 sm:px-5 py-2.5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-2 bg-[#070A12]">
+        <div className="flex flex-wrap items-center gap-1">
           <button
             type="button"
             onClick={() => setWorkbenchTab('table')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-sm text-xs font-mono font-bold transition-colors cursor-pointer flex items-center gap-1.5 border ${
               workbenchTab === 'table'
-                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60'
+                : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:text-white'
             }`}
           >
-            <Layers className="w-3.5 h-3.5 text-indigo-500" />
-            <span>Interactive Reflection Editor & Sin²θ Indexer ({results.length})</span>
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
+            <span>01 // Reflection Editor &amp; Sin²θ Indexer ({results.length})</span>
           </button>
           <button
             type="button"
             onClick={() => setWorkbenchTab('forward_calc')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-sm text-xs font-mono font-bold transition-colors cursor-pointer flex items-center gap-1.5 border ${
               workbenchTab === 'forward_calc'
-                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60'
+                : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:text-white'
             }`}
           >
-            <Calculator className="w-3.5 h-3.5 text-cyan-500" />
-            <span>Bidirectional 2θ ↔ d_hkl ↔ Lattice (a, c) Calculator</span>
+            <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+            <span>02 // 2θ ↔ d_hkl ↔ Lattice (a,c)</span>
           </button>
           <button
             type="button"
             onClick={() => setWorkbenchTab('ray_optics')}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer flex items-center gap-1.5 ${
+            className={`px-3 py-1.5 rounded-sm text-xs font-mono font-bold transition-colors cursor-pointer flex items-center gap-1.5 border ${
               workbenchTab === 'ray_optics'
-                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60'
+                : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:text-white'
             }`}
           >
-            <Sliders className="w-3.5 h-3.5 text-emerald-500" />
-            <span>Goniometer Alignment & Wave Interference Optics</span>
+            <Sliders className="w-3.5 h-3.5 text-amber-400" />
+            <span>03 // Goniometer Alignment &amp; Optics</span>
           </button>
         </div>
 
         {/* Active Reflection Telemetry Readout */}
         {activePeak && (
-          <div className="flex items-center gap-2 text-xs font-mono text-slate-500 dark:text-slate-400 py-1">
-            <span>Focused Peak #{activePeakIndex + 1}:</span>
-            <strong className="text-slate-900 dark:text-white">
-              ({activePeak.hkl || '—'}) at 2θ = {activePeak.twoTheta.toFixed(3)}°
+          <div className="flex items-center gap-2 text-[11px] font-mono text-slate-400 tabular-nums">
+            <span>Focused #{activePeakIndex + 1}:</span>
+            <strong className="text-white">
+              ({activePeak.hkl || '—'}) @ {activePeak.twoTheta.toFixed(3)}°
             </strong>
-            <span>·</span>
-            <span className="text-cyan-600 dark:text-cyan-400">
-              d = {activePeak.dSpacing.toFixed(4)} Å
-            </span>
-            <span>·</span>
-            <span className="text-indigo-600 dark:text-indigo-400">
-              Q = {activePeak.qVector.toFixed(3)} Å⁻¹
-            </span>
+            <span className="text-slate-700">|</span>
+            <span className="text-cyan-400">d = {activePeak.dSpacing.toFixed(4)} Å</span>
+            <span className="text-slate-700">|</span>
+            <span className="text-emerald-400">Q = {activePeak.qVector.toFixed(3)} Å⁻¹</span>
           </div>
         )}
       </div>
@@ -620,26 +645,24 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
         <div className="p-4 sm:p-5 space-y-4">
           {/* Sin²θ Ratio Auto-Indexing Banner & Visual Bravais Extinction Ladder */}
           {autoIndexedSolution && (
-            <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/90 border border-slate-200 dark:border-slate-800 space-y-3">
+            <div className="p-4 rounded-sm bg-[#070A12] border border-slate-800 space-y-3">
               <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
                 <div className="space-y-0.5">
-                  <div className="flex items-center gap-2 text-xs font-bold text-slate-900 dark:text-white flex-wrap">
-                    <Wand2 className="w-4 h-4 text-indigo-500" />
+                  <div className="flex items-center gap-2 text-xs font-mono font-bold text-white flex-wrap">
+                    <Wand2 className="w-4 h-4 text-cyan-400" />
                     <span>
-                      Sin²θ / Sin²θ₁ Pattern Recognition: Best Match ={' '}
-                      <span className="text-indigo-600 dark:text-indigo-400">
-                        {autoIndexedSolution.system}
-                      </span>
+                      Sin²θ / Sin²θ₁ PATTERN SOLVER: BEST BRAVAIS MATCH ={' '}
+                      <span className="text-cyan-400">{autoIndexedSolution.system}</span>
                     </span>
-                    <span className="text-slate-400 font-normal">·</span>
-                    <span className="font-mono tabular-nums text-emerald-600 dark:text-emerald-400">
-                      Estimated a₀ = {autoIndexedSolution.meanA.toFixed(4)} ± {autoIndexedSolution.stdA.toFixed(4)} Å
+                    <span className="text-slate-700">|</span>
+                    <span className="tabular-nums text-emerald-400">
+                      a₀ = {autoIndexedSolution.meanA.toFixed(4)} ± {autoIndexedSolution.stdA.toFixed(4)} Å
                     </span>
                   </div>
-                  <p className="text-xs text-slate-500 dark:text-slate-400">
-                    Sequence of N = h²+k²+l² ratios predicts planes:{' '}
-                    <span className="font-mono text-slate-700 dark:text-slate-200">
-                      {autoIndexedSolution.hkls.map(h => `(${h})`).join(', ')}
+                  <p className="text-xs font-mono text-slate-400">
+                    Predicted (hkl) sequence:{' '}
+                    <span className="text-slate-200">
+                      {autoIndexedSolution.hkls.map(h => `(${h})`).join(' · ')}
                     </span>
                   </p>
                 </div>
@@ -651,15 +674,15 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                     setCrystalSystem(autoIndexedSolution.system);
                     playSynthTone('success');
                   }}
-                  className="px-3.5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors shadow-xs"
+                  className="px-3.5 py-2 rounded-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shrink-0 cursor-pointer transition-colors"
                 >
                   <Wand2 className="w-3.5 h-3.5" />
-                  <span>Apply Auto-Indexed ({autoIndexedSolution.system}) HKLs</span>
+                  <span>Apply ({autoIndexedSolution.system}) HKLs</span>
                 </button>
               </div>
 
               {/* Visual Sin²θ / Sin²θ₁ Bravais Extinction Ladder SVG */}
-              <div className="bg-slate-900/95 border border-slate-800 rounded-xl p-3">
+              <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
                 <svg viewBox="0 0 680 112" className="w-full h-auto select-none">
                   <text x="12" y="15" fill="#94a3b8" fontSize="9" fontFamily="monospace" fontWeight="bold">
                     BRAVAIS EXTINCTION LADDER: NORMALIZED N = (h²+k²+l²) ALLOWED RAILS vs. OBSERVED PEAKS
@@ -782,10 +805,10 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
           )}
 
           {/* Interactive Peak Table */}
-          <div className="overflow-x-auto rounded-2xl border border-slate-200 dark:border-slate-800">
+          <div className="overflow-x-auto rounded-sm border border-slate-800 bg-[#070A12]">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr className="bg-slate-100/80 dark:bg-slate-950 text-[10px] font-mono uppercase text-slate-500 dark:text-slate-400 border-b border-slate-200 dark:border-slate-800">
+                <tr className="bg-[#0B0F19] text-[10px] font-mono uppercase tracking-wider text-slate-400 border-b border-slate-800">
                   <th className="py-2.5 px-3">Peak</th>
                   <th className="py-2.5 px-3">2θ Angle (°)</th>
                   <th className="py-2.5 px-3">Miller (hkl)</th>
@@ -797,7 +820,7 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                   <th className="py-2.5 px-3 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-200/60 dark:divide-slate-800/70 font-mono">
+              <tbody className="divide-y divide-slate-800/80 font-mono tabular-nums">
                 {results.map((r, idx) => {
                   const isFocused = idx === activePeakIndex;
                   const sinTheta1 =
@@ -823,15 +846,15 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                       onClick={() => setActivePeakIndex(idx)}
                       className={`transition-colors cursor-pointer ${
                         isFocused
-                          ? 'bg-indigo-50/90 dark:bg-indigo-950/35'
-                          : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                          ? 'bg-cyan-500/10'
+                          : 'hover:bg-slate-900/70'
                       }`}
                     >
-                      <td className="py-2 px-3 font-bold text-slate-700 dark:text-slate-300">
-                        <div className="flex items-center gap-1.5">
+                      <td className="py-2 px-3 font-bold text-slate-200">
+                        <div className="flex items-center gap-2">
                           <span
-                            className={`w-2 h-2 rounded-full ${
-                              isFocused ? 'bg-indigo-500 ring-4 ring-indigo-500/20' : 'bg-slate-400'
+                            className={`w-1.5 h-1.5 rounded-full ${
+                              isFocused ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]' : 'bg-slate-600'
                             }`}
                           />
                           <span>#{idx + 1}</span>
@@ -852,7 +875,7 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                               handleUpdateRow(idx, val, undefined, undefined);
                             }
                           }}
-                          className="w-24 px-2 py-1 rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white font-bold text-xs focus:border-indigo-500 outline-none"
+                          className="w-24 px-2 py-1 rounded-sm bg-[#0B0F19] border border-slate-700 text-slate-100 font-bold text-xs focus:border-cyan-500 outline-none"
                         />
                       </td>
 
@@ -864,7 +887,7 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                             value={r.hkl || ''}
                             placeholder="111"
                             onChange={(e) => handleUpdateRow(idx, undefined, e.target.value, undefined)}
-                            className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-indigo-600 dark:text-indigo-300 font-bold text-xs text-center focus:border-indigo-500 outline-none"
+                            className="w-16 px-2 py-1 rounded-sm bg-[#0B0F19] border border-slate-700 text-cyan-300 font-bold text-xs text-center focus:border-cyan-500 outline-none"
                           />
                           {nSum !== null && (
                             <span className="text-[10px] text-slate-400" title="h²+k²+l²">
@@ -888,39 +911,39 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                               handleUpdateRow(idx, undefined, undefined, Math.max(1, Math.min(100, val)));
                             }
                           }}
-                          className="w-16 px-2 py-1 rounded-lg bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 text-slate-900 dark:text-white text-xs focus:border-indigo-500 outline-none"
+                          className="w-16 px-2 py-1 rounded-sm bg-[#0B0F19] border border-slate-700 text-slate-100 text-xs focus:border-cyan-500 outline-none"
                         />
                       </td>
 
                       {/* Calculated d-Spacing */}
-                      <td className="py-2 px-3 font-bold text-cyan-600 dark:text-cyan-400">
+                      <td className="py-2 px-3 font-bold text-cyan-400">
                         {r.dSpacing.toFixed(4)} Å
                       </td>
 
                       {/* Calculated Q */}
-                      <td className="py-2 px-3 text-slate-600 dark:text-slate-300">
+                      <td className="py-2 px-3 text-slate-300">
                         {r.qVector.toFixed(4)}
                       </td>
 
                       {/* sin²θ / sin²θ₁ ratio */}
-                      <td className="py-2 px-3 text-amber-600 dark:text-amber-400 font-bold">
+                      <td className="py-2 px-3 text-amber-400 font-bold">
                         {sin2Ratio.toFixed(3)}×
                       </td>
 
                       {/* Symmetry Check */}
-                      <td className="py-2 px-3 font-sans">
+                      <td className="py-2 px-3 font-mono">
                         {r.validationError ? (
                           <span
-                            className="inline-flex items-center gap-1 text-[11px] text-rose-600 dark:text-rose-400 font-semibold"
+                            className="inline-flex items-center gap-1 text-[11px] text-rose-400 font-semibold"
                             title={r.validationError}
                           >
                             <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                            <span>Forbidden</span>
+                            <span>FORBIDDEN</span>
                           </span>
                         ) : (
-                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-600 dark:text-emerald-400 font-semibold">
+                          <span className="inline-flex items-center gap-1 text-[11px] text-emerald-400 font-semibold">
                             <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                            <span>Allowed</span>
+                            <span>ALLOWED</span>
                           </span>
                         )}
                       </td>
@@ -934,12 +957,12 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                               setActivePeakIndex(idx);
                               playSynthTone('tick');
                             }}
-                            className={`px-2 py-1 rounded-lg text-[10px] font-sans font-bold cursor-pointer transition-colors ${
+                            className={`px-2 py-1 rounded-sm text-[10px] font-mono font-bold uppercase tracking-wider cursor-pointer transition-colors border ${
                               isFocused
-                                ? 'bg-indigo-600 text-white'
-                                : 'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-indigo-500 hover:text-white'
+                                ? 'bg-cyan-500 text-slate-950 border-cyan-400'
+                                : 'bg-[#0B0F19] text-slate-300 border-slate-700 hover:border-cyan-500 hover:text-cyan-300'
                             }`}
-                            title="Aim 3D Goniometer & Ray Visualizer at this reflection"
+                            title="Aim Goniometer & Ewald CAD Visualizer at this reflection"
                           >
                             <Target className="w-3 h-3 inline mr-1" />
                             Focus
@@ -948,7 +971,7 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                             type="button"
                             onClick={() => handleDeleteRow(idx)}
                             disabled={results.length <= 1}
-                            className="p-1 rounded-lg text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 disabled:opacity-30 cursor-pointer transition-colors"
+                            className="p-1 rounded-sm text-slate-500 hover:text-rose-400 hover:bg-rose-500/10 disabled:opacity-30 cursor-pointer transition-colors"
                             title="Remove peak"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -971,14 +994,14 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                 const next2Theta = Math.min(165, Number((last2Theta + 12.5).toFixed(2)));
                 handleAddRow(next2Theta, '220', 45);
               }}
-              className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-indigo-600 hover:text-white text-slate-700 dark:text-slate-200 text-xs font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3.5 py-2 rounded-sm bg-[#070A12] hover:bg-cyan-500 hover:text-slate-950 border border-slate-700 hover:border-cyan-400 text-slate-200 font-mono text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Reflection Row</span>
             </button>
 
-            <div className="text-xs text-slate-500 dark:text-slate-400">
-              Tip: Click any row to aim the 120 FPS Goniometer at that reflection, or edit 2θ / (hkl) inline.
+            <div className="text-[11px] font-mono text-slate-400">
+              SELECT ROW TO LOCK EWALD & GONIOMETER CAD VIEWPORT · EDIT 2θ OR (hkl) INLINE
             </div>
           </div>
         </div>
@@ -986,22 +1009,24 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
 
       {/* Tab 2: Bidirectional 2θ ↔ d_hkl ↔ Lattice (a, c) Calculator */}
       {workbenchTab === 'forward_calc' && (
-        <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-2 gap-4 bg-[#070A12]">
           {/* Left Card: Instant Bidirectional 2θ ↔ d_hkl ↔ Q Converter */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="p-4 rounded-sm bg-[#0B0F19] border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <ArrowLeftRight className="w-4 h-4 text-cyan-500" />
-                <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                  Instant Bidirectional Bragg Converter (2θ ↔ d ↔ Q)
+                <ArrowLeftRight className="w-4 h-4 text-cyan-400" />
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100">
+                  Bidirectional Bragg Converter (2θ ↔ d ↔ Q)
                 </h4>
               </div>
-              <span className="text-[11px] font-mono text-slate-500">λ = {wavelength.toFixed(5)} Å</span>
+              <span className="text-[11px] font-mono text-cyan-400 tabular-nums">
+                λ = {wavelength.toFixed(5)} Å
+              </span>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 block">
                   Diffraction Angle 2θ (°)
                 </label>
                 <input
@@ -1020,12 +1045,12 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-mono font-bold text-sm text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 rounded-sm bg-[#070A12] border border-slate-700 font-mono font-bold text-sm text-slate-100 tabular-nums focus:border-cyan-500 outline-none"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-[11px] font-bold text-slate-600 dark:text-slate-400">
+              <div className="space-y-1.5">
+                <label className="text-[10px] font-mono uppercase tracking-wider font-bold text-slate-400 block">
                   Interplanar Spacing d_hkl (Å)
                 </label>
                 <input
@@ -1044,13 +1069,13 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                       }
                     }
                   }}
-                  className="w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 font-mono font-bold text-sm text-cyan-600 dark:text-cyan-400"
+                  className="w-full px-3 py-2 rounded-sm bg-[#070A12] border border-slate-700 font-mono font-bold text-sm text-cyan-400 tabular-nums focus:border-cyan-500 outline-none"
                 />
               </div>
             </div>
 
             {/* Harmonic Reflection Orders Table (n = 1, 2, 3) */}
-            <div className="grid grid-cols-3 gap-2 pt-2 font-mono text-center">
+            <div className="grid grid-cols-3 gap-2 pt-1 font-mono text-center tabular-nums">
               {[1, 2, 3].map((orderN) => {
                 const sinN = (orderN * wavelength) / (2 * (calcDSpacing || 1));
                 const angle2T =
@@ -1058,10 +1083,10 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                 return (
                   <div
                     key={orderN}
-                    className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800"
+                    className="p-2.5 rounded-sm bg-[#070A12] border border-slate-800"
                   >
-                    <div className="text-[10px] text-slate-500">Order n = {orderN}</div>
-                    <div className="text-xs font-black text-slate-900 dark:text-white mt-0.5">
+                    <div className="text-[10px] text-slate-400 uppercase tracking-wider">Order n = {orderN}</div>
+                    <div className="text-xs font-bold text-slate-100 mt-0.5">
                       {angle2T}
                     </div>
                   </div>
@@ -1072,108 +1097,108 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
             <button
               type="button"
               onClick={() => handleAddRow(calcTwoTheta, `${calcH}${calcK}${calcL}`, 65)}
-              className="w-full py-2 rounded-xl bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold cursor-pointer transition-colors"
+              className="w-full py-2 rounded-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors"
             >
-              + Append (2θ = {calcTwoTheta.toFixed(2)}°, d = {calcDSpacing.toFixed(4)} Å) to Diffractogram
+              + Append (2θ = {calcTwoTheta.toFixed(2)}°, d = {calcDSpacing.toFixed(4)} Å)
             </button>
           </div>
 
           {/* Right Card: Forward Crystal Lattice (a, c) + (hkl) Predictor */}
-          <div className="p-4 rounded-2xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-4">
-            <div className="flex items-center justify-between">
+          <div className="p-4 rounded-sm bg-[#0B0F19] border border-slate-800 space-y-4">
+            <div className="flex items-center justify-between pb-2.5 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-indigo-500" />
-                <h4 className="text-sm font-black text-slate-900 dark:text-white">
+                <Calculator className="w-4 h-4 text-emerald-400" />
+                <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100">
                   Forward Unit Cell (a, c) + (hkl) → 2θ Predictor
                 </h4>
               </div>
-              <span className="text-xs font-mono text-indigo-500 font-bold">{crystalSystem}</span>
+              <span className="text-[11px] font-mono text-emerald-400 font-bold uppercase">{crystalSystem}</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono">
+            <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 font-mono tabular-nums">
               <div className="col-span-1 sm:col-span-2">
-                <label className="text-[10px] text-slate-500 block mb-1">Lattice a (Å)</label>
+                <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Lattice a (Å)</label>
                 <input
                   type="number"
                   step="0.005"
                   value={calcLatticeA}
                   onChange={(e) => setCalcLatticeA(parseFloat(e.target.value) || 3.5)}
-                  className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                  className="w-full px-2.5 py-1.5 rounded-sm bg-[#070A12] border border-slate-700 text-xs font-bold text-slate-100 focus:border-emerald-500 outline-none"
                 />
               </div>
               {crystalSystem === 'Hexagonal' && (
                 <div className="col-span-1">
-                  <label className="text-[10px] text-slate-500 block mb-1">Lattice c (Å)</label>
+                  <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">Lattice c (Å)</label>
                   <input
                     type="number"
                     step="0.005"
                     value={calcLatticeC}
                     onChange={(e) => setCalcLatticeC(parseFloat(e.target.value) || 4.6)}
-                    className="w-full px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-slate-900 dark:text-white"
+                    className="w-full px-2.5 py-1.5 rounded-sm bg-[#070A12] border border-slate-700 text-xs font-bold text-slate-100 focus:border-emerald-500 outline-none"
                   />
                 </div>
               )}
               <div>
-                <label className="text-[10px] text-slate-500 block mb-1">h</label>
+                <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">h</label>
                 <input
                   type="number"
                   min="0"
                   max="9"
                   value={calcH}
                   onChange={(e) => setCalcH(parseInt(e.target.value) || 0)}
-                  className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-center text-slate-900 dark:text-white"
+                  className="w-full px-2 py-1.5 rounded-sm bg-[#070A12] border border-slate-700 text-xs font-bold text-center text-slate-100 focus:border-emerald-500 outline-none"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-slate-500 block mb-1">k</label>
+                <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">k</label>
                 <input
                   type="number"
                   min="0"
                   max="9"
                   value={calcK}
                   onChange={(e) => setCalcK(parseInt(e.target.value) || 0)}
-                  className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-center text-slate-900 dark:text-white"
+                  className="w-full px-2 py-1.5 rounded-sm bg-[#070A12] border border-slate-700 text-xs font-bold text-center text-slate-100 focus:border-emerald-500 outline-none"
                 />
               </div>
               <div>
-                <label className="text-[10px] text-slate-500 block mb-1">l</label>
+                <label className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">l</label>
                 <input
                   type="number"
                   min="0"
                   max="9"
                   value={calcL}
                   onChange={(e) => setCalcL(parseInt(e.target.value) || 0)}
-                  className="w-full px-2 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-xs font-bold text-center text-slate-900 dark:text-white"
+                  className="w-full px-2 py-1.5 rounded-sm bg-[#070A12] border border-slate-700 text-xs font-bold text-center text-slate-100 focus:border-emerald-500 outline-none"
                 />
               </div>
             </div>
 
             {forwardPrediction && (
-              <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 space-y-2 font-mono text-xs">
+              <div className="p-3 rounded-sm bg-[#070A12] border border-slate-800 space-y-2 font-mono text-xs tabular-nums">
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Predicted d_({calcH}{calcK}{calcL}):</span>
-                  <strong className="text-cyan-600 dark:text-cyan-400">
+                  <span className="text-slate-400">Predicted d_({calcH}{calcK}{calcL}):</span>
+                  <strong className="text-cyan-400">
                     {forwardPrediction.d.toFixed(4)} Å
                   </strong>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Predicted Bragg 2θ:</span>
-                  <strong className="text-indigo-600 dark:text-indigo-400">
+                  <span className="text-slate-400">Predicted Bragg 2θ:</span>
+                  <strong className="text-emerald-400">
                     {forwardPrediction.twoTheta !== null
                       ? `${forwardPrediction.twoTheta.toFixed(3)}°`
                       : 'Outside Ewald Sphere (2d < λ)'}
                   </strong>
                 </div>
                 <div className="flex items-center justify-between">
-                  <span className="text-slate-500">Extinction Status:</span>
+                  <span className="text-slate-400">Extinction Status:</span>
                   <span
                     className={
                       forwardPrediction.valid
-                        ? 'text-emerald-600 dark:text-emerald-400 font-bold'
-                        : 'text-rose-600 dark:text-rose-400 font-bold'
+                        ? 'text-emerald-400 font-bold'
+                        : 'text-rose-400 font-bold'
                     }
                   >
-                    {forwardPrediction.valid ? 'Allowed Reflection' : forwardPrediction.reason}
+                    {forwardPrediction.valid ? 'ALLOWED REFLECTION' : forwardPrediction.reason}
                   </span>
                 </div>
               </div>
@@ -1189,9 +1214,9 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                     forwardPrediction.valid ? 75 : 15
                   )
                 }
-                className="w-full py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer transition-colors"
+                className="w-full py-2 rounded-sm bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors"
               >
-                + Add Predicted ({calcH}{calcK}{calcL}) Peak at {forwardPrediction.twoTheta.toFixed(2)}°
+                + Add ({calcH}{calcK}{calcL}) Peak at {forwardPrediction.twoTheta.toFixed(2)}°
               </button>
             )}
           </div>
@@ -1200,12 +1225,12 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
 
       {/* Tab 3: Goniometer Alignment & Wave Interference Optics */}
       {workbenchTab === 'ray_optics' && (
-        <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+        <div className="p-4 sm:p-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center bg-[#070A12]">
           {/* Interactive Sliders for Zero Shift, Sample Displacement, and Goniometer Radius */}
-          <div className="lg:col-span-5 space-y-4">
+          <div className="lg:col-span-5 space-y-3">
             <div className="flex items-center justify-between">
-              <h4 className="text-sm font-black text-slate-900 dark:text-white">
-                Bragg-Brentano Systematic Error Calibration
+              <h4 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100">
+                Bragg–Brentano Systematic Error Calibration
               </h4>
               <button
                 type="button"
@@ -1215,18 +1240,18 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                   setGoniometerRadius(240);
                   playSynthTone('tick');
                 }}
-                className="text-xs text-slate-500 hover:text-slate-900 dark:hover:text-white flex items-center gap-1 cursor-pointer"
+                className="text-[11px] font-mono text-slate-400 hover:text-cyan-300 flex items-center gap-1 cursor-pointer transition-colors"
               >
                 <RotateCcw className="w-3 h-3" />
-                <span>Reset Ideal</span>
+                <span>RESET</span>
               </button>
             </div>
 
-            <div className="space-y-3 bg-slate-50 dark:bg-slate-950/80 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+            <div className="space-y-3.5 bg-[#0B0F19] p-4 rounded-sm border border-slate-800">
               <div>
-                <div className="flex justify-between text-xs font-mono mb-1">
-                  <span className="text-slate-600 dark:text-slate-400">Zero-Point Offset (Δ2θ₀):</span>
-                  <strong className="text-indigo-600 dark:text-indigo-400">
+                <div className="flex justify-between text-xs font-mono mb-1.5 tabular-nums">
+                  <span className="text-slate-400">Zero-Point Offset (Δ2θ₀):</span>
+                  <strong className="text-cyan-400">
                     {zeroShift >= 0 ? `+${zeroShift.toFixed(3)}` : zeroShift.toFixed(3)}°
                   </strong>
                 </div>
@@ -1237,14 +1262,14 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                   step="0.005"
                   value={zeroShift}
                   onChange={(e) => setZeroShift(parseFloat(e.target.value))}
-                  className="w-full accent-indigo-500 cursor-pointer"
+                  className="w-full accent-cyan-400 cursor-pointer"
                 />
               </div>
 
               <div>
-                <div className="flex justify-between text-xs font-mono mb-1">
-                  <span className="text-slate-600 dark:text-slate-400">Sample Height Displacement (s):</span>
-                  <strong className="text-emerald-600 dark:text-emerald-400">
+                <div className="flex justify-between text-xs font-mono mb-1.5 tabular-nums">
+                  <span className="text-slate-400">Sample Height Displacement (s):</span>
+                  <strong className="text-emerald-400">
                     {sampleDisplacement >= 0
                       ? `+${sampleDisplacement.toFixed(3)}`
                       : sampleDisplacement.toFixed(3)}{' '}
@@ -1258,25 +1283,27 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                   step="0.005"
                   value={sampleDisplacement}
                   onChange={(e) => setSampleDisplacement(parseFloat(e.target.value))}
-                  className="w-full accent-emerald-500 cursor-pointer"
+                  className="w-full accent-emerald-400 cursor-pointer"
                 />
-                <div className="text-[10px] font-mono text-slate-500 mt-1">
+                <div className="text-[10px] font-mono text-slate-400 mt-1 tabular-nums">
                   Induced Shift at {activePeak.twoTheta.toFixed(1)}°:{' '}
-                  {(
-                    ((-2 *
-                      sampleDisplacement *
-                      Math.cos((activePeak.twoTheta / 2) * (Math.PI / 180))) /
-                      (goniometerRadius || 240)) *
-                    (180 / Math.PI)
-                  ).toFixed(4)}
-                  °
+                  <span className="text-amber-400">
+                    {(
+                      ((-2 *
+                        sampleDisplacement *
+                        Math.cos((activePeak.twoTheta / 2) * (Math.PI / 180))) /
+                        (goniometerRadius || 240)) *
+                      (180 / Math.PI)
+                    ).toFixed(4)}
+                    °
+                  </span>
                 </div>
               </div>
 
               <div>
-                <div className="flex justify-between text-xs font-mono mb-1">
-                  <span className="text-slate-600 dark:text-slate-400">Goniometer Circle Radius (R):</span>
-                  <strong className="text-cyan-600 dark:text-cyan-400">{goniometerRadius} mm</strong>
+                <div className="flex justify-between text-xs font-mono mb-1.5 tabular-nums">
+                  <span className="text-slate-400">Goniometer Circle Radius (R):</span>
+                  <strong className="text-cyan-400">{goniometerRadius} mm</strong>
                 </div>
                 <div className="flex gap-1.5">
                   {[185, 200, 240, 285, 320].map((rVal) => (
@@ -1284,10 +1311,10 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                       key={rVal}
                       type="button"
                       onClick={() => setGoniometerRadius(rVal)}
-                      className={`flex-1 py-1 rounded-lg text-xs font-mono font-bold border cursor-pointer transition-colors ${
+                      className={`flex-1 py-1.5 rounded-sm text-xs font-mono font-bold border cursor-pointer transition-colors tabular-nums ${
                         goniometerRadius === rVal
-                          ? 'bg-cyan-600 text-white border-cyan-500'
-                          : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800'
+                          ? 'bg-cyan-500 text-slate-950 border-cyan-400'
+                          : 'bg-[#070A12] text-slate-300 border-slate-800 hover:border-slate-600'
                       }`}
                     >
                       {rVal}
@@ -1299,7 +1326,7 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
           </div>
 
           {/* Right 7 Cols: Dual-Viewport Wave-Interference & Bragg-Brentano Parafocusing Goniometer SVG */}
-          <div className="lg:col-span-7 bg-slate-950 rounded-2xl border border-slate-800 p-4 flex flex-col items-center">
+          <div className="lg:col-span-7 bg-[#0B0F19] rounded-sm border border-slate-800 p-4 flex flex-col items-center">
             {(() => {
               const thetaDeg = Math.max(8, Math.min(72, activePeak.twoTheta / 2));
               const thetaRad = (thetaDeg * Math.PI) / 180;
@@ -1354,7 +1381,7 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
               return (
                 <svg viewBox="0 0 545 228" className="w-full h-auto select-none">
                   {/* Viewport A Background */}
-                  <rect x="6" y="6" width="262" height="216" rx="10" fill="#020617" stroke="#1e293b" />
+                  <rect x="6" y="6" width="262" height="216" rx="3" fill="#070A12" stroke="#1e293b" />
                   <text x="16" y="22" fill="#94a3b8" fontSize="9" fontFamily="monospace" fontWeight="bold">
                     A. BRAGG PATH DIFFERENCE (2d·sinθ = nλ)
                   </text>
@@ -1379,8 +1406,8 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                             cx={36 + aIdx * 33}
                             cy={y}
                             r="3.5"
-                            fill="#6366f1"
-                            fillOpacity={layer === 0 ? 0.95 : 0.65}
+                            fill="#38bdf8"
+                            fillOpacity={layer === 0 ? 0.95 : 0.6}
                           />
                         ))}
                       </g>
@@ -1409,7 +1436,7 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                   </text>
 
                   {/* Wave Superposition Strip */}
-                  <rect x="14" y="172" width="246" height="42" rx="6" fill="#0f172a" stroke="#1e293b" />
+                  <rect x="14" y="172" width="246" height="42" rx="2" fill="#0B0F19" stroke="#1e293b" />
                   <polyline fill="none" stroke="#38bdf8" strokeWidth="1" strokeOpacity="0.55" points={wave1Pts.join(' ')} />
                   <polyline fill="none" stroke="#818cf8" strokeWidth="1" strokeOpacity="0.55" points={wave2Pts.join(' ')} />
                   <polyline fill="none" stroke="#10b981" strokeWidth="1.8" points={sumWavePts.join(' ')} />
@@ -1418,7 +1445,7 @@ export const InteractiveBraggWorkbench: React.FC<InteractiveBraggWorkbenchProps>
                   </text>
 
                   {/* Viewport B Background: Bragg-Brentano Goniometer Circle */}
-                  <rect x="276" y="6" width="263" height="216" rx="10" fill="#020617" stroke="#1e293b" />
+                  <rect x="276" y="6" width="263" height="216" rx="3" fill="#070A12" stroke="#1e293b" />
                   <text x="286" y="22" fill="#38bdf8" fontSize="9" fontFamily="monospace" fontWeight="bold">
                     B. BRAGG-BRENTANO θ/2θ PARAFOCUSING CIRCLE
                   </text>

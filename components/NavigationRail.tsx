@@ -43,6 +43,8 @@ const NavigationRailComponent: React.FC<NavigationRailProps> = ({
     { id: 'integral_adv', label: t('IB Advanced (SSP)', 'IB Advanced (SSP)'), group: 'Size & Strain' },
     { id: 'rir', label: t('RIR Analysis', 'RIR Analysis'), group: 'Refinement' },
     { id: 'pawley_lebail', label: t('Pawley & Le Bail', 'Pawley & Le Bail'), group: 'Refinement' },
+    { id: 'rietveld', label: t('Rietveld Fit', 'Rietveld Fit'), group: 'Refinement' },
+    { id: 'pdf_analysis', label: t('Pair Dist. G(r)', 'Pair Dist. G(r)'), group: 'Refinement' },
     { id: 'cohen', label: t('Cohen Matrix', 'Cohen Matrix'), group: 'Refinement' },
     { id: 'dl', label: t('PhaseID Net', 'PhaseID Net'), group: 'AI Tools' },
     { id: 'periodic_table', label: t('Periodic Table', 'Periodic Table'), group: 'Registry' },

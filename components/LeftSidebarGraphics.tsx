@@ -157,6 +157,13 @@ export const MODULE_SCIENTIFIC_META: Record<string, ModuleScientificMeta> = {
     accentHex: '#38bdf8',
     categoryCode: 'REF-06'
   },
+  pdf_analysis: {
+    symbol: 'G(r)',
+    formula: 'G(r) = (2/π) ∫ Q[S(Q)−1] sin(Qr) dQ',
+    shortTag: 'S(Q) → G(r)',
+    accentHex: '#06b6d4',
+    categoryCode: 'REF-07'
+  },
   rir: {
     symbol: 'I/I_c',
     formula: 'W_α = (I_α / RIR_α) / ∑(I_k / RIR_k)',
@@ -503,6 +510,16 @@ export const renderScientificModuleIcon = (id: string, active: boolean): React.R
           <line x1="10" y1="14" x2="10" y2="15.8" stroke="currentColor" strokeWidth="1.4" strokeLinecap="round" />
           <line x1="14" y1="14" x2="14" y2="15.8" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
           <path d="M2.5 17.5H8L9.5 16.8L10.5 18.2L12 17.5H17.5" stroke="currentColor" strokeWidth="1.1" strokeLinecap="round" opacity="0.75" />
+        </svg>
+      );
+
+    case 'pdf_analysis':
+      // Concentric coordination shell + real-space G(r) damped oscillation wave
+      return (
+        <svg {...baseProps}>
+          <circle cx="6.5" cy="7.5" r="4.5" stroke="currentColor" strokeWidth="1.2" strokeDasharray="2 1.5" />
+          <circle cx="6.5" cy="7.5" r="1.8" fill="currentColor" />
+          <path d="M2 15.5Q4.5 10.5 6.5 15.5T11 15.5T15.5 15.5L18 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
         </svg>
       );
 

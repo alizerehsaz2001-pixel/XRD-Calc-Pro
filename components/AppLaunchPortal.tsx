@@ -1,429 +1,229 @@
-import React, { useState, useEffect } from 'react';
-import { useTranslation } from 'react-i18next';
-import { motion, AnimatePresence } from 'motion/react';
-import { 
-  Atom, 
-  Sparkles, 
-  Zap, 
-  ShieldCheck, 
-  Database, 
-  Cpu, 
-  CheckCircle2, 
-  ArrowRight, 
-  Hexagon,
-  Layers,
-  Activity,
-  Terminal,
-  Microscope,
-  Box
-} from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Cpu, ArrowRight, CheckCircle2, Sparkles, Activity, Terminal } from 'lucide-react';
 
 interface AppLaunchPortalProps {
-  isEntering: boolean;
+  isOpen: boolean;
+  onComplete: () => void;
   targetModule?: string | null;
-  isResuming?: boolean;
-  isRTL?: boolean;
-  onComplete?: () => void;
+  mode?: 'login' | 'register' | 'resume';
+  userName?: string;
 }
 
-const TELEMETRY_STEPS_EN = [
-  "Initializing Bragg-Brentano Goniometer & Matrix Core...",
-  "Loading Powder Diffraction Standards & COD Catalog...",
-  "Calibrating Cohen Least-Squares & Williamson-Hall Models...",
-  "Synthesizing Gemini Crystallography Intelligence Node...",
-  "Preparing XRD-Calc Pro Laboratory Environment..."
-];
-
-const TELEMETRY_STEPS_FA = [
-  "راه‌اندازی گونیومتر براگ-برنتانو و هسته ماتریسی...",
-  "بارگذاری استانداردهای پراش پودر و کاتالوگ COD...",
-  "کالیبراسیون مدل‌های کمترین مربعات کوهن و ویلیامسون-هال...",
-  "اتصال به شبکه هوش مصنوعی بلورشناسی گوگل جکینی...",
-  "آماده‌سازی محیط آزمایشگاهی XRD-Calc Pro..."
-];
-
-const RESUME_STEPS_EN = [
-  "Restoring Bragg-Brentano Goniometer & 2θ Calibration...",
-  "Re-aligning Detector Scintillator at 2θ = 38.45°...",
-  "Calibrating Powder Diffraction Profile & Specimen Stage...",
-  "Synthesizing Constructive Wave Interference (nλ = 2d sin θ)...",
-  "Active Session Restored: Resuming Workspace..."
-];
-
-const RESUME_STEPS_FA = [
-  "بازیابی موقعیت گونیومتر براگ-برنتانو و کالیبراسیون ۲تتا...",
-  "هم‌راستاسازی آشکارساز سنتیلاتور در زاویه ۲تتا = ۳۸.۴۵ درجه...",
-  "کالیبراسیون پروفایل پراش پودر و استیج نمونه...",
-  "سنتز امواج تداخل سازنده (nλ = 2d sin θ)...",
-  "جلسه فعال آزمایشگاه بازیابی شد: انتقال به میز کار..."
+const LAUNCH_STEPS = [
+  { id: 'kernel', label: 'Initializing Reciprocal-Space & Metric Tensor Engine...', duration: 240 },
+  { id: 'caglioti', label: 'Loading NIST SRM 640f Instrumental Resolution Function...', duration: 480 },
+  { id: 'engines', label: 'Mounting Rietveld, Parratt XRR, PDF G(r) & PINN Modules...', duration: 720 },
+  { id: 'ready', label: 'Crystallographic Workstation Ready.', duration: 920 },
 ];
 
 export const AppLaunchPortal: React.FC<AppLaunchPortalProps> = ({
-  isEntering,
+  isOpen,
+  onComplete,
   targetModule,
-  isResuming = false,
-  isRTL = false,
-  onComplete
+  mode = 'login',
+  userName,
 }) => {
-  const { t } = useTranslation();
+  const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [stepIndex, setStepIndex] = useState(0);
-
-  const steps = isResuming 
-    ? (isRTL ? RESUME_STEPS_FA : RESUME_STEPS_EN)
-    : (isRTL ? TELEMETRY_STEPS_FA : TELEMETRY_STEPS_EN);
 
   useEffect(() => {
-    if (!isEntering) {
+    if (!isOpen) {
+      setCurrentStep(0);
       setProgress(0);
-      setStepIndex(0);
       return;
     }
 
-    // Play XRD beam initiation sound
-    try {
-      const isSound = localStorage.getItem('xrd_sound') === 'true';
-      if (isSound) {
-        import('../utils/sound').then(({ playSynthTone }) => {
-          playSynthTone(isResuming ? 'xrd_scan' : 'xrd_beam');
-        }).catch(() => {});
+    const startTime = Date.now();
+    const totalDuration = 980;
+
+    const progressInterval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const pct = Math.min(100, Math.round((elapsed / totalDuration) * 100));
+      setProgress(pct);
+
+      if (elapsed > 720) setCurrentStep(3);
+      else if (elapsed > 480) setCurrentStep(2);
+      else if (elapsed > 240) setCurrentStep(1);
+      else setCurrentStep(0);
+
+      if (elapsed >= totalDuration) {
+        clearInterval(progressInterval);
+        setTimeout(() => {
+          onComplete();
+        }, 80);
       }
-    } catch {
-      // ignore sound error
-    }
+    }, 24);
 
-    const duration = isResuming ? 950 : 1100; // ms
-    const intervalTime = 20;
-    const stepsCount = duration / intervalTime;
-    let currentStep = 0;
-
-    const timer = setInterval(() => {
-      currentStep++;
-      const currentProgress = Math.min(Math.round((currentStep / stepsCount) * 100), 100);
-      setProgress(currentProgress);
-
-      const computedStepIndex = Math.min(
-        Math.floor((currentProgress / 100) * steps.length),
-        steps.length - 1
-      );
-      setStepIndex(computedStepIndex);
-
-      if (currentStep >= stepsCount) {
-        clearInterval(timer);
-        try {
-          const isSound = localStorage.getItem('xrd_sound') === 'true';
-          if (isSound) {
-            import('../utils/sound').then(({ playSynthTone }) => {
-              playSynthTone('success');
-            }).catch(() => {});
-          }
-        } catch {}
-        if (onComplete) {
-          setTimeout(onComplete, 120);
-        }
-      }
-    }, intervalTime);
-
-    return () => clearInterval(timer);
-  }, [isEntering, isResuming]);
-
-  if (!isEntering) return null;
-
-  // Calculated 2-theta angle sweep across progress: 10.00 deg -> 68.20 deg
-  const currentTwoTheta = (10 + (progress / 100) * 58.2).toFixed(2);
-  const currentTheta = (Number(currentTwoTheta) / 2).toFixed(2);
+    return () => clearInterval(progressInterval);
+  }, [isOpen, onComplete]);
 
   return (
     <AnimatePresence>
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0, transition: { duration: 0.4 } }}
-        className="fixed inset-0 z-[999] flex flex-col items-center justify-center bg-[#030712] overflow-hidden select-none"
-      >
-        {/* Hypnotic Background Radial Warp Field */}
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,_var(--tw-gradient-stops))] from-violet-950/40 via-[#030712] to-black -z-10" />
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: 0.2 }}
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-[#070A12]/95 backdrop-blur-xl overflow-hidden select-none p-4"
+        >
+          {/* Subtle CAD Coordinate Grid */}
+          <div
+            className="absolute inset-0 opacity-15 pointer-events-none"
+            style={{
+              backgroundImage:
+                'linear-gradient(to right, #1E293B 1px, transparent 1px), linear-gradient(to bottom, #1E293B 1px, transparent 1px)',
+              backgroundSize: '36px 36px',
+            }}
+          />
 
-        {/* Floating Background Particle Beams */}
-        <div className="absolute inset-0 opacity-30 pointer-events-none">
-          {Array.from({ length: 24 }).map((_, i) => (
-            <motion.div
-              key={i}
-              initial={{ 
-                x: Math.random() * window.innerWidth - window.innerWidth / 2, 
-                y: Math.random() * window.innerHeight - window.innerHeight / 2,
-                scale: 0.2,
-                opacity: 0.1
-              }}
-              animate={{ 
-                scale: [0.2, 1.8, 0],
-                opacity: [0, 0.8, 0],
-                z: [0, 300]
-              }}
-              transition={{
-                duration: 1.2 + Math.random() * 0.8,
-                repeat: Infinity,
-                ease: "easeOut",
-                delay: Math.random() * 0.5
-              }}
-              className="absolute top-1/2 left-1/2 w-2 h-2 rounded-full bg-cyan-400 shadow-[0_0_15px_#22d3ee]"
-            />
-          ))}
-        </div>
-
-        {/* Central Quantum Crystal Portal Core */}
-        <div className="relative flex flex-col items-center justify-center max-w-xl w-full px-6 text-center space-y-8 z-10">
-          
-          {/* Animated 3D Lattice Ring */}
-          <div className="relative w-36 h-36 flex items-center justify-center">
-            {/* Outer Rotating Pulse Ring */}
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 6, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-0 rounded-full border-2 border-dashed border-violet-500/40 shadow-[0_0_50px_rgba(139,92,246,0.3)]"
-            />
-
-            {/* Inner Counter-Rotating Hexagon */}
-            <motion.div
-              animate={{ rotate: -360 }}
-              transition={{ duration: 4, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-2 rounded-3xl border border-cyan-400/50 flex items-center justify-center"
-            />
-
-            {/* Glowing Core Atom Icon */}
-            <motion.div
-              animate={{ scale: [1, 1.15, 1] }}
-              transition={{ duration: 1.2, repeat: Infinity, ease: "easeInOut" }}
-              className="w-20 h-20 rounded-2xl bg-gradient-to-tr from-violet-600 via-indigo-500 to-cyan-400 flex items-center justify-center text-white shadow-[0_0_40px_rgba(34,211,238,0.6)]"
-            >
-              <Atom className="w-10 h-10 animate-spin" style={{ animationDuration: '8s' }} />
-            </motion.div>
-
-            {/* Orbiting Sparkles */}
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 2.5, repeat: Infinity, ease: "linear" }}
-              className="absolute inset-0 flex items-start justify-center"
-            >
-              <div className="w-3 h-3 rounded-full bg-cyan-300 shadow-[0_0_12px_#67e8f9] -mt-1" />
-            </motion.div>
-          </div>
-
-          {/* Title & Target Module Display */}
-          <div className="space-y-2">
-            <motion.div
-              initial={{ y: 10, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full border text-xs font-mono font-bold uppercase tracking-widest ${
-                isResuming
-                  ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300 shadow-[0_0_15px_rgba(16,185,129,0.2)]'
-                  : 'bg-violet-500/10 border-violet-500/30 text-violet-300'
-              }`}
-            >
-              <Sparkles className={`w-3.5 h-3.5 ${isResuming ? 'text-emerald-400' : 'text-cyan-400'} animate-pulse`} />
-              <span>
-                {isResuming 
-                  ? t("RESUMING ACTIVE XRD SESSION", "RESUMING ACTIVE XRD SESSION") 
-                  : t("INITIALIZING APALET ENVIRONMENT", "INITIALIZING APALET ENVIRONMENT")}
-              </span>
-            </motion.div>
-
-            <h2 className="text-3xl sm:text-4xl font-black text-white tracking-tight font-mono">
-              XRD-CALC <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-cyan-300 to-emerald-300">PRO</span>
-            </h2>
-
-            {targetModule && (
-              <p className="text-xs text-cyan-300 font-bold uppercase tracking-wider flex items-center justify-center gap-1.5 font-mono">
-                <Box className="w-3.5 h-3.5 text-violet-400" />
-                {isRTL ? `ماژول هدف: ${targetModule}` : `Active Target: ${targetModule.toUpperCase()}`}
-              </p>
-            )}
-          </div>
-
-          {/* Interactive Bragg Diffraction Goniometer & Lattice Visualizer */}
-          <div className="w-full bg-slate-950/70 border border-white/10 rounded-2xl p-4 shadow-2xl relative overflow-hidden backdrop-blur-md">
-            {/* Goniometer Angle & Bragg Condition Telemetry Strip */}
-            <div className="flex justify-between items-center text-[11px] font-mono mb-2 px-1 text-slate-300">
-              <span className="flex items-center gap-1.5 text-cyan-300 font-bold">
-                <Activity className="w-3.5 h-3.5 text-violet-400 animate-pulse" />
-                <span>2θ = {currentTwoTheta}°</span>
-                <span className="text-slate-500 text-[10px]">(θ = {currentTheta}°)</span>
-              </span>
-              <span className="text-slate-400 font-medium hidden sm:inline">
-                λ = 1.5406 Å (Cu-Kα₁)
-              </span>
-              <span className="px-2 py-0.5 rounded-md bg-indigo-500/20 text-indigo-300 text-[10px] font-bold border border-indigo-500/30">
-                nλ = 2d sin θ
-              </span>
+          <motion.div
+            initial={{ scale: 0.96, y: 10, opacity: 0 }}
+            animate={{ scale: 1, y: 0, opacity: 1 }}
+            exit={{ scale: 1.02, opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="relative z-10 w-full max-w-lg bg-[#0B0F19] border border-slate-800 rounded-sm shadow-2xl overflow-hidden"
+          >
+            {/* Header Bar */}
+            <div className="flex items-center justify-between px-5 py-3 bg-[#070A12] border-b border-slate-800">
+              <div className="flex items-center gap-2">
+                <Terminal className="w-4 h-4 text-cyan-400" />
+                <span className="text-xs font-mono font-bold uppercase tracking-wider text-white">
+                  XRD-CALCPRO KERNEL INITIALIZATION
+                </span>
+              </div>
+              <span className="text-xs font-mono font-bold text-cyan-400 tabular-nums">{progress}%</span>
             </div>
 
-            {/* SVG Bragg Diffraction Rays & Crystal Planes */}
-            <div className="relative w-full h-24 flex items-center justify-center">
-              <svg className="w-full h-full" viewBox="0 0 400 100" fill="none" preserveAspectRatio="xMidYMid meet">
-                {/* Horizontal Crystal Lattice Planes (d-spacing) */}
-                <line x1="80" y1="52" x2="320" y2="52" stroke="rgba(147, 197, 253, 0.25)" strokeWidth="1" strokeDasharray="4 2" />
-                <line x1="80" y1="72" x2="320" y2="72" stroke="rgba(147, 197, 253, 0.25)" strokeWidth="1" strokeDasharray="4 2" />
-                <line x1="80" y1="92" x2="320" y2="92" stroke="rgba(147, 197, 253, 0.25)" strokeWidth="1" strokeDasharray="4 2" />
+            <div className="p-6 space-y-5">
+              {/* Target Workstation Banner */}
+              <div className="flex items-center justify-between p-3.5 bg-[#070A12] border border-slate-800 rounded-sm">
+                <div>
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                    {mode === 'resume'
+                      ? 'Resuming Active Workspace'
+                      : userName
+                      ? `Operator: ${userName}`
+                      : 'Mounting Analytical Environment'}
+                  </div>
+                  <div className="text-sm font-mono font-bold text-white mt-0.5">
+                    Target Engine:{' '}
+                    <span className="text-cyan-400 uppercase">
+                      {targetModule ? targetModule.replace('_', ' ') : 'BRAGG & DIFFRACTION CORE'}
+                    </span>
+                  </div>
+                </div>
+                <Cpu className="w-6 h-6 text-cyan-400 animate-pulse" />
+              </div>
 
-                {/* Atoms on Crystal Lattice Planes */}
-                {[110, 155, 200, 245, 290].map((x, i) => (
-                  <g key={`plane1-${i}`}>
-                    <circle cx={x} cy="52" r="3.5" fill="#38bdf8" opacity="0.9" />
-                    <circle cx={x} cy="52" r="7" stroke="#38bdf8" strokeWidth="0.75" opacity="0.4" className="animate-ping" style={{ animationDuration: '3s', animationDelay: `${i * 0.2}s` }} />
-                  </g>
-                ))}
-                {[110, 155, 200, 245, 290].map((x, i) => (
-                  <circle key={`plane2-${i}`} cx={x} cy="72" r="3.5" fill="#818cf8" opacity="0.7" />
-                ))}
-                {[110, 155, 200, 245, 290].map((x, i) => (
-                  <circle key={`plane3-${i}`} cx={x} cy="92" r="3.5" fill="#a78bfa" opacity="0.5" />
-                ))}
-
-                {/* Incident Monochromatic X-Ray Beam (Source -> Lattice) */}
-                <path
-                  d="M 60 12 L 200 52"
-                  stroke="url(#xrayGradientIncident)"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
+              {/* Progress Bar */}
+              <div className="w-full h-1.5 bg-[#070A12] border border-slate-800 overflow-hidden">
+                <motion.div
+                  className="h-full bg-cyan-400"
+                  style={{ width: `${progress}%` }}
                 />
-                <circle cx="60" cy="12" r="4" fill="#22d3ee" className="animate-pulse" />
-                <text x="50" y="8" fill="#22d3ee" fontSize="8" fontFamily="monospace" fontWeight="bold">X-RAY TUBE</text>
+              </div>
 
-                {/* Diffracted X-Ray Beam (Lattice -> Detector at angle 2θ) */}
-                <path
-                  d="M 200 52 L 340 12"
-                  stroke="url(#xrayGradientDiffracted)"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                />
-                <circle cx="340" cy="12" r="5" fill="#c084fc" className="animate-pulse" />
-                <text x="320" y="8" fill="#c084fc" fontSize="8" fontFamily="monospace" fontWeight="bold">DETECTOR</text>
+              {/* Step Checklist */}
+              <div className="space-y-2 bg-[#070A12] border border-slate-800 p-3.5 rounded-sm font-mono text-xs">
+                {LAUNCH_STEPS.map((step, index) => {
+                  const isDone = index < currentStep || progress === 100;
+                  const isCurrent = index === currentStep && progress < 100;
+                  return (
+                    <div
+                      key={step.id}
+                      className={`flex items-center gap-2.5 transition-opacity ${
+                        index <= currentStep ? 'opacity-100' : 'opacity-35'
+                      }`}
+                    >
+                      {isDone ? (
+                        <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                      ) : isCurrent ? (
+                        <Activity className="w-3.5 h-3.5 text-cyan-400 animate-spin shrink-0" />
+                      ) : (
+                        <span className="w-3.5 h-3.5 inline-block text-center text-slate-600">·</span>
+                      )}
+                      <span
+                        className={`truncate ${
+                          isDone ? 'text-slate-300' : isCurrent ? 'text-cyan-300 font-bold' : 'text-slate-600'
+                        }`}
+                      >
+                        {step.label}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
 
-                {/* Debye-Scherrer Concentric Wave Packets */}
-                <circle cx="200" cy="52" r="16" stroke="rgba(34, 211, 238, 0.7)" strokeWidth="1" strokeDasharray="3 3" opacity={progress > 30 ? 0.8 : 0.2} />
-                <circle cx="200" cy="52" r="28" stroke="rgba(192, 132, 252, 0.6)" strokeWidth="1" strokeDasharray="3 3" opacity={progress > 60 ? 0.7 : 0.2} />
-
-                {/* Gradients */}
-                <defs>
-                  <linearGradient id="xrayGradientIncident" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" stopColor="#22d3ee" />
-                    <stop offset="100%" stopColor="#818cf8" />
-                  </linearGradient>
-                  <linearGradient id="xrayGradientDiffracted" x1="0%" y1="100%" x2="100%" y2="0%">
-                    <stop offset="0%" stopColor="#818cf8" />
-                    <stop offset="100%" stopColor="#c084fc" />
-                  </linearGradient>
-                </defs>
-              </svg>
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-[10px] font-mono text-slate-500 uppercase">
+                  ● Precision Floating-Point Solver Active
+                </span>
+                <button
+                  type="button"
+                  onClick={onComplete}
+                  className="text-[11px] font-mono font-bold text-cyan-400 hover:text-cyan-300 uppercase tracking-wider cursor-pointer"
+                >
+                  Enter Immediately →
+                </button>
+              </div>
             </div>
-          </div>
-
-          {/* Progress Bar & Laser Beam */}
-          <div className="w-full space-y-3">
-            <div className="flex justify-between items-center text-xs font-mono font-bold text-slate-400 px-1">
-              <span className="flex items-center gap-1.5 text-slate-300">
-                <Terminal className="w-3.5 h-3.5 text-violet-400" />
-                {steps[stepIndex]}
-              </span>
-              <span className="text-cyan-400 font-mono text-sm">{progress}%</span>
-            </div>
-
-            <div className="relative w-full h-3 bg-slate-900/80 border border-white/10 rounded-full overflow-hidden p-0.5 shadow-inner">
-              <motion.div
-                className="h-full rounded-full bg-gradient-to-r from-violet-600 via-indigo-500 to-cyan-400 shadow-[0_0_20px_#22d3ee]"
-                style={{ width: `${progress}%` }}
-                transition={{ ease: "easeOut" }}
-              />
-            </div>
-          </div>
-
-          {/* Equalizer Wave Visualizer */}
-          <div className="flex items-center justify-center gap-1.5 h-6">
-            {Array.from({ length: 16 }).map((_, idx) => (
-              <motion.div
-                key={idx}
-                animate={{
-                  height: [
-                    `${Math.sin(idx + progress) * 8 + 12}px`,
-                    `${Math.cos(idx + progress) * 14 + 18}px`,
-                    `${Math.sin(idx + progress) * 8 + 12}px`
-                  ]
-                }}
-                transition={{ duration: 0.3 + (idx % 4) * 0.1, repeat: Infinity, ease: "easeInOut" }}
-                className="w-1 bg-gradient-to-t from-violet-600 to-cyan-400 rounded-full opacity-80"
-              />
-            ))}
-          </div>
-
-        </div>
-      </motion.div>
+          </motion.div>
+        </motion.div>
+      )}
     </AnimatePresence>
   );
 };
 
 interface AnimatedGoToAppButtonProps {
   onClick: () => void;
-  text?: string;
-  subtext?: string;
-  variant?: 'primary' | 'secondary' | 'navbar' | 'compact';
-  isRTL?: boolean;
+  label: string;
+  sublabel?: string;
+  variant?: 'navbar' | 'hero' | 'cta' | 'resume';
+  icon?: React.ReactNode;
   className?: string;
 }
 
 export const AnimatedGoToAppButton: React.FC<AnimatedGoToAppButtonProps> = ({
   onClick,
-  text,
-  variant = 'primary',
-  isRTL = false,
-  className = ''
+  label,
+  sublabel,
+  variant = 'hero',
+  icon,
+  className = '',
 }) => {
-  const { t } = useTranslation();
-  const defaultText = t("Go to App", "Go to App");
-
-  if (variant === 'navbar') {
-    return (
-      <motion.button
-        whileHover={{ scale: 1.04 }}
-        whileTap={{ scale: 0.96 }}
-        onClick={onClick}
-        className={`relative group overflow-hidden px-4 py-2 rounded-xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 text-white font-bold text-xs uppercase tracking-wider shadow-[0_0_20px_rgba(124,58,237,0.4)] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] transition-all border border-cyan-400/30 flex items-center gap-2 cursor-pointer ${className}`}
-      >
-        <span className="absolute inset-0 bg-white/20 translate-y-full group-hover:translate-y-0 transition-transform duration-300" />
-        <Zap className="w-3.5 h-3.5 text-cyan-300 animate-pulse shrink-0" />
-        <span className="relative z-10">{text || defaultText}</span>
-        <ArrowRight className={`w-3.5 h-3.5 relative z-10 transition-transform group-hover:translate-x-1 ${isRTL ? 'rotate-180' : ''}`} />
-      </motion.button>
-    );
-  }
-
-  if (variant === 'secondary') {
-    return (
-      <motion.button
-        whileHover={{ scale: 1.03 }}
-        whileTap={{ scale: 0.97 }}
-        onClick={onClick}
-        className={`relative group overflow-hidden px-5 py-3 rounded-2xl bg-white/5 hover:bg-white/10 border border-white/10 hover:border-violet-500/40 text-slate-200 hover:text-white font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 cursor-pointer shadow-lg ${className}`}
-      >
-        <Atom className="w-4 h-4 text-cyan-400 group-hover:rotate-180 transition-transform duration-700" />
-        <span>{text || defaultText}</span>
-        <ArrowRight className={`w-3.5 h-3.5 transition-transform group-hover:translate-x-1 ${isRTL ? 'rotate-180' : ''}`} />
-      </motion.button>
-    );
-  }
+  const isNavbar = variant === 'navbar';
+  const isResume = variant === 'resume';
 
   return (
-    <motion.button
-      whileHover={{ scale: 1.04, y: -2 }}
-      whileTap={{ scale: 0.96 }}
+    <button
+      type="button"
       onClick={onClick}
-      className={`relative group overflow-hidden px-7 py-4 rounded-2xl bg-gradient-to-r from-violet-600 via-indigo-600 to-cyan-500 text-white font-black text-sm uppercase tracking-wider shadow-[0_10px_35px_rgba(124,58,237,0.45)] hover:shadow-[0_15px_45px_rgba(34,211,238,0.6)] transition-all border border-cyan-300/40 flex items-center justify-center gap-3 cursor-pointer ${className}`}
+      className={`group relative inline-flex items-center justify-center overflow-hidden font-mono font-bold uppercase tracking-wider transition-all duration-150 cursor-pointer select-none rounded-sm ${
+        isNavbar
+          ? 'px-4 py-2 text-xs bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-400'
+          : isResume
+          ? 'px-5 py-3 text-xs bg-emerald-500 hover:bg-emerald-400 text-slate-950 border border-emerald-400 shadow-lg shadow-emerald-950/50'
+          : 'px-6 py-3.5 text-xs sm:text-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 border border-cyan-400 shadow-lg shadow-cyan-950/50'
+      } ${className}`}
     >
-      {/* Animated Light Shimmer Beam */}
-      <span className="absolute -inset-full top-0 block w-1/2 h-full bg-gradient-to-r from-transparent via-white/30 to-transparent skew-x-12 group-hover:animate-shimmy pointer-events-none" />
-      
-      <div className="w-2.5 h-2.5 rounded-full bg-cyan-300 animate-ping shrink-0" />
-      <span className="relative z-10 tracking-widest">{text || defaultText}</span>
-      <ArrowRight className={`w-4 h-4 relative z-10 transition-transform group-hover:translate-x-1.5 ${isRTL ? 'rotate-180' : ''}`} />
-    </motion.button>
+      <div className="relative z-10 flex items-center gap-2.5">
+        {icon ? icon : <Sparkles className={`${isNavbar ? 'w-3.5 h-3.5' : 'w-4 h-4'} shrink-0`} />}
+        <div className="flex flex-col text-left">
+          <span className="leading-none">{label}</span>
+          {sublabel && !isNavbar && (
+            <span className="text-[10px] font-mono font-normal opacity-80 mt-1 tracking-normal normal-case">
+              {sublabel}
+            </span>
+          )}
+        </div>
+        <ArrowRight
+          className={`${
+            isNavbar ? 'w-3.5 h-3.5' : 'w-4 h-4'
+          } transition-transform duration-150 group-hover:translate-x-1 shrink-0`}
+        />
+      </div>
+    </button>
   );
 };

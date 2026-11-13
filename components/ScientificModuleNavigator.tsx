@@ -67,6 +67,7 @@ export type ModuleId =
   | 'supercell_transform'
   | 'pawley_lebail'
   | 'rietveld'
+  | 'pdf_analysis'
   | 'rir'
   | 'neutron'
   | 'magnetic'
@@ -152,6 +153,7 @@ const VALID_MODULE_IDS = new Set<string>([
   'supercell_transform',
   'pawley_lebail',
   'rietveld',
+  'pdf_analysis',
   'rir',
   'neutron',
   'magnetic',
@@ -654,7 +656,28 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
         descriptionDetail: isRTL
           ? 'پالایش کامل ساختار بلوری به روش ریتولد شامل مدل‌سازی پس‌زمینه چبیشف، وارد کردن فایل CIF، پالایش ابعاد شبکه، تابع پروفایل کالیوتی و مختصات اتمی وایکوف.'
           : 'Complete 7-stage Rietveld refinement workstation covering Chebyshev background modeling, CIF phase import, zero-shift/displacement, lattice refinement, TCH Caglioti microstructure, atomic Wyckoff coordinates/B_iso/SOF, and R-factor diagnostics.',
-        suggestedNext: ['pawley_lebail', 'rir', 'cohen']
+        suggestedNext: ['pawley_lebail', 'pdf_analysis', 'rir', 'cohen']
+      },
+      {
+        id: 'pdf_analysis',
+        label: t('Pair Distribution Function (PDF)', 'Pair Distribution Function (PDF)'),
+        categoryId: 'refinement',
+        category: t('Structure & Refinement', 'Structure & Refinement'),
+        categoryIcon: <Atom className="w-4 h-4 text-violet-500" />,
+        subtitle: t('Total scattering Sine Fourier transform S(Q) → G(r) for local atomic bond lengths & amorphous/nanoscale order', 'Total scattering Sine Fourier transform S(Q) → G(r) for local atomic bond lengths & amorphous/nanoscale order'),
+        formula: 'G(r) = (2/π) ∫ Q[S(Q) − 1]·W(Q)·sin(Qr) dQ',
+        tags: ['PDF', 'Pair Distribution', 'Total Scattering', 'G(r)', 'S(Q)', 'Amorphous', 'Glass', 'Coordination Shell', 'Lorch'],
+        icon: <Activity className={`${defaultIconClass} text-cyan-400`} />,
+        inputs: ['Reciprocal Window [Q_min, Q_max] (Å⁻¹) & Modification W(Q)', 'Coordination Shells (Pair, r_ij, N_ij, σ_ij)', 'Spherical Envelope D_nano (nm) or Amorphous ξ (Å)'],
+        outputs: ['Real-Space Pair Distribution G(r) & Residual ΔG(r)', 'Reduced Structure Function F(Q) = Q[S(Q) − 1]', 'Radial Distribution R(r) & Integrated Coordination Number N_c'],
+        subModels: ['Direct Numerical Sine Fourier Transform S(Q) → G(r)', 'Lorch & Cosine-Bell Termination Ripple Suppressor', 'Real-Space Coordination Shell Area Integrator'],
+        recommendedRange: 'Q_max: 7.8 Å⁻¹ (Cu) – 28.0 Å⁻¹ (Synchrotron) · r: 0 – 25 Å',
+        complexity: 'Expert',
+        isPopular: true,
+        descriptionDetail: isRTL
+          ? 'تحلیل پراکندگی کل و تابع توزیع جفت اتمی G(r) از طریق تبدیل فوریه سینوسی F(Q) برای تعیین طول پیوندهای موضعی، عدد همسایگی و ساختار مواد آمورف، شیشه‌های فلزی و نقاط کوانتومی.'
+          : 'Total scattering and atomic Pair Distribution Function (PDF) workstation transforming reciprocal-space F(Q) = Q[S(Q) − 1] into real-space G(r) histograms to resolve nearest-neighbor bond lengths, coordination numbers N_c, and nanoscale coherence envelopes.',
+        suggestedNext: ['rietveld', 'pawley_lebail', 'scherrer']
       },
       {
         id: 'rir',
@@ -1018,9 +1041,9 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
       },
       {
         id: 'goal_quant',
-        question: 'Identify phases & calculate weight fractions (wt%)',
-        questionFa: 'شناسایی فازها و محاسبه درصد وزنی (wt%)',
-        moduleIds: ['dl', 'database', 'compare', 'rir', 'pawley_lebail']
+        question: 'Identify phases, refine crystal structure, or probe local atomic bonds G(r)',
+        questionFa: 'شناسایی فازها، پالایش ریتولد یا بررسی پیوندهای اتمی موضعی G(r)',
+        moduleIds: ['pdf_analysis', 'rietveld', 'dl', 'database', 'compare', 'rir', 'pawley_lebail']
       },
       {
         id: 'goal_calib',

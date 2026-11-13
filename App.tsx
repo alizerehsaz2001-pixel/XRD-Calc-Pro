@@ -59,6 +59,7 @@ const CrystallographicMetricTensorModule = safeLazy(() => import('./components/C
 const SupercellTransformationModule = safeLazy(() => import('./components/SupercellTransformationModule'), 'SupercellTransformationModule');
 const PawleyLeBailDecompositionModule = safeLazy(() => import('./components/PawleyLeBailDecompositionModule'), 'PawleyLeBailDecompositionModule');
 const RietveldRefinementModule = safeLazy(() => import('./components/RietveldRefinementModule'), 'RietveldRefinementModule');
+const PairDistributionFunctionModule = safeLazy(() => import('./components/PairDistributionFunctionModule'), 'PairDistributionFunctionModule');
 const ReferenceIntensityRatioModule = safeLazy(() => import('./components/ReferenceIntensityRatioModule'), 'ReferenceIntensityRatioModule');
 const ImageAnalysisModule = safeLazy(() => import('./components/ImageAnalysisModule'), 'ImageAnalysisModule');
 const PythonExportModule = safeLazy(() => import('./components/PythonExportModule'), 'PythonExportModule');
@@ -128,7 +129,7 @@ import { DisplayModeSwitcher } from './components/DisplayModeSwitcher';
 import { WorkflowStageHeader } from './components/WorkflowStageHeader';
 import { HalfScreenStageNavigator } from './components/HalfScreenStageNavigator';
 
-type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rietveld' | 'rir' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
+type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rietveld' | 'pdf_analysis' | 'rir' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
 
 const ModuleLoadingFallback: React.FC = () => (
   <div className="flex flex-col items-center justify-center p-12 min-h-[380px] rounded-3xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200/60 dark:border-white/5 animate-pulse">
@@ -248,7 +249,7 @@ const App: React.FC = () => {
     return saved !== null ? saved === 'true' : true;
   });
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
-  const [activeModule, setActiveModule] = useState<Module>('bragg');
+  const [activeModule, setActiveModule] = useState<Module>('pdf_analysis');
   const [sidebarMode, setSidebarMode] = useState<'guided' | 'all'>(() => {
     const saved = localStorage.getItem('xrd_sidebar_mode');
     return saved === 'all' ? 'all' : 'guided';
@@ -1397,6 +1398,7 @@ const App: React.FC = () => {
       { id: 'supercell_transform', label: t("Supercell & Matrix Engine"), group: t('Advanced Refinement') },
       { id: 'pawley_lebail', label: t("Pawley & Le Bail Fitting"), group: t('Advanced Refinement') },
       { id: 'rietveld', label: t("Rietveld Structure Refinement"), group: t('Advanced Refinement') },
+      { id: 'pdf_analysis', label: t("Pair Distribution Function (PDF)"), group: t('Advanced Refinement') },
       { id: 'rir', label: t("Reference Intensity Ratio (RIR)"), group: t('Advanced Refinement') },
       { id: 'neutron', label: t('Neutron Diffraction'), group: t('Advanced Sim') },
       { id: 'magnetic', label: t('Magnetic Diffraction'), group: t('Advanced Sim') },
@@ -1977,7 +1979,9 @@ const App: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 gap-1">
                       {[
+                        { id: 'pdf_analysis' as Module, label: 'Pair Distribution Function G(r)', badge: 'NEW · S(Q)→G(r)' },
                         { id: 'rietveld' as Module, label: 'Rietveld Refinement (Full Pattern)', badge: 'R_wp · CIF' },
+                        { id: 'xrr' as Module, label: 'X-Ray Reflectometry (XRR)', badge: 'Thin Film' },
                         { id: 'wh' as Module, label: 'Williamson-Hall (Size + Strain)', badge: 'Strain ε' },
                         { id: 'dl' as Module, label: 'AI Phase ID (Neural Network)', badge: 'Deep Learning' },
                         { id: 'preferred_orientation' as Module, label: 'Preferred Orientation (Texture)', badge: 'TC(hkl)' },
@@ -2406,11 +2410,14 @@ const App: React.FC = () => {
                           'Step 4: Estimate average nanocrystallite size D (nm) from peak broadening using the Scherrer equation.'}
                         {activeModule === 'database' &&
                           'Step 5: Search reference crystal phases by peak positions or chemical elements and sync with the Neural Network.'}
+                        {activeModule === 'pdf_analysis' &&
+                          'Total Scattering & Atomic Pair Distribution Function G(r): Sine Fourier transform of F(Q) = Q[S(Q)−1] to resolve real-space interatomic bond lengths, coordination shells N_c, and nanoscale coherence γ₀(r; D).'}
                         {activeModule !== 'bragg' &&
                           activeModule !== 'selection' &&
                           activeModule !== 'fwhm' &&
                           activeModule !== 'scherrer' &&
                           activeModule !== 'database' &&
+                          activeModule !== 'pdf_analysis' &&
                           'Adjust parameters on the left or top controls to update live crystallographic calculations and interactive plots.'}
                       </p>
                     </div>
@@ -2474,31 +2481,31 @@ const App: React.FC = () => {
                   {activeModule === 'bragg' && (
                     <div className="space-y-5 animate-in fade-in duration-300">
                       {/* Step-by-Step Workspace Navigation Bar for Bragg Module */}
-                      <div className="p-2 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 shadow-xs flex flex-wrap items-center justify-between gap-2">
-                        <div className="flex flex-wrap items-center gap-1.5">
+                      <div className="p-2 rounded-sm bg-[#070A12] border border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex flex-wrap items-center gap-1">
                           {[
                             {
                               id: '1_input' as const,
-                              step: '1',
-                              label: 'Enter Peaks & Standards',
+                              step: '01',
+                              label: 'Peaks & Standards',
                               badge: `${results.length} peaks`
                             },
                             {
                               id: '2_visuals' as const,
-                              step: '2',
-                              label: 'Spectrum & 3D Ray Optics',
+                              step: '02',
+                              label: 'Spectrum & Ray Optics',
                               badge: 'Interactive'
                             },
                             {
                               id: '3_results' as const,
-                              step: '3',
-                              label: 'Results Table & Unit Cell',
+                              step: '03',
+                              label: 'Results & Unit Cell',
                               badge: crystalSystem
                             },
                             {
                               id: '4_history' as const,
-                              step: '4',
-                              label: 'Saved History & Export',
+                              step: '04',
+                              label: 'History & Export',
                               badge: `${braggHistory.length} saved`
                             }
                           ].map((tab) => {
@@ -2511,30 +2518,18 @@ const App: React.FC = () => {
                                   setBraggWorkspaceStep(tab.id);
                                   playSynthTone('switch');
                                 }}
-                                className={`px-3 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
+                                className={`px-3 py-1.5 rounded-sm text-xs font-mono font-bold transition-colors cursor-pointer flex items-center gap-2 border ${
                                   isSelected
-                                    ? 'bg-indigo-600 text-white shadow-sm'
-                                    : 'bg-slate-50 dark:bg-slate-800/60 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
+                                    ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60'
+                                    : 'bg-[#0B0F19] hover:bg-slate-900 text-slate-400 hover:text-white border-slate-800'
                                 }`}
                               >
-                                <span
-                                  className={`w-5 h-5 rounded-md text-[10px] font-mono font-black flex items-center justify-center ${
-                                    isSelected
-                                      ? 'bg-white/20 text-white'
-                                      : 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400'
-                                  }`}
-                                >
+                                <span className={isSelected ? 'text-cyan-400' : 'text-slate-500'}>
                                   {tab.step}
                                 </span>
                                 <span>{tab.label}</span>
-                                <span
-                                  className={`hidden sm:inline text-[10px] font-mono px-1.5 py-0.5 rounded ${
-                                    isSelected
-                                      ? 'bg-white/20 text-white'
-                                      : 'bg-slate-200/70 dark:bg-slate-700/70 text-slate-500 dark:text-slate-400'
-                                  }`}
-                                >
-                                  {tab.badge}
+                                <span className="hidden sm:inline text-[10px] text-slate-500 tabular-nums">
+                                  [{tab.badge}]
                                 </span>
                               </button>
                             );
@@ -2548,14 +2543,14 @@ const App: React.FC = () => {
                               setBraggWorkspaceStep((prev) => (prev === 'all' ? '1_input' : 'all'));
                               playSynthTone('switch');
                             }}
-                            className={`px-3 py-1.5 rounded-xl text-xs font-semibold border cursor-pointer transition-colors ${
+                            className={`px-3 py-1.5 rounded-sm text-xs font-mono font-bold border cursor-pointer transition-colors ${
                               braggWorkspaceStep === 'all'
-                                ? 'bg-indigo-500/15 border-indigo-500 text-indigo-600 dark:text-indigo-300 font-bold'
-                                : 'bg-slate-50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                                ? 'bg-cyan-950/80 border-cyan-500/60 text-cyan-300'
+                                : 'bg-[#0B0F19] border-slate-800 text-slate-400 hover:text-white'
                             }`}
                             title="Switch between step-by-step tabs and a single continuous page"
                           >
-                            {braggWorkspaceStep === 'all' ? 'Step-by-Step View' : 'Show All on One Page'}
+                            {braggWorkspaceStep === 'all' ? 'STEP VIEW' : 'ALL PANELS'}
                           </button>
                         </div>
                       </div>
@@ -2590,25 +2585,25 @@ const App: React.FC = () => {
                           />
 
                           {/* Progressive Disclosure: Optional Raw Text / Batch CSV Input & Instrument Calibration */}
-                          <div className="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 overflow-hidden shadow-xs">
+                          <div className="rounded-sm bg-[#0B0F19] border border-slate-800 overflow-hidden">
                             <button
                               type="button"
                               onClick={() => setShowAdvancedBraggInput((prev) => !prev)}
-                              className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors cursor-pointer"
+                              className="w-full px-4 py-3 flex items-center justify-between text-left hover:bg-[#070A12] transition-colors cursor-pointer"
                             >
                               <div className="flex items-center gap-2.5">
-                                <Sliders className="w-4 h-4 text-indigo-500" />
+                                <Sliders className="w-4 h-4 text-cyan-400" />
                                 <div>
-                                  <span className="text-xs font-bold text-slate-800 dark:text-slate-100">
+                                  <span className="text-xs font-mono font-bold uppercase tracking-wider text-slate-200">
                                     Raw Peak List Paste, Batch Multi-Sample Processing & Goniometer Offsets
                                   </span>
-                                  <span className="hidden sm:inline text-xs text-slate-400 dark:text-slate-500 ml-2">
-                                    (Optional — use when pasting comma-separated peak lists or running batch jobs)
+                                  <span className="hidden sm:inline text-[11px] font-mono text-slate-400 ml-2">
+                                    (OPTIONAL · BATCH CSV / OFFSET OVERRIDE)
                                   </span>
                                 </div>
                               </div>
-                              <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 shrink-0">
-                                <span>{showAdvancedBraggInput ? 'Hide Panel' : 'Expand Panel'}</span>
+                              <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-cyan-400 shrink-0">
+                                <span>{showAdvancedBraggInput ? 'HIDE PANEL' : 'EXPAND PANEL'}</span>
                                 <ChevronDown
                                   className={`w-4 h-4 transition-transform ${
                                     showAdvancedBraggInput ? 'rotate-180' : ''
@@ -2618,7 +2613,7 @@ const App: React.FC = () => {
                             </button>
 
                             {showAdvancedBraggInput && (
-                              <div className="p-4 sm:p-6 border-t border-slate-200/80 dark:border-slate-800/80 bg-slate-50/40 dark:bg-slate-950/40">
+                              <div className="p-4 sm:p-5 border-t border-slate-800 bg-[#070A12]">
                                 <Suspense fallback={<ModuleLoadingFallback />}>
                                   <BraggInput
                                     sampleId={sampleId}
@@ -2650,9 +2645,9 @@ const App: React.FC = () => {
                           </div>
 
                           {braggWorkspaceStep === '1_input' && (
-                            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/50">
-                              <div className="text-xs text-slate-700 dark:text-slate-300">
-                                <strong>{results.length} reflections</strong> calculated at λ = {wavelength.toFixed(4)} Å. Ready to inspect the diffraction pattern and 3D ray optics?
+                            <div className="flex flex-wrap items-center justify-between gap-3 p-3.5 rounded-sm bg-[#0B0F19] border border-slate-800">
+                              <div className="text-xs font-mono text-slate-300 tabular-nums">
+                                <span className="text-emerald-400 font-bold">● READY</span> · <strong className="text-slate-100">{results.length} reflections</strong> calculated at λ = {wavelength.toFixed(4)} Å. Proceed to spectrum & 3D goniometer optics.
                               </div>
                               <button
                                 type="button"
@@ -2660,9 +2655,9 @@ const App: React.FC = () => {
                                   setBraggWorkspaceStep('2_visuals');
                                   playSynthTone('switch');
                                 }}
-                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer transition-colors shrink-0"
+                                className="px-4 py-2 rounded-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors shrink-0"
                               >
-                                Step 2: View Spectrum & Ray Optics →
+                                Step 2: Spectrum & Ray Optics →
                               </button>
                             </div>
                           )}
@@ -2674,9 +2669,9 @@ const App: React.FC = () => {
                         <div id="stage-visualizer" className="space-y-4">
                           {/* Quick Peak Selector Strip */}
                           {results.length > 0 && (
-                            <div className="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
-                              <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                Click a peak to aim the 3D X-Ray Goniometer:
+                            <div className="p-3 rounded-sm bg-[#0B0F19] border border-slate-800 flex flex-wrap items-center justify-between gap-2">
+                              <span className="text-[11px] font-mono uppercase tracking-wider font-bold text-slate-300">
+                                Aim 3D X-Ray Goniometer:
                               </span>
                               <div className="flex flex-wrap items-center gap-1.5">
                                 {results.map((r, idx) => {
@@ -2689,10 +2684,10 @@ const App: React.FC = () => {
                                         setActiveBraggPeakIndex(idx);
                                         playSynthTone('tick');
                                       }}
-                                      className={`px-2.5 py-1 rounded-lg text-xs font-mono transition-colors cursor-pointer border ${
+                                      className={`px-2.5 py-1 rounded-sm text-xs font-mono tabular-nums transition-colors cursor-pointer border ${
                                         isAct
-                                          ? 'bg-emerald-600 text-white border-emerald-500 font-bold'
-                                          : 'bg-slate-50 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:border-emerald-500/50'
+                                          ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-bold'
+                                          : 'bg-[#070A12] text-slate-300 border-slate-800 hover:border-emerald-500/60'
                                       }`}
                                     >
                                       ({r.hkl || idx + 1}) {r.twoTheta.toFixed(2)}° → d={r.dSpacing.toFixed(3)}Å
@@ -2725,13 +2720,13 @@ const App: React.FC = () => {
                           </div>
 
                           {braggWorkspaceStep === '2_visuals' && (
-                            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/50">
+                            <div className="flex items-center justify-between p-3.5 rounded-sm bg-[#0B0F19] border border-slate-800">
                               <button
                                 type="button"
                                 onClick={() => setBraggWorkspaceStep('1_input')}
-                                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                                className="px-3 py-1.5 rounded-sm bg-[#070A12] border border-slate-700 hover:border-slate-500 text-xs font-mono font-semibold text-slate-300 cursor-pointer transition-colors"
                               >
-                                ← Back to Step 1 (Inputs)
+                                ← Back to 01 Peaks
                               </button>
                               <button
                                 type="button"
@@ -2739,9 +2734,9 @@ const App: React.FC = () => {
                                   setBraggWorkspaceStep('3_results');
                                   playSynthTone('switch');
                                 }}
-                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer transition-colors"
+                                className="px-4 py-2 rounded-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors"
                               >
-                                Step 3: View Results Table & Unit Cell Solver →
+                                Step 3: Results & Unit Cell Solver →
                               </button>
                             </div>
                           )}
@@ -2768,13 +2763,13 @@ const App: React.FC = () => {
                           </Suspense>
 
                           {braggWorkspaceStep === '3_results' && (
-                            <div className="flex items-center justify-between p-3.5 rounded-2xl bg-indigo-50/70 dark:bg-indigo-950/30 border border-indigo-200/70 dark:border-indigo-800/50">
+                            <div className="flex items-center justify-between p-3.5 rounded-sm bg-[#0B0F19] border border-slate-800">
                               <button
                                 type="button"
                                 onClick={() => setBraggWorkspaceStep('2_visuals')}
-                                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 cursor-pointer"
+                                className="px-3 py-1.5 rounded-sm bg-[#070A12] border border-slate-700 hover:border-slate-500 text-xs font-mono font-semibold text-slate-300 cursor-pointer transition-colors"
                               >
-                                ← Back to Step 2 (Spectrum)
+                                ← Back to 02 Spectrum
                               </button>
                               <div className="flex items-center gap-2">
                                 <button
@@ -2783,7 +2778,7 @@ const App: React.FC = () => {
                                     setBraggWorkspaceStep('4_history');
                                     playSynthTone('switch');
                                   }}
-                                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold cursor-pointer transition-colors"
+                                  className="px-4 py-2 rounded-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono text-xs font-bold uppercase tracking-wider cursor-pointer transition-colors"
                                 >
                                   Step 4: Saved History & Export →
                                 </button>
@@ -2796,46 +2791,46 @@ const App: React.FC = () => {
                       {/* STEP 4: Saved Calculation History & PDF/JSON Export */}
                       {(braggWorkspaceStep === '4_history' || braggWorkspaceStep === 'all') && (
                         <div id="stage-history" className="space-y-4">
-                          <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 flex flex-wrap items-center justify-between gap-3">
+                          <div className="p-4 rounded-sm bg-[#0B0F19] border border-slate-800 flex flex-wrap items-center justify-between gap-3">
                             <div>
-                              <h3 className="text-sm font-bold text-slate-900 dark:text-white">
+                              <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-100">
                                 Save Snapshot & Export Lab Report
                               </h3>
-                              <p className="text-xs text-slate-500 dark:text-slate-400">
-                                Save your current peaks to history or generate a formatted PDF diffraction report.
+                              <p className="text-xs font-mono text-slate-400 mt-0.5">
+                                Persist calculation snapshot to local ledger or export structured PDF / JSON telemetry.
                               </p>
                             </div>
                             <div className="flex flex-wrap items-center gap-2">
                               <button
                                 type="button"
                                 onClick={() => handleCalculate(true)}
-                                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                                className="px-4 py-2 rounded-sm bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
                               >
                                 <Zap className="w-3.5 h-3.5" />
-                                <span>Save Current Snapshot</span>
+                                <span>Save Snapshot</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={handleGeneratePdf}
-                                className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs flex items-center gap-1.5 shadow-sm cursor-pointer transition-colors"
+                                className="px-4 py-2 rounded-sm bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
                               >
                                 <FileDown className="w-3.5 h-3.5" />
-                                <span>Download PDF Report</span>
+                                <span>Download PDF</span>
                               </button>
                               <button
                                 type="button"
                                 onClick={handleClearAll}
-                                className="px-3.5 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-rose-500/15 text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 font-bold text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+                                className="px-3.5 py-2 rounded-sm bg-[#070A12] border border-slate-700 hover:border-rose-500/60 text-slate-300 hover:text-rose-400 font-mono font-bold text-xs uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
                               >
                                 <RotateCcw className="w-3.5 h-3.5" />
-                                <span>Reset Inputs</span>
+                                <span>Reset</span>
                               </button>
                             </div>
                           </div>
 
                           <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                             <div className="lg:col-span-6">
-                              <Suspense fallback={<div className="h-44 rounded-2xl bg-white/20 dark:bg-slate-900/20 animate-pulse border border-slate-200/40 dark:border-white/5" />}>
+                              <Suspense fallback={<div className="h-44 rounded-sm bg-[#0B0F19] animate-pulse border border-slate-800" />}>
                                 <BraggHistory
                                   history={braggHistory}
                                   onRestore={restoreHistory}
@@ -2844,22 +2839,22 @@ const App: React.FC = () => {
                               </Suspense>
                             </div>
                             <div className="lg:col-span-6">
-                              <div className="bg-slate-900 dark:bg-slate-900 rounded-2xl p-5 shadow-xl border border-slate-800 dark:border-white/5">
-                                <div className="flex justify-between items-center mb-3">
+                              <div className="bg-[#0B0F19] rounded-sm p-4 border border-slate-800">
+                                <div className="flex justify-between items-center mb-3 pb-2 border-b border-slate-800">
                                   <div className="flex items-center gap-2">
                                     <div className="w-2 h-2 rounded-full bg-cyan-400" />
-                                    <span className="text-[10px] font-bold text-cyan-400 uppercase tracking-widest">
+                                    <span className="text-[10px] font-mono font-bold text-cyan-400 uppercase tracking-widest">
                                       Structured JSON Data Output
                                     </span>
                                   </div>
                                   <button
                                     onClick={() => navigator.clipboard.writeText(JSON.stringify(braggJsonOutput, null, 2))}
-                                    className="text-[10px] text-white/80 hover:text-white transition-colors bg-white/10 hover:bg-white/20 px-2.5 py-1 rounded-md font-mono cursor-pointer"
+                                    className="text-[10px] text-slate-300 hover:text-cyan-300 transition-colors bg-[#070A12] border border-slate-700 hover:border-cyan-500/50 px-2.5 py-1 rounded-sm font-mono cursor-pointer uppercase"
                                   >
                                     Copy JSON
                                   </button>
                                 </div>
-                                <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-56 p-2.5 bg-black/40 rounded-xl">
+                                <pre className="text-[10px] font-mono text-slate-300 overflow-x-auto custom-scrollbar leading-relaxed h-56 p-3 bg-[#070A12] border border-slate-800 rounded-sm">
                                   {JSON.stringify(braggJsonOutput, null, 2)}
                                 </pre>
                               </div>
@@ -2968,6 +2963,7 @@ const App: React.FC = () => {
                       <PawleyLeBailDecompositionModule pythonFeaturesEnabled={pythonFeaturesEnabled} />
                     )}
                     {activeModule === 'rietveld' && <RietveldRefinementModule />}
+                    {activeModule === 'pdf_analysis' && <PairDistributionFunctionModule />}
                     {activeModule === 'rir' && <ReferenceIntensityRatioModule />}
                     {activeModule === 'neutron' && <NeutronModule />}
                     {activeModule === 'magnetic' && <MagneticNeutronModule />}

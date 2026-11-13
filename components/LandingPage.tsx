@@ -1,1203 +1,717 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { useTranslation } from 'react-i18next';
-import { motion, useMotionValue, useSpring, AnimatePresence } from 'motion/react';
-import LanguageSelector from './LanguageSelector';
-import { LinkedinIcon, GithubIcon } from './SocialIcons';
-import { getActiveMaterials } from '../utils/materialsHelper';
-import heroBg from '../src/assets/images/diffraction_hero_1785501736455.jpg';
-import aiAdvisorBg from '../src/assets/images/ai_science_advisor_1785501820938.jpg';
-import { 
-  Zap, 
-  Activity, 
-  Layers, 
-  FlaskConical, 
-  Database, 
-  Brain, 
-  Microscope, 
-  Radio, 
-  ArrowRight, 
-  Beaker,
-  FileText,
-  Hexagon,
-  Terminal,
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import {
+  Activity,
   Cpu,
-  MonitorCheck,
-  ShieldCheck,
+  Database,
+  Layers,
   Sparkles,
-  ChevronRight,
-  ChevronUp,
-  Shield,
-  Star,
-  Users,
-  CheckCircle2,
-  Globe,
-  Smartphone,
-  Apple,
-  PlayCircle,
-  Download,
-  GitBranch,
-  Mail,
-  Box,
-  Binary,
-  Shapes,
-  Atom,
+  ArrowRight,
+  Microscope,
+  Compass,
+  Sliders,
+  Radio,
+  Orbit,
+  Terminal,
   Search,
-  Calculator,
-  Loader2,
+  BookOpen,
+  Play,
+  RotateCcw,
+  LogOut,
   Palette,
-  SlidersHorizontal,
   Menu,
   X,
-  Plus,
-  Minus,
-  RefreshCw,
-  Play,
-  BookOpen,
-  Command,
-  CornerDownLeft,
-  Compass,
-  Check
+  ArrowUp,
+  CheckCircle2,
+  ShieldCheck,
+  Code2,
+  Copy,
+  Check,
+  HelpCircle,
+  ExternalLink,
+  Scale,
+  Binary,
+  BarChart3,
+  TrendingUp,
 } from 'lucide-react';
-
-import { SideSeekBar } from './SideSeekBar';
-import { FooterInfoModal, FooterModalType } from './FooterInfoModal';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
+import LanguageSelector from './LanguageSelector';
+import { MATERIAL_DB } from '../utils/materialDB';
 import { AppLaunchPortal, AnimatedGoToAppButton } from './AppLaunchPortal';
-import { ModulesDirectory, SCIENTIFIC_MODULES } from './landing/ModulesDirectory';
-import { WorkflowsSection } from './landing/WorkflowsSection';
-import { ScherrerBroadeningDemo } from './landing/ScherrerBroadeningDemo';
-import { InteractiveHeroDiffractionShowcase } from './landing/InteractiveHeroDiffractionShowcase';
+import { FooterInfoModal, FooterModalType } from './FooterInfoModal';
 import { WelcomeTourModal } from './landing/WelcomeTourModal';
-import { ExperimentQuickLaunchpad } from './landing/ExperimentQuickLaunchpad';
-import { WelcomeFloatingDock } from './landing/WelcomeFloatingDock';
+import { InteractiveHeroDiffractionShowcase } from './landing/InteractiveHeroDiffractionShowcase';
+import { ModulesDirectory, SCIENTIFIC_MODULES } from './landing/ModulesDirectory';
+import { ExperimentQuickLaunchpad, ExperimentPreset } from './landing/ExperimentQuickLaunchpad';
+import { ScherrerBroadeningDemo } from './landing/ScherrerBroadeningDemo';
 import { ResumeSectionPickerModal, ResumeModuleId } from './landing/ResumeSectionPickerModal';
-import { CrystallographicBrandEmblem } from './TopAppBar';
-import { renderScientificModuleIcon } from './LeftSidebarGraphics';
+import { AppSection } from '../types';
 
-// --- Background Decorations ---
-const DiffractionGrid = () => (
-  <div className="absolute inset-0 overflow-hidden pointer-events-none z-0">
-    {/* Rich ambient radial glows */}
-    <div className="absolute top-0 left-0 w-full h-[120%] bg-[radial-gradient(circle_at_50%_0%,#4f46e530,transparent_65%)]" />
-    <div className="absolute bottom-0 right-0 w-full h-[100%] bg-[radial-gradient(circle_at_100%_100%,#06b6d420,transparent_50%)]" />
-    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] mix-blend-overlay"></div>
-    
-    {/* Grid backdrop */}
-    <div className="grid grid-cols-8 md:grid-cols-12 gap-px opacity-[0.12] h-full w-full">
-      {Array.from({ length: 96 }).map((_, i) => (
-        <div key={i} className="border-[0.5px] border-slate-700/40" />
-      ))}
-    </div>
-
-    {/* Concentric Bragg Rings (Diffraction arcs) representing X-ray Diffraction */}
-    <div className="absolute top-0 left-0 w-[1200px] h-[1200px] -translate-x-1/2 -translate-y-1/2 opacity-10">
-      <div className="absolute inset-0 rounded-full border border-violet-500 scale-[0.1]" />
-      <div className="absolute inset-0 rounded-full border border-dashed border-cyan-400 scale-[0.2] animate-spin" style={{ animationDuration: '120s' }} />
-      <div className="absolute inset-0 rounded-full border border-violet-500 scale-[0.3]" />
-      <div className="absolute inset-0 rounded-full border border-cyan-400 scale-[0.4]" />
-      <div className="absolute inset-0 rounded-full border border-dashed border-violet-400 scale-[0.5] animate-spin" style={{ animationDuration: '180s' }} />
-      <div className="absolute inset-0 rounded-full border border-cyan-400 scale-[0.6]" />
-      <div className="absolute inset-0 rounded-full border border-violet-500 scale-[0.7]" />
-      <div className="absolute inset-0 rounded-full border border-dashed border-cyan-400 scale-[0.8]" />
-    </div>
-
-    {/* Elegant beam split line */}
-    <div className="absolute top-0 left-[25%] w-[1px] h-full bg-gradient-to-b from-violet-500/40 via-violet-500/10 to-transparent" />
-    <div className="absolute top-1/3 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-cyan-500/20 to-transparent" />
-    
-    {/* Floating Scientific Equations */}
-    <div className="absolute top-[14%] left-[6%] opacity-45 font-mono text-xs text-violet-300 transform -rotate-6 select-none drop-shadow-[0_0_8px_rgba(139,92,246,0.5)] font-bold border border-violet-500/30 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex items-center gap-2">
-      <span className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-ping" />
-      <span>nλ = 2d sin(θ)</span>
-    </div>
-    <div className="absolute top-[48%] right-[8%] opacity-45 font-mono text-xs text-cyan-300 transform rotate-6 select-none drop-shadow-[0_0_8px_rgba(34,211,238,0.5)] font-bold border border-cyan-500/30 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex items-center gap-2">
-      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-      <span>τ = Kλ / (β cos(θ))</span>
-    </div>
-    <div className="absolute bottom-[22%] left-[22%] opacity-45 font-mono text-xs text-emerald-300 transform -rotate-3 select-none drop-shadow-[0_0_8px_rgba(16,185,129,0.5)] font-bold border border-emerald-500/30 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex items-center gap-2">
-      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
-      <span>1/d² = (h²+k²+l²)/a²</span>
-    </div>
-    <div className="absolute top-[28%] right-[28%] opacity-35 font-mono text-xs text-rose-300 transform rotate-3 select-none drop-shadow-[0_0_8px_rgba(244,63,94,0.4)] font-bold border border-rose-500/30 bg-black/50 backdrop-blur-md px-3.5 py-1.5 rounded-xl flex items-center gap-2">
-      <span className="w-1.5 h-1.5 rounded-full bg-rose-400 animate-ping" />
-      <span>I(θ) = |F(hkl)|² · Lp</span>
-    </div>
+// --- Brand Emblem ---
+const CrystallographicBrandEmblem: React.FC = () => (
+  <div className="relative w-10 h-10 bg-[#0B0F19] border border-slate-700/90 rounded-sm flex items-center justify-center shrink-0 group-hover:border-cyan-400 transition-colors">
+    <svg viewBox="0 0 40 40" className="w-6 h-6 overflow-visible">
+      <polygon
+        points="20,3 35,11.5 35,28.5 20,37 5,28.5 5,11.5"
+        fill="none"
+        stroke="#06B6D4"
+        strokeWidth="1.6"
+      />
+      <line x1="20" y1="3" x2="20" y2="37" stroke="#334155" strokeWidth="1" strokeDasharray="2 2" />
+      <line x1="5" y1="11.5" x2="35" y2="28.5" stroke="#334155" strokeWidth="1" strokeDasharray="2 2" />
+      <line x1="35" y1="11.5" x2="5" y2="28.5" stroke="#334155" strokeWidth="1" strokeDasharray="2 2" />
+      <circle cx="20" cy="20" r="3.2" fill="#22D3EE" />
+      <circle cx="20" cy="3" r="1.8" fill="#38BDF8" />
+      <circle cx="35" cy="11.5" r="1.8" fill="#38BDF8" />
+      <circle cx="35" cy="28.5" r="1.8" fill="#38BDF8" />
+      <circle cx="20" cy="37" r="1.8" fill="#38BDF8" />
+      <circle cx="5" cy="28.5" r="1.8" fill="#38BDF8" />
+      <circle cx="5" cy="11.5" r="1.8" fill="#38BDF8" />
+    </svg>
   </div>
 );
 
-// --- 3D Lattice Decoration ---
-const CrystalLattice = ({ springX, springY }: { springX: any, springY: any }) => {
-  // FCC structure-like lattice representation of a crystal matching NaCl/Silicon reference
-  const nodes = [
-    // Layer 1 (Back, z = -100px)
-    { x: '15%', y: '15%', type: 'Na', size: 10, color: 'text-emerald-400', z: '-100px' },
-    { x: '50%', y: '15%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '-100px' },
-    { x: '85%', y: '15%', type: 'Na', size: 10, color: 'text-emerald-400', z: '-100px' },
-    { x: '15%', y: '50%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '-100px' },
-    { x: '50%', y: '50%', type: 'Na', size: 10, color: 'text-emerald-400', z: '-100px' },
-    { x: '85%', y: '50%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '-100px' },
-    { x: '15%', y: '85%', type: 'Na', size: 10, color: 'text-emerald-400', z: '-100px' },
-    { x: '50%', y: '85%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '-100px' },
-    { x: '85%', y: '85%', type: 'Na', size: 10, color: 'text-emerald-400', z: '-100px' },
+// --- Interactive Bragg Optical Bench Sandbox ---
+const BraggOpticalBenchSandbox: React.FC<{ onEnter: (targetModule?: AppSection) => void }> = ({ onEnter }) => {
+  const [lambda, setLambda] = useState<number>(1.5406);
+  const [dSpace, setDSpace] = useState<number>(3.1355);
+  const [harmonicOrder, setHarmonicOrder] = useState<number>(1);
 
-    // Layer 2 (Middle, z = 0px)
-    { x: '25%', y: '25%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '0px' },
-    { x: '57.5%', y: '25%', type: 'Na', size: 10, color: 'text-emerald-400', z: '0px' },
-    { x: '90%', y: '25%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '0px' },
-    { x: '25%', y: '57.5%', type: 'Na', size: 10, color: 'text-emerald-400', z: '0px' },
-    { x: '57.5%', y: '57.5%', type: 'Cl', size: 16, color: 'text-violet-400', z: '0px', highlight: true }, // custom glowing center
-    { x: '90%', y: '57.5%', type: 'Na', size: 10, color: 'text-emerald-400', z: '0px' },
-    { x: '25%', y: '90%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '0px' },
-    { x: '57.5%', y: '90%', type: 'Na', size: 10, color: 'text-emerald-400', z: '0px' },
-    { x: '90%', y: '90%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '0px' },
-
-    // Layer 3 (Front, z = 100px)
-    { x: '35%', y: '35%', type: 'Na', size: 10, color: 'text-emerald-400', z: '100px' },
-    { x: '65%', y: '35%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '100px' },
-    { x: '95%', y: '35%', type: 'Na', size: 10, color: 'text-emerald-400', z: '100px' },
-    { x: '35%', y: '65%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '100px' },
-    { x: '65%', y: '65%', type: 'Na', size: 10, color: 'text-emerald-400', z: '100px' },
-    { x: '95%', y: '65%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '100px' },
-    { x: '35%', y: '95%', type: 'Na', size: 10, color: 'text-emerald-400', z: '100px' },
-    { x: '65%', y: '95%', type: 'Cl', size: 14, color: 'text-cyan-400', z: '100px' },
-    { x: '95%', y: '95%', type: 'Na', size: 10, color: 'text-emerald-400', z: '100px' },
-  ];
-
-  return (
-    <motion.div 
-      style={{
-        rotateX: springY,
-        rotateY: springX,
-        animationDuration: '4s'
-      }}
-      className="absolute top-[18%] right-[5%] w-[480px] h-[480px] pointer-events-none opacity-[0.35] hidden lg:block perspective-1000 transform-style-3d z-0 animate-pulse"
-    >
-      <motion.div
-        animate={{ rotateZ: 360 }}
-        transition={{ duration: 50, repeat: Infinity, ease: "linear" }}
-        className="w-full h-full transform-style-3d relative"
-      >
-        {/* Orbital concentric rings to represent diffraction paths */}
-        <div className="absolute inset-0 border border-violet-500/10 rounded-full scale-[1.2] transform-style-3d pointer-events-none" />
-        <div className="absolute inset-0 border border-dashed border-cyan-500/5 rounded-full scale-[0.8] transform-style-3d pointer-events-none animate-spin" style={{ animationDuration: '30s' }} />
-        <div className="absolute inset-0 border border-indigo-500/15 rounded-full scale-[0.5] transform-style-3d pointer-events-none" />
-
-        {/* 3D lattice bonds */}
-        <svg className="absolute inset-0 w-full h-full" style={{ transform: 'translateZ(0)' }}>
-           {/* Grid 1 back */}
-           <line x1="15%" y1="15%" x2="85%" y2="15%" stroke="rgba(139,92,246,0.25)" strokeWidth="1" />
-           <line x1="15%" y1="50%" x2="85%" y2="50%" stroke="rgba(139,92,246,0.15)" strokeWidth="1" />
-           <line x1="15%" y1="85%" x2="85%" y2="85%" stroke="rgba(139,92,246,0.25)" strokeWidth="1" />
-           <line x1="15%" y1="15%" x2="15%" y2="85%" stroke="rgba(139,92,246,0.25)" strokeWidth="1" />
-           <line x1="50%" y1="15%" x2="50%" y2="85%" stroke="rgba(139,92,246,0.15)" strokeWidth="1" />
-           <line x1="85%" y1="15%" x2="85%" y2="85%" stroke="rgba(139,92,246,0.25)" strokeWidth="1" />
-
-           {/* Grid 2 front */}
-           <line x1="35%" y1="35%" x2="95%" y2="35%" stroke="rgba(6,182,212,0.35)" strokeWidth="1.5" />
-           <line x1="35%" y1="65%" x2="95%" y2="65%" stroke="rgba(6,182,212,0.2)" strokeWidth="1.5" />
-           <line x1="35%" y1="95%" x2="95%" y2="95%" stroke="rgba(6,182,212,0.35)" strokeWidth="1.5" />
-           <line x1="35%" y1="35%" x2="35%" y2="95%" stroke="rgba(6,182,212,0.35)" strokeWidth="1.5" />
-           <line x1="65%" y1="35%" x2="65%" y2="95%" stroke="rgba(6,182,212,0.2)" strokeWidth="1.5" />
-           <line x1="95%" y1="35%" x2="95%" y2="95%" stroke="rgba(6,182,212,0.35)" strokeWidth="1.5" />
-
-           {/* Connectors between back and front */}
-           <line x1="15%" y1="15%" x2="35%" y2="35%" stroke="rgba(139,92,246,0.3)" strokeWidth="1.5" strokeDasharray="2 2" />
-           <line x1="85%" y1="15%" x2="95%" y2="35%" stroke="rgba(139,92,246,0.3)" strokeWidth="1.5" strokeDasharray="2 2" />
-           <line x1="15%" y1="85%" x2="35%" y2="95%" stroke="rgba(139,92,246,0.3)" strokeWidth="1.5" strokeDasharray="2 2" />
-           <line x1="85%" y1="85%" x2="95%" y2="95%" stroke="rgba(139,92,246,0.3)" strokeWidth="1.5" strokeDasharray="2 2" />
-
-           <line x1="50%" y1="50%" x2="65%" y2="65%" stroke="rgba(244,63,94,0.3)" strokeWidth="1" strokeDasharray="4 2" />
-           <line x1="50%" y1="15%" x2="65%" y2="35%" stroke="rgba(139,92,246,0.2)" strokeWidth="1" />
-           <line x1="85%" y1="50%" x2="95%" y2="65%" stroke="rgba(139,92,246,0.2)" strokeWidth="1" />
-           <line x1="50%" y1="85%" x2="65%" y2="95%" stroke="rgba(139,92,246,0.2)" strokeWidth="1" />
-           <line x1="15%" y1="50%" x2="35%" y2="65%" stroke="rgba(139,92,246,0.2)" strokeWidth="1" />
-        </svg>
-
-        {/* Nodes */}
-        {nodes.map((n, i) => (
-          <motion.div 
-            key={i}
-            className={`absolute rounded-full flex items-center justify-center bg-current ${n.color} transition-all duration-300`}
-            style={{ 
-              left: n.x, 
-              top: n.y, 
-              width: n.size, 
-              height: n.size,
-              translateZ: n.z,
-              boxShadow: n.highlight ? '0 0 25px rgba(167, 139, 250, 0.9)' : '0 0 12px currentColor'
-            }}
-          >
-            {n.highlight && (
-              <span className="absolute w-full h-full rounded-full bg-violet-400 animate-ping opacity-75" />
-            )}
-          </motion.div>
-        ))}
-      </motion.div>
-    </motion.div>
-  );
-};
-
-// --- Reusable Components ---
-const SectionHeading = ({ badge, title, description, center = false }: { badge: string, title: string, description: string, center?: boolean }) => (
-  <div className={`mb-16 ${center ? 'text-center max-w-3xl mx-auto' : 'max-w-3xl'}`}>
-    <motion.div 
-      initial={{ opacity: 0, y: 10 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 mb-6"
-    >
-      <span className="text-[10px] font-bold uppercase tracking-widest text-violet-300">{badge}</span>
-    </motion.div>
-    <motion.h2 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: 0.1 }}
-      className="text-4xl md:text-5xl font-extrabold text-white mb-6 tracking-tight leading-[1.1] drop-shadow-sm"
-    >
-      {title}
-    </motion.h2>
-    <motion.p 
-      initial={{ opacity: 0, y: 20 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ delay: 0.2 }}
-      className="text-lg text-slate-300 font-medium leading-relaxed"
-    >
-      {description}
-    </motion.p>
-  </div>
-);
-
-const FeatureCard = ({ title, description, icon: Icon, index, module, onLaunch }: { title: string, description: string, icon: any, index: number, module?: string, onLaunch?: (mod: string) => void }) => (
-  <motion.div 
-    initial={{ opacity: 0, y: 20 }}
-    whileInView={{ opacity: 1, y: 0 }}
-    viewport={{ once: true }}
-    transition={{ delay: index * 0.1, duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
-    onClick={() => module && onLaunch?.(module)}
-    className={`group relative bg-[#090F1E]/60 backdrop-blur-xl border border-slate-800/80 p-8 rounded-[2rem] hover:border-violet-500/50 transition-all duration-500 overflow-hidden shadow-2xl hover:shadow-violet-950/30 hover:-translate-y-1 block ${module ? 'cursor-pointer' : 'cursor-default'}`}
-  >
-    <div className="absolute inset-0 bg-gradient-to-br from-violet-600/10 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-    
-    <div className="flex flex-col items-start gap-6 relative z-10 h-full">
-      <div className="w-12 h-12 rounded-2xl bg-[#030712] border border-slate-800 flex items-center justify-center text-violet-400 group-hover:scale-110 group-hover:bg-violet-950 group-hover:border-violet-500/50 group-hover:text-violet-300 transition-all duration-300 shadow-inner">
-        <Icon className="w-6 h-6" />
-      </div>
-      <div>
-        <h3 className="font-bold text-sm tracking-wide text-slate-200 group-hover:text-white transition-colors mb-2.5 flex items-center gap-2">
-          {title}
-        </h3>
-        <p className="text-xs text-slate-400 leading-relaxed group-hover:text-slate-300 transition-colors font-medium">
-          {description}
-        </p>
-        
-        {module && (
-          <div className="mt-5 flex items-center gap-1.5 text-[10px] font-black uppercase text-violet-400 tracking-wider group-hover:text-cyan-300 transition-colors">
-            <span>Launch Instrument</span>
-            <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" />
-          </div>
-        )}
-      </div>
-    </div>
-  </motion.div>
-);
-
-const PlatformIcon = ({ icon: Icon, label, desc }: { icon: any, label: string, desc: string }) => (
-  <div className="flex items-center gap-4 bg-white/5 p-4 rounded-2xl border border-white/10 hover:bg-white/10 transition-colors cursor-pointer group shadow-xl">
-    <div className="p-3 bg-slate-900 rounded-xl group-hover:bg-violet-500 transition-colors shadow-inner">
-      <Icon className="w-6 h-6 text-violet-400 group-hover:text-white" />
-    </div>
-    <div>
-      <p className="text-sm font-black text-white tracking-wider leading-none mb-1">{label}</p>
-      <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest leading-none">{desc}</p>
-    </div>
-  </div>
-);
-
-// --- Interactive Bragg Sandbox Component ---
-const BraggSandboxWrapper = ({ onEnter }: { onEnter: (targetModule?: string) => void }) => {
-  const [lambda, setLambda] = useState(1.5406); // Cu-Ka default
-  const [dSpace, setDSpace] = useState(2.82);   // NaCl default
-  const [order, setOrder] = useState(1);
-  const [activeAnode, setActiveAnode] = useState('Cu');
-  const [selectedMaterial, setSelectedMaterial] = useState('NaCl');
-
-  const svgRef = useRef<SVGSVGElement | null>(null);
-  const [isDraggingCanvas, setIsDraggingCanvas] = useState(false);
-
-  const animFrameRef = useRef<number | null>(null);
-
-  const handleCanvasDrag = (clientY: number) => {
-    if (animFrameRef.current) return;
-    
-    animFrameRef.current = requestAnimationFrame(() => {
-      if (!svgRef.current) {
-        animFrameRef.current = null;
-        return;
-      }
-      const rect = svgRef.current.getBoundingClientRect();
-      const relativeY = clientY - rect.top;
-      const distanceToCenter = Math.abs(relativeY - (rect.height / 2));
-      const computedD = distanceToCenter / 22;
-      const clampedD = Math.max(1.00, Math.min(6.00, computedD));
-      setDSpace(clampedD);
-      setSelectedMaterial('custom');
-      animFrameRef.current = null;
-    });
-  };
-
-  useEffect(() => {
-    if (!isDraggingCanvas) return;
-
-    const handleGlobalMove = (e: MouseEvent) => {
-      handleCanvasDrag(e.clientY);
-    };
-    const handleGlobalTouchMove = (e: TouchEvent) => {
-      handleCanvasDrag(e.touches[0].clientY);
-    };
-    const handleGlobalUp = () => {
-      setIsDraggingCanvas(false);
-    };
-
-    window.addEventListener('mousemove', handleGlobalMove, { passive: true });
-    window.addEventListener('touchmove', handleGlobalTouchMove, { passive: true });
-    window.addEventListener('mouseup', handleGlobalUp);
-    window.addEventListener('touchend', handleGlobalUp);
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-      window.removeEventListener('mousemove', handleGlobalMove);
-      window.removeEventListener('touchmove', handleGlobalTouchMove);
-      window.removeEventListener('mouseup', handleGlobalUp);
-      window.removeEventListener('touchend', handleGlobalUp);
-    };
-  }, [isDraggingCanvas]);
-
-  const presets = [
-    { name: 'Copper (Cu)', symbol: 'Cu', val: 1.5406, color: 'bg-amber-500/10 border-amber-500/30 text-amber-300' },
-    { name: 'Molybdenum (Mo)', symbol: 'Mo', val: 0.7107, color: 'bg-blue-500/10 border-blue-500/30 text-blue-300' },
-    { name: 'Cobalt (Co)', symbol: 'Co', val: 1.789, color: 'bg-pink-500/10 border-pink-500/30 text-pink-300' },
-    { name: 'Iron (Fe)', symbol: 'Fe', val: 1.9360, color: 'bg-orange-500/10 border-orange-500/30 text-orange-300' },
-    { name: 'Chromium (Cr)', symbol: 'Cr', val: 2.290, color: 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300' },
-  ];
-
-  const materialPresets = [
-    { name: 'Halite (NaCl)', symbol: 'NaCl', d: 2.820, group: 'Fm-3m', system: 'Cubic', hkl: '(200)', notes: 'Rock salt crystal standard' },
-    { name: 'Silicon (Si)', symbol: 'Si', d: 3.135, group: 'Fd-3m', system: 'Cubic', hkl: '(111)', notes: 'Ultra-pure semiconductor standard' },
-    { name: 'Gold Foil (Au)', symbol: 'Au', d: 2.355, group: 'Fm-3m', system: 'Cubic', hkl: '(111)', notes: 'FCC precious metal metric' },
-    { name: 'Anatase (TiO2)', symbol: 'TiO2', d: 3.520, group: 'I41/amd', system: 'Tetragonal', hkl: '(101)', notes: 'Photocatalytic oxide lattice' },
-    { name: 'Quartz (SiO2)', symbol: 'SiO2', d: 3.343, group: 'P3221', system: 'Trigonal', hkl: '(101)', notes: 'Standard α-quartz geological reference' },
-    { name: 'Corundum (Al2O3)', symbol: 'Al2O3', d: 2.552, group: 'R-3c', system: 'Trigonal', hkl: '(104)', notes: 'Synthetic sapphire standard' },
-    { name: 'Graphite Carbon (C)', symbol: 'C', d: 3.354, group: 'P63/mmc', system: 'Hexagonal', hkl: '(002)', notes: 'Layered basal plane graphene sheets' },
-  ];
-
-  // Quick 1-click benchmark combos
-  const benchmarkCombos = [
-    { label: '💎 Silicon (111) + Cu-Kα', anode: 'Cu', lambda: 1.5406, material: 'Si', d: 3.135 },
-    { label: '🧂 NaCl (200) + Cu-Kα', anode: 'Cu', lambda: 1.5406, material: 'NaCl', d: 2.820 },
-    { label: '🧪 TiO2 Anatase + Cu-Kα', anode: 'Cu', lambda: 1.5406, material: 'TiO2', d: 3.520 },
-    { label: '⚡ Gold (111) + Mo-Kα', anode: 'Mo', lambda: 0.7107, material: 'Au', d: 2.355 },
-    { label: '🪨 Quartz SiO2 + Cr-Kα', anode: 'Cr', lambda: 2.290, material: 'SiO2', d: 3.343 },
-  ];
-
-  // Bragg's Law calculation: 2d sin(theta) = n * lambda
-  const sinTheta = (order * lambda) / (2 * dSpace);
-  const isValid = sinTheta >= 0 && sinTheta <= 1;
-
+  const sinTheta = (harmonicOrder * lambda) / (2 * dSpace);
+  const isValid = sinTheta <= 1.0 && sinTheta > 0;
   const thetaRad = isValid ? Math.asin(sinTheta) : 0;
-  const thetaDeg = (thetaRad * 180) / Math.PI;
+  const thetaDeg = isValid ? (thetaRad * 180) / Math.PI : 0;
   const twoThetaDeg = thetaDeg * 2;
-  // Reciprocal space scattering vector: q = (4π sin(θ)) / λ  (Å^-1)
-  const qVector = isValid && lambda > 0 ? (4 * Math.PI * Math.sin(thetaRad)) / lambda : 0;
+  const qVector = isValid ? (4 * Math.PI * sinTheta) / lambda : 0;
 
-  // SVG dimensions for diffraction trace
-  const svgW = 420;
-  const svgH = 220;
-  const cx = 210;
-  const cy = 110;
+  const ANODES = [
+    { label: 'Cu Kα₁', val: 1.5406 },
+    { label: 'Co Kα₁', val: 1.7890 },
+    { label: 'Mo Kα₁', val: 0.7093 },
+    { label: 'Cr Kα₁', val: 2.2897 },
+    { label: 'Ag Kα₁', val: 0.5594 },
+  ];
 
-  // Spacing helper
-  const scaleD = Math.max(25, dSpace * 22);
-
-  // Plane Y values
-  const y1 = cy - scaleD;
-  const y2 = cy;
-  const y3 = cy + scaleD;
-
-  const displayAngleRad = thetaRad > 0.05 ? thetaRad : Math.PI / 6; // fallback visual representation
-  const beamLen = 160;
-  const dx = Math.cos(displayAngleRad) * beamLen;
-  const dy = Math.sin(displayAngleRad) * beamLen;
-
-  // Intersection coordinates at central atom (y2)
-  const rxInX = cx - dx;
-  const rxInY = y2 - dy;
-  const rxOutX = cx + dx;
-  const rxOutY = y2 - dy;
-
-  // Underneath atomic plane 3 reflection trigger
-  const xOffset = Math.tan(displayAngleRad) > 0.05 ? scaleD / Math.tan(displayAngleRad) : 0;
-  const rx3X = cx - xOffset;
-  const rx3OutX = cx + xOffset;
-
-  // Sinusoidal wave drawer along path
-  const generateWaveLine = (x1: number, y1: number, x2: number, y2: number, amp: number, freq: number, phase: number = 0) => {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const len = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
-    const steps = 30; // Highly optimized, clean wave points
-    let points = `M ${x1.toFixed(1)},${y1.toFixed(1)}`;
-    const factor = (2 * Math.PI * freq) / len;
-    
-    for (let i = 1; i <= steps; i++) {
-      const t = i / steps;
-      const d = t * len;
-      const waveVal = amp * Math.sin(d * factor + phase);
-      const px = x1 + d * Math.cos(angle) - waveVal * Math.sin(angle);
-      const py = y1 + d * Math.sin(angle) + waveVal * Math.cos(angle);
-      points += ` L ${px.toFixed(1)},${py.toFixed(1)}`;
-    }
-    return points;
-  };
-
-  const activeMaterial = materialPresets.find(m => m.symbol === selectedMaterial);
+  const LATTICE_PRESETS = [
+    { label: 'Si (111)', d: 3.1355, lambda: 1.5406 },
+    { label: 'Si (220)', d: 1.9201, lambda: 1.5406 },
+    { label: 'Au (111)', d: 2.355, lambda: 1.5406 },
+    { label: 'NaCl (200)', d: 2.8201, lambda: 1.5406 },
+    { label: 'α-Fe (110)', d: 2.0268, lambda: 1.7890 },
+  ];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-start bg-slate-900/30 backdrop-blur-3xl border border-slate-800/80 p-8 md:p-12 rounded-[3rem] shadow-2xl">
-      {/* Settings Panel */}
-      <div className="lg:col-span-5 space-y-7">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <section
+      id="bragg-optical-bench"
+      className="py-20 px-4 sm:px-6 lg:px-8 relative z-10 border-t border-slate-800/80 bg-[#070A12]"
+    >
+      <div className="max-w-7xl mx-auto">
+        <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6 pb-6 border-b border-slate-800">
           <div>
-            <h3 className="text-xl font-bold text-white flex items-center gap-2">
-              <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-              Parameter Sandbox & Mini Lab
-            </h3>
-            <p className="text-xs text-slate-400 font-medium leading-relaxed mt-1">
-              Interactively tune wavelength, choose crystal standards, and observe reciprocal scattering physics calibrate.
-            </p>
-          </div>
-          <button
-            onClick={() => onEnter('bragg')}
-            className="self-start px-3 py-1.5 bg-violet-600/20 hover:bg-violet-600/40 text-violet-300 border border-violet-500/40 rounded-xl text-xs font-mono font-bold flex items-center gap-1.5 transition-all shrink-0 cursor-pointer shadow-sm"
-            title="Open dedicated Bragg Solver Module"
-          >
-            <span>Full Tool</span>
-            <ArrowRight className="w-3.5 h-3.5" />
-          </button>
-        </div>
-
-        {/* 1-CLICK BENCHMARK COMBOS */}
-        <div className="space-y-2 bg-slate-950/60 p-3 rounded-2xl border border-slate-800/80">
-          <div className="flex items-center justify-between">
-            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              Quick Benchmark Presets
-            </span>
-            <span className="text-[9px] font-mono text-slate-500">1-click calibrate</span>
+            <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-cyan-400 mb-2">
+              <span>● INTERACTIVE OPTICAL RAYBENCH</span>
+              <span className="text-slate-700">|</span>
+              <span className="text-slate-400">PATH-DIFFERENCE COHERENCE SOLVER</span>
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
+              Bragg’s Law &amp; Reciprocal Lattice Geometry
+            </h2>
           </div>
           <div className="flex flex-wrap gap-1.5">
-            {benchmarkCombos.map((combo, idx) => (
+            {LATTICE_PRESETS.map((p) => (
               <button
-                key={idx}
+                key={p.label}
+                type="button"
                 onClick={() => {
-                  setActiveAnode(combo.anode);
-                  setLambda(combo.lambda);
-                  setSelectedMaterial(combo.material);
-                  setDSpace(combo.d);
-                  setOrder(1);
+                  setDSpace(p.d);
+                  setLambda(p.lambda);
+                  setHarmonicOrder(1);
                 }}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-sans font-semibold transition-all border cursor-pointer ${
-                  selectedMaterial === combo.material && activeAnode === combo.anode
-                    ? 'bg-cyan-500/20 border-cyan-400 text-cyan-300 shadow-[0_0_10px_rgba(34,211,238,0.2)]'
-                    : 'bg-slate-900/80 hover:bg-slate-800/90 border-slate-700/60 text-slate-300 hover:text-white'
+                className={`px-2.5 py-1.5 text-xs font-mono rounded-sm border transition-colors cursor-pointer ${
+                  Math.abs(dSpace - p.d) < 0.005
+                    ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60 font-bold'
+                    : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:border-slate-700 hover:text-white'
                 }`}
               >
-                {combo.label}
+                {p.label} ({p.d.toFixed(3)} Å)
               </button>
             ))}
           </div>
         </div>
 
-        {/* MATERIAL STANDARDS CONFIG */}
-        <div className="space-y-2.5">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block">
-            Select Calibration Crystal Standard
-          </label>
-          <div className="flex flex-wrap gap-2">
-            {materialPresets.map((mat) => (
-              <button
-                key={mat.symbol}
-                onClick={() => {
-                  setDSpace(mat.d);
-                  setSelectedMaterial(mat.symbol);
-                }}
-                className={`flex-1 min-w-[105px] px-3 py-2 border rounded-xl text-left transition-all font-sans cursor-pointer flex flex-col justify-between ${
-                  selectedMaterial === mat.symbol
-                    ? 'border-violet-500 bg-violet-500/15 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.2)]'
-                    : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700 hover:text-slate-300'
-                }`}
-              >
-                <div className="flex items-center gap-1.5">
-                  <Atom className={`w-3.5 h-3.5 ${selectedMaterial === mat.symbol ? 'text-violet-400' : 'text-slate-500'}`} />
-                  <span className="text-[11px] font-black tracking-wider block">{mat.symbol}</span>
+        <div className="grid grid-cols-1 lg:grid-cols-12 border border-slate-800 bg-[#0B0F19] rounded-sm overflow-hidden shadow-2xl">
+          {/* Left Column: Controls & Governing Equations */}
+          <div className="lg:col-span-5 p-6 sm:p-8 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between space-y-6">
+            <div className="space-y-5">
+              {/* Equation Display */}
+              <div className="p-3.5 bg-[#070A12] border border-slate-800 rounded-sm flex items-center justify-between">
+                <span className="text-xs font-mono text-slate-400">Constructive Condition:</span>
+                <span className="text-sm font-mono font-bold text-cyan-300">2d_hkl · sin(θ) = nλ</span>
+              </div>
+
+              {/* X-Ray Anode Target Selector */}
+              <div>
+                <div className="flex justify-between items-center text-xs font-mono mb-2">
+                  <span className="text-slate-400 uppercase">Incident Wavelength (λ)</span>
+                  <span className="text-cyan-400 font-bold tabular-nums">{lambda.toFixed(4)} Å</span>
                 </div>
-                <span className="text-[10px] font-mono opacity-80 mt-0.5">{mat.d.toFixed(3)} Å</span>
-              </button>
-            ))}
-          </div>
-        </div>
+                <div className="grid grid-cols-5 gap-1 mb-2.5">
+                  {ANODES.map((a) => (
+                    <button
+                      key={a.label}
+                      type="button"
+                      onClick={() => setLambda(a.val)}
+                      className={`py-1 text-[10px] font-mono font-bold rounded-sm border transition-colors ${
+                        Math.abs(lambda - a.val) < 0.002
+                          ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60'
+                          : 'bg-[#070A12] text-slate-400 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      {a.label}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  type="range"
+                  min={0.5}
+                  max={2.5}
+                  step={0.005}
+                  value={lambda}
+                  onChange={(e) => setLambda(parseFloat(e.target.value))}
+                  aria-label="Incident Wavelength Lambda in Angstroms"
+                  className="w-full accent-cyan-400 h-1.5 bg-slate-800 cursor-pointer"
+                />
+              </div>
 
-        {/* PRESSET ANODE selection */}
-        <div className="space-y-2.5">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block">
-            Anode Target Tube (Radiation Source λ)
-          </label>
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-            {presets.map((p) => (
+              {/* Interplanar Spacing d(hkl) */}
+              <div>
+                <div className="flex justify-between items-center text-xs font-mono mb-2">
+                  <span className="text-slate-400 uppercase">Interplanar Spacing d(hkl)</span>
+                  <span className="text-emerald-400 font-bold tabular-nums">{dSpace.toFixed(4)} Å</span>
+                </div>
+                <input
+                  type="range"
+                  min={0.8}
+                  max={6.0}
+                  step={0.005}
+                  value={dSpace}
+                  onChange={(e) => setDSpace(parseFloat(e.target.value))}
+                  aria-label="Interplanar Spacing d in Angstroms"
+                  className="w-full accent-emerald-400 h-1.5 bg-slate-800 cursor-pointer"
+                />
+              </div>
+
+              {/* Diffraction Order n */}
+              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
+                <span className="text-xs font-mono uppercase text-slate-400">Harmonic Order (n)</span>
+                <div className="flex gap-1.5">
+                  {[1, 2, 3].map((n) => (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setHarmonicOrder(n)}
+                      className={`px-3 py-1 text-xs font-mono font-bold rounded-sm border transition-colors ${
+                        harmonicOrder === n
+                          ? 'bg-cyan-950/80 text-cyan-300 border-cyan-500/60'
+                          : 'bg-[#070A12] text-slate-400 border-slate-800 hover:text-white'
+                      }`}
+                    >
+                      n = {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            {/* Output Telemetry Grid */}
+            <div className="grid grid-cols-2 gap-2.5">
+              <div className="p-3 bg-[#070A12] border border-slate-800 rounded-sm">
+                <div className="text-[10px] font-mono uppercase text-slate-500">Detector Angle 2θ</div>
+                <div className="text-lg font-mono font-bold text-cyan-400 tabular-nums mt-0.5">
+                  {isValid ? `${twoThetaDeg.toFixed(2)}°` : 'EVANESCENT'}
+                </div>
+                <div className="text-[10px] font-mono text-slate-500 tabular-nums">
+                  θ_Bragg = {isValid ? `${thetaDeg.toFixed(2)}°` : 'sinθ > 1'}
+                </div>
+              </div>
+              <div className="p-3 bg-[#070A12] border border-slate-800 rounded-sm">
+                <div className="text-[10px] font-mono uppercase text-slate-500">Momentum Transfer Q</div>
+                <div className="text-lg font-mono font-bold text-indigo-300 tabular-nums mt-0.5">
+                  {isValid ? `${qVector.toFixed(3)} Å⁻¹` : '—'}
+                </div>
+                <div className="text-[10px] font-mono text-slate-500 tabular-nums">
+                  Δ = 2d·sinθ = {(harmonicOrder * lambda).toFixed(3)} Å
+                </div>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-slate-800">
               <button
-                key={p.symbol}
+                type="button"
                 onClick={() => {
-                  setLambda(p.val);
-                  setActiveAnode(p.symbol);
+                  try {
+                    localStorage.setItem('xrd_sandbox_lambda', String(lambda));
+                    localStorage.setItem('xrd_sandbox_d', String(dSpace));
+                  } catch {}
+                  onEnter('bragg');
                 }}
-                className={`px-2.5 py-2 border rounded-xl text-left transition-all font-sans cursor-pointer flex flex-col justify-between ${
-                  activeAnode === p.symbol
-                    ? 'border-cyan-500 bg-cyan-500/10 text-cyan-300 shadow-[0_0_15px_rgba(34,211,238,0.15)]'
-                    : 'border-slate-800 bg-slate-950/40 text-slate-400 hover:border-slate-700 hover:text-slate-300'
+                className="flex-1 py-2.5 px-4 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors flex items-center justify-center gap-2 cursor-pointer"
+              >
+                <span>Transfer to Bragg Workstation</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Right Column: Live Geometric Ray-Tracing CAD Schematic */}
+          <div className="lg:col-span-7 p-6 sm:p-8 bg-[#070A12] flex flex-col justify-between">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
+              <div>
+                <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500 block">
+                  Real-Space Atomic Planes &amp; Path Retardation 2d·sinθ
+                </span>
+                <h4 className="text-sm font-mono font-bold text-white">
+                  Specular Reflection Geometry off (hkl) Miller Planes
+                </h4>
+              </div>
+              <span
+                className={`text-xs font-mono font-bold ${
+                  isValid ? 'text-emerald-400' : 'text-rose-400'
                 }`}
               >
-                <span className="text-[11px] font-black tracking-wider block">{p.symbol}-Kα</span>
-                <span className="text-[10px] font-mono opacity-80">{p.val.toFixed(4)} Å</span>
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* SLIDER FOR LAMBDA WITH FINE-STEPPERS */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-baseline">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Wavelength Tuning (λ)
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-violet-300">
-                {lambda.toFixed(4)} Å {activeAnode === 'custom' ? '(Custom)' : `(${activeAnode}-Kα)`}
+                {isValid ? '● CONSTRUCTIVE INTERFERENCE' : '● VIOLATES nλ ≤ 2d'}
               </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    setLambda(prev => Math.max(0.4, Number((prev - 0.01).toFixed(4))));
-                    setActiveAnode('custom');
-                  }}
-                  className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-mono font-bold"
-                  title="Decrease wavelength by 0.01 Å"
-                >
-                  -
-                </button>
-                <button
-                  onClick={() => {
-                    setLambda(prev => Math.min(3.5, Number((prev + 0.01).toFixed(4))));
-                    setActiveAnode('custom');
-                  }}
-                  className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-mono font-bold"
-                  title="Increase wavelength by 0.01 Å"
-                >
-                  +
-                </button>
+            </div>
+
+            <div className="relative bg-[#0B0F19] border border-slate-800 rounded-sm p-4 flex items-center justify-center">
+              <svg viewBox="0 0 560 250" className="w-full h-60 overflow-visible">
+                {/* Crystal Atomic Planes */}
+                {(() => {
+                  const planeGap = Math.max(28, Math.min(72, dSpace * 14));
+                  const topY = 125;
+                  const bottomY = topY + planeGap;
+                  const rayAngleRad = isValid ? Math.max(0.18, Math.min(1.25, thetaRad)) : 0.45;
+                  const dx = 180 * Math.cos(rayAngleRad);
+                  const dy = 180 * Math.sin(rayAngleRad);
+
+                  // Second ray shift to hit lower plane at (280, bottomY)
+                  return (
+                    <g>
+                      {/* Plane 1 & Plane 2 */}
+                      <line x1="60" y1={topY} x2="500" y2={topY} stroke="#334155" strokeWidth="1.5" />
+                      <line x1="60" y1={bottomY} x2="500" y2={bottomY} stroke="#334155" strokeWidth="1.5" />
+
+                      {/* Atomic Lattice Nodes */}
+                      {[90, 155, 215, 280, 345, 405, 470].map((cx) => (
+                        <g key={cx}>
+                          <circle cx={cx} cy={topY} r="4.5" fill="#0F172A" stroke="#38BDF8" strokeWidth="1.8" />
+                          <circle cx={cx} cy={bottomY} r="4.5" fill="#0F172A" stroke="#10B981" strokeWidth="1.8" />
+                        </g>
+                      ))}
+
+                      {/* d-Spacing Callout on Left */}
+                      <line x1="42" y1={topY} x2="42" y2={bottomY} stroke="#10B981" strokeWidth="1.5" />
+                      <line x1="36" y1={topY} x2="48" y2={topY} stroke="#10B981" strokeWidth="1.5" />
+                      <line x1="36" y1={bottomY} x2="48" y2={bottomY} stroke="#10B981" strokeWidth="1.5" />
+                      <text
+                        x="32"
+                        y={(topY + bottomY) / 2 + 4}
+                        textAnchor="end"
+                        fill="#10B981"
+                        fontSize="10"
+                        fontFamily="JetBrains Mono, monospace"
+                        fontWeight="bold"
+                      >
+                        d={dSpace.toFixed(2)}Å
+                      </text>
+
+                      {/* Surface Normal */}
+                      <line
+                        x1="280"
+                        y1={topY - 95}
+                        x2="280"
+                        y2={bottomY + 25}
+                        stroke="#475569"
+                        strokeWidth="1"
+                        strokeDasharray="3 3"
+                      />
+
+                      {isValid ? (
+                        <>
+                          {/* Top Incident & Diffracted Ray */}
+                          <line
+                            x1={280 - dx}
+                            y1={topY - dy}
+                            x2="280"
+                            y2={topY}
+                            stroke="#22D3EE"
+                            strokeWidth="2.2"
+                          />
+                          <line
+                            x1="280"
+                            y1={topY}
+                            x2={280 + dx}
+                            y2={topY - dy}
+                            stroke="#22D3EE"
+                            strokeWidth="2.2"
+                          />
+
+                          {/* Bottom Incident & Diffracted Ray */}
+                          <line
+                            x1={280 - dx}
+                            y1={bottomY - dy}
+                            x2="280"
+                            y2={bottomY}
+                            stroke="#38BDF8"
+                            strokeWidth="1.6"
+                            strokeDasharray="4 2"
+                          />
+                          <line
+                            x1="280"
+                            y1={bottomY}
+                            x2={280 + dx}
+                            y2={bottomY - dy}
+                            stroke="#38BDF8"
+                            strokeWidth="1.6"
+                            strokeDasharray="4 2"
+                          />
+
+                          {/* Path Retardation Highlight 2d sinθ */}
+                          <line
+                            x1="280"
+                            y1={topY}
+                            x2={280 - planeGap * Math.sin(rayAngleRad) * Math.cos(rayAngleRad)}
+                            y2={topY + planeGap * Math.pow(Math.cos(rayAngleRad), 2)}
+                            stroke="#F59E0B"
+                            strokeWidth="1.5"
+                          />
+                          <line
+                            x1="280"
+                            y1={topY}
+                            x2={280 + planeGap * Math.sin(rayAngleRad) * Math.cos(rayAngleRad)}
+                            y2={topY + planeGap * Math.pow(Math.cos(rayAngleRad), 2)}
+                            stroke="#F59E0B"
+                            strokeWidth="1.5"
+                          />
+
+                          {/* Labels */}
+                          <text
+                            x={280 - dx + 10}
+                            y={topY - dy - 8}
+                            fill="#22D3EE"
+                            fontSize="10"
+                            fontFamily="JetBrains Mono, monospace"
+                          >
+                            Incident k₀ (λ = {lambda.toFixed(4)} Å)
+                          </text>
+                          <text
+                            x={280 + dx - 10}
+                            y={topY - dy - 8}
+                            textAnchor="end"
+                            fill="#22D3EE"
+                            fontSize="10"
+                            fontFamily="JetBrains Mono, monospace"
+                          >
+                            Diffracted k (2θ = {twoThetaDeg.toFixed(2)}°)
+                          </text>
+                        </>
+                      ) : (
+                        <text
+                          x="280"
+                          y="70"
+                          textAnchor="middle"
+                          fill="#F43F5E"
+                          fontSize="12"
+                          fontFamily="JetBrains Mono, monospace"
+                          fontWeight="bold"
+                        >
+                          Condition Violated: nλ ({(harmonicOrder * lambda).toFixed(2)} Å) &gt; 2d ({(2 * dSpace).toFixed(2)} Å)
+                        </text>
+                      )}
+                    </g>
+                  );
+                })()}
+              </svg>
+            </div>
+
+            <div className="mt-4 grid grid-cols-3 gap-2 text-xs font-mono">
+              <div className="p-2.5 bg-[#0B0F19] border border-slate-800 rounded-sm">
+                <span className="text-[10px] text-slate-500 block">SIN(θ) RATIO</span>
+                <span className="text-white font-bold tabular-nums">{sinTheta.toFixed(4)}</span>
+              </div>
+              <div className="p-2.5 bg-[#0B0F19] border border-slate-800 rounded-sm">
+                <span className="text-[10px] text-slate-500 block">RECIPROCAL d* = 1/d</span>
+                <span className="text-emerald-400 font-bold tabular-nums">{(1 / dSpace).toFixed(4)} Å⁻¹</span>
+              </div>
+              <div className="p-2.5 bg-[#0B0F19] border border-slate-800 rounded-sm">
+                <span className="text-[10px] text-slate-500 block">EWALD LIMIT d_min</span>
+                <span className="text-amber-300 font-bold tabular-nums">{(lambda / 2).toFixed(4)} Å</span>
               </div>
             </div>
-          </div>
-          <input
-            type="range"
-            min="0.5"
-            max="3.0"
-            step="0.001"
-            value={String(lambda) === 'NaN' ? '' : lambda}
-            onChange={(e) => {
-              setLambda(parseFloat(e.target.value));
-              setActiveAnode('custom');
-            }}
-            className="w-full accent-violet-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg outline-none"
-          />
-        </div>
-
-        {/* SLIDER FOR D_SPACING WITH FINE-STEPPERS */}
-        <div className="space-y-2">
-          <div className="flex justify-between items-baseline">
-            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">
-              Interplanar Spacing (d)
-            </label>
-            <div className="flex items-center gap-2">
-              <span className="text-xs font-mono font-bold text-cyan-300">
-                {dSpace.toFixed(3)} Å {selectedMaterial !== 'custom' ? `(${selectedMaterial})` : '(Custom)'}
-              </span>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => {
-                    setDSpace(prev => Math.max(1.0, Number((prev - 0.05).toFixed(3))));
-                    setSelectedMaterial('custom');
-                  }}
-                  className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-mono font-bold"
-                  title="Decrease d-spacing by 0.05 Å"
-                >
-                  -
-                </button>
-                <button
-                  onClick={() => {
-                    setDSpace(prev => Math.min(6.0, Number((prev + 0.05).toFixed(3))));
-                    setSelectedMaterial('custom');
-                  }}
-                  className="w-5 h-5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 flex items-center justify-center text-[10px] font-mono font-bold"
-                  title="Increase d-spacing by 0.05 Å"
-                >
-                  +
-                </button>
-              </div>
-            </div>
-          </div>
-          <input
-            type="range"
-            min="1.00"
-            max="6.00"
-            step="0.01"
-            value={String(dSpace) === 'NaN' ? '' : dSpace}
-            onChange={(e) => {
-              setDSpace(parseFloat(e.target.value));
-              setSelectedMaterial('custom');
-            }}
-            className="w-full accent-cyan-500 cursor-pointer h-1.5 bg-slate-800 rounded-lg outline-none"
-          />
-        </div>
-
-        {/* ORDER PICKER */}
-        <div className="space-y-2">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400 block">
-            Diffraction Reflection Order (n)
-          </label>
-          <div className="flex gap-3">
-            {[1, 2, 3].map((num) => (
-              <button
-                key={num}
-                onClick={() => setOrder(num)}
-                className={`flex-1 py-1.5 rounded-xl border text-xs font-mono tracking-widest font-black uppercase transition-all cursor-pointer ${
-                  order === num
-                    ? 'bg-violet-600/20 border-violet-500 text-violet-300 shadow-[0_0_15px_rgba(139,92,246,0.2)]'
-                    : 'bg-slate-950/40 border-slate-800 text-slate-500 hover:border-slate-700/50 hover:text-slate-300'
-                }`}
-              >
-                n = {num}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Material specs profile card */}
-        {activeMaterial && (
-          <div className="p-4 bg-slate-950/80 border border-slate-800 rounded-2xl relative overflow-hidden transition-all">
-            <div className="absolute top-0 right-0 w-24 h-24 bg-violet-600/5 blur-xl rounded-full" />
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-[10px] font-black uppercase tracking-wider text-violet-400 font-mono">Structural Details</span>
-              <span className="text-[9px] bg-slate-800 px-2 py-0.5 rounded-full font-mono text-slate-400">{activeMaterial.system}</span>
-            </div>
-            <p className="text-sm font-black text-white">{activeMaterial.name}</p>
-            <div className="grid grid-cols-2 gap-4 mt-2 border-t border-slate-800/80 pt-2 text-[11px] font-mono">
-              <div>
-                <span className="text-[9px] text-slate-500 block uppercase">Space Group</span>
-                <span className="text-slate-300 font-bold">{activeMaterial.group}</span>
-              </div>
-              <div>
-                <span className="text-[9px] text-slate-500 block uppercase">Reflecting Plane</span>
-                <span className="text-cyan-400 font-bold">{activeMaterial.hkl}</span>
-              </div>
-            </div>
-            <p className="text-[10px] text-slate-400 mt-2 italic leading-relaxed">{activeMaterial.notes}</p>
-          </div>
-        )}
-      </div>
-
-      {/* Visual Workspace */}
-      <div className="lg:col-span-7 flex flex-col items-center bg-[#050A14] border border-slate-800/60 p-6 md:p-8 rounded-[2.5rem] relative overflow-hidden self-stretch justify-between">
-        <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none" />
-        
-        {/* Real-time Math Outputs Header */}
-        <div className="w-full grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4 relative z-10 text-center">
-          <div className="bg-slate-900/70 p-3 rounded-2xl border border-slate-800/60">
-            <span className="block text-[9px] font-mono text-slate-400 uppercase tracking-widest">Bragg (θ)</span>
-            <span className="text-lg font-black font-mono text-white">
-              {isValid ? `${thetaDeg.toFixed(2)}°` : '🚫 Limit'}
-            </span>
-          </div>
-          <div className="bg-slate-900/70 p-3 rounded-2xl border border-slate-800/60">
-            <span className="block text-[9px] font-mono text-slate-400 uppercase tracking-widest">Peak (2θ)</span>
-            <span className="text-lg font-black font-mono text-cyan-400">
-              {isValid ? `${twoThetaDeg.toFixed(2)}°` : '🚫 Invalid'}
-            </span>
-          </div>
-          <div className="bg-slate-900/70 p-3 rounded-2xl border border-slate-800/60">
-            <span className="block text-[9px] font-mono text-slate-400 uppercase tracking-widest">Scattering (q)</span>
-            <span className="text-lg font-black font-mono text-violet-300">
-              {isValid ? `${qVector.toFixed(3)} Å⁻¹` : '—'}
-            </span>
-          </div>
-          <div className="col-span-2 sm:col-span-1 bg-slate-900/70 p-3 rounded-2xl border border-slate-800/60 flex items-center justify-center">
-            {isValid ? (
-              <span className="text-[10px] uppercase font-black tracking-widest text-emerald-400 flex items-center gap-1.5 justify-center">
-                <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping" />
-                Diffraction OK
-              </span>
-            ) : (
-              <span className="text-[10px] uppercase font-black tracking-wide text-rose-400 leading-tight">
-                🚫 nλ &gt; 2d Limit
-              </span>
-            )}
-          </div>
-        </div>
-
-        {/* Dragging instruction badge */}
-        <div className="text-[9px] font-mono bg-slate-900/80 px-3.5 py-1.5 rounded-full text-slate-400 border border-slate-800 text-center select-none uppercase tracking-widest mb-2 z-10 flex items-center gap-2 shadow-sm">
-          <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-          <span>Drag canvas vertically to alter lattice d-spacing dynamically</span>
-        </div>
-
-        {/* Simulated Ray Tracing Canvas SVG */}
-        <div className="w-full flex-1 flex items-center justify-center relative min-h-[220px]">
-          <svg 
-            ref={svgRef}
-            width={svgW} 
-            height={svgH} 
-            className="max-w-full drop-shadow-2xl cursor-ns-resize select-none touch-none"
-            onMouseDown={(e) => {
-              setIsDraggingCanvas(true);
-              handleCanvasDrag(e.clientY);
-            }}
-            onTouchStart={(e) => {
-              setIsDraggingCanvas(true);
-              handleCanvasDrag(e.touches[0].clientY);
-            }}
-          >
-            {/* Plane horizontal grid lines of atom rows */}
-            <line x1="30" y1={y1} x2={svgW - 30} y2={y1} stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="5 3" />
-            <line x1="10" y1={y2} x2={svgW - 10} y2={y2} stroke="rgba(255,255,255,0.08)" strokeWidth="1.5" />
-            <line x1="30" y1={y3} x2={svgW - 30} y2={y3} stroke="rgba(255,255,255,0.04)" strokeWidth="1" strokeDasharray="5 3" />
-
-            {/* Atomic Rows */}
-            {/* Plane 1 atoms */}
-            {[-3, -2, -1, 0, 1, 2, 3].map((pos) => (
-              <circle key={`atom1-${pos}`} cx={cx + pos * 50} cy={y1} r="4" fill="rgba(255,255,255,0.15)" stroke="rgba(255,255,255,0.05)" />
-            ))}
-            {/* Plane 2 atoms (center reflecting plane) */}
-            {[-3, -2, -1, 0, 1, 2, 3].map((pos) => (
-              <circle 
-                key={`atom2-${pos}`} 
-                cx={cx + pos * 50} 
-                cy={y2} 
-                r={pos === 0 ? "8" : "5"} 
-                fill={pos === 0 ? "#22d3ee" : "rgba(255,255,255,0.3)"} 
-                className={pos === 0 ? "animate-pulse" : ""}
-                style={{ filter: pos === 0 ? 'drop-shadow(0 0 8px rgba(34,211,238,0.7))' : 'none' }}
-              />
-            ))}
-            {/* Plane 3 atoms */}
-            {[-3, -2, -1, 0, 1, 2, 3].map((pos) => (
-              <circle 
-                key={`atom3-${pos}`} 
-                cx={cx + pos * 50} 
-                cy={y3} 
-                r={pos === 0 ? "7" : "4"} 
-                fill={pos === 0 ? "#8b5cf6" : "rgba(255,255,255,0.15)"} 
-              />
-            ))}
-
-            {isValid && (
-              <>
-                {/* Wave 1 - Incident wave trace */}
-                <path
-                  d={generateWaveLine(rxInX, rxInY, cx, y2, 5, 8, -Date.now() / 80)}
-                  fill="none"
-                  stroke="url(#incWaveGrad)"
-                  strokeWidth="2"
-                />
-
-                {/* Wave 2 - Diffracted wave trace (In Phase visualization) */}
-                <path
-                  d={generateWaveLine(cx, y2, rxOutX, rxOutY, 5, 8, -Date.now() / 80)}
-                  fill="none"
-                  stroke="url(#difWaveGrad)"
-                  strokeWidth="2.5"
-                />
-
-                {/* Sub-surface Ray 2 reflection to demonstrate constructive path difference */}
-                <line 
-                  x1={cx - dx - xOffset} y1={y2 - dy} x2={rx3X} y2={y3} 
-                  stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1.5" 
-                />
-                <line 
-                  x1={rx3X} y1={y3} x2={rx3OutX} y2={y3} 
-                  stroke="rgba(139, 92, 246, 0.4)" strokeWidth="1.5" strokeDasharray="3 3"
-                />
-                <line 
-                  x1={rx3OutX} y1={y3} x2={cx + dx + xOffset} y2={y2 - dy} 
-                  stroke="rgba(139, 92, 246, 0.3)" strokeWidth="1.5" 
-                />
-
-                {/* Bragg Angle Indicator arc text */}
-                <path 
-                  d={`M ${cx - 35} ${y2} A 35 35 0 0 1 ${cx - 35 * Math.cos(displayAngleRad)} ${y2 - 35 * Math.sin(displayAngleRad)}`} 
-                  fill="none" stroke="#22d3ee" strokeWidth="1.5" 
-                />
-                <text x={cx - 52} y={y2 - 8} fill="#22d3ee" fontSize="10" fontWeight="bold" fontFamily="monospace">θ</text>
-              </>
-            )}
-
-            {/* Definitions gradients support */}
-            <defs>
-              <linearGradient id="incWaveGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stopColor="rgba(244,63,94,0)" />
-                <stop offset="100%" stopColor="#22d3ee" />
-              </linearGradient>
-              <linearGradient id="difWaveGrad" x1="0%" y1="100%" x2="100%" y2="0%">
-                <stop offset="0%" stopColor="#22d3ee" />
-                <stop offset="100%" stopColor="rgba(139,92,246,0)" />
-              </linearGradient>
-            </defs>
-          </svg>
-
-          {/* Atomic description overlay marker */}
-          <div className="absolute left-6 bottom-4 flex flex-col gap-1 z-10 text-[9px] uppercase font-mono tracking-wider text-slate-500">
-            <div className="flex items-center gap-1.5"><span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />Atomic Spacing Plane</div>
-            <div>Plane Interdistance d = {dSpace.toFixed(2)} Å | Path Diff = {order}λ</div>
-          </div>
-        </div>
-
-        {/* Mini Live XRD Peak Chart */}
-        <div className="w-full bg-slate-950/80 border border-slate-800/80 rounded-2xl p-4 mt-2 relative overflow-hidden h-20">
-          <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.02] pointer-events-none" />
-          <div className="flex justify-between items-center mb-1">
-            <span className="text-[9px] font-black uppercase tracking-wider text-slate-500 font-mono">Live Simulated Intensity Spectrum</span>
-            <span className="text-[9px] font-mono text-cyan-400 font-bold">2θ Peak = {isValid ? `${twoThetaDeg.toFixed(2)}°` : 'Invalid'}</span>
-          </div>
-          <div className="w-full h-10 relative">
-            <svg width="100%" height="100%" className="overflow-visible">
-              {/* Background X axis */}
-              <line x1="0" y1="36" x2="100%" y2="36" stroke="rgba(255,255,255,0.1)" strokeWidth="1" />
-              {/* Dynamic peak */}
-              {isValid && (
-                <path
-                  d={(() => {
-                    // map twoThetaDeg (between 10 and 150) to percentage of width (0% to 100%)
-                    const pct = Math.max(5, Math.min(95, ((twoThetaDeg - 10) / 140) * 100));
-                    // draw a nice smooth Gaussian curve centered at pct
-                    let path = "";
-                    for (let x = 0; x <= 100; x += 1) {
-                      const diff = x - pct;
-                      // Gaussian curve formula mapping to SVG Y position (amplitude 32, center pct, width 15)
-                      const y = 35 - 32 * Math.exp(-Math.pow(diff, 2) / 15);
-                      if (x === 0) path += `M 0,${y}`;
-                      else path += ` L ${x}%,${y}`;
-                    }
-                    return path;
-                  })()}
-                  fill="none"
-                  stroke="url(#peakGrad)"
-                  strokeWidth="2.5"
-                />
-              )}
-              {/* Gradients */}
-              <defs>
-                <linearGradient id="peakGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                  <stop offset="0%" stopColor="#6366f1" />
-                  <stop offset="50%" stopColor="#22d3ee" />
-                  <stop offset="100%" stopColor="#6366f1" />
-                </linearGradient>
-              </defs>
-            </svg>
-          </div>
-        </div>
-
-        {/* Reciprocal Scattering Vector Metadata */}
-        {isValid && (
-          <div className="w-full flex items-center justify-between px-3 py-2 bg-slate-950/60 border border-slate-800/80 rounded-xl text-[10px] font-mono">
-            <span className="text-slate-400">Reciprocal Vector |q| = 4π·sin(θ)/λ:</span>
-            <span className="text-emerald-400 font-bold">{qVector.toFixed(4)} Å⁻¹</span>
-          </div>
-        )}
-
-        {/* User Sandbox Call-to-Action to unlock whole suite */}
-        <div className="w-full mt-6 pt-5 border-t border-slate-800/80 flex flex-col sm:flex-row justify-between items-center gap-4 text-center sm:text-left">
-          <div className="space-y-1">
-            <p className="text-xs font-black text-slate-300 uppercase tracking-widest leading-none">
-              Calculated! Transfer parameters or unlock full studio
-            </p>
-            <p className="text-[10px] text-slate-500">
-              Transfer λ={lambda.toFixed(4)}Å, d={dSpace.toFixed(3)}Å to Bragg Lab or launch full suite.
-            </p>
-          </div>
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => {
-                try {
-                  localStorage.setItem('xrd_sandbox_lambda', String(lambda));
-                  localStorage.setItem('xrd_sandbox_d', String(dSpace));
-                } catch (e) {}
-                onEnter('bragg');
-              }}
-              className="px-4 py-2.5 bg-violet-600/20 hover:bg-violet-600/30 text-violet-300 border border-violet-500/30 font-black uppercase tracking-wider text-[10px] rounded-xl transition-all active:scale-95 cursor-pointer flex items-center gap-1.5"
-            >
-              Transfer to Bragg Lab
-            </button>
-            <button
-              onClick={() => onEnter()}
-              className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-black uppercase tracking-wider text-[10px] rounded-xl transition-all shadow-lg hover:shadow-cyan-400/25 active:scale-95 cursor-pointer flex items-center gap-2"
-            >
-              Launch Core Studio <ArrowRight className="w-3.5 h-3.5 text-slate-950" />
-            </button>
           </div>
         </div>
       </div>
-    </div>
+    </section>
   );
 };
+
+// --- Comparative Crystallographic Formalism Matrix ---
+const FORMALISM_MATRIX: {
+  id: AppSection;
+  method: string;
+  equation: string;
+  reciprocalSpaceVar: string;
+  observables: string;
+  regime: string;
+}[] = [
+  {
+    id: 'rietveld',
+    method: 'Rietveld Full-Pattern Refinement',
+    equation: 'Y_calc(2θ_i) = s ∑ I_K φ(Δ2θ_i) + y_b(2θ_i)',
+    reciprocalSpaceVar: 'Full 2θ / Q Scan',
+    observables: 'Unit cell (a,b,c), Wyckoff coordinates, Caglioti UVW, Rwp',
+    regime: 'Single & Multi-Phase Crystalline Powders',
+  },
+  {
+    id: 'pdf_analysis',
+    method: 'Pair Distribution Function (PDF)',
+    equation: 'G(r) = (2/π) ∫ Q[S(Q) − 1] sin(Qr) dQ',
+    reciprocalSpaceVar: 'Q up to 25–35 Å⁻¹',
+    observables: 'Bond lengths r_ij, coordination N_c, local disorder σ_ij',
+    regime: 'Amorphous Glasses, Liquids & Nanocrystals',
+  },
+  {
+    id: 'xrr',
+    method: 'Specular X-Ray Reflectometry (XRR)',
+    equation: 'R_{j,j+1} = r_{j,j+1} exp(−2 k_{z,j} k_{z,j+1} σ_j²)',
+    reciprocalSpaceVar: 'Q_z = (4π/λ) sinθ (0–0.6 Å⁻¹)',
+    observables: 'Film thickness d, mass density ρ, interfacial roughness σ',
+    regime: 'Epitaxial & Multilayer Thin-Film Stacks',
+  },
+  {
+    id: 'warren',
+    method: 'Warren–Averbach Fourier Analysis',
+    equation: 'ln A(L) = ln A^S(L) − 2π² L² ⟨ε²(L)⟩ / d_{hkl}²',
+    reciprocalSpaceVar: 'Fourier Length L = n a_3',
+    observables: 'Area-weighted size ⟨D⟩_A, column distribution p(L), RMS ⟨ε²(L)⟩¹/²',
+    regime: 'Multiple Harmonic Reflections (hkl / 2h 2k 2l)',
+  },
+  {
+    id: 'williamson',
+    method: 'Williamson–Hall (UDM / USDM / UDEDM)',
+    equation: 'β_T cosθ = Kλ/D + 4ε sinθ',
+    reciprocalSpaceVar: '4 sinθ vs. β cosθ',
+    observables: 'Volume-weighted domain size ⟨D⟩_V, lattice microstrain ε',
+    regime: 'Isotropic & Anisotropic Strained Polycrystals',
+  },
+  {
+    id: 'moments',
+    method: 'Method of Moments (Variance–Range)',
+    equation: 'W_2θ(σ) = [cosθ/(π²λD)]σ − (λ/4π²D²)cos²θ',
+    reciprocalSpaceVar: 'Truncation Range ±σ',
+    observables: 'Asymptotic domain size D_M, dislocation density ρ_d',
+    regime: 'High-SNR Isolated Diffraction Profiles',
+  },
+  {
+    id: 'double_voigt',
+    method: 'Double-Voigt Convolution Method',
+    equation: 'β_G² = β_{GS}² + β_{GD}²,  β_L = β_{LS} + β_{LD}',
+    reciprocalSpaceVar: 's = 2 sinθ / λ',
+    observables: 'Lorentzian & Gaussian size/distortion integral breadths',
+    regime: 'Voigt-Symmetry Deconvolved Reflections',
+  },
+  {
+    id: 'dl',
+    method: 'Physics-Informed Neural Net (PINN)',
+    equation: 'L_total = L_CE + λ_ext ||P ⊙ M_SG|| + λ_V ||θ_V − θ̂_V||²',
+    reciprocalSpaceVar: '1D Tensor I(2θ) ∈ ℝ^2048',
+    observables: '230 Space Group ID, Grad-CAM saliency, latent manifold ℝ³',
+    regime: 'Rapid High-Throughput Phase & Symmetry Screening',
+  },
+];
 
 // --- Legal Content ---
 const PRIVACY_POLICY_DATA = {
   en: {
-    title: "Privacy Policy",
-    lastUpdated: "July 18, 2026",
+    title: 'Privacy Policy',
+    lastUpdated: 'July 18, 2026',
     sections: [
       {
-        title: "1. Data Collection",
-        content: "We collect computational metadata and basic analytical parameters to improve our XRD processing algorithms. No sensitive personal data is stored on our servers."
+        title: '1. Data Collection',
+        content:
+          'We collect computational metadata and basic analytical parameters to improve our XRD processing algorithms. No sensitive personal data is stored on our servers.',
       },
       {
-        title: "2. Analytical Data",
-        content: "Experimental diffractograms uploaded to our cloud refined suite are encrypted and only accessible to the authorized laboratory researcher."
+        title: '2. Analytical Data',
+        content:
+          'Experimental diffractograms uploaded to our suite remain private to your active laboratory session.',
       },
       {
-        title: "3. Cookie Usage",
-        content: "We use essential cookies to maintain session states and your customized crystallography workbench preferences."
-      }
-    ]
+        title: '3. Local Persistence',
+        content:
+          'We use local storage keys to maintain session states and your customized crystallography workbench preferences.',
+      },
+    ],
   },
   fa: {
-    title: "سیاست حریم خصوصی",
-    lastUpdated: "۲۸ تیر ۱۴۰۵",
+    title: 'سیاست حریم خصوصی',
+    lastUpdated: '۲۸ تیر ۱۴۰۵',
     sections: [
       {
-        title: "۱. جمع‌آوری داده‌ها",
-        content: "ما متادیتای محاسباتی و پارامترهای تحلیلی پایه را برای بهبود الگوریتم‌های پردازش XRD جمع‌آوری می‌کنیم. هیچ داده شخصی حساسی در سرورهای ما ذخیره نمی‌شود."
+        title: '۱. جمع‌آوری داده‌ها',
+        content:
+          'ما متادیتای محاسباتی و پارامترهای تحلیلی پایه را برای بهبود الگوریتم‌های پردازش XRD جمع‌آوری می‌کنیم.',
       },
       {
-        title: "۲. داده‌های تحلیلی",
-        content: "پراش‌نگارهای آزمایشی آپلود شده در مجموعه ابری ما رمزنگاری شده و فقط برای محقق آزمایشگاهی مجاز قابل دسترسی است."
+        title: '۲. داده‌های تحلیلی',
+        content: 'پراش‌نگارهای آزمایشی در جلسه کاری آزمایشگاهی شما محفوظ می‌مانند.',
       },
       {
-        title: "۳. استفاده از کوکی",
-        content: "ما از کوکی‌های ضروری برای حفظ وضعیت جلسات و تنظیمات سفارشی میز کار بلورشناسی شما استفاده می‌کنیم."
-      }
-    ]
-  }
+        title: '۳. ذخیره‌سازی محلی',
+        content: 'ما از حافظه محلی برای حفظ وضعیت جلسات و تنظیمات میز کار بلورشناسی شما استفاده می‌کنیم.',
+      },
+    ],
+  },
 };
 
 const CHANGELOG_DATA = {
   en: {
-    title: "Version History",
-    lastUpdated: "July 18, 2026",
+    title: 'Version History',
+    lastUpdated: 'November 2026',
     sections: [
       {
-        title: "v2.1.0 - Academic Suite Update",
-        content: "Implemented advanced 3D lattice visualizers, multi-language support (50+ languages), and real-time phase matching algorithms."
+        title: 'v2.5.0 - Total Scattering PDF, Rietveld & PINN Upgrade',
+        content:
+          'Added full 7-stage Rietveld Structure Refinement, Sine-Fourier Pair Distribution Function G(r) workstation, Parratt XRR optical engine, and Physics-Informed Neural Network (PINN) workbench.',
       },
       {
-        title: "v2.0.4 - AI Refinement",
-        content: "Integrated Gemini 1.5 Pro for intelligent peak fitting and automated structural report generation."
+        title: 'v2.2.0 - Microstructure & Line Profile Workstations',
+        content:
+          'Upgraded Williamson–Hall (UDM/USDM/UDEDM), Warren–Averbach Fourier analysis, Method of Moments W(σ), and Double-Voigt deconvolution engines.',
       },
-      {
-        title: "v2.0.0 - Core Launch",
-        content: "Initial migration to full-stack architecture with Express, Firestore, and Python-based Rietveld refinement core."
-      }
-    ]
+    ],
   },
   fa: {
-    title: "تاریخچه نسخه‌ها",
-    lastUpdated: "۲۸ تیر ۱۴۰۵",
+    title: 'تاریخچه نسخه‌ها',
+    lastUpdated: 'آبان ۱۴۰۵',
     sections: [
       {
-        title: "v2.1.0 - بروزرسانی مجموعه علمی",
-        content: "پیاده‌سازی تصویرسازهای سه بعدی شبکه، پشتیبانی از ۵۰+ زبان و الگوریتم‌های تطبیق فاز همزمان."
+        title: 'v2.5.0 - ارتقای کامل Rietveld، PDF و شبکه عصبی PINN',
+        content:
+          'افزودن پالایش ساختاری Rietveld، تحلیل تابع توزیع جفت G(r)، بازتاب‌سنجی اشعه ایکس (XRR) و شبکه عصبی آگاه از فیزیک.',
       },
-      {
-        title: "v2.0.4 - بهینه‌سازی هوش مصنوعی",
-        content: "ادغام Gemini 1.5 Pro برای برازش هوشمند پیک‌ها و تولید خودکار گزارش‌های ساختاری."
-      },
-      {
-        title: "v2.0.0 - راه‌اندازی هسته",
-        content: "مهاجرت اولیه به معماری Full-stack با Express، Firestore و هسته پالایش Rietveld مبتنی بر پایتون."
-      }
-    ]
-  }
+    ],
+  },
 };
 
 const TERMS_OF_USE_DATA = {
   en: {
-    title: "Terms of Use",
-    lastUpdated: "July 18, 2026",
+    title: 'Terms of Use',
+    lastUpdated: 'July 18, 2026',
     sections: [
       {
-        title: "1. License",
-        content: "XRD-Calc Pro grants you a limited, non-exclusive license to use our computational tools for scientific research and educational purposes."
+        title: '1. Scientific License',
+        content:
+          'XRD-Calc Pro grants researchers and students access to computational diffraction tools for materials characterization and academic instruction.',
       },
       {
-        title: "2. Accuracy",
-        content: "While we strive for precision, researchers should verify all crystallographic results with secondary analytical methods where critical safety is involved."
+        title: '2. Metrological Verification',
+        content:
+          'Researchers should cross-verify critical structural refinements against certified NIST Standard Reference Materials (e.g., SRM 640f / SRM 660c).',
       },
-      {
-        title: "3. Restrictions",
-        content: "Reverse engineering the proprietary neural network models used in phase identification is strictly prohibited."
-      }
-    ]
+    ],
   },
   fa: {
-    title: "شرایط استفاده",
-    lastUpdated: "۲۸ تیر ۱۴۰۵",
+    title: 'شرایط استفاده',
+    lastUpdated: '۲۸ تیر ۱۴۰۵',
     sections: [
       {
-        title: "۱. مجوز",
-        content: "XRD-Calc Pro به شما مجوزی محدود و غیر انحصاری برای استفاده از ابزارهای محاسباتی ما برای تحقیقات علمی و اهداف آموزشی اعطا می‌کند."
+        title: '۱. مجوز علمی',
+        content: 'این مجموعه برای پژوهش‌های بلورشناسی، علم مواد و آموزش دانشگاهی طراحی شده است.',
       },
-      {
-        title: "۲. دقت",
-        content: "در حالی که ما برای دقت تلاش می‌کنیم، محققان باید تمام نتایج بلورشناسی را با روش‌های تحلیلی ثانویه در موارد حساس ایمنی تایید کنند."
-      },
-      {
-        title: "۳. محدودیت‌ها",
-        content: "مهندسی معکوس مدل‌های شبکه عصبی اختصاصی استفاده شده در شناسایی فاز اکیداً ممنوع است."
-      }
-    ]
-  }
+    ],
+  },
 };
 
-// --- Legal Modal Component ---
-const LegalModal = ({ isOpen, onClose, content, isRTL }: { isOpen: boolean, onClose: () => void, content: any, isRTL: boolean }) => {
+const LegalModal = ({
+  isOpen,
+  onClose,
+  content,
+  isRTL,
+}: {
+  isOpen: boolean;
+  onClose: () => void;
+  content: { title: string; lastUpdated: string; sections: { title: string; content: string }[] };
+  isRTL: boolean;
+}) => {
   const { t } = useTranslation();
   if (!isOpen) return null;
-  
+
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6">
-      <motion.div 
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        onClick={onClose}
-        className="absolute inset-0 bg-slate-950/80 backdrop-blur-md"
-      />
-      <motion.div 
-        initial={{ opacity: 0, scale: 0.95, y: 20 }}
-        animate={{ opacity: 1, scale: 1, y: 0 }}
-        className="relative w-full max-w-3xl max-h-[85vh] bg-[#050b14] border border-white/10 rounded-[2.5rem] overflow-hidden shadow-2xl flex flex-col"
-      >
-        <div className={`p-8 border-b border-white/5 bg-white/[0.02] flex items-center justify-between ${isRTL ? "flex-row-reverse" : ""}`}>
-          <div className={`flex flex-col ${isRTL ? "items-end" : "items-start"}`}>
-            <h3 className="text-2xl font-black text-white tracking-tight">{content.title}</h3>
-            <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Last Updated: {content.lastUpdated}</p>
+      <div onClick={onClose} className="absolute inset-0 bg-[#070A12]/85 backdrop-blur-md" />
+      <div className="relative w-full max-w-2xl max-h-[85vh] bg-[#0B0F19] border border-slate-800 rounded-sm overflow-hidden shadow-2xl flex flex-col">
+        <div
+          className={`px-6 py-4 border-b border-slate-800 bg-[#070A12] flex items-center justify-between ${
+            isRTL ? 'flex-row-reverse' : ''
+          }`}
+        >
+          <div>
+            <h3 className="text-lg font-bold text-white">{content.title}</h3>
+            <p className="text-[10px] font-mono text-slate-500 uppercase mt-0.5">
+              Updated: {content.lastUpdated}
+            </p>
           </div>
-          <button 
+          <button
+            type="button"
             onClick={onClose}
-            className="w-10 h-10 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+            className="p-1.5 bg-slate-900 border border-slate-800 text-slate-400 hover:text-white rounded-sm"
           >
-            <Zap className="w-5 h-5 rotate-45" />
+            <X className="w-4 h-4" />
           </button>
         </div>
-        
-        <div className={`flex-1 overflow-y-auto p-8 space-y-8 custom-scrollbar ${isRTL ? "text-right" : "text-left"}`}>
-          {content.sections.map((section: any, idx: number) => (
-            <div key={idx} className="space-y-3">
-              <h4 className="text-lg font-bold text-violet-400 flex items-center gap-3">
-                {!isRTL && <span className="w-2 h-2 rounded-full bg-cyan-400" />}
-                {section.title}
-                {isRTL && <span className="w-2 h-2 rounded-full bg-cyan-400" />}
-              </h4>
-              <p className="text-slate-400 leading-relaxed text-sm font-medium">
-                {section.content}
-              </p>
+
+        <div className={`flex-1 overflow-y-auto p-6 space-y-5 ${isRTL ? 'text-right' : 'text-left'}`}>
+          {content.sections.map((section, idx) => (
+            <div key={idx} className="space-y-1.5">
+              <h4 className="text-sm font-mono font-bold text-cyan-400">{section.title}</h4>
+              <p className="text-slate-300 leading-relaxed text-xs">{section.content}</p>
             </div>
           ))}
-          
-          <div className="pt-10 border-t border-white/5">
-             <div className="bg-violet-600/10 border border-violet-500/20 p-5 rounded-2xl flex items-start gap-4">
-                <ShieldCheck className="w-6 h-6 text-violet-400 shrink-0 mt-0.5" />
-                <p className="text-xs text-slate-300 leading-relaxed">
-                   {isRTL 
-                     ? "این سند بخشی از تعهد ما به شفافیت علمی و امنیت داده‌های تحقیقاتی شماست. برای سوالات بیشتر با بخش پشتیبانی تماس بگیرید."
-                     : "This document is part of our commitment to scientific transparency and the security of your research data. For further inquiries, contact our systems support lab."}
-                </p>
-             </div>
-          </div>
         </div>
-        
-        <div className={`p-6 border-t border-white/5 bg-white/[0.01] flex justify-end`}>
-           <button 
-             onClick={onClose}
-             className="px-8 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl transition-all shadow-lg active:scale-95 text-sm uppercase tracking-widest"
-           >
-             {t("I Understand", "I Understand")}
-           </button>
+
+        <div className="px-6 py-3.5 border-t border-slate-800 bg-[#070A12] flex justify-end">
+          <button
+            type="button"
+            onClick={onClose}
+            className="px-5 py-2 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold rounded-sm text-xs uppercase tracking-wider"
+          >
+            {t('Acknowledge', 'Acknowledge')}
+          </button>
         </div>
-      </motion.div>
+      </div>
     </div>
   );
 };
 
-// --- Cookie Consent Banner ---
-const CookieBanner = ({ isRTL, onAccept }: { isRTL: boolean, onAccept: () => void }) => {
-  const { t } = useTranslation();
-  return (
-    <motion.div 
-      initial={{ y: 100, opacity: 0 }}
-      animate={{ y: 0, opacity: 1 }}
-      className="fixed bottom-8 left-8 right-8 z-[90] max-w-4xl mx-auto"
-    >
-      <div className="bg-[#050b14]/90 backdrop-blur-2xl border border-white/10 p-6 sm:p-8 rounded-[2rem] shadow-[0_25px_50px_-12px_rgba(0,0,0,0.5)] flex flex-col md:flex-row items-center gap-6 ring-1 ring-white/15">
-        <div className="w-16 h-16 rounded-2xl bg-violet-600/20 border border-violet-500/30 flex items-center justify-center shrink-0 shadow-inner">
-           <Database className="w-8 h-8 text-violet-400" />
-        </div>
-        
-        <div className={`flex-1 ${isRTL ? "text-right" : "text-left"}`}>
-          <h4 className="text-lg font-black text-white tracking-tight mb-1">
-            {t("System Cookie Configuration", "System Cookie Configuration")}
-          </h4>
-          <p className="text-xs sm:text-sm text-slate-400 leading-relaxed font-medium">
-            {t("We utilize technical cookies to optimize diffraction computations and persist your laboratory workbench preferences. By continuing, you authorize this metadata protocol.", "We utilize technical cookies to optimize diffraction computations and persist your laboratory workbench preferences. By continuing, you authorize this metadata protocol.")}
-          </p>
-        </div>
-        
-        <div className={`flex gap-3 shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
-          <button 
-            onClick={onAccept}
-            className="px-6 py-3 bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl text-slate-300 text-xs font-bold uppercase tracking-widest transition-all"
-          >
-            {t("Settings", "Settings")}
-          </button>
-          <button 
-            onClick={onAccept}
-            className="px-8 py-3 bg-violet-600 hover:bg-violet-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg active:scale-95"
-          >
-            {t("Authorize & Sync", "Authorize & Sync")}
-          </button>
-        </div>
-      </div>
-    </motion.div>
-  );
-};
-
-export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut, activeModule, onReturnToApp, onOpenWhyXrd }: { 
-  onEnter: (mode?: 'register' | 'login', targetModule?: any) => void, 
-  setTheme: (theme: any) => void,
-  theme: string,
-  isRegistered?: boolean,
-  onSignOut?: () => void,
-  activeModule?: string,
-  onReturnToApp?: (targetModule?: any) => void,
-  onOpenWhyXrd?: () => void
+export const LandingPage = ({
+  onEnter,
+  setTheme,
+  theme,
+  isRegistered,
+  onSignOut,
+  activeModule,
+  onReturnToApp,
+  onOpenWhyXrd,
+}: {
+  onEnter: (mode?: 'register' | 'login', targetModule?: any) => void;
+  setTheme: (theme: any) => void;
+  theme: string;
+  isRegistered?: boolean;
+  onSignOut?: () => void;
+  activeModule?: string;
+  onReturnToApp?: (targetModule?: any) => void;
+  onOpenWhyXrd?: () => void;
 }) => {
   const { t, i18n } = useTranslation();
   const isRTL = ['he', 'fa', 'ar', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'].includes(i18n.language);
@@ -1209,7 +723,6 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
   const [showTermsModal, setShowTermsModal] = useState(false);
   const [showChangelogModal, setShowChangelogModal] = useState(false);
-  const [showCookieBanner, setShowCookieBanner] = useState(false);
   const [footerModal, setFooterModal] = useState<FooterModalType>(null);
   const [isEnteringApp, setIsEnteringApp] = useState(false);
   const [isResumingApp, setIsResumingApp] = useState(false);
@@ -1220,16 +733,12 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [showWelcomeTour, setShowWelcomeTour] = useState(false);
   const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
-  
+  const [copiedSdk, setCopiedSdk] = useState(false);
+  const [showThemePicker, setShowThemePicker] = useState(false);
+
   const heroSearchRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
-
-  const timeOfDayGreeting = useMemo(() => {
-    const hour = new Date().getHours();
-    if (hour < 12) return t('Good morning', 'Good morning');
-    if (hour < 17) return t('Good afternoon', 'Good afternoon');
-    return t('Good evening', 'Good evening');
-  }, [t, i18n.language]);
+  const themePickerRef = useRef<HTMLDivElement>(null);
 
   const handleEnterApp = (mode: 'login' | 'register' = 'login', targetModule?: any) => {
     setIsResumingApp(false);
@@ -1238,9 +747,7 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
     setIsEnteringApp(true);
   };
 
-  const handleResumeApp = (targetMod?: string) => {
-    // Instead of auto-jumping into Bragg basis or any default section,
-    // show the special resume list asking which section to resume into!
+  const handleResumeApp = () => {
     setShowResumePickerModal(true);
   };
 
@@ -1252,31 +759,13 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
     setIsEnteringApp(true);
   };
 
-  useEffect(() => {
-    // Check for cookie consent on mount
-    const consent = localStorage.getItem('xrd_cookie_consent');
-    if (!consent) {
-      setTimeout(() => setShowCookieBanner(true), 2000);
-    }
-  }, []);
-
-  const handleAcceptCookies = () => {
-    localStorage.setItem('xrd_cookie_consent', 'true');
-    setShowCookieBanner(false);
-  };
-
-  const [showThemePicker, setShowThemePicker] = useState(false);
-  const themePickerRef = useRef<HTMLDivElement>(null);
-
   // Global keyboard shortcut to focus search (/ or Cmd+K / Ctrl+K)
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      // Ignore if user is currently typing in an input/textarea
       const target = e.target as HTMLElement;
       if (target && (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable)) {
         return;
       }
-
       if (e.key === '/' || ((e.metaKey || e.ctrlKey) && e.key === 'k')) {
         e.preventDefault();
         if (searchInputRef.current) {
@@ -1300,136 +789,148 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
         setShowThemePicker(false);
       }
     };
-    document.addEventListener("mousedown", handleOutsideClick);
-    return () => document.removeEventListener("mousedown", handleOutsideClick);
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('xrd_user_registration');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed?.name) setUserName(parsed.name);
+      } else {
+        setUserName('');
+      }
+    } catch {}
+  }, [isRegistered]);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 30);
+      setShowBackToTop(window.scrollY > 500);
+    };
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const filteredHeroSuggestions = useMemo(() => {
     if (!heroSearchTerm || heroSearchTerm.length < 1) return [];
     const term = heroSearchTerm.toLowerCase().trim();
 
-    // Filter scientific modules by search query & active category
-    const matchedModules = SCIENTIFIC_MODULES.filter(m => {
-      // Category filter check
+    const matchedModules = SCIENTIFIC_MODULES.filter((m) => {
       if (searchCategory === 'diffraction') {
-        const cat = (m.categoryLabel || '').toLowerCase();
-        if (!cat.includes('diffraction') && !cat.includes('bragg') && !cat.includes('fundamental') && !m.id.includes('bragg')) {
-          return false;
-        }
+        return m.category === 'diffraction';
       } else if (searchCategory === 'crystallite') {
-        const cat = (m.categoryLabel || '').toLowerCase();
-        if (!cat.includes('crystallite') && !cat.includes('size') && !cat.includes('scherrer') && !cat.includes('williamson') && !cat.includes('strain')) {
-          return false;
-        }
+        return m.category === 'microstructure';
       } else if (searchCategory === 'ai') {
-        const cat = (m.categoryLabel || '').toLowerCase();
-        if (!cat.includes('ai') && !cat.includes('rietveld') && !cat.includes('advanced') && !cat.includes('learning')) {
-          return false;
-        }
+        return m.category === 'ai_database' || m.category === 'refinement';
       } else if (searchCategory === 'standards') {
-        return false; // only show material standards
+        return false;
       }
 
       return (
-        m.title.toLowerCase().includes(term) || 
+        m.title.toLowerCase().includes(term) ||
         m.description.toLowerCase().includes(term) ||
         (m.formula && m.formula.toLowerCase().includes(term)) ||
         (m.badge && m.badge.toLowerCase().includes(term)) ||
         m.categoryLabel.toLowerCase().includes(term)
       );
-    }).slice(0, 5).map(m => ({
-      type: 'module' as const,
-      id: m.id,
-      name: m.title,
-      description: m.description,
-      badge: m.badge || m.categoryLabel,
-      formula: m.formula,
-      category: m.categoryLabel
-    }));
+    })
+      .slice(0, 5)
+      .map((m) => ({
+        type: 'module' as const,
+        id: m.id,
+        name: m.title,
+        description: m.description,
+        badge: m.badge || m.categoryLabel,
+        formula: m.formula,
+        category: m.categoryLabel,
+      }));
 
-    // Filter crystal standard materials
-    const matchedMaterials = searchCategory === 'crystallite' || searchCategory === 'ai' ? [] : getActiveMaterials().filter(item => 
-      item.name.toLowerCase().includes(term) || 
-      item.formula.toLowerCase().includes(term) ||
-      (item.crystalSystem && item.crystalSystem.toLowerCase().includes(term))
-    ).slice(0, 4).map(item => ({
-      type: 'material' as const,
-      id: item.name,
-      name: item.name,
-      description: item.description,
-      badge: item.formula,
-      formula: item.crystalSystem,
-      category: 'Crystal Standard'
-    }));
+    const matchedMaterials =
+      searchCategory === 'crystallite' || searchCategory === 'ai'
+        ? []
+        : MATERIAL_DB
+            .filter(
+              (item) =>
+                item.name.toLowerCase().includes(term) ||
+                item.formula.toLowerCase().includes(term) ||
+                (item.crystalSystem && item.crystalSystem.toLowerCase().includes(term))
+            )
+            .slice(0, 4)
+            .map((item) => ({
+              type: 'material' as const,
+              id: item.name,
+              name: item.name,
+              description: item.description,
+              badge: item.formula,
+              formula: item.crystalSystem,
+              category: 'Crystal Standard',
+            }));
 
     return [...matchedModules, ...matchedMaterials].slice(0, 7);
   }, [heroSearchTerm, searchCategory]);
 
-  const defaultPopularSuggestions = useMemo(() => [
-    {
-      type: 'module' as const,
-      id: 'bragg',
-      name: 'Bragg Diffraction Simulator',
-      description: 'Calculate 2θ reflections, reciprocal d-spacings, and structure factor intensities.',
-      badge: 'Popular',
-      formula: 'nλ = 2d sinθ',
-      category: 'Fundamentals'
-    },
-    {
-      type: 'module' as const,
-      id: 'scherrer',
-      name: 'Scherrer Crystallite Sizing',
-      description: 'Extract mean crystallite domain size D from FWHM line broadening.',
-      badge: 'Core Lab',
-      formula: 'D = Kλ / (β cosθ)',
-      category: 'Crystallite Size'
-    },
-    {
-      type: 'module' as const,
-      id: 'wh',
-      name: 'Williamson-Hall Microstrain Plot',
-      description: 'Deconvolve finite domain size from lattice microstrain using UDM/USDM models.',
-      badge: 'Strain',
-      formula: 'β cosθ = Kλ/D + 4ε sinθ',
-      category: 'Microstrain'
-    },
-    {
-      type: 'module' as const,
-      id: 'rir',
-      name: 'RIR Quantitative Phase Analysis',
-      description: 'Chung matrix flushing method using reference intensity ratios.',
-      badge: 'Quantitative',
-      formula: 'Chung QPA',
-      category: 'Refinement'
-    },
-    {
-      type: 'module' as const,
-      id: 'dl',
-      name: 'AI Phase Identifier (Deep Learning)',
-      description: 'Autonomous neural network pattern matching against 1,200,000+ COD standards.',
-      badge: 'AI Core',
-      formula: 'COD Neural Net',
-      category: 'AI & Data'
-    },
-    {
-      type: 'material' as const,
-      id: 'Silicon',
-      name: 'Silicon (Si Standard)',
-      description: 'Standard cubic diamond reference material for XRD zero-shift calibration.',
-      badge: 'Si Standard',
-      formula: 'Fd-3m (#227)',
-      category: 'Crystal Standard'
-    },
-    {
-      type: 'material' as const,
-      id: 'Anatase',
-      name: 'Titanium Dioxide (TiO₂)',
-      description: 'Tetragonal polymorph standard for photocatalysis and solar cells.',
-      badge: 'TiO₂ Anatase',
-      formula: 'I4₁/amd (#141)',
-      category: 'Crystal Standard'
-    }
-  ], []);
+  const defaultPopularSuggestions = useMemo(
+    () => [
+      {
+        type: 'module' as const,
+        id: 'rietveld',
+        name: 'Rietveld Full-Pattern Refinement',
+        description: '7-stage whole-powder-pattern least-squares solver with Caglioti UVW and Wyckoff sites.',
+        badge: 'FULL-PATTERN',
+        formula: 'Rwp / χ² Solver',
+        category: 'Refinement',
+      },
+      {
+        type: 'module' as const,
+        id: 'pdf_analysis',
+        name: 'Pair Distribution Function G(r)',
+        description: 'Sine-Fourier transform of total scattering S(Q) into real-space atomic pair correlations.',
+        badge: 'TOTAL SCATTERING',
+        formula: 'G(r) = (2/π)∫Q[S(Q)-1]sin(Qr)dQ',
+        category: 'Diffraction & PDF',
+      },
+      {
+        type: 'module' as const,
+        id: 'xrr',
+        name: 'X-Ray Reflectometry (XRR) Engine',
+        description: 'Parratt optical recursion for thin-film thickness, critical angle θc, and roughness.',
+        badge: 'THIN-FILM',
+        formula: 'Parratt & Kiessig FFT',
+        category: 'Reflectometry',
+      },
+      {
+        type: 'module' as const,
+        id: 'williamson',
+        name: 'Williamson–Hall (UDM / USDM / UDEDM)',
+        description: 'Deconvolve finite domain size D from isotropic or anisotropic lattice microstrain ε.',
+        badge: 'MICROSTRAIN',
+        formula: 'β cosθ = Kλ/D + 4ε sinθ',
+        category: 'Line Broadening',
+      },
+      {
+        type: 'module' as const,
+        id: 'dl',
+        name: 'Physics-Informed Neural Net (PINN)',
+        description: '1D-ResNet + Multi-Head Attention with 230 space-group extinction masks and Grad-CAM.',
+        badge: 'PINN AI',
+        formula: '230 Space Groups',
+        category: 'Neural Crystallography',
+      },
+      {
+        type: 'material' as const,
+        id: 'Silicon',
+        name: 'Silicon NIST SRM 640f',
+        description: 'Certified diamond cubic reference standard (Fd-3m, a = 5.43119 Å) for instrumental calibration.',
+        badge: 'Si SRM 640f',
+        formula: 'Fd-3m (#227)',
+        category: 'Crystal Standard',
+      },
+    ],
+    []
+  );
 
   const displaySuggestions = useMemo(() => {
     if (!heroSearchTerm || heroSearchTerm.trim().length === 0) {
@@ -1438,1473 +939,1004 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
     return filteredHeroSuggestions;
   }, [heroSearchTerm, defaultPopularSuggestions, filteredHeroSuggestions]);
 
-  useEffect(() => {
-    try {
-      const saved = localStorage.getItem('xrd_user_registration');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed?.name) {
-          setUserName(parsed.name);
-        }
-      } else {
-        setUserName('');
-      }
-    } catch (e) {}
-  }, [isRegistered]);
+  const pythonSnippet = `import xrd_core as xrd
 
-  const mouseX = useMotionValue(0);
-  const mouseY = useMotionValue(0);
-  const springX = useSpring(mouseX, { stiffness: 50, damping: 15 });
-  const springY = useSpring(mouseY, { stiffness: 50, damping: 15 });
+# 1. Load Experimental Powder Pattern & NIST SRM 640f Caglioti Calibration
+scan = xrd.load_scan("BaTiO3_perovskite_CuKa1.xy", wavelength=1.540598)
+inst = xrd.CagliotiResolution(U=0.0042, V=-0.0028, W=0.0054, eta0=0.22)
 
-  useEffect(() => {
-    let animFrame: number | null = null;
-    const handleMouseMove = (e: MouseEvent) => {
-      if (animFrame !== null) return;
-      animFrame = requestAnimationFrame(() => {
-        const xOffset = (e.clientX / window.innerWidth - 0.5) * 60;
-        const yOffset = (e.clientY / window.innerHeight - 0.5) * -60;
-        mouseX.set(xOffset);
-        mouseY.set(yOffset);
-        animFrame = null;
-      });
-    };
-    window.addEventListener('mousemove', handleMouseMove, { passive: true });
-    return () => {
-      if (animFrame !== null) cancelAnimationFrame(animFrame);
-      window.removeEventListener('mousemove', handleMouseMove);
-    };
-  }, [mouseX, mouseY]);
+# 2. Execute 7-Stage Rietveld Refinement & Total Scattering PDF G(r)
+rietveld = xrd.RietveldEngine(scan, space_group="P4mm", resolution=inst).refine()
+pdf = xrd.compute_pdf_Gr(scan, q_max=24.0, lorch_damping=True)
 
-  useEffect(() => {
-    let lastScrolled = false;
-    let lastBackToTop = false;
-    const handleScroll = () => {
-      const scrolled = window.scrollY > 50;
-      const backToTop = window.scrollY > 400;
-      if (scrolled !== lastScrolled) {
-        lastScrolled = scrolled;
-        setIsScrolled(scrolled);
-      }
-      if (backToTop !== lastBackToTop) {
-        lastBackToTop = backToTop;
-        setShowBackToTop(backToTop);
-      }
-    };
-    window.addEventListener('scroll', handleScroll, { passive: true });
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const features = [
-    {
-      title: "AI Peak Recognition",
-      description: "Neural network phase signatures identification with 98.4% calibration alignment even in raw, high-noise laboratory datasets.",
-      icon: Brain,
-      module: 'dl'
-    },
-    {
-      title: "Interactive Materials DB",
-      description: "Direct offline-first local simulation, editing standard parameters, lattice projections, and crystal system densities.",
-      icon: Database,
-      module: 'database'
-    },
-    {
-      title: "Multi-peak Bragg Spacing",
-      description: "Standard structural d-spacing, Bragg angle solvers, custom X-ray source targets, and synthesized acoustic tone reflections.",
-      icon: Beaker,
-      module: 'bragg'
-    },
-    {
-      title: "Scherrer Crystallite domains",
-      description: "Calculate domains dynamically using full-width at half-maximum (FWHM) fitting with adjustable shape factors.",
-      icon: Microscope,
-      module: 'scherrer'
-    },
-    {
-      title: "Diffraction Compare",
-      description: "Overlay and visually inspect diffraction profiles between custom samples. Identify crystal structure variations, line shifts, and peak intensity anomalies.",
-      icon: Layers,
-      module: 'compare'
-    },
-    {
-      title: "Academic Interactive Hub",
-      description: "Premium educational libraries covering systematic absences, selection rules, and XRD diffraction fundamentals.",
-      icon: FileText,
-      module: 'learn'
-    }
-  ];
+print(f"Rwp: {rietveld.rwp:.2f}% | c/a: {rietveld.c / rietveld.a:.4f} | Ti-O r1: {pdf.first_shell:.3f} Å")`;
 
   return (
-    <div className="min-h-screen bg-[#020617] text-white flex flex-col font-sans selection:bg-violet-500/30 relative">
-      <div className="absolute inset-0 bg-[url('https://grainy-gradients.vercel.app/noise.svg')] opacity-[0.08] pointer-events-none z-50 contrast-150 brightness-100" />
-      
-      {/* Side Seek Navigation */}
-      <SideSeekBar theme={theme} />
+    <div className="min-h-screen bg-[#070A12] text-slate-100 flex flex-col font-sans selection:bg-cyan-500/30 relative">
+      {/* Subtle Scientific Grid Backdrop */}
+      <div
+        className="fixed inset-0 opacity-[0.06] pointer-events-none z-0"
+        style={{
+          backgroundImage:
+            'linear-gradient(to right, #334155 1px, transparent 1px), linear-gradient(to bottom, #334155 1px, transparent 1px)',
+          backgroundSize: '48px 48px',
+        }}
+      />
 
-      {/* Unified Fixed Header Container */}
-      <header className="fixed top-0 left-0 w-full z-40 transition-all duration-300">
-        {/* Active Session Quick-Resume Banner */}
+      {/* Unified Fixed Header */}
+      <header className="fixed top-0 left-0 w-full z-40">
+        {/* Active Session Quick-Resume Strip */}
         {onReturnToApp && (
-          <div className="bg-gradient-to-r from-indigo-950/95 via-slate-900/95 to-violet-950/95 border-b border-indigo-500/30 px-4 py-2 text-xs select-none backdrop-blur-md">
+          <div className="bg-[#0B0F19] border-b border-slate-800 px-4 py-1.5 text-xs select-none">
             <div className="max-w-7xl mx-auto flex items-center justify-between gap-3">
-              <div className="flex items-center gap-2 min-w-0">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
-                <span className="text-slate-300 font-medium truncate">
-                  {t('Active XRD Session Available:', 'Active XRD Session Available:')} <strong className="text-white font-bold">{activeModule ? activeModule.toUpperCase() : 'CALCULATOR SUITE'}</strong>
+              <div className="flex items-center gap-2 min-w-0 font-mono">
+                <span className="text-emerald-400 font-bold">● ACTIVE SESSION</span>
+                <span className="text-slate-600">|</span>
+                <span className="text-slate-300 truncate">
+                  MOUNTED ENGINE:{' '}
+                  <strong className="text-cyan-400">
+                    {activeModule ? activeModule.toUpperCase() : 'BRAGG WORKSTATION'}
+                  </strong>
                 </span>
               </div>
               <button
-                onClick={() => handleResumeApp(activeModule)}
-                className="px-3.5 py-1.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-md shadow-indigo-600/25 transition-all cursor-pointer active:scale-95 shrink-0"
+                type="button"
+                onClick={() => handleResumeApp()}
+                className="px-3 py-1 bg-cyan-500 hover:bg-cyan-400 text-slate-950 rounded-sm font-mono font-bold text-[11px] uppercase tracking-wider flex items-center gap-1.5 transition-colors cursor-pointer shrink-0"
               >
-                <span>{t('Resume Calculations', 'Resume Calculations')}</span>
-                <ArrowRight className="w-3.5 h-3.5" />
+                <span>Resume Workstation</span>
+                <ArrowRight className="w-3 h-3" />
               </button>
             </div>
           </div>
         )}
 
-        {/* Dynamic Navbar */}
-        <nav className={`w-full transition-all duration-300 ${isScrolled ? 'bg-[#050B14]/90 backdrop-blur-2xl border-b border-white/10 py-3 shadow-2xl' : 'bg-[#020617]/80 backdrop-blur-md border-b border-white/5 py-4'}`}>
-        <div className="max-w-7xl mx-auto px-6 flex justify-between items-center">
-          <div className="flex items-center gap-3 group cursor-pointer" onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}>
-            <CrystallographicBrandEmblem />
-            <div className="flex flex-col">
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-black tracking-tight leading-none text-white">XRD<span className="text-violet-500 font-normal">CalcPro</span></span>
-              </div>
-              <span className="text-[9px] font-mono uppercase tracking-widest text-cyan-400 mt-1 flex items-center gap-1.5 opacity-90">
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
-                {t('Scientific Suite')}
-              </span>
-            </div>
-          </div>
-
-          <div className="hidden md:flex items-center gap-6 text-xs font-semibold uppercase tracking-wider text-slate-300">
-            <LanguageSelector compact={true} />
-
-            {/* Clean Integrated Theme Picker */}
-            <div className="relative" ref={themePickerRef}>
-              <button
-                onClick={() => setShowThemePicker(!showThemePicker)}
-                className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-900/60 hover:bg-slate-800/80 border border-slate-700/60 rounded-xl text-[11px] font-mono text-slate-300 hover:text-white transition-all cursor-pointer"
-                title="Change UI Theme"
-              >
-                <Palette className="w-3.5 h-3.5 text-violet-400" />
-                <span className="capitalize">{theme}</span>
-              </button>
-
-              {showThemePicker && (
-                <div className="absolute top-10 right-0 z-[120] w-48 p-2 bg-slate-900/95 backdrop-blur-2xl border border-slate-700/80 rounded-2xl shadow-2xl grid grid-cols-1 gap-1 animate-in fade-in zoom-in-95 duration-200">
-                  <div className="px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-400 border-b border-slate-800 mb-1">
-                    Crystallography Theme
-                  </div>
-                  {['light', 'dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic', 'gruvbox', 'monokai'].map((t) => (
-                    <button
-                      key={t}
-                      onClick={() => {
-                        setTheme(t as any);
-                        setShowThemePicker(false);
-                      }}
-                      className={`w-full text-left px-2.5 py-1.5 rounded-lg text-xs font-medium capitalize flex items-center justify-between transition-colors cursor-pointer ${
-                        theme === t ? 'bg-violet-600/30 text-violet-300 font-bold' : 'text-slate-300 hover:bg-slate-800 hover:text-white'
-                      }`}
-                    >
-                      <span>{t}</span>
-                      {theme === t && <span className="w-1.5 h-1.5 rounded-full bg-violet-400" />}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            {onOpenWhyXrd && (
-              <button
-                onClick={onOpenWhyXrd}
-                className="text-yellow-400 hover:text-yellow-300 font-bold px-2.5 py-1 rounded-lg hover:bg-yellow-400/10 border border-yellow-400/30 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm"
-                title="How XRD Helps in Different Disciplines (Lecture 11 Reference)"
-              >
-                <Atom className="w-3.5 h-3.5 text-yellow-400 animate-spin" style={{ animationDuration: '8s' }} />
-                <span>Why XRD?</span>
-              </button>
-            )}
-            <a href="#sandbox" className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1.5 font-bold px-2 py-1 rounded-lg hover:bg-cyan-500/10">
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              Diffraction Lab
-            </a>
-            <a href="#broadening" className="hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
-              Broadening
-            </a>
-            <a href="#modules" className="hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
-              30+ Instruments
-            </a>
-            <a href="#workflows" className="hover:text-white transition-colors px-2 py-1 rounded-lg hover:bg-white/5">
-              Workflows
-            </a>
-            <div className="w-px h-5 bg-slate-700 mx-1" />
-            
-            {isRegistered ? (
-              <>
-                <span className="text-cyan-400 font-bold tracking-tight lowercase truncate max-w-[130px] flex items-center gap-1.5 bg-cyan-950/40 border border-cyan-800/40 px-2.5 py-1.5 rounded-lg">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                  {userName || 'User'}
-                </span>
-                <AnimatedGoToAppButton 
-                  onClick={() => handleEnterApp('login')}
-                  text={t('Go to App')}
-                  variant="navbar"
-                  isRTL={isRTL}
-                />
-                <button 
-                  onClick={onSignOut}
-                  className="bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 px-4 py-2 rounded-full font-bold transition-all active:scale-95"
-                >
-                  {t('Sign Out')}
-                </button>
-              </>
-            ) : (
-              <>
-                <button 
-                  onClick={() => handleEnterApp('login')}
-                  className="hover:text-white transition-colors text-indigo-400 font-bold"
-                >
-                  {t('Log In')}
-                </button>
-                <div className="flex gap-2">
-                  <button 
-                    onClick={() => handleEnterApp('login')}
-                    className="hover:text-white hover:bg-white/5 border border-white/10 px-4 py-2.5 rounded-full font-bold transition-all"
-                  >
-                    {t('Sign In')}
-                  </button>
-                  <AnimatedGoToAppButton 
-                    onClick={() => handleEnterApp('register')}
-                    text={t('Get Started')}
-                    variant="navbar"
-                    isRTL={isRTL}
-                  />
-                </div>
-              </>
-            )}
-          </div>
-
-          <div className="flex md:hidden items-center gap-2">
-            <LanguageSelector compact={true} />
-            {isRegistered && (
-              <button 
-                onClick={onSignOut}
-                className="text-[10px] uppercase font-black tracking-wider bg-rose-500/10 text-rose-400 px-2.5 py-1.5 rounded-lg border border-rose-500/20"
-              >
-                {t('Sign Out')}
-              </button>
-            )}
-            <button 
-              onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)} 
-              className="p-2.5 bg-slate-900/80 hover:bg-slate-800 rounded-xl border border-slate-700/80 text-slate-300 transition-colors cursor-pointer"
-              aria-label="Toggle Navigation Menu"
+        {/* Primary Instrument Navigation Bar */}
+        <nav
+          className={`w-full transition-colors duration-200 ${
+            isScrolled
+              ? 'bg-[#070A12]/95 backdrop-blur-md border-b border-slate-800 py-2.5 shadow-xl'
+              : 'bg-[#070A12]/85 backdrop-blur-sm border-b border-slate-800/80 py-3.5'
+          }`}
+        >
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex justify-between items-center gap-4">
+            {/* Brand Identity */}
+            <div
+              className="flex items-center gap-3 group cursor-pointer"
+              onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
             >
-              {isMobileDrawerOpen ? <X className="w-5 h-5 text-violet-400" /> : <Menu className="w-5 h-5 text-violet-400" />}
-            </button>
-          </div>
-        </div>
-
-        {/* Mobile Navigation Drawer */}
-        <AnimatePresence>
-          {isMobileDrawerOpen && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.25, ease: "easeInOut" }}
-              className="md:hidden bg-[#050B14]/95 backdrop-blur-3xl border-b border-white/10 px-6 py-5 shadow-2xl overflow-hidden"
-            >
-              <div className="flex flex-col gap-3">
-                <div className="flex items-center justify-between py-1 border-b border-slate-800">
-                  <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">Quick Navigation</span>
-                  <div className="relative" ref={themePickerRef}>
-                    <button
-                      onClick={() => setShowThemePicker(!showThemePicker)}
-                      className="flex items-center gap-1.5 px-2.5 py-1 bg-slate-900 hover:bg-slate-800 border border-slate-700 rounded-lg text-[10px] font-mono text-slate-300 cursor-pointer"
-                    >
-                      <Palette className="w-3 h-3 text-violet-400" />
-                      <span className="capitalize">{theme}</span>
-                    </button>
-                  </div>
+              <CrystallographicBrandEmblem />
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className="text-lg sm:text-xl font-bold tracking-tight text-white font-mono">
+                    XRD<span className="text-cyan-400">CalcPro</span>
+                  </span>
+                  <span className="hidden sm:inline-block text-[10px] font-mono text-slate-400 border border-slate-800 bg-[#0B0F19] px-1.5 py-0.5 rounded-sm">
+                    v2.5 STUDIO
+                  </span>
                 </div>
-
-                <div className="grid grid-cols-2 gap-2 pt-1">
-                  <a 
-                    href="#sandbox" 
-                    onClick={() => setIsMobileDrawerOpen(false)}
-                    className="p-2.5 bg-cyan-950/30 border border-cyan-800/40 rounded-xl text-xs font-bold text-cyan-300 flex items-center gap-2"
-                  >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                    <span>Diffraction Lab</span>
-                  </a>
-                  <a 
-                    href="#broadening" 
-                    onClick={() => setIsMobileDrawerOpen(false)}
-                    className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2"
-                  >
-                    <span>🔬 Broadening</span>
-                  </a>
-                  <a 
-                    href="#modules" 
-                    onClick={() => setIsMobileDrawerOpen(false)}
-                    className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2"
-                  >
-                    <span>🗂️ 30+ Instruments</span>
-                  </a>
-                  <a 
-                    href="#workflows" 
-                    onClick={() => setIsMobileDrawerOpen(false)}
-                    className="p-2.5 bg-slate-900/60 border border-slate-800 rounded-xl text-xs font-bold text-slate-300 hover:text-white flex items-center gap-2"
-                  >
-                    <span>🧭 Workflows</span>
-                  </a>
-                </div>
-
-                <div className="pt-2 border-t border-slate-800/80 flex flex-col gap-2">
-                  <button
-                    onClick={() => {
-                      setIsMobileDrawerOpen(false);
-                      handleEnterApp(isRegistered ? 'login' : 'register');
-                    }}
-                    className="w-full py-3 bg-gradient-to-r from-violet-600 to-indigo-600 hover:from-violet-500 hover:to-indigo-500 text-white font-bold rounded-xl text-xs uppercase tracking-widest transition-all shadow-lg flex items-center justify-center gap-2 cursor-pointer"
-                  >
-                    <Sparkles className="w-4 h-4 text-cyan-300" />
-                    <span>{isRegistered ? 'Launch Workbench' : 'Enter Suite (Instant Access)'}</span>
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </nav>
-      </header>
-
-      <main className="flex-1 relative z-10">
-        {/* --- Hero Section --- */}
-        <section className="relative px-6 pt-48 pb-32 md:pb-56 min-h-[90vh] flex items-center overflow-hidden">
-          <div className="absolute inset-0 z-0 pointer-events-none">
-            <img src={heroBg} alt="Diffraction Crystal" className="w-full h-full object-cover opacity-60 mix-blend-screen" referrerPolicy="no-referrer" />
-            <div className="absolute inset-0 bg-gradient-to-b from-[#02050A]/20 via-[#02050A]/70 to-[#02050A]" />
-            <div className="absolute inset-0 bg-gradient-to-r from-[#02050A] via-transparent to-[#02050A]/80" />
-          </div>
-          <DiffractionGrid />
-          <CrystalLattice springX={springX} springY={springY} />
-          
-          {/* Dynamic Background Glow Layer */}
-          <div className="absolute top-1/4 left-1/4 w-[350px] h-[350px] bg-violet-600/15 rounded-full blur-[120px] pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '6s' }} />
-          <div className="absolute bottom-1/3 right-1/4 w-[400px] h-[400px] bg-cyan-500/15 rounded-full blur-[140px] pointer-events-none -z-10 animate-pulse" style={{ animationDuration: '8s' }} />
-
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10 w-full">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 1.2, ease: [0.16, 1, 0.3, 1] }}
-              className={isRTL ? "text-right" : "text-left"}
-            >
-              {/* Feature Badge */}
-              <div 
-                className={`inline-flex items-center gap-3 px-4 py-2 rounded-full bg-violet-600/10 hover:bg-violet-600/20 border border-violet-500/30 mb-6 shadow-xl backdrop-blur-md transition-all duration-300 cursor-default select-none`}
-              >
-                <div className="w-2 h-2 rounded-full bg-cyan-400 animate-ping" />
-                <Database className="w-4 h-4 text-violet-400" />
-                <span className="text-[11px] font-black uppercase tracking-[0.2em] text-violet-300 font-mono">
-                  {t("Phase Match & Structural Indexing", "Phase Match & Structural Indexing")}
+                <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 mt-0.5">
+                  ● Computational Crystallography &amp; Scattering Suite
                 </span>
               </div>
+            </div>
 
-              {/* Graphical Welcome Indicator with Personalized Salutation & Tour Button */}
-              <motion.div
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6, ease: "easeOut" }}
-                className="mb-5 flex flex-wrap items-center gap-2.5"
+            {/* Desktop Navigation Links */}
+            <div className="hidden lg:flex items-center gap-5 text-xs font-mono uppercase tracking-wider text-slate-300">
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById('modules-directory-section')?.scrollIntoView({ behavior: 'smooth' })
+                }
+                className="hover:text-cyan-400 transition-colors cursor-pointer"
               >
-                {/* Main Welcome Pill */}
-                <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-gradient-to-r from-violet-600/20 via-cyan-500/15 to-indigo-600/20 border border-cyan-500/30 backdrop-blur-xl text-cyan-200 font-mono text-xs sm:text-sm font-bold shadow-xl shadow-cyan-500/10 ${isRTL ? "flex-row-reverse" : ""}`}>
-                  <span className="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse shadow-[0_0_10px_rgba(34,211,238,0.9)]" />
-                  <span className="text-white font-black">{timeOfDayGreeting}</span>
-                  <span className="text-slate-400">•</span>
-                  <span>{isRegistered && userName ? `${t('Welcome')}, ${userName}` : t("Welcome to XRD CalcPro", "Welcome to XRD CalcPro")}</span>
-                </div>
-
-                {/* 4-Stage Guided Tour Quick Action */}
+                17 Workstations
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById('bragg-optical-bench')?.scrollIntoView({ behavior: 'smooth' })
+                }
+                className="hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Bragg Bench
+              </button>
+              <button
+                type="button"
+                onClick={() =>
+                  document.getElementById('formalism-matrix-section')?.scrollIntoView({ behavior: 'smooth' })
+                }
+                className="hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Formalism Matrix
+              </button>
+              {onOpenWhyXrd && (
                 <button
-                  onClick={() => setShowWelcomeTour(true)}
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-slate-900/80 hover:bg-violet-950/80 border border-violet-500/40 hover:border-cyan-400/60 text-slate-200 hover:text-white font-mono text-xs font-bold transition-all shadow-lg cursor-pointer group/tour active:scale-95 ${isRTL ? "flex-row-reverse" : ""}`}
+                  type="button"
+                  onClick={onOpenWhyXrd}
+                  className="text-cyan-400 hover:text-cyan-300 transition-colors flex items-center gap-1 cursor-pointer"
                 >
-                  <Sparkles className="w-3.5 h-3.5 text-cyan-300 group-hover/tour:rotate-12 transition-transform" />
-                  <span>{t("4-Stage Guided Tour", "4-Stage Guided Tour")}</span>
-                  <ArrowRight className="w-3 h-3 text-cyan-400 group-hover/tour:translate-x-0.5 transition-transform" />
+                  <BookOpen className="w-3.5 h-3.5" />
+                  <span>Theory &amp; Guide</span>
                 </button>
-              </motion.div>
+              )}
+              <button
+                type="button"
+                onClick={() => setShowWelcomeTour(true)}
+                className="text-slate-400 hover:text-white transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                <HelpCircle className="w-3.5 h-3.5" />
+                <span>Tour</span>
+              </button>
+            </div>
 
-              {/* Majestic Scientific Heading */}
-              <h1 className="text-4xl sm:text-5xl lg:text-[4.8rem] font-black tracking-tight mb-6 text-white leading-[1.1] drop-shadow-2xl relative select-none">
-                <span className="absolute -inset-10 bg-violet-600/5 blur-[120px] rounded-full -z-10" />
-                <span className="block text-slate-400 text-sm sm:text-base font-bold uppercase tracking-[0.3em] mb-4 font-mono">
-                  {t("Advanced Computational Crystallography Suite", "Advanced Computational Crystallography Suite")}
-                </span>
-                <span className="bg-clip-text text-transparent bg-gradient-to-r from-white via-slate-100 to-slate-400 block mb-2 leading-none">
-                  {t("Automate Your", "Automate Your")}
-                </span>
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-violet-400 via-cyan-300 to-indigo-200 drop-shadow-[0_0_35px_rgba(34,211,238,0.25)] block">
-                  {t("Diffraction Analysis", "Diffraction Analysis")}
-                </span>
-              </h1>
-              
-              {/* Premium Hero Description */}
-              <p className="text-base sm:text-lg text-slate-300 font-medium mb-8 leading-relaxed max-w-2xl">
-                {t('Hero Description') || 'The ultimate computational suite for X-ray powder diffraction (XRD). Extract precise phase data, determine crystallite size, calculate strain metrics, and perform structure refinement with institutional-grade computational models directly in your browser.'}
-              </p>
+            {/* Right Controls: Language, Theme, Auth & Launch */}
+            <div className="hidden md:flex items-center gap-3">
+              <LanguageSelector compact={true} />
 
-              {/* CATEGORY FILTER CHIPS FOR SEARCH */}
-              <div className={`flex flex-wrap items-center gap-1.5 mb-3 max-w-2xl ${isRTL ? "flex-row-reverse" : ""}`}>
-                <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mr-1">Filter:</span>
-                {[
-                  { id: 'all', label: 'All (30+ Tools)' },
-                  { id: 'diffraction', label: 'Diffraction & Bragg' },
-                  { id: 'crystallite', label: 'Crystallite & Strain' },
-                  { id: 'ai', label: 'AI & Refinement' },
-                  { id: 'standards', label: 'COD Standards' },
-                ].map((cat) => (
-                  <button
-                    key={cat.id}
-                    onClick={() => {
-                      setSearchCategory(cat.id as any);
-                      if (heroSearchTerm) setShowHeroSuggestions(true);
-                    }}
-                    className={`px-2.5 py-1 rounded-lg text-[11px] font-mono transition-all cursor-pointer ${
-                      searchCategory === cat.id
-                        ? 'bg-violet-600/30 border border-violet-400/80 text-violet-200 font-bold shadow-sm'
-                        : 'bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800 text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {cat.label}
-                  </button>
-                ))}
-              </div>
+              {/* Theme Selector */}
+              <div className="relative" ref={themePickerRef}>
+                <button
+                  type="button"
+                  onClick={() => setShowThemePicker(!showThemePicker)}
+                  className="flex items-center gap-1.5 px-2.5 py-1.5 bg-[#0B0F19] hover:bg-slate-900 border border-slate-800 rounded-sm text-[11px] font-mono text-slate-300 hover:text-white transition-colors cursor-pointer"
+                  title="Select UI Theme"
+                >
+                  <Palette className="w-3.5 h-3.5 text-cyan-400" />
+                  <span className="capitalize">{theme}</span>
+                </button>
 
-              {/* Dynamic Interactive Search Module */}
-              <div ref={heroSearchRef} className="relative max-w-2xl group w-full mb-6">
-                <div className="absolute -inset-1 bg-gradient-to-r from-violet-600 to-cyan-500 rounded-[2.2rem] blur opacity-25 group-hover:opacity-40 transition duration-1000 group-hover:duration-200" />
-                <div className={`relative flex items-center bg-[#050b14]/90 ring-1 ring-white/10 backdrop-blur-2xl rounded-[2rem] p-2.5 w-full transition-all duration-300 focus-within:ring-violet-500/50 focus-within:ring-2 shadow-[0_20px_50px_rgba(0,0,0,0.5)]`}>
-                  <div className="p-3 pl-4 text-slate-400 shrink-0 flex items-center gap-1.5">
-                    <Search className="w-5 h-5 text-violet-400 group-hover:text-cyan-400 transition-colors" />
-                  </div>
-                  <input 
-                    ref={searchInputRef}
-                    type="text" 
-                    value={heroSearchTerm}
-                    onChange={(e) => {
-                      setHeroSearchTerm(e.target.value);
-                      setShowHeroSuggestions(true);
-                      setActiveSuggestionIndex(-1);
-                    }}
-                    onFocus={() => setShowHeroSuggestions(true)}
-                    placeholder={t("Search 30+ tools or crystals... e.g. 'Scherrer', 'Williamson', 'Rietveld', 'NaCl'", "Search 30+ tools or crystals... e.g. 'Scherrer', 'Williamson', 'Rietveld', 'NaCl'")} 
-                    className={`flex-1 bg-transparent border-none outline-none text-slate-200 placeholder-slate-500 font-medium text-base sm:text-lg px-2 w-full ${isRTL ? "text-right font-sans" : "text-left font-sans"}`}
-                    onKeyDown={(e) => {
-                      if (e.key === 'ArrowDown') {
-                        e.preventDefault();
-                        if (displaySuggestions.length > 0) {
-                          setActiveSuggestionIndex(prev => (prev + 1) % displaySuggestions.length);
-                        }
-                      } else if (e.key === 'ArrowUp') {
-                        e.preventDefault();
-                        if (displaySuggestions.length > 0) {
-                          setActiveSuggestionIndex(prev => (prev - 1 + displaySuggestions.length) % displaySuggestions.length);
-                        }
-                      } else if (e.key === 'Enter') {
-                        if (activeSuggestionIndex >= 0 && displaySuggestions[activeSuggestionIndex]) {
-                          e.preventDefault();
-                          const item = displaySuggestions[activeSuggestionIndex];
-                          setHeroSearchTerm(item.name);
-                          setShowHeroSuggestions(false);
-                          if (item.type === 'module') {
-                            handleEnterApp(isRegistered ? 'login' : 'register', item.id);
-                          } else {
-                            try {
-                              localStorage.setItem("xrd_initial_search", item.name);
-                            } catch (err) {}
-                            handleEnterApp(isRegistered ? 'login' : 'register', 'database');
-                          }
-                        } else {
-                          handleEnterApp(isRegistered ? 'login' : 'register');
-                        }
-                      } else if (e.key === 'Escape') {
-                        setShowHeroSuggestions(false);
-                        setActiveSuggestionIndex(-1);
-                        searchInputRef.current?.blur();
-                      }
-                    }}
-                  />
-
-                  {/* Clear Search Button */}
-                  {heroSearchTerm && (
-                    <button
-                      onClick={() => {
-                        setHeroSearchTerm('');
-                        setActiveSuggestionIndex(-1);
-                        searchInputRef.current?.focus();
-                      }}
-                      className="p-1 rounded-full text-slate-400 hover:text-white hover:bg-slate-800 transition-colors mr-1 cursor-pointer"
-                      title="Clear search"
-                    >
-                      <X className="w-4 h-4" />
-                    </button>
-                  )}
-
-                  {/* Keyboard shortcut badge */}
-                  <div className="hidden lg:flex items-center gap-1 mr-2 px-2 py-0.5 rounded-md bg-slate-800/80 border border-slate-700/60 text-[10px] font-mono text-slate-400 shrink-0 select-none">
-                    <span>Press</span>
-                    <kbd className="bg-slate-900 px-1 py-0.2 text-cyan-300 font-bold rounded">/</kbd>
-                  </div>
-
-                  <div className={`flex gap-2 shrink-0 ${isRTL ? "flex-row-reverse" : "flex-row"}`}>
-                    <AnimatedGoToAppButton
-                      onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                      text={isRegistered ? t('Go to App') : t("Guest Explorer", "Guest Explorer")}
-                      variant="secondary"
-                      isRTL={isRTL}
-                      className="hidden sm:flex py-3.5 h-12"
-                    />
-                    <AnimatedGoToAppButton
-                      onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                      text={isRegistered ? t("Launch Core", "Launch Core") : t("Launch Workbench", "Launch Workbench")}
-                      variant="primary"
-                      isRTL={isRTL}
-                      className="py-3.5 h-12"
-                    />
-                  </div>
-                </div>
-
-                {/* Real-time floating suggestions */}
-                {showHeroSuggestions && displaySuggestions.length > 0 && (
-                  <div className="absolute top-20 left-0 right-0 z-50 bg-[#070c18]/95 backdrop-blur-2xl ring-1 ring-white/15 rounded-3xl p-4 shadow-2xl animate-in fade-in slide-in-from-top-3 duration-300 border border-white/10">
-                    <div className={`text-[10px] font-black uppercase text-slate-400 tracking-[0.15em] mb-3 px-2 flex justify-between items-center ${isRTL ? "flex-row-reverse" : ""}`}>
-                      <span>
-                        {heroSearchTerm.trim() 
-                          ? `${t("Matches in", "Matches in")} ${searchCategory === 'all' ? t('All Categories', 'All Categories') : searchCategory}`
-                          : t("Top Recommended Tools & Reference Standards", "Top Recommended Tools & Reference Standards")}
-                      </span>
-                      <span className="text-cyan-400 font-mono text-[9px] tracking-normal lowercase">
-                        {heroSearchTerm.trim() ? t("Local rapid index", "Local rapid index") : t("Instant Jump", "Instant Jump")}
-                      </span>
+                {showThemePicker && (
+                  <div className="absolute top-9 right-0 z-[120] w-44 p-1.5 bg-[#0B0F19] border border-slate-800 rounded-sm shadow-2xl grid grid-cols-1 gap-0.5">
+                    <div className="px-2 py-1 text-[9px] font-mono uppercase tracking-widest text-slate-500 border-b border-slate-800 mb-1">
+                      Color Calibration
                     </div>
-                    <div className="space-y-1.5 max-h-72 overflow-y-auto pr-1">
-                      {displaySuggestions.map((item, idx) => {
-                        const isSelected = idx === activeSuggestionIndex;
-                        return (
-                          <div 
-                            key={`${item.type}-${item.id}`}
-                            onMouseEnter={() => setActiveSuggestionIndex(idx)}
-                            onClick={() => {
-                              setHeroSearchTerm(item.name);
-                              setShowHeroSuggestions(false);
-                              if (item.type === 'module') {
-                                handleEnterApp(isRegistered ? 'login' : 'register', item.id);
-                              } else {
-                                try {
-                                  localStorage.setItem("xrd_initial_search", item.name);
-                                } catch (err) {}
-                                handleEnterApp(isRegistered ? 'login' : 'register', 'database');
-                              }
-                            }}
-                            className={`w-full p-3 rounded-2xl transition-all duration-200 cursor-pointer flex items-center justify-between group/suggest ${
-                              isSelected 
-                                ? 'bg-violet-600/25 border border-violet-500/50 shadow-[0_0_15px_rgba(139,92,246,0.3)]' 
-                                : 'bg-white/[0.02] hover:bg-white/[0.06] border border-transparent hover:border-white/10'
-                            } ${isRTL ? "flex-row-reverse text-right" : ""}`}
-                          >
-                            <div className="flex flex-col pr-2">
-                              <div className="flex items-center gap-2">
-                                <span className={`text-sm font-bold transition-colors ${isSelected ? 'text-cyan-200' : 'text-slate-200 group-hover/suggest:text-violet-300'}`}>
-                                  {item.name}
-                                </span>
-                                <span className={`text-[9px] font-mono uppercase px-1.5 py-0.5 rounded ${
-                                  item.type === 'module' 
-                                    ? 'bg-cyan-500/10 text-cyan-400 border border-cyan-500/20' 
-                                    : 'bg-violet-500/10 text-violet-400 border border-violet-500/20'
-                                }`}>
-                                  {item.type === 'module' ? 'Instrument' : 'Standard'}
-                                </span>
-                              </div>
-                              <span className="text-xs text-slate-400 font-sans line-clamp-1 mt-0.5">{item.description}</span>
-                            </div>
-                            <div className={`flex items-center gap-2 shrink-0 ${isRTL ? "flex-row-reverse" : ""}`}>
-                              {item.badge && (
-                                <span className="font-mono text-[10px] uppercase tracking-wider bg-slate-800/80 text-slate-300 px-2 py-0.5 rounded-md border border-slate-700/60 font-medium">
-                                  {item.badge}
-                                </span>
-                              )}
-                              <ArrowRight className={`w-3.5 h-3.5 transition-colors ${isSelected ? 'text-cyan-300 translate-x-0.5' : 'text-slate-500 group-hover/suggest:text-cyan-400'}`} />
-                            </div>
+                    {[
+                      { id: 'dark', label: 'Obsidian Dark', dot: 'bg-cyan-400' },
+                      { id: 'light', label: 'Laboratory Light', dot: 'bg-sky-500' },
+                      { id: 'cyberpunk', label: 'Synchrotron Neon', dot: 'bg-fuchsia-500' },
+                      { id: ' emerald', label: 'Phosphor Emerald', dot: 'bg-emerald-400' },
+                      { id: 'sunset', label: 'Thermal Amber', dot: 'bg-amber-500' },
+                      { id: 'ocean', label: 'Cherenkov Blue', dot: 'bg-blue-400' },
+                    ].map((tOption) => {
+                      const cleanId = tOption.id.trim();
+                      const isActive = theme === cleanId;
+                      return (
+                        <button
+                          key={cleanId}
+                          type="button"
+                          onClick={() => {
+                            setTheme(cleanId);
+                            setShowThemePicker(false);
+                          }}
+                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-sm text-left text-[11px] font-mono transition-colors cursor-pointer ${
+                            isActive
+                              ? 'bg-cyan-950/60 text-cyan-300 font-bold'
+                              : 'text-slate-400 hover:bg-slate-900 hover:text-white'
+                          }`}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`w-2 h-2 rounded-full ${tOption.dot}`} />
+                            <span>{tOption.label}</span>
                           </div>
-                        );
-                      })}
-                    </div>
+                          {isActive && <span className="text-cyan-400">●</span>}
+                        </button>
+                      );
+                    })}
                   </div>
                 )}
               </div>
 
-              {/* Quick Launch Direct Tool Access with Custom Scientific Vector Icons */}
-              <div className={`flex flex-wrap items-center gap-2 max-w-2xl mb-4 select-none ${isRTL ? "justify-start flex-row-reverse" : ""}`}>
-                <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mr-1 font-mono">
-                  {t("Quick Tools:", "Quick Tools:")}
-                </span>
-                {[
-                  { name: 'Bragg Solver', mod: 'bragg' },
-                  { name: 'Williamson-Hall', mod: 'wh' },
-                  { name: 'Scherrer Sizing', mod: 'scherrer' },
-                  { name: '3D Unit Cells', mod: 'unit_cells' },
-                  { name: 'Periodic Table', mod: 'periodic_table' },
-                  { name: 'AI Phase ID', mod: 'dl' },
-                ].map((tool) => (
+              {isRegistered ? (
+                <div className="flex items-center gap-2">
+                  <AnimatedGoToAppButton
+                    variant="navbar"
+                    onClick={() =>
+                      onReturnToApp ? handleResumeApp() : handleEnterApp('login')
+                    }
+                    label={onReturnToApp ? 'Resume Studio' : 'Open Studio'}
+                  />
+                  {onSignOut && (
+                    <button
+                      type="button"
+                      onClick={onSignOut}
+                      className="p-2 bg-[#0B0F19] hover:bg-rose-950/50 text-slate-400 hover:text-rose-300 border border-slate-800 rounded-sm transition-colors cursor-pointer"
+                      title="Sign Out"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
                   <button
-                    key={tool.mod}
-                    onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', tool.mod)}
-                    className="px-2.5 py-1.5 bg-cyan-950/25 hover:bg-cyan-900/40 border border-cyan-800/40 hover:border-cyan-500/50 rounded-xl text-xs font-mono text-cyan-300 hover:text-cyan-200 transition-all flex items-center gap-1.5 cursor-pointer shadow-sm active:scale-95"
+                    type="button"
+                    onClick={() => handleEnterApp('login')}
+                    className="px-3 py-1.5 text-xs font-mono uppercase tracking-wider text-slate-300 hover:text-white border border-slate-800 bg-[#0B0F19] rounded-sm transition-colors cursor-pointer"
                   >
-                    <span className="scale-90">{renderScientificModuleIcon(tool.mod, true)}</span>
-                    <span className="font-bold">{tool.name}</span>
+                    Sign In
                   </button>
-                ))}
-              </div>
+                  <AnimatedGoToAppButton
+                    variant="navbar"
+                    onClick={() => handleEnterApp('register')}
+                    label="Launch Studio"
+                  />
+                </div>
+              )}
+            </div>
 
-              {/* Popular Lattice Quick Keys */}
-              <div className={`flex flex-wrap gap-2 max-w-2xl mb-10 select-none animate-in fade-in slide-in-from-bottom-2 duration-700 delay-100 ${isRTL ? "justify-start flex-row-reverse" : ""}`}>
-                <span className="text-[10px] font-black uppercase text-slate-500 tracking-[0.15em] mt-1.5 mr-1 font-mono">
-                  {t("Tuned Lattices:", "Tuned Lattices:")}
-                </span>
-                {[
-                  { name: t('Silicon', 'Silicon'), formula: 'Si' },
-                  { name: t('Halite', 'Halite'), formula: 'NaCl' },
-                  { name: t('Anatase', 'Anatase'), formula: 'TiO2' },
-                  { name: t('Corundum', 'Corundum'), formula: 'Al2O3' },
-                  { name: t('Quartz', 'Quartz'), formula: 'SiO2' },
-                  { name: t('Pure Iron', 'Pure Iron'), formula: 'Fe' }
-                ].map((mat, idx) => (
+            {/* Mobile Hamburger Button */}
+            <div className="flex md:hidden items-center gap-2">
+              <LanguageSelector compact={true} />
+              <button
+                type="button"
+                onClick={() => setIsMobileDrawerOpen(!isMobileDrawerOpen)}
+                className="p-2 rounded-sm bg-[#0B0F19] border border-slate-800 text-slate-300 hover:text-white"
+                aria-label="Toggle Menu"
+              >
+                {isMobileDrawerOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+              </button>
+            </div>
+          </div>
+        </nav>
+
+        {/* Mobile Drawer */}
+        <AnimatePresence>
+          {isMobileDrawerOpen && (
+            <motion.div
+              initial={{ opacity: 0, y: -10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="md:hidden bg-[#0B0F19] border-b border-slate-800 px-6 py-5 shadow-2xl space-y-4"
+            >
+              <div className="grid grid-cols-2 gap-2 font-mono text-xs">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    document.getElementById('modules-directory-section')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="p-2.5 bg-[#070A12] border border-slate-800 rounded-sm text-left text-slate-300"
+                >
+                  17 Workstations
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    document.getElementById('bragg-optical-bench')?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                  className="p-2.5 bg-[#070A12] border border-slate-800 rounded-sm text-left text-slate-300"
+                >
+                  Bragg Optical Bench
+                </button>
+                {onOpenWhyXrd && (
                   <button
-                    key={idx}
-                    onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', 'database')}
-                    className="px-3 py-1 bg-[#090F1E]/80 hover:bg-violet-950/40 border border-slate-800 hover:border-violet-500/40 rounded-xl flex items-center gap-1.5 text-slate-300 hover:text-white transition-all text-xs font-mono cursor-pointer shadow-md"
+                    type="button"
+                    onClick={() => {
+                      setIsMobileDrawerOpen(false);
+                      onOpenWhyXrd();
+                    }}
+                    className="p-2.5 bg-[#070A12] border border-slate-800 rounded-sm text-left text-cyan-400"
                   >
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)] animate-pulse" />
-                    <span className="font-bold">{mat.formula}</span>
-                    <span className="text-[10px] text-slate-500">{mat.name}</span>
+                    Theory Compendium
                   </button>
-                ))}
+                )}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    setShowWelcomeTour(true);
+                  }}
+                  className="p-2.5 bg-[#070A12] border border-slate-800 rounded-sm text-left text-slate-300"
+                >
+                  Guided Tour
+                </button>
               </div>
-
-              {/* High-End Academic Metrics Grid with Custom Vector Schematics */}
-              <div className="mt-10 grid grid-cols-2 sm:grid-cols-4 gap-4 border-t border-white/10 pt-6">
-                <div className="p-3 rounded-2xl bg-[#070d19]/80 border border-slate-800/80 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-2xl font-black text-white leading-none tracking-tight font-mono">1.2M+</p>
-                    <svg className="w-5 h-5 text-cyan-400" viewBox="0 0 24 24" fill="none">
-                      <polygon points="12,2 20,7 20,17 12,22 4,17 4,7" stroke="currentColor" strokeWidth="1.6" fill="currentColor" fillOpacity="0.15" />
-                      <circle cx="12" cy="12" r="2.2" fill="currentColor" />
-                    </svg>
-                  </div>
-                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-                    {t("COD Profiles", "COD Profiles")}
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-[#070d19]/80 border border-slate-800/80 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-2xl font-black text-cyan-300 leading-none tracking-tight font-mono">30+</p>
-                    <svg className="w-5 h-5 text-violet-400" viewBox="0 0 24 24" fill="none">
-                      <path d="M3 19 L8 19 L12 5 L16 19 L21 19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
-                    </svg>
-                  </div>
-                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-                    {t("XRD Instruments", "XRD Instruments")}
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-[#070d19]/80 border border-slate-800/80 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-2xl font-black text-emerald-300 leading-none tracking-tight font-mono">0.001°</p>
-                    <svg className="w-5 h-5 text-emerald-400" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="9" stroke="currentColor" strokeWidth="1.5" strokeDasharray="3 2" />
-                      <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="1.5" />
-                    </svg>
-                  </div>
-                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-                    {t("2θ Resolution", "2θ Resolution")}
-                  </p>
-                </div>
-
-                <div className="p-3 rounded-2xl bg-[#070d19]/80 border border-slate-800/80 space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <p className="text-2xl font-black text-violet-300 leading-none tracking-tight font-mono">14 / 7</p>
-                    <svg className="w-5 h-5 text-amber-400" viewBox="0 0 24 24" fill="none">
-                      <rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" strokeWidth="1.5" />
-                      <circle cx="12" cy="12" r="2.5" fill="currentColor" />
-                    </svg>
-                  </div>
-                  <p className="text-[9.5px] font-bold uppercase tracking-wider text-slate-400 font-mono">
-                    {t("Bravais & Systems", "Bravais & Systems")}
-                  </p>
-                </div>
+              <div className="pt-2 border-t border-slate-800 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsMobileDrawerOpen(false);
+                    handleEnterApp(isRegistered ? 'login' : 'register');
+                  }}
+                  className="w-full py-3 bg-cyan-500 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider rounded-sm"
+                >
+                  Launch Crystallography Suite
+                </button>
               </div>
             </motion.div>
+          )}
+        </AnimatePresence>
+      </header>
 
-            {/* Interactive Live Diffractogram & Crystal Analyzer Showcase */}
-            <InteractiveHeroDiffractionShowcase 
-              onLaunch={(matId) => handleEnterApp(isRegistered ? 'login' : 'register', matId ? 'database' : undefined)}
-              isRTL={isRTL}
-            />
-          </div>
-        </section>
-
-        {/* --- Trust Logos --- */}
-        <section className="py-24 border-y border-white/5 bg-[#020617] relative z-10 overflow-hidden">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(99,102,241,0.05),transparent_70%)]" />
-          <div className="max-w-7xl mx-auto px-6 relative z-10">
-            <p className="text-center text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-16">Verified Structural Indexing Partners & Institutional Peers</p>
-            <div className="flex flex-wrap justify-center items-center gap-12 md:gap-24 opacity-40 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-1000">
-               {/* Stanford */}
-               <div className="flex items-center gap-3 group cursor-default">
-                 <div className="w-10 h-10 bg-[#8C1515] rounded-lg flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
-                   <svg className="w-6 h-6" viewBox="0 0 100 100" fill="none">
-                     <path d="M75 30 C75 15, 25 15, 25 35 C25 55, 75 50, 75 70 C75 90, 25 90, 25 75" stroke="#FFFFFF" strokeWidth="12" strokeLinecap="round" fill="none" />
-                     <path d="M50 25 L35 55 L42 55 L30 75 L42 75 L25 88 L75 88 L58 75 L70 75 L58 55 L65 55 Z" fill="#14532D" stroke="#FFFFFF" strokeWidth="2" />
-                   </svg>
-                 </div>
-                 <span className="text-lg font-bold tracking-tighter text-white">Stanford</span>
-               </div>
-
-               {/* Oxford */}
-               <div className="flex items-center gap-3 group cursor-default">
-                 <div className="w-10 h-10 bg-[#002147] rounded-lg flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
-                   <svg className="w-6 h-6" viewBox="0 0 100 100" fill="none">
-                     <path d="M15 15 L85 15 L85 55 C85 80, 50 95, 50 95 C50 95, 15 80, 15 55 Z" fill="#002147" stroke="#FFFFFF" strokeWidth="2" />
-                     <path d="M26 40 C34 37, 50 40, 50 40 C50 40, 66 37, 74 40 L74 68 C66 65, 50 68, 50 68 C50 68, 34 65, 26 68 Z" fill="#FFFFFF" />
-                     <line x1="50" y1="40" x2="50" y2="68" stroke="#D4AF37" strokeWidth="2" />
-                   </svg>
-                 </div>
-                 <span className="text-lg font-bold tracking-tighter text-white">Oxford</span>
-               </div>
-
-               {/* CERN */}
-               <div className="flex items-center gap-3 group cursor-default">
-                 <div className="w-10 h-10 bg-[#0033A0] rounded-lg flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
-                   <svg className="w-7 h-7" viewBox="0 0 100 100" fill="none">
-                     <circle cx="50" cy="50" r="40" stroke="#FFFFFF" strokeWidth="3" />
-                     <circle cx="50" cy="50" r="15" stroke="#FFFFFF" strokeWidth="2" />
-                     <line x1="50" y1="10" x2="50" y2="90" stroke="#FFFFFF" strokeWidth="2" />
-                     <line x1="10" y1="50" x2="90" y2="50" stroke="#FFFFFF" strokeWidth="2" />
-                     <path d="M20 20 L80 80 M80 20 L20 80" stroke="#FFFFFF" strokeWidth="1.5" opacity="0.4" />
-                   </svg>
-                 </div>
-                 <span className="text-lg font-bold tracking-tighter text-white">CERN</span>
-               </div>
-
-               {/* Lawrence Berkeley */}
-               <div className="flex items-center gap-3 group cursor-default">
-                 <div className="w-10 h-10 bg-[#003B5C] rounded-lg flex items-center justify-center border border-white/10 shadow-xl group-hover:scale-110 transition-transform">
-                   <svg className="w-6 h-6" viewBox="0 0 100 100" fill="none">
-                     <circle cx="50" cy="50" r="30" stroke="#FFFFFF" strokeWidth="5" />
-                     <circle cx="50" cy="50" r="12" fill="#FFFFFF" />
-                     <path d="M50 10 L50 90 M10 50 L90 50" stroke="#FFFFFF" strokeWidth="2" opacity="0.3" />
-                   </svg>
-                 </div>
-                 <span className="text-lg font-bold tracking-tighter text-white leading-none">Berkeley <br/><span className="text-[10px] text-slate-400">National Lab</span></span>
-               </div>
-
-               {/* NASA */}
-               <div className="flex items-center gap-3 group cursor-default">
-                 <div className="w-10 h-10 bg-white rounded-lg flex items-center justify-center border border-slate-200 shadow-xl group-hover:scale-110 transition-transform">
-                   <svg className="w-7 h-7" viewBox="0 0 100 100" fill="none">
-                     <path d="M10 50 C10 20, 90 20, 90 50 C90 80, 10 80, 10 50" fill="#0B3D91" />
-                     <path d="M15 45 L45 25 L75 45 M15 55 L45 75 L75 55" stroke="#FFFFFF" strokeWidth="4" strokeLinecap="round" fill="none" />
-                     <circle cx="65" cy="40" r="4" fill="white" />
-                     <path d="M30 65 Q 50 40 70 65" stroke="#FC3D21" strokeWidth="3" fill="none" />
-                   </svg>
-                 </div>
-                 <span className="text-lg font-bold tracking-tighter text-white">NASA</span>
-               </div>
-            </div>
-          </div>
-        </section>
-
-        {/* --- 1-Click Crystallography Experiment Presets --- */}
-        <section id="presets">
-          <ExperimentQuickLaunchpad 
-            onLaunchExperiment={(targetMod) => handleEnterApp(isRegistered ? 'login' : 'register', targetMod)}
-            onOpenTour={() => setShowWelcomeTour(true)}
-            isRTL={isRTL}
-          />
-        </section>
-
-        {/* --- Interactive Bragg's Law Sandbox Lab --- */}
-        <section id="sandbox" className="py-24 px-6 bg-slate-950 relative z-10 border-b border-slate-900">
-          <div className="max-w-7xl mx-auto relative z-10">
-            <div className="text-center max-w-3xl mx-auto mb-16">
-              <span className="px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-[10px] font-bold uppercase tracking-widest text-cyan-300">
-                Interactive Lab Sandbox
-              </span>
-              <h2 className="text-4xl md:text-5xl font-black text-white mt-4 mb-4 tracking-tight">
-                Simulate Diffraction Instantly
-              </h2>
-              <p className="text-slate-400 font-medium leading-relaxed">
-                No setup required. Experience how Bragg's Law controls structural diffraction. Drag the atomic lattice spacing <span className="font-mono text-cyan-400">(d)</span>, tune the X-ray wavelength <span className="font-mono text-violet-400">(λ)</span>, and observe the diffraction peak emerge with reciprocal scattering vector calculations.
-              </p>
-            </div>
-
-            <BraggSandboxWrapper onEnter={(targetMod) => handleEnterApp(isRegistered ? 'login' : 'register', targetMod || 'bragg')} />
-          </div>
-        </section>
-
-        {/* --- Scherrer Peak Broadening Interactive Physics Sandbox --- */}
-        <section id="broadening" className="py-20 px-6 bg-[#030712] relative z-10 border-b border-slate-900">
+      {/* ===================================================================
+          HERO SECTION: HIGH-PRECISION CRYSTALLOGRAPHIC OBSERVATORY
+         =================================================================== */}
+      <main className="flex-1 pt-28 sm:pt-32">
+        <section className="relative z-10 px-4 sm:px-6 lg:px-8 pb-20">
           <div className="max-w-7xl mx-auto">
-            <ScherrerBroadeningDemo 
-              onLaunchModule={(mod) => handleEnterApp(isRegistered ? 'login' : 'register', mod)}
-              isRTL={isRTL}
-            />
+            {/* Top Telemetry Status Strip */}
+            <div className="flex flex-wrap items-center justify-between gap-3 pb-4 mb-8 border-b border-slate-800 text-xs font-mono">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="text-emerald-400 font-bold">● SYSTEM CALIBRATED: NIST SRM 640f (Si)</span>
+                <span className="text-slate-700">|</span>
+                <span className="text-slate-400">17 SPECIALIZED ENGINES</span>
+                <span className="text-slate-700 hidden sm:inline">|</span>
+                <span className="text-cyan-400 hidden sm:inline">
+                  RIETVELD · PARRATT XRR · TOTAL SCATTERING PDF G(r) · PINN AI
+                </span>
+              </div>
+              {userName && (
+                <div className="text-slate-300">
+                  Operator: <span className="text-cyan-400 font-bold">{userName}</span>
+                </div>
+              )}
+            </div>
+
+            {/* 12-Column Asymmetric Hero Architecture */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-10 items-start">
+              {/* Left 5 Columns: Authority Typography, Command Bar & Direct Launch */}
+              <div className="lg:col-span-5 space-y-6">
+                <div>
+                  <div className="text-xs font-mono uppercase tracking-widest text-cyan-400 mb-3">
+                    RECIPROCAL &amp; REAL-SPACE SCATTERING WORKSTATION
+                  </div>
+                  <h1 className="text-3xl sm:text-5xl font-bold text-white tracking-tight leading-[1.08]">
+                    Precision X-Ray Diffraction &amp; Structural Refinement.
+                  </h1>
+                  <p className="text-slate-400 text-sm sm:text-base leading-relaxed mt-4">
+                    Full-spectrum crystallographic studio uniting 7-stage{' '}
+                    <span className="text-slate-200 font-medium">Rietveld refinement</span>,{' '}
+                    <span className="text-slate-200 font-medium">Sine-Fourier Pair Distribution Functions G(r)</span>,{' '}
+                    <span className="text-slate-200 font-medium">Parratt specular XRR</span>,{' '}
+                    <span className="text-slate-200 font-medium">Warren–Averbach Fourier broadening</span>, and{' '}
+                    <span className="text-slate-200 font-medium">Physics-Informed Neural Phase ID</span>.
+                  </p>
+                </div>
+
+                {/* Global Command & Standard Search Bar */}
+                <div ref={heroSearchRef} className="relative z-30">
+                  <div className="bg-[#0B0F19] border border-slate-800 focus-within:border-cyan-500/70 rounded-sm p-1.5 shadow-xl">
+                    {/* Category Filter Strip */}
+                    <div className="flex items-center gap-1 pb-1.5 mb-1.5 border-b border-slate-800/80 px-1 overflow-x-auto">
+                      {[
+                        { id: 'all', label: 'All' },
+                        { id: 'diffraction', label: 'Bragg & PDF' },
+                        { id: 'crystallite', label: 'Size & Strain' },
+                        { id: 'ai', label: 'Rietveld & PINN' },
+                        { id: 'standards', label: 'CIF Standards' },
+                      ].map((tab) => (
+                        <button
+                          key={tab.id}
+                          type="button"
+                          onClick={() => {
+                            setSearchCategory(tab.id as any);
+                            setShowHeroSuggestions(true);
+                          }}
+                          className={`px-2 py-0.5 rounded-sm text-[10px] font-mono uppercase tracking-wider transition-colors cursor-pointer shrink-0 ${
+                            searchCategory === tab.id
+                              ? 'bg-cyan-950/80 text-cyan-300 border border-cyan-500/40 font-bold'
+                              : 'text-slate-500 hover:text-slate-300'
+                          }`}
+                        >
+                          {tab.label}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="relative flex items-center">
+                      <Search className="w-4 h-4 text-cyan-400 ml-2.5 shrink-0" />
+                      <input
+                        ref={searchInputRef}
+                        type="text"
+                        value={heroSearchTerm}
+                        onFocus={() => setShowHeroSuggestions(true)}
+                        onChange={(e) => {
+                          setHeroSearchTerm(e.target.value);
+                          setShowHeroSuggestions(true);
+                          setActiveSuggestionIndex(-1);
+                        }}
+                        onKeyDown={(e) => {
+                          if (!showHeroSuggestions || displaySuggestions.length === 0) return;
+                          if (e.key === 'ArrowDown') {
+                            e.preventDefault();
+                            setActiveSuggestionIndex((prev) =>
+                              prev < displaySuggestions.length - 1 ? prev + 1 : 0
+                            );
+                          } else if (e.key === 'ArrowUp') {
+                            e.preventDefault();
+                            setActiveSuggestionIndex((prev) =>
+                              prev > 0 ? prev - 1 : displaySuggestions.length - 1
+                            );
+                          } else if (e.key === 'Enter' && activeSuggestionIndex >= 0) {
+                            e.preventDefault();
+                            const item = displaySuggestions[activeSuggestionIndex];
+                            if (item) {
+                              setShowHeroSuggestions(false);
+                              handleEnterApp(
+                                isRegistered ? 'login' : 'register',
+                                item.type === 'module' ? item.id : 'database'
+                              );
+                            }
+                          } else if (e.key === 'Escape') {
+                            setShowHeroSuggestions(false);
+                          }
+                        }}
+                        placeholder="Jump to module, equation, or standard (Press / or ⌘K)..."
+                        className="w-full bg-transparent px-3 py-2 text-xs font-mono text-white placeholder-slate-500 focus:outline-none"
+                      />
+                      {heroSearchTerm ? (
+                        <button
+                          type="button"
+                          onClick={() => setHeroSearchTerm('')}
+                          className="mr-2 px-1.5 py-0.5 text-[10px] font-mono text-slate-400 hover:text-white bg-slate-900 rounded-sm"
+                        >
+                          CLR
+                        </button>
+                      ) : (
+                        <kbd className="hidden sm:inline-block mr-2 px-1.5 py-0.5 text-[10px] font-mono text-slate-500 bg-[#070A12] border border-slate-800 rounded-sm">
+                          ⌘K
+                        </kbd>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Suggestions Dropdown */}
+                  <AnimatePresence>
+                    {showHeroSuggestions && (
+                      <motion.div
+                        initial={{ opacity: 0, y: 6 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: 6 }}
+                        className="absolute left-0 right-0 mt-1.5 bg-[#0B0F19] border border-slate-700 rounded-sm shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto divide-y divide-slate-800/80"
+                      >
+                        {displaySuggestions.map((item, idx) => (
+                          <div
+                            key={`${item.type}-${item.id}-${idx}`}
+                            onClick={() => {
+                              setShowHeroSuggestions(false);
+                              handleEnterApp(
+                                isRegistered ? 'login' : 'register',
+                                item.type === 'module' ? item.id : 'database'
+                              );
+                            }}
+                            className={`px-3.5 py-2.5 flex items-center justify-between gap-3 cursor-pointer transition-colors ${
+                              activeSuggestionIndex === idx ? 'bg-slate-800' : 'hover:bg-slate-900/90'
+                            }`}
+                          >
+                            <div className="min-w-0">
+                              <div className="flex items-center gap-2">
+                                <span className="text-xs font-mono font-bold text-white truncate">
+                                  {item.name}
+                                </span>
+                                <span className="text-[10px] font-mono text-cyan-400">
+                                  [{item.badge}]
+                                </span>
+                              </div>
+                              <p className="text-[11px] text-slate-400 truncate mt-0.5">{item.description}</p>
+                            </div>
+                            <ArrowRight className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                          </div>
+                        ))}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
+                </div>
+
+                {/* Primary Action Buttons */}
+                <div className="flex flex-wrap items-center gap-3 pt-1">
+                  {onReturnToApp ? (
+                    <AnimatedGoToAppButton
+                      variant="resume"
+                      onClick={() => handleResumeApp()}
+                      label="Resume Active Session"
+                      sublabel={`Select target workstation (Current: ${activeModule ? activeModule.toUpperCase() : 'BRAGG'})`}
+                    />
+                  ) : (
+                    <AnimatedGoToAppButton
+                      variant="hero"
+                      onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
+                      label={isRegistered ? 'Enter Crystallography Studio' : 'Launch Workstation Suite'}
+                      sublabel="Direct access to all 17 analytical engines"
+                    />
+                  )}
+
+                  <button
+                    type="button"
+                    onClick={() =>
+                      document.getElementById('modules-directory-section')?.scrollIntoView({ behavior: 'smooth' })
+                    }
+                    className="px-4 py-3.5 bg-[#0B0F19] hover:bg-slate-900 text-slate-200 border border-slate-800 hover:border-slate-700 rounded-sm font-mono font-bold text-xs uppercase tracking-wider transition-colors cursor-pointer"
+                  >
+                    Explore 17 Engines
+                  </button>
+                </div>
+
+                {/* Quick Direct-Launch Workstation Matrix */}
+                <div className="pt-4 border-t border-slate-800/90">
+                  <div className="text-[10px] font-mono uppercase tracking-wider text-slate-500 mb-2.5">
+                    Direct Workstation Jump:
+                  </div>
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                    {[
+                      { id: 'rietveld', label: 'Rietveld Refinement', code: 'Rwp/χ²' },
+                      { id: 'pdf_analysis', label: 'Total Scattering PDF', code: 'G(r)' },
+                      { id: 'xrr', label: 'Specular XRR Engine', code: 'Parratt' },
+                      { id: 'williamson', label: 'Williamson–Hall', code: 'UDM/USDM' },
+                      { id: 'warren', label: 'Warren–Averbach', code: 'Fourier' },
+                      { id: 'dl', label: 'Neural Phase ID', code: 'PINN-1D' },
+                    ].map((quick) => (
+                      <button
+                        key={quick.id}
+                        type="button"
+                        onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', quick.id)}
+                        className="px-2.5 py-2 bg-[#0B0F19] hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/50 rounded-sm text-left transition-colors group cursor-pointer"
+                      >
+                        <div className="flex items-center justify-between text-[10px] font-mono text-cyan-400">
+                          <span>{quick.code}</span>
+                          <ArrowRight className="w-2.5 h-2.5 opacity-60 group-hover:translate-x-0.5 transition-transform" />
+                        </div>
+                        <div className="text-xs font-medium text-slate-200 group-hover:text-white truncate mt-0.5">
+                          {quick.label}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              {/* Right 7 Columns: Live θ–2θ Goniometer & Rietveld Residual Console */}
+              <div className="lg:col-span-7">
+                <InteractiveHeroDiffractionShowcase
+                  onLaunchSection={(section) =>
+                    handleEnterApp(isRegistered ? 'login' : 'register', section)
+                  }
+                />
+              </div>
+            </div>
           </div>
         </section>
 
-        {/* --- Complete 30+ Scientific Modules Directory --- */}
-        <ModulesDirectory 
-          onLaunchModule={(mod) => handleEnterApp(isRegistered ? 'login' : 'register', mod)}
-          isRTL={isRTL}
+        {/* ===================================================================
+            SECTION 1: INSTANT CRYSTALLOGRAPHIC BENCHMARK SUITE
+           =================================================================== */}
+        <ExperimentQuickLaunchpad
+          onSelectPreset={(preset: ExperimentPreset) => {
+            handleEnterApp(isRegistered ? 'login' : 'register', preset.targetSection);
+          }}
         />
 
-        {/* --- Guided Research Pipelines & Scientific Workflows --- */}
-        <WorkflowsSection 
-          onLaunchModule={(mod) => handleEnterApp(isRegistered ? 'login' : 'register', mod)}
-          isRTL={isRTL}
+        {/* ===================================================================
+            SECTION 2: COMPLETE 17-WORKSTATION ENGINE DIRECTORY
+           =================================================================== */}
+        <ModulesDirectory
+          onSelectModule={(moduleId) => {
+            handleEnterApp(isRegistered ? 'login' : 'register', moduleId);
+          }}
         />
 
-        {/* --- AI Advisor Feature Section --- */}
-        <section className="py-24 px-6 relative z-10 border-t border-slate-900 bg-slate-950/50 overflow-hidden">
-          <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[800px] h-[800px] bg-indigo-600/5 blur-[150px] rounded-full pointer-events-none" />
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-16 items-center relative z-10">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-500/10 border border-indigo-500/20 mb-6">
-                <Sparkles className="w-4 h-4 text-indigo-400" />
-                <span className="text-[10px] font-bold uppercase tracking-widest text-indigo-300">Gemini High-Thinking</span>
+        {/* ===================================================================
+            SECTION 3: INTERACTIVE BRAGG RAYBENCH & SCHERRER BROADENING SANDBOX
+           =================================================================== */}
+        <BraggOpticalBenchSandbox
+          onEnter={(targetModule) =>
+            handleEnterApp(isRegistered ? 'login' : 'register', targetModule || 'bragg')
+          }
+        />
+
+        <ScherrerBroadeningDemo
+          onLaunchScherrer={(target) =>
+            handleEnterApp(isRegistered ? 'login' : 'register', target)
+          }
+        />
+
+        {/* ===================================================================
+            SECTION 4: CRYSTALLOGRAPHIC METHODOLOGY & FORMALISM MATRIX
+           =================================================================== */}
+        <section
+          id="formalism-matrix-section"
+          className="py-20 px-4 sm:px-6 lg:px-8 relative z-10 border-t border-slate-800/80 bg-[#070A12]"
+        >
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-6 pb-6 border-b border-slate-800">
+              <div>
+                <div className="flex items-center gap-2 text-xs font-mono uppercase tracking-widest text-cyan-400 mb-2">
+                  <span>● MATHEMATICAL &amp; PHYSICAL FORMALISM</span>
+                  <span className="text-slate-700">|</span>
+                  <span className="text-slate-400">DIRECT SOLVER SELECTION MATRIX</span>
+                </div>
+                <h2 className="text-2xl sm:text-4xl font-bold text-white tracking-tight">
+                  Analytical Methodology &amp; Governing Equations
+                </h2>
               </div>
-              <h2 className="text-4xl md:text-5xl font-extrabold text-white mb-6 tracking-tight leading-[1.1]">
-                Your Personal <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-cyan-400">AI Science Advisor</span>
-              </h2>
-              <p className="text-lg text-slate-400 font-medium leading-relaxed mb-8">
-                Go beyond simple equations. Our new AI Structural & Synthesis Advisor analyzes your input parameters, cross-references them against crystallographic databases, and generates graduate-level physical insights instantly.
+              <p className="text-slate-400 text-sm max-w-md">
+                Compare reciprocal-space coordinates, governing integral/differential equations, and extracted physical
+                observables across our primary characterization engines.
               </p>
-              <ul className="space-y-4 mb-8">
-                {[
-                  "Deep structural correlation analysis",
-                  "Material phase & synthesis recommendations",
-                  "Instant parameter optimization guidance"
-                ].map((item, idx) => (
-                  <li key={idx} className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-                      <CheckCircle2 className="w-3.5 h-3.5 text-indigo-400" />
-                    </div>
-                    <span className="text-slate-300 font-medium text-sm">{item}</span>
-                  </li>
-                ))}
-              </ul>
-              <AnimatedGoToAppButton
-                onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                text={t("Try AI Advisor", "Try AI Advisor")}
-                variant="primary"
-                isRTL={isRTL}
-                className="py-3 px-6"
-              />
-            </motion.div>
-            
-            <motion.div 
-              initial={{ opacity: 0, x: 30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-              className="relative perspective-1000"
-            >
-              <div className="absolute inset-0 bg-indigo-600/20 blur-[100px] rounded-full" />
-              <div className="relative bg-[#090F1E] border border-indigo-500/30 rounded-3xl p-8 shadow-2xl transform rotate-y-[-5deg] hover:rotate-y-0 transition-all duration-700 hover:border-indigo-500/50 overflow-hidden">
-                <div className="absolute inset-0 z-0 pointer-events-none">
-                  <img src={aiAdvisorBg} alt="AI Neural Crystal" className="w-full h-full object-cover opacity-40 mix-blend-screen" referrerPolicy="no-referrer" />
-                  <div className="absolute inset-0 bg-gradient-to-t from-[#090F1E] via-[#090F1E]/80 to-[#090F1E]/20" />
-                </div>
-                <div className="relative z-10">
-                  <div className="flex items-center gap-3 mb-6 pb-6 border-b border-white/5">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-indigo-600 to-cyan-500 flex items-center justify-center shadow-lg shadow-indigo-500/20">
-                      <Cpu className="w-6 h-6 text-white" />
-                    </div>
-                    <div>
-                      <h4 className="text-sm font-black text-white">AI Analysis Output</h4>
-                      <p className="text-[10px] text-slate-400 font-mono">Thermodynamics & Phase Transition</p>
-                    </div>
-                  </div>
-                  
-                  <div className="space-y-4 text-sm text-slate-300 leading-relaxed font-sans">
-                    <p>
-                      <strong className="text-indigo-400">Structural Insight:</strong> The calculated critical free energy (ΔG*) of <span className="font-mono text-white bg-white/10 px-1 rounded">14.2 kJ/mol</span> suggests a moderate nucleation barrier. This indicates that homogenous nucleation will require significant undercooling to proceed spontaneously.
-                    </p>
-                    <p>
-                      <strong className="text-cyan-400">Synthesis Recommendation:</strong> To promote heterogeneous nucleation and refine the grain structure, consider introducing inoculants or increasing the cooling rate by 15-20%.
-                    </p>
-                  </div>
-                  
-                  <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/5 flex items-center justify-between">
-                    <span className="text-xs font-mono text-slate-500">Confidence Score</span>
-                    <span className="text-sm font-black text-emerald-400 drop-shadow-[0_0_5px_rgba(52,211,153,0.5)]">98.4%</span>
-                  </div>
-                </div>
-              </div>
-            </motion.div>
-          </div>
-        </section>
+            </div>
 
-        {/* --- Code / API Integration Section --- */}
-        <section className="py-32 px-6 bg-[#020617] border-y border-slate-900 relative z-10">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-20 items-center">
-            <motion.div
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-              className="order-2 lg:order-1"
-            >
-               <div className="bg-[#050A14] border border-slate-800 rounded-[2rem] overflow-hidden shadow-2xl relative">
-                  <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-violet-500 via-cyan-400 to-emerald-500" />
-                  <div className="px-6 py-4 border-b border-white/5 flex items-center gap-4 bg-white/[0.02]">
-                    <div className="flex gap-2">
-                      <div className="w-3 h-3 rounded-full bg-[#FF5F56]" />
-                      <div className="w-3 h-3 rounded-full bg-[#FFBD2E]" />
-                      <div className="w-3 h-3 rounded-full bg-[#27C93F]" />
-                    </div>
-                    <div className="text-xs font-medium text-slate-500 flex-1 text-center">analysis_engine.py</div>
-                  </div>
-                  <pre className="p-6 md:p-8 overflow-x-auto custom-scrollbar font-mono text-xs md:text-sm leading-relaxed text-slate-300">
-                    <code className="block">
-                      <span className="text-violet-400">import</span> xrd_calc <span className="text-violet-400">as</span> xrd{'\n\n'}
-                      <span className="text-slate-500"># Initiative engine with hardware acceleration</span>{'\n'}
-                      engine = xrd.Engine(gpu_acceleration=<span className="text-cyan-400">True</span>, precision=<span className="text-emerald-400">'FP64'</span>){'\n\n'}
-                      <span className="text-slate-500"># Load multi-modal diffraction pattern</span>{'\n'}
-                      dataset = engine.load_pattern(<span className="text-emerald-400">"sample_alpha_09.xy"</span>){'\n\n'}
-                      <span className="text-slate-500"># Execute AI-driven peak detection & matching</span>{'\n'}
-                      phases, residuals = engine.refine_structure({'\n'}
-                      {'    '}dataset=dataset,{'\n'}
-                      {'    '}database=<span className="text-emerald-400">"COD_2026"</span>,{'\n'}
-                      {'    '}tolerance=<span className="text-cyan-400">0.005</span>{'\n'}
-                      ){'\n\n'}
-                      <span className="text-violet-400">if</span> residuals.rms &lt; <span className="text-cyan-400">0.05</span>:{'\n'}
-                      {'    '}engine.export_cif(phases, <span className="text-emerald-400">"refined_output.cif"</span>){'\n'}
-                      {'    '}print(<span className="text-emerald-400">"Phase Matching Complete. High Confidence."</span>){'\n'}
-                    </code>
-                  </pre>
-               </div>
-            </motion.div>
-            
-            <div className="order-1 lg:order-2">
-               <SectionHeading 
-                 badge="Headless Operation"
-                 title="Automate with Python SDK"
-                 description="Integrate XRD-CalcPro directly into your CI/CD computational pipelines. Trigger refinements from LIMS (Laboratory Information Management Systems) and export results programmatically."
-               />
-               <ul className="space-y-6 mt-8 pl-4 border-l-2 border-violet-500/20">
-                 <li className="flex flex-col gap-2 relative">
-                   <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-violet-500 ring-4 ring-[#020617]" />
-                   <h4 className="text-white font-bold tracking-wide text-sm">Direct COD Integration</h4>
-                   <p className="text-slate-400 text-sm">Query over 500,000 structures in milliseconds using our specialized vector-search methodology.</p>
-                 </li>
-                 <li className="flex flex-col gap-2 relative">
-                   <div className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-cyan-500 ring-4 ring-[#020617]" />
-                   <h4 className="text-white font-bold tracking-wide text-sm">Headless Rietveld</h4>
-                   <p className="text-slate-400 text-sm">Optimize background polynomials and displacement parameters automatically via gradient descent.</p>
-                 </li>
-               </ul>
+            <div className="border border-slate-800 bg-[#0B0F19] rounded-sm overflow-x-auto shadow-2xl">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-slate-800 bg-[#070A12] text-[10px] font-mono uppercase tracking-wider text-slate-400">
+                    <th className="py-3.5 px-4">Analytical Engine</th>
+                    <th className="py-3.5 px-4">Governing Mathematical Formalism</th>
+                    <th className="py-3.5 px-4">Domain / Coordinate</th>
+                    <th className="py-3.5 px-4">Extracted Physical Observables</th>
+                    <th className="py-3.5 px-4 text-right">Action</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-800/80 text-xs">
+                  {FORMALISM_MATRIX.map((row) => (
+                    <tr
+                      key={row.id}
+                      onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', row.id)}
+                      className="hover:bg-slate-900/70 transition-colors cursor-pointer group"
+                    >
+                      <td className="py-3.5 px-4 font-semibold text-white group-hover:text-cyan-300 whitespace-nowrap">
+                        {row.method}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-cyan-300 whitespace-nowrap">
+                        {row.equation}
+                      </td>
+                      <td className="py-3.5 px-4 font-mono text-[11px] text-slate-300 whitespace-nowrap">
+                        {row.reciprocalSpaceVar}
+                      </td>
+                      <td className="py-3.5 px-4 text-slate-400">
+                        <div>{row.observables}</div>
+                        <div className="text-[10px] font-mono text-slate-500 mt-0.5">{row.regime}</div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap">
+                        <span className="inline-flex items-center gap-1 font-mono text-[11px] font-bold text-cyan-400 group-hover:translate-x-0.5 transition-transform uppercase">
+                          Launch <ArrowRight className="w-3 h-3" />
+                        </span>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           </div>
         </section>
 
-        {/* --- Platform Synergy --- */}
-        <section id="platform" className="py-32 px-6 bg-[#0B1120] border-y border-slate-800 relative z-10">
-          <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-24 items-center">
-            <motion.div
-              initial={{ opacity: 0, x: -30 }}
-              whileInView={{ opacity: 1, x: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.8 }}
-            >
-              <SectionHeading 
-                badge="Universal Access"
-                title="Your Lab, Synchronized."
-                description="Analysis happens at the speed of thought. Push updates from the field directly to your refinement stack via mobile, or execute massive batches using our high-performance Cloud Terminal."
-              />
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-                <PlatformIcon icon={Globe} label="Cloud Terminal" desc="Browser Access" />
-                <PlatformIcon icon={Smartphone} label="Mobile Pro" desc="iOS & Android" />
-                <PlatformIcon icon={MonitorCheck} label="Workstation" desc="Native Build" />
-                <PlatformIcon icon={Binary} label="Engine API" desc="Direct SDK" />
+        {/* ===================================================================
+            SECTION 5: REPRODUCIBLE PYTHON SCRIPTING & TELEMETRY PIPELINE
+           =================================================================== */}
+        <section className="py-20 px-4 sm:px-6 lg:px-8 relative z-10 border-t border-slate-800/80 bg-[#070A12]">
+          <div className="max-w-7xl mx-auto">
+            <div className="grid grid-cols-1 lg:grid-cols-12 border border-slate-800 bg-[#0B0F19] rounded-sm overflow-hidden shadow-2xl">
+              {/* Left Column: Reproducible Workflows & Export Capabilities */}
+              <div className="lg:col-span-5 p-6 sm:p-8 border-b lg:border-b-0 lg:border-r border-slate-800 flex flex-col justify-between">
+                <div className="space-y-4">
+                  <div className="text-xs font-mono uppercase tracking-widest text-cyan-400">
+                    ● REPRODUCIBLE CRYSTALLOGRAPHIC PIPELINE
+                  </div>
+                  <h3 className="text-2xl font-bold text-white tracking-tight">
+                    Publication-Grade Telemetry &amp; Scriptable Batch Workflows
+                  </h3>
+                  <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+                    Every refinement, Fourier deconvolution, and PDF transformation preserves full metrological
+                    provenance—from Caglioti instrumental resolution matrices to standard uncertainties.
+                  </p>
+
+                  <div className="space-y-2.5 pt-2">
+                    {[
+                      {
+                        title: 'NIST SRM 640f / 660c Instrumental Baseline',
+                        desc: 'Automatic subtraction of instrumental Gaussian & Lorentzian breadths across 2θ.',
+                      },
+                      {
+                        title: 'Multi-Format Scientific Data I/O',
+                        desc: 'Import/export XY, CSV, CIF structural cards, and high-resolution SVG/PNG figures.',
+                      },
+                      {
+                        title: 'Deterministic Floating-Point Solvers',
+                        desc: 'Zero black-box heuristics—inspect every Jacobian matrix, Fourier harmonic, and residual.',
+                      },
+                    ].map((item, idx) => (
+                      <div key={idx} className="p-3 bg-[#070A12] border border-slate-800 rounded-sm">
+                        <div className="text-xs font-mono font-bold text-white flex items-center gap-2">
+                          <span className="text-cyan-400">0{idx + 1}</span>
+                          <span>{item.title}</span>
+                        </div>
+                        <p className="text-[11px] text-slate-400 mt-1">{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-6 mt-6 border-t border-slate-800 flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
+                    className="px-5 py-2.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors flex items-center gap-2 cursor-pointer"
+                  >
+                    <span>Open Full Workstation</span>
+                    <ArrowRight className="w-3.5 h-3.5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFooterModal('api-reference')}
+                    className="px-4 py-2.5 bg-[#070A12] hover:bg-slate-900 text-slate-300 border border-slate-800 font-mono font-bold text-xs uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
+                  >
+                    API Reference
+                  </button>
+                </div>
               </div>
 
-              <div className="mt-16 flex flex-wrap gap-6">
-                 <button className="flex items-center gap-4 bg-slate-900 py-4 px-8 rounded-2xl border border-slate-700 hover:border-violet-500/50 transition-all shadow-xl group">
-                    <Apple className="w-7 h-7 text-white" />
-                    <div className="flex flex-col items-start leading-tight group-hover:scale-105 transition-transform">
-                      <span className="text-xs font-semibold text-slate-400 mb-0.5">Download on</span>
-                      <span className="text-lg font-bold tracking-tight text-white">App Store</span>
-                    </div>
-                 </button>
-                 <button className="flex items-center gap-4 bg-slate-900 py-4 px-8 rounded-2xl border border-slate-700 hover:border-violet-500/50 transition-all shadow-xl group">
-                    <PlayCircle className="w-7 h-7 text-violet-400" />
-                    <div className="flex flex-col items-start leading-tight group-hover:scale-105 transition-transform">
-                      <span className="text-xs font-semibold text-slate-400 mb-0.5">Available on</span>
-                      <span className="text-lg font-bold tracking-tight text-white">Google Play</span>
-                    </div>
-                 </button>
-              </div>
-            </motion.div>
-            
-            <div className="relative">
-               <div className="absolute inset-0 bg-cyan-600/10 blur-[120px] rounded-full opacity-60" />
-               <motion.div 
-                 initial={{ opacity: 0, rotate: 10, scale: 0.9 }}
-                 whileInView={{ opacity: 1, rotate: -5, scale: 1 }}
-                 viewport={{ once: true }}
-                 transition={{ duration: 1, ease: [0.16, 1, 0.3, 1] }}
-                 className="relative z-10 flex flex-col items-center"
-               >
-                  <div className="relative w-full max-w-sm aspect-[9/19] bg-[#020617] ring-[8px] ring-slate-800 rounded-[3.5rem] overflow-hidden shadow-2xl border border-white/10">
-                     <div className="absolute top-4 left-1/2 -translate-x-1/2 w-20 h-6 bg-slate-800 rounded-full z-20" />
-                     <div className="absolute top-0 left-0 w-full h-full bg-gradient-to-b from-transparent via-transparent to-violet-500/5 pointer-events-none" />
-                     
-                     <div className="p-8 pt-20 h-full flex flex-col gap-8">
-                        <div className="h-40 bg-slate-800/50 rounded-[2rem] border border-slate-700 flex items-center justify-center relative overflow-hidden">
-                           <div className="absolute inset-0 bg-gradient-to-tr from-violet-500/10 to-transparent" />
-                           <Activity className="w-12 h-12 text-violet-500 opacity-40" />
-                        </div>
-                        <div className="space-y-4">
-                           <div className="h-5 w-3/4 bg-slate-800 rounded-full" />
-                           <div className="h-5 w-1/2 bg-slate-800 rounded-full" />
-                        </div>
-                        <div className="flex-1 bg-slate-800/50 rounded-[2.5rem] border border-slate-700 p-6 space-y-4">
-                           <div className="flex justify-between items-center">
-                              <div className="w-12 h-2.5 bg-violet-500/40 rounded-full" />
-                              <div className="w-8 h-2.5 bg-slate-700 rounded-full" />
-                           </div>
-                           <div className="h-24 w-full bg-black/40 rounded-2xl border border-white/5" />
-                        </div>
-                     </div>
+              {/* Right Column: Code & Live Execution Output */}
+              <div className="lg:col-span-7 bg-[#070A12] flex flex-col justify-between">
+                <div className="flex items-center justify-between px-4 py-2.5 border-b border-slate-800 bg-[#0B0F19]">
+                  <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
+                    <Code2 className="w-4 h-4 text-cyan-400" />
+                    <span>rietveld_pdf_pipeline.py</span>
                   </div>
-               </motion.div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard?.writeText(pythonSnippet);
+                      setCopiedSdk(true);
+                      setTimeout(() => setCopiedSdk(false), 2000);
+                    }}
+                    className="px-2.5 py-1 bg-[#070A12] hover:bg-slate-900 border border-slate-800 rounded-sm text-[10px] font-mono text-slate-300 flex items-center gap-1.5 cursor-pointer"
+                  >
+                    {copiedSdk ? (
+                      <>
+                        <Check className="w-3 h-3 text-emerald-400" />
+                        <span className="text-emerald-400">COPIED</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3 h-3" />
+                        <span>COPY SCRIPT</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+
+                <pre className="p-5 text-xs font-mono text-slate-300 overflow-x-auto leading-relaxed">
+                  <code>{pythonSnippet}</code>
+                </pre>
+
+                {/* Simulated Execution Telemetry Output */}
+                <div className="border-t border-slate-800 bg-[#050811] p-4 font-mono text-xs space-y-1.5">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500">
+                    STDOUT · SOLVER CONVERGENCE TELEMETRY
+                  </div>
+                  <div className="text-slate-300">
+                    <span className="text-emerald-400">[OK]</span> Loaded 4,500 steps (10.0°–100.0° 2θ, Δ2θ = 0.020°)
+                  </div>
+                  <div className="text-slate-300">
+                    <span className="text-cyan-400">[RIETVELD]</span> Converged in 7 iterations: Rwp = 2.18%, Rp =
+                    1.64%, χ² = 1.34 (P4mm BaTiO₃)
+                  </div>
+                  <div className="text-slate-300">
+                    <span className="text-amber-300">[PDF G(r)]</span> Sine-Fourier transform complete (Qmax = 24.0
+                    Å⁻¹): r(Ti–O) = 1.998 Å, N_c = 6.02
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </section>
-
-        {/* --- Testimonial / Performance --- */}
-        <section id="about" className="py-40 px-6 relative z-10">
-           <div className="max-w-7xl mx-auto">
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
-                 <div>
-                    <h2 className="text-4xl md:text-5xl font-extrabold tracking-tight text-white mb-8">
-                       Engineered for<br />
-                       The Heavyweight<br />
-                       Research Teams
-                    </h2>
-                    <p className="text-lg text-slate-400 font-medium mb-12 leading-relaxed max-w-xl">
-                       We don't do toy models. XRD-CalcPro is built on industrial-grade physics engines designed to handle multi-gigabyte data runs with zero thermal throttling.
-                    </p>
-                    <div className="space-y-6">
-                       {[
-                         { label: "Hardware Accelerated", desc: "Native GPU support for massive refinement batches.", icon: Zap },
-                         { label: "Institutional Trust", desc: "Bank-level encryption for proprietary chemical signatures.", icon: ShieldCheck },
-                         { label: "Ph.D. Validated", desc: "Every model output is checked against NIST standards.", icon: FlaskConical }
-                       ].map((item, i) => (
-                         <div key={i} className="flex gap-6 items-start">
-                            <div className="w-12 h-12 rounded-xl bg-violet-600/10 border border-violet-500/20 flex items-center justify-center shrink-0">
-                               <item.icon className="w-6 h-6 text-violet-400" />
-                            </div>
-                            <div>
-                               <p className="text-sm font-bold text-white tracking-wide mb-1 flex items-center gap-2">{item.label}</p>
-                               <p className="text-xs text-slate-400 font-medium">{item.desc}</p>
-                            </div>
-                         </div>
-                       ))}
-                    </div>
-                 </div>
-                 
-                 <div className="relative group">
-                    <div className="absolute inset-0 bg-violet-600/5 blur-[80px] rounded-full" />
-                    <div className="relative bg-slate-900/40 backdrop-blur-3xl border border-slate-700/50 p-10 md:p-14 rounded-3xl shadow-xl">
-                       <div className="absolute -top-10 -left-6 text-[10rem] font-serif font-black text-white/[0.02] leading-none pointer-events-none select-none">"</div>
-                       <blockquote className="text-xl md:text-2xl font-medium text-slate-200 leading-relaxed relative z-10 mb-10">
-                         "The transition to XRD-CalcPro was instantaneous. We reduced our phase validation bottleneck by almost 80%, allowing our lab to process four times as many samples as last year."
-                       </blockquote>
-                       <div className="flex items-center gap-6">
-                          <div className="w-14 h-14 rounded-full bg-slate-800 border border-slate-700 overflow-hidden ring-4 ring-slate-900">
-                             <img src="https://api.dicebear.com/7.x/avataaars/svg?seed=scientist" alt="User" />
-                          </div>
-                          <div>
-                             <p className="text-base font-bold tracking-wide text-white">Dr. Sarah Andersson</p>
-                             <p className="text-xs font-semibold text-slate-500 mt-1">Head of Material Science, Quantum Tech Inst.</p>
-                          </div>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
-        </section>
-
-        {/* --- Live Computation Terminal --- */}
-        <section className="py-20 px-6 relative z-10 w-full overflow-hidden bg-slate-950 border-t border-slate-900">
-          <div className="max-w-7xl mx-auto relative z-10 flex flex-col md:flex-row gap-16 items-center">
-             <div className="flex-1">
-                 <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-white mb-6">
-                   Deep Learning Model in Action
-                 </h2>
-                 <p className="text-lg text-slate-400 font-medium leading-relaxed max-w-lg mb-8">
-                    Watch the XRD-CalcPro cluster classify phases in real time, pulling from live COD datasets to match peak signatures instantly.
-                 </p>
-                 <div className="flex gap-4">
-                    <div className="bg-slate-900 px-4 py-2 rounded-full border border-slate-800 flex items-center gap-2">
-                       <p className="text-xs font-bold text-slate-400">Cluster Status:</p>
-                       <span className="text-xs text-emerald-400 font-bold flex items-center gap-2"><span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />Running</span>
-                    </div>
-                 </div>
-             </div>
-             
-             <div className="flex-1 w-full max-w-2xl bg-black border border-slate-800 rounded-xl overflow-hidden shadow-2xl relative">
-                <div className="absolute top-0 left-0 w-full h-8 bg-slate-900 border-b border-slate-800 flex items-center px-4 gap-2 z-20">
-                   <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-                   <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-                   <div className="w-2.5 h-2.5 rounded-full bg-slate-700" />
-                   <span className="text-[10px] font-mono text-slate-500 ml-2">XRD_TERMINAL_V4</span>
-                </div>
-                <div className="p-6 pt-12 font-mono text-[11px] leading-loose h-[300px] overflow-hidden relative flex flex-col justify-end">
-                   <div className="absolute top-0 left-0 w-full h-24 bg-gradient-to-b from-black to-transparent z-10" />
-                   <motion.div 
-                     animate={{ y: [0, -150] }} 
-                     transition={{ duration: 15, repeat: Infinity, ease: 'linear' }}
-                     className="text-emerald-500/70 absolute bottom-[-150px]"
-                   >
-                     <p>&gt; Initializing Rietveld refinement engine...</p>
-                     <p>&gt; Loading sample data... [1.2MB] OK</p>
-                     <p>&gt; Background subtraction... Polynomial order 6... OK</p>
-                     <p>&gt; Locating peaks... Found 14 distinct reflections.</p>
-                     <p className="text-emerald-400">&gt; Commencing database search against COD_2026...</p>
-                     <p>&gt; MATCH FOUND: Silicon Dioxide (SiO2) - Quartz</p>
-                     <p>&gt; Confidence: 99.1% | Reference: COD 9009666</p>
-                     <p>&gt; Refinement Cycle 1... Rwp = 12.4%</p>
-                     <p>&gt; Refinement Cycle 2... Rwp = 8.1%</p>
-                     <p>&gt; Refinement Cycle 3... Rwp = 5.3%</p>
-                     <p className="text-emerald-400">&gt; Convergence reached. Final Rwp: 5.3%.</p>
-                     <p>&gt; Exporting CIF...</p>
-                     <br/>
-                     <p>&gt; SYSTEM IDLE. Awaiting new batch...</p>
-                     <br/><br/><br/>
-                   </motion.div>
-                </div>
-             </div>
-          </div>
-        </section>
-
-        {/* --- Final CTA Overlay --- */}
-        <section className="py-20 pb-48 px-6 relative z-10 bg-[#020617]">
-           <div className="max-w-7xl mx-auto">
-              <div className="relative p-12 md:p-32 bg-slate-900 border border-slate-800 rounded-[3rem] overflow-hidden group shadow-2xl">
-                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
-                 <div className="absolute -bottom-24 -right-24 w-[500px] h-[500px] bg-violet-600/10 blur-[100px] rounded-full" />
-                 
-                 <div className="relative z-10 text-center max-w-3xl mx-auto">
-                    <h2 className="text-5xl md:text-6xl font-extrabold tracking-tight text-white mb-8">Ready to Lead The Material Revolution?</h2>
-                    <p className="text-lg md:text-xl text-slate-400 font-medium mb-12 leading-relaxed">
-                       Secure your lab's spot in the next generation of crystallography. Start your 30-day institutional trial today.
-                    </p>
-                    
-                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
-                       <AnimatedGoToAppButton 
-                          onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}
-                          text={isRegistered ? t("Enter Custom Workspace", "Enter Custom Workspace") : t("Initialize General Access", "Initialize General Access")}
-                          variant="primary"
-                          isRTL={isRTL}
-                       />
-                       {isRegistered ? (
-                         <button onClick={onSignOut} className="px-10 py-5 bg-transparent border border-rose-600/30 text-rose-300 rounded-2xl font-bold tracking-wide hover:bg-rose-950/20 hover:text-rose-400 transition-all active:scale-95">
-                            {t('Sign Out')}
-                         </button>
-                       ) : (
-                         <button onClick={() => handleEnterApp('login')} className="px-10 py-5 bg-transparent border border-slate-600 text-slate-300 rounded-2xl font-bold tracking-wide hover:bg-slate-800 hover:text-white transition-all active:scale-95">
-                            {t('Log In / Sign In')}
-                         </button>
-                       )}
-                    </div>
-
-                    <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 sm:gap-10">
-                       <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                          <span className="text-xs font-semibold text-slate-400">No Credit Card Required</span>
-                       </div>
-                       <div className="flex items-center gap-2">
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                          <span className="text-xs font-semibold text-slate-400">Full API Access</span>
-                       </div>
-                    </div>
-                 </div>
-              </div>
-           </div>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="bg-slate-950 py-32 px-6 border-t border-slate-900 relative z-10">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-20">
-          <div className="lg:col-span-2">
-             <div className="flex items-center gap-3 mb-10 group" onClick={() => handleEnterApp(isRegistered ? 'login' : 'register')}>
-                <div className="w-10 h-10 bg-gradient-to-br from-violet-600 to-indigo-800 rounded-xl flex items-center justify-center shadow-[0_0_15px_rgba(139,92,246,0.3)] group-hover:scale-105 transition-transform duration-300">
-                  <Hexagon className="w-6 h-6 text-white" />
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex items-baseline gap-1">
-                    <span className="text-2xl font-black tracking-tight leading-none text-white">XRD<span className="text-violet-500 font-normal">CalcPro</span></span>
-                  </div>
-                  <span className="text-[9px] font-mono uppercase tracking-widest text-cyan-400 mt-1 flex items-center gap-1.5 opacity-90">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 shadow-[0_0_5px_rgba(34,211,238,0.8)]" />
-                    Scientific Analysis Suite
+      {/* ===================================================================
+          SCIENTIFIC FOOTER & ATTRIBUTION
+         =================================================================== */}
+      <footer className="bg-[#050811] border-t border-slate-800 pt-14 pb-10 px-4 sm:px-6 lg:px-8 relative z-10 text-xs">
+        <div className="max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-8 pb-10 border-b border-slate-800/80">
+            {/* Col 1-2: Brand & Mission */}
+            <div className="lg:col-span-2 space-y-3">
+              <div className="flex items-center gap-3">
+                <CrystallographicBrandEmblem />
+                <div>
+                  <span className="text-lg font-bold font-mono text-white">
+                    XRD<span className="text-cyan-400">CalcPro</span>
                   </span>
+                  <div className="text-[10px] font-mono uppercase tracking-widest text-slate-500">
+                    Computational Crystallography Observatory
+                  </div>
                 </div>
-             </div>
-             <p className="text-slate-500 text-sm font-medium leading-relaxed mb-12 max-w-sm">
-               The global leader in AI-driven crystallographic computation. Trusted by researchers to push the boundaries of materials science.
-             </p>
-             <div className="flex flex-wrap gap-3">
-                <a 
-                  href="mailto:alizerehsaz2001@gmail.com" 
-                  title="Gmail: alizerehsaz2001@gmail.com"
-                  className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-slate-400 hover:text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/10 transition-all text-xs font-bold"
+              </div>
+              <p className="text-slate-400 leading-relaxed max-w-sm">
+                Integrated analytical environment for powder diffraction, full-pattern Rietveld refinement, thin-film
+                reflectometry, total scattering PDF analysis, and physics-informed neural phase identification.
+              </p>
+            </div>
+
+            {/* Col 3: Core Workstations */}
+            <div className="space-y-2">
+              <div className="font-mono font-bold uppercase tracking-wider text-white mb-2">
+                Core Workstations
+              </div>
+              {[
+                { label: 'Bragg’s Law & d-Spacing', mod: 'bragg' },
+                { label: 'Rietveld Refinement', mod: 'rietveld' },
+                { label: 'Pair Distribution PDF G(r)', mod: 'pdf_analysis' },
+                { label: 'X-Ray Reflectometry (XRR)', mod: 'xrr' },
+                { label: 'Physics-Informed Neural ID', mod: 'dl' },
+              ].map((link) => (
+                <button
+                  key={link.mod}
+                  type="button"
+                  onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', link.mod)}
+                  className="block text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
                 >
-                  <Mail className="w-4 h-4 text-rose-400" />
-                  <span>Gmail</span>
-                </a>
-                <a 
-                  href="https://www.linkedin.com/in/ali-zerehsaz-60818b249" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  title="LinkedIn: ali-zerehsaz-60818b249"
-                  className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-slate-400 hover:text-blue-400 hover:border-blue-500/40 hover:bg-blue-500/10 transition-all text-xs font-bold"
+                  {link.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Col 4: Line Profile & Strain */}
+            <div className="space-y-2">
+              <div className="font-mono font-bold uppercase tracking-wider text-white mb-2">
+                Microstructure &amp; Strain
+              </div>
+              {[
+                { label: 'Scherrer Domain Sizing', mod: 'scherrer' },
+                { label: 'Williamson–Hall (UDM/USDM)', mod: 'williamson' },
+                { label: 'Warren–Averbach Fourier', mod: 'warren' },
+                { label: 'Double-Voigt Deconvolution', mod: 'double_voigt' },
+                { label: 'Method of Moments W(σ)', mod: 'moments' },
+              ].map((link) => (
+                <button
+                  key={link.mod}
+                  type="button"
+                  onClick={() => handleEnterApp(isRegistered ? 'login' : 'register', link.mod)}
+                  className="block text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
                 >
-                  <LinkedinIcon className="w-4 h-4 text-blue-400" />
-                  <span>LinkedIn</span>
-                </a>
-                <a 
-                  href="https://github.com/alizerehsaz2001-pixel" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  title="GitHub: alizerehsaz2001-pixel"
-                  className="h-11 px-4 rounded-xl bg-white/5 border border-white/10 flex items-center gap-2 text-slate-400 hover:text-purple-400 hover:border-purple-500/40 hover:bg-purple-500/10 transition-all text-xs font-bold"
-                >
-                  <GithubIcon className="w-4 h-4 text-purple-400" />
-                  <span>GitHub</span>
-                </a>
-             </div>
-          </div>
-          
-          <div>
-            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Core Suite</h4>
-            <ul className="space-y-5 text-sm font-medium text-slate-500">
-              <li onClick={() => setFooterModal('peak-ai')} className="hover:text-white transition-colors cursor-pointer">Peak Detection AI</li>
-              <li onClick={() => setFooterModal('phase-match')} className="hover:text-white transition-colors cursor-pointer">Phase Matching Engine</li>
-              <li onClick={() => setFooterModal('refinement')} className="hover:text-white transition-colors cursor-pointer">Refinement Strategy</li>
-              <li onClick={() => setFooterModal('lattice-analytics')} className="hover:text-white transition-colors cursor-pointer">Lattice Analytics</li>
-              <li onClick={() => setFooterModal('systematic-absences')} className="hover:text-white transition-colors cursor-pointer">Systematic Absences</li>
-            </ul>
+                  {link.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Col 5: Documentation & Legal */}
+            <div className="space-y-2">
+              <div className="font-mono font-bold uppercase tracking-wider text-white mb-2">
+                Documentation &amp; Governance
+              </div>
+              <button
+                type="button"
+                onClick={() => setFooterModal('documentation')}
+                className="block text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Methodology Documentation
+              </button>
+              <button
+                type="button"
+                onClick={() => setFooterModal('api-reference')}
+                className="block text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Python SDK Reference
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowChangelogModal(true)}
+                className="block text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Version Changelog (v2.5)
+              </button>
+              <button
+                type="button"
+                onClick={() => setFooterModal('about-creator')}
+                className="block text-cyan-400 hover:text-cyan-300 transition-colors cursor-pointer font-semibold"
+              >
+                About Creator (Ali Zerehsaz)
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowPrivacyModal(true)}
+                className="block text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Privacy Policy
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowTermsModal(true)}
+                className="block text-slate-400 hover:text-cyan-400 transition-colors cursor-pointer"
+              >
+                Terms of Use
+              </button>
+            </div>
           </div>
 
-          <div>
-            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Company</h4>
-            <ul className="space-y-5 text-sm font-medium text-slate-500">
-              <li onClick={() => setFooterModal('mission')} className="hover:text-white transition-colors cursor-pointer">The Mission</li>
-              <li onClick={() => setFooterModal('partners')} className="hover:text-white transition-colors cursor-pointer">Partners</li>
-              <li onClick={() => setFooterModal('case-studies')} className="hover:text-white transition-colors cursor-pointer">Case Studies</li>
-              <li onClick={() => setFooterModal('pricing')} className="hover:text-white transition-colors cursor-pointer">Pricing Model</li>
-              <li onClick={() => setFooterModal('security')} className="hover:text-white transition-colors cursor-pointer">Security Core</li>
-            </ul>
+          {/* Bottom Attribution Strip */}
+          <div className="pt-6 flex flex-col sm:flex-row items-center justify-between gap-4 font-mono text-[11px] text-slate-500">
+            <div>
+              © {new Date().getFullYear()} XRD-CalcPro Scientific Suite. Designed &amp; engineered by{' '}
+              <button
+                type="button"
+                onClick={() => setFooterModal('about-creator')}
+                className="text-cyan-400 hover:text-cyan-300 font-semibold underline decoration-cyan-500/40 underline-offset-4 cursor-pointer"
+              >
+                Ali Zerehsaz
+              </button>
+              .
+            </div>
+            <div className="flex flex-wrap items-center gap-4">
+              <a
+                href="mailto:alizerehsaz2001@gmail.com"
+                className="text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1"
+              >
+                <span>alizerehsaz2001@gmail.com</span>
+              </a>
+              <span className="text-slate-700">|</span>
+              <a
+                href="https://github.com/alizerehsaz2001-pixel"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-slate-400 hover:text-cyan-400 transition-colors flex items-center gap-1"
+              >
+                <span>GitHub</span>
+                <ExternalLink className="w-3 h-3" />
+              </a>
+              <span className="text-slate-700">|</span>
+              <span className="text-emerald-400">● ALL 17 SOLVERS OPERATIONAL</span>
+            </div>
           </div>
-
-          <div>
-            <h4 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 italic text-violet-400">Support</h4>
-            <ul className="space-y-5 text-sm font-medium text-slate-500">
-              <li onClick={() => setFooterModal('documentation')} className="hover:text-white transition-colors cursor-pointer">Documentation</li>
-              <li onClick={() => setFooterModal('api-reference')} className="hover:text-white transition-colors cursor-pointer">API Reference</li>
-              <li onClick={() => setFooterModal('system-status')} className="hover:text-white transition-colors cursor-pointer">System Status</li>
-              <li onClick={() => setFooterModal('help-center')} className="hover:text-white transition-colors cursor-pointer">Help Center</li>
-              <li onClick={() => setFooterModal('contact-lab')} className="hover:text-white transition-colors cursor-pointer">Contact Lab</li>
-            </ul>
-          </div>
-        </div>
-        
-        <div className="max-w-7xl mx-auto mt-32 pt-10 border-t border-white/5 flex flex-col md:flex-row justify-between items-center gap-8">
-           <div className="flex flex-col md:flex-row items-center gap-10">
-              <div className={`flex flex-col ${isRTL ? "items-end text-right" : "items-start text-left"} gap-1.5`}>
-                <p 
-                  onClick={() => setFooterModal('about-creator')}
-                  className="text-[10px] font-black text-slate-400 hover:text-violet-300 transition-colors uppercase tracking-[0.3em] cursor-pointer"
-                >
-                  © 2026 XRD-CALC PRO • Designed by Ali Zerehsaz
-                </p>
-                <div className="flex items-center gap-2.5 my-1 text-[10px] font-mono">
-                  <a 
-                    href="mailto:alizerehsaz2001@gmail.com" 
-                    className="text-slate-400 hover:text-rose-400 transition-colors flex items-center gap-1"
-                  >
-                    <Mail className="w-3 h-3 text-rose-400" /> Gmail
-                  </a>
-                  <span className="text-slate-700">•</span>
-                  <a 
-                    href="https://www.linkedin.com/in/ali-zerehsaz-60818b249" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-blue-400 transition-colors flex items-center gap-1"
-                  >
-                    <LinkedinIcon className="w-3 h-3 text-blue-400" /> LinkedIn
-                  </a>
-                  <span className="text-slate-700">•</span>
-                  <a 
-                    href="https://github.com/alizerehsaz2001-pixel" 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-slate-400 hover:text-purple-400 transition-colors flex items-center gap-1"
-                  >
-                    <GithubIcon className="w-3 h-3 text-purple-400" /> GitHub
-                  </a>
-                </div>
-                <p 
-                  onClick={() => setFooterModal('about-creator')}
-                  className="text-[9px] font-bold text-slate-600 hover:text-slate-400 transition-colors uppercase tracking-[0.15em] max-w-sm leading-relaxed cursor-pointer"
-                >
-                  {t("Designed and Engineered by Ali Zerehsaz. This is an independent scientific project, not built by a large corporate team.", "Designed and Engineered by Ali Zerehsaz. This is an independent scientific project, not built by a large corporate team.")}
-                </p>
-                <div 
-                  onClick={() => setFooterModal('powered-by-google')}
-                  className="flex items-center gap-2 mt-2 opacity-60 hover:opacity-100 transition-opacity cursor-pointer"
-                >
-                  <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Powered by</span>
-                  <span className="text-[9px] font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-violet-400 uppercase tracking-wider">Gemini & Google</span>
-                </div>
-                <div 
-                  onClick={() => setFooterModal('tech-stack')}
-                  className="flex flex-col gap-3 mt-3 px-4 py-3 bg-white/5 hover:bg-white/10 transition-colors rounded-2xl border border-white/5 w-fit group cursor-pointer"
-                >
-                   <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{t("Tech Stack:", "Tech Stack:")}</span>
-                   <div className="flex gap-4">
-                      <div className="flex flex-col gap-1 group/ts">
-                        <span className="text-[10px] font-mono text-blue-400 font-bold">TypeScript</span>
-                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
-                          {t("For strong typing and secure client-side architecture", "For strong typing and secure client-side architecture")}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1 group/js">
-                        <span className="text-[10px] font-mono text-amber-400 font-bold">JavaScript</span>
-                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
-                          {t("For UI dynamism and fast interactive components", "For UI dynamism and fast interactive components")}
-                        </span>
-                      </div>
-                      <div className="flex flex-col gap-1 group/py">
-                        <span className="text-[10px] font-mono text-emerald-400 font-bold">Python</span>
-                        <span className="text-[8px] font-medium text-slate-500 max-w-[120px] leading-tight">
-                          {t("For generating analytical scripts and data processing", "For generating analytical scripts and data processing")}
-                        </span>
-                      </div>
-                   </div>
-                </div>
-              </div>
-              <div className="flex gap-8 text-[10px] font-black text-slate-600 uppercase tracking-[0.3em]">
-                 <span 
-                   onClick={() => setShowPrivacyModal(true)}
-                   className="hover:text-white cursor-pointer transition-colors"
-                 >
-                   Privacy Policy
-                 </span>
-                 <span 
-                   onClick={() => setShowTermsModal(true)}
-                   className="hover:text-white cursor-pointer transition-colors"
-                 >
-                   Terms of Use
-                 </span>
-                 <span 
-                   onClick={() => setFooterModal('cookie-auth')}
-                   className="hover:text-white cursor-pointer transition-colors"
-                 >
-                   Cookie Auth
-                 </span>
-                 <span 
-                   onClick={() => setShowChangelogModal(true)}
-                   className="hover:text-white cursor-pointer transition-colors"
-                 >
-                   Changelog
-                 </span>
-              </div>
-              <div className="flex items-center gap-4 border-l border-white/10 pl-8 ml-2">
-                 <a 
-                   href="https://github.com" 
-                   target="_blank" 
-                   rel="noopener noreferrer"
-                   className="flex items-center gap-2 text-[10px] font-black text-slate-500 hover:text-white transition-all uppercase tracking-widest group/github"
-                 >
-                    <GitBranch className="w-4 h-4 text-slate-600 group-hover/github:text-white transition-colors" />
-                    <span>View on GitHub</span>
-                 </a>
-                 <div className="px-2.5 py-0.5 rounded bg-emerald-500/10 border border-emerald-500/20">
-                    <span className="text-[8px] font-black text-emerald-400 uppercase tracking-tighter">MIT License</span>
-                 </div>
-              </div>
-           </div>
-           <div className="flex items-center gap-4 bg-white/5 px-4 py-2 rounded-full border border-white/10 group cursor-default">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              <span className="text-[9px] font-black text-emerald-400 uppercase tracking-[0.3em] group-hover:text-white transition-colors">Global Network: Online</span>
-           </div>
         </div>
       </footer>
 
-      {/* Legal Modals */}
-      <LegalModal 
-         isOpen={showPrivacyModal} 
-         onClose={() => setShowPrivacyModal(false)} 
-         content={i18n.language === 'fa' ? PRIVACY_POLICY_DATA.fa : PRIVACY_POLICY_DATA.en}
-         isRTL={isRTL}
+      {/* Back to Top Button */}
+      <AnimatePresence>
+        {showBackToTop && (
+          <motion.button
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            className="fixed bottom-6 right-6 z-40 p-2.5 bg-[#0B0F19] hover:bg-slate-900 text-cyan-400 border border-slate-700 rounded-sm shadow-xl cursor-pointer"
+            title="Scroll to Top"
+          >
+            <ArrowUp className="w-4 h-4" />
+          </motion.button>
+        )}
+      </AnimatePresence>
+
+      {/* Modals */}
+      <LegalModal
+        isOpen={showPrivacyModal}
+        onClose={() => setShowPrivacyModal(false)}
+        content={i18n.language === 'fa' ? PRIVACY_POLICY_DATA.fa : PRIVACY_POLICY_DATA.en}
+        isRTL={isRTL}
       />
-      <LegalModal 
-         isOpen={showTermsModal} 
-         onClose={() => setShowTermsModal(false)} 
-         content={i18n.language === 'fa' ? TERMS_OF_USE_DATA.fa : TERMS_OF_USE_DATA.en}
-         isRTL={isRTL}
+      <LegalModal
+        isOpen={showTermsModal}
+        onClose={() => setShowTermsModal(false)}
+        content={i18n.language === 'fa' ? TERMS_OF_USE_DATA.fa : TERMS_OF_USE_DATA.en}
+        isRTL={isRTL}
       />
-      <LegalModal 
-         isOpen={showChangelogModal} 
-         onClose={() => setShowChangelogModal(false)} 
-         content={i18n.language === 'fa' ? CHANGELOG_DATA.fa : CHANGELOG_DATA.en}
-         isRTL={isRTL}
+      <LegalModal
+        isOpen={showChangelogModal}
+        onClose={() => setShowChangelogModal(false)}
+        content={i18n.language === 'fa' ? CHANGELOG_DATA.fa : CHANGELOG_DATA.en}
+        isRTL={isRTL}
       />
 
-      {/* Dynamic Footer Info Modal */}
-      <FooterInfoModal 
-        isOpen={!!footerModal}
+      <FooterInfoModal
+        isOpen={footerModal !== null}
         modalType={footerModal}
         onClose={() => setFooterModal(null)}
         isRTL={isRTL}
-        onActionNavigate={(targetModule) => {
+        onActionNavigate={(mod) => {
           setFooterModal(null);
-          handleEnterApp(isRegistered ? 'login' : 'register', targetModule);
+          handleEnterApp(isRegistered ? 'login' : 'register', mod);
         }}
       />
 
-      {/* Special Resume Section Picker Modal (All 34 Sections Available) */}
+      <WelcomeTourModal
+        isOpen={showWelcomeTour}
+        onClose={() => setShowWelcomeTour(false)}
+        isRTL={isRTL}
+        onLaunch={(mode, mod) => {
+          setShowWelcomeTour(false);
+          handleEnterApp(mode, mod);
+        }}
+      />
+
       <ResumeSectionPickerModal
         isOpen={showResumePickerModal}
         onClose={() => setShowResumePickerModal(false)}
@@ -2913,54 +1945,19 @@ export const LandingPage = ({ onEnter, setTheme, theme, isRegistered, onSignOut,
         isRTL={isRTL}
       />
 
-      {/* Animated Portal Launch Screen with XRD Diffraction Engine */}
-      <AppLaunchPortal 
-        isEntering={isEnteringApp}
-        isResuming={isResumingApp}
+      <AppLaunchPortal
+        isOpen={isEnteringApp}
         targetModule={pendingTargetModule}
-        isRTL={isRTL}
+        mode={isResumingApp ? 'resume' : pendingLaunchMode}
+        userName={userName}
         onComplete={() => {
+          setIsEnteringApp(false);
           if (isResumingApp && onReturnToApp) {
-            setIsResumingApp(false);
-            setIsEnteringApp(false);
-            onReturnToApp(pendingTargetModule || undefined);
+            onReturnToApp(pendingTargetModule);
           } else {
-            setIsResumingApp(false);
-            setIsEnteringApp(false);
             onEnter(pendingLaunchMode, pendingTargetModule);
           }
         }}
-      />
-
-      {/* Welcome Tour Modal */}
-      <WelcomeTourModal
-        isOpen={showWelcomeTour}
-        onClose={() => setShowWelcomeTour(false)}
-        onLaunch={handleEnterApp}
-        isRTL={isRTL}
-      />
-
-      {/* Cookie Banner */}
-      {showCookieBanner && (
-        <CookieBanner 
-          isRTL={isRTL} 
-          onAccept={handleAcceptCookies} 
-        />
-      )}
-
-      {/* Floating Quick Action Dock */}
-      <WelcomeFloatingDock
-        isVisible={isScrolled}
-        onOpenTour={() => setShowWelcomeTour(true)}
-        onLaunchApp={() => {
-          if (isRegistered) {
-            handleResumeApp(activeModule);
-          } else {
-            handleEnterApp('register');
-          }
-        }}
-        isRegistered={isRegistered}
-        isRTL={isRTL}
       />
     </div>
   );

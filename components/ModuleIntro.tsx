@@ -521,6 +521,53 @@ const renderModuleSpecializedSchematic = (moduleKey: string): { caption: string;
         )
       };
 
+    case 'pdf_analysis':
+      return {
+        caption: 'FIG 1 · TOTAL SCATTERING F(Q) → REAL-SPACE PAIR DISTRIBUTION G(r)',
+        regime: 'G(r) = (2/π) ∫ Q[S(Q)−1]·sin(Qr) dQ · Δr_min = π/Q_max',
+        svg: (
+          <svg viewBox="0 0 360 148" className="w-full h-auto select-none">
+            <CadSvgDefs />
+            <rect x="4" y="4" width="352" height="140" rx="6" fill="url(#cadMajorGrid)" stroke="#1e293b" strokeWidth="0.8" />
+            <line x1="176" y1="10" x2="176" y2="138" stroke="#1e293b" strokeWidth="1" />
+            {/* Left: Reciprocal-Space F(Q) = Q[S(Q)-1] */}
+            <line x1="18" y1="74" x2="164" y2="74" stroke="#475569" strokeWidth="0.9" strokeDasharray="3 2" />
+            <path
+              d="M 18,74 C 26,74 30,28 36,28 C 42,28 45,108 52,108 C 58,108 62,40 68,40 C 74,40 78,98 85,98 C 92,98 96,52 103,52 C 110,52 115,88 122,88 C 129,88 135,62 142,62 C 149,62 154,78 162,74"
+              fill="none"
+              stroke="#38bdf8"
+              strokeWidth="1.6"
+            />
+            <line x1="154" y1="20" x2="154" y2="120" stroke="#f59e0b" strokeWidth="1.1" strokeDasharray="2 2" />
+            <text x="22" y="22" fill="#38bdf8" fontSize="8" fontFamily="monospace" fontWeight="bold">
+              F(Q) = Q[S(Q) − 1]
+            </text>
+            <text x="150" y="132" textAnchor="end" fill="#fbbf24" fontSize="7.5" fontFamily="monospace">
+              Q_max Cutoff
+            </text>
+            {/* Right: Real-Space G(r) Coordination Shells */}
+            <line x1="190" y1="84" x2="344" y2="84" stroke="#475569" strokeWidth="0.9" />
+            <line x1="190" y1="84" x2="344" y2="112" stroke="#f59e0b" strokeWidth="0.9" strokeDasharray="3 2" />
+            <path
+              d="M 190,84 L 208,90 C 214,90 217,22 222,22 C 227,22 230,92 236,92 L 252,96 C 258,96 262,42 268,42 C 274,42 278,98 284,98 L 300,102 C 306,102 310,60 316,60 C 322,60 326,104 332,104 L 344,106"
+              fill="url(#cadAreaCyan)"
+              stroke="#22d3ee"
+              strokeWidth="1.6"
+            />
+            <circle cx="222" cy="22" r="3" fill="url(#cadNodeAmber)" />
+            <text x="194" y="22" fill="#22d3ee" fontSize="8" fontFamily="monospace" fontWeight="bold">
+              G(r) = 4πr[ρ(r) − ρ₀]
+            </text>
+            <text x="230" y="26" fill="#fbbf24" fontSize="7.5" fontFamily="monospace">
+              r₁ (1st Shell)
+            </text>
+            <text x="194" y="132" fill="#cbd5e1" fontSize="7.5" fontFamily="monospace">
+              −4πrρ₀γ₀(r) Baseline · N_c = ∫R(r)dr
+            </text>
+          </svg>
+        )
+      };
+
     default:
       return {
         caption: 'FIG 1 · RECIPROCAL LATTICE SCATTERING & METRIC TENSOR PROJECTION',
@@ -1343,6 +1390,53 @@ const MODULE_CONTENT: Record<
               </span>
             }
           />
+        </FormulaContainer>
+      </div>
+    )
+  },
+  pdf_analysis: {
+    title: 'Pair Distribution Function (PDF) & Total Scattering',
+    tag: 'Real-Space Local Atomic Structure',
+    icon: Activity,
+    color: 'from-cyan-500 to-indigo-500',
+    description:
+      'Transforms total scattering structure functions S(Q) (Bragg + diffuse scattering) into real-space atomic pair distribution functions G(r) via Sine Fourier transformation, resolving interatomic bond lengths r_ij, coordination numbers N_c, Debye-Waller disorder σ_ij, and nanoparticle shape envelopes γ₀(r; D).',
+    formulas: (
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <FormulaContainer label="Sine Fourier Transform S(Q) → G(r)">
+          <M>G</M>(<M>r</M>) ={' '}
+          <Fraction
+            num="2"
+            den={<M>π</M>}
+          />{' '}
+          <F>∫</F>
+          <sub>
+            <M>Q</M>
+            <sub>min</sub>
+          </sub>
+          <sup>
+            <M>Q</M>
+            <sub>max</sub>
+          </sup>{' '}
+          <M>Q</M>[<M>S</M>(<M>Q</M>) − 1] <M>W</M>(<M>Q</M>) <F>sin</F>(<M>Qr</M>) d<M>Q</M>
+        </FormulaContainer>
+        <FormulaContainer label="Real-Space Pair Density & Shell Integral">
+          <M>G</M>(<M>r</M>) = 4<M>πr</M>[<M>ρ</M>(<M>r</M>) − <M>ρ</M>
+          <sub>0</sub>
+          <M>γ</M>
+          <sub>0</sub>(<M>r</M>)] &nbsp;|&nbsp; <M>N</M>
+          <sub>c</sub> = <F>∫</F>
+          <sub>
+            <M>r</M>
+            <sub>1</sub>
+          </sub>
+          <sup>
+            <M>r</M>
+            <sub>2</sub>
+          </sup>{' '}
+          4<M>πr</M>
+          <sup>2</sup>
+          <M>ρ</M>(<M>r</M>) d<M>r</M>
         </FormulaContainer>
       </div>
     )
