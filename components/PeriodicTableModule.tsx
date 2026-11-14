@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Info, Sparkles, Activity, Layers, Compass, Play, Pause, Search, 
+  Info, Activity, Layers, Compass, Play, Pause, Search, 
   HelpCircle, Orbit, RotateCw, Settings, ShieldAlert, Zap, Cpu,
   Droplets, Cloud, DownloadCloud, Eye, EyeOff, Maximize2, Sliders,
   Atom, Grid, ChevronDown, ChevronUp, RefreshCw, Copy, Check, FlaskConical,
@@ -25,7 +25,11 @@ import { QuantumOrbitalEnergyDiagram } from './periodic/QuantumOrbitalEnergyDiag
 import { HumeRotheryAlloyWorkbench } from './periodic/HumeRotheryAlloyWorkbench';
 import { COMPLETE_PERIODIC_TABLE } from './periodic/elementsData';
 import { PeriodicFilterToolbar } from './periodic/PeriodicFilterToolbar';
-import { PeriodicHeatmapLegend } from './periodic/PeriodicHeatmapLegend';
+import {
+  PeriodicHeatmapLegend,
+  getElementKEdgeKeV,
+  getElementMuRhoCu
+} from './periodic/PeriodicHeatmapLegend';
 import { PeriodicTableGrid } from './periodic/PeriodicTableGrid';
 import {
   PeriodicSuiteHeroGraphic,
@@ -2503,6 +2507,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [alloySoluteZ, setAlloySoluteZ] = useState<number>(30); // Zn default (Brass)
   const [alloySoluteFraction, setAlloySoluteFraction] = useState<number>(0.30); // 30 at.%
   const [neutronSelectedZ, setNeutronSelectedZ] = useState<number>(26); // Fe default
+  const [xrayCompareZ, setXrayCompareZ] = useState<number>(0);
 
   // Modern Periodic Table visual & metrology states
   const [colorMode, setColorMode] = useState<ColorMode>('category');
@@ -3663,7 +3668,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           { id: 'attenuation', label: 'Attenuation (μ/ρ)', domain: 'metrology', icon: ShieldAlert, color: 'text-purple-400', activeBg: 'bg-purple-500/15 border-purple-500/30 text-purple-300' },
                           // Domain 3: Materials
                           { id: 'alloy', label: 'Hume-Rothery', domain: 'materials', icon: Boxes, color: 'text-violet-400', activeBg: 'bg-violet-500/15 border-violet-500/30 text-violet-300' },
-                          { id: 'chemical', label: 'Chemical Trends', domain: 'materials', icon: Sparkles, color: 'text-indigo-400', activeBg: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300' },
+                          { id: 'chemical', label: 'Chemical Trends', domain: 'materials', icon: Compass, color: 'text-indigo-400', activeBg: 'bg-indigo-500/15 border-indigo-500/30 text-indigo-300' },
                           { id: 'physical', label: 'Physical Constants', domain: 'materials', icon: Activity, color: 'text-emerald-400', activeBg: 'bg-emerald-500/15 border-emerald-500/30 text-emerald-300' },
                           { id: 'stp', label: 'Stoichiometry & STP', domain: 'materials', icon: FlaskConical, color: 'text-sky-400', activeBg: 'bg-sky-500/15 border-sky-500/30 text-sky-300' }
                         ] as const)
@@ -3854,7 +3859,56 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                     )}
 
                     {detailSubTab === 'xray' && (
-                      <div className="space-y-6 animate-fadeIn">
+                      <div className="space-y-5 animate-fadeIn">
+                        {/* Tube Anode Fluorescence Compatibility Matrix */}
+                        {(() => {
+                          const kEdge = getElementKEdgeKeV(activeElementInfo);
+                          const muCu = getElementMuRhoCu(activeElementInfo);
+                          const tubes = [
+                            { id: 'Cr', label: 'Cr Kα', keV: 5.415, lambda: '2.290 Å' },
+                            { id: 'Fe', label: 'Fe Kα', keV: 6.404, lambda: '1.936 Å' },
+                            { id: 'Co', label: 'Co Kα', keV: 6.930, lambda: '1.789 Å' },
+                            { id: 'Cu', label: 'Cu Kα', keV: 8.048, lambda: '1.541 Å' },
+                            { id: 'Mo', label: 'Mo Kα', keV: 17.479, lambda: '0.709 Å' }
+                          ];
+                          return (
+                            <div className="bg-[#070b14] border border-slate-800/90 rounded-2xl p-3.5 space-y-2.5 font-mono text-xs">
+                              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
+                                  <Radio className="w-3.5 h-3.5" />
+                                  Anode Radiation Selection vs {activeElementInfo.symbol} K-Edge
+                                </span>
+                                <span className="text-[10px] text-slate-400 tabular-nums">
+                                  E<sub>K</sub> = <strong className="text-white">{kEdge >= 1 ? `${kEdge.toFixed(3)} keV` : `${(kEdge * 1000).toFixed(0)} eV`}</strong> · μ/ρ(Cu) = <strong className="text-cyan-300">{muCu} cm²/g</strong>
+                                </span>
+                              </div>
+                              <div className="grid grid-cols-5 gap-1.5 text-[10px] tabular-nums">
+                                {tubes.map(tube => {
+                                  const excitesK = kEdge > 1.2 && kEdge < tube.keV && (tube.keV - kEdge) < 5.2;
+                                  const aboveEdge = kEdge > tube.keV;
+                                  return (
+                                    <div
+                                      key={tube.id}
+                                      className={`p-2 rounded-lg border text-center space-y-0.5 ${
+                                        excitesK
+                                          ? 'bg-rose-950/35 border-rose-500/40 text-rose-200'
+                                          : 'bg-[#0B0F19] border-slate-800 text-slate-300'
+                                      }`}
+                                      title={excitesK ? `K-edge (${kEdge.toFixed(2)} keV) falls right below ${tube.label} (${tube.keV} keV): strong secondary fluorescence` : `${tube.label} avoids intense K-edge fluorescence resonance`}
+                                    >
+                                      <div className="font-bold text-white">{tube.label}</div>
+                                      <div className="text-[8.5px] text-slate-400">{tube.lambda}</div>
+                                      <div className={`text-[8.5px] font-bold ${excitesK ? 'text-rose-400' : aboveEdge ? 'text-emerald-400' : 'text-cyan-300'}`}>
+                                        {excitesK ? 'K-Fluo!' : aboveEdge ? 'Optimal' : 'Pass'}
+                                      </div>
+                                    </div>
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          );
+                        })()}
+
                         {/* Quick Jump to XRF Fingerprint */}
                         <div className="bg-gradient-to-r from-cyan-950/40 via-slate-900 to-blue-950/40 border border-cyan-500/30 rounded-2xl p-4 flex items-center justify-between gap-4 shadow-lg shadow-cyan-950/10">
                           <div className="flex items-center gap-3">
@@ -3889,10 +3943,18 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                         <FormFactorChart 
                           atomicNumber={activeElementInfo.number} 
                           symbol={activeElementInfo.symbol} 
-                          name={activeElementInfo.name} 
+                          name={activeElementInfo.name}
+                          compareZ={xrayCompareZ || undefined}
+                          onSelectCompareElement={setXrayCompareZ}
+                          availableElements={fullElementsGrid.map(el => ({
+                            number: el.number,
+                            symbol: el.symbol,
+                            name: el.name
+                          }))}
                         />
                         <ElementalDiffractionPredictor 
-                          element={activeElementInfo} 
+                          element={activeElementInfo}
+                          onLoadPeaks={onLoadPeaks}
                         />
                       </div>
                     )}
@@ -3930,9 +3992,11 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
                     {detailSubTab === 'attenuation' && (
                       <div className="space-y-6 animate-fadeIn">
-                        <CompoundAttenuationCalculator 
+                        <CompoundAttenuationCalculator
+                          key={activeElementInfo.symbol}
                           initialFormula={activeElementInfo.symbol} 
                           elementWeightsMap={elementWeightsMap}
+                          onSelectElement={(z) => setSelectedElement(z)}
                         />
                       </div>
                     )}
@@ -3940,7 +4004,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                     {detailSubTab === 'chemical' && (
                       <div className="space-y-3 animate-fadeIn">
                         <span className="text-[10px] font-semibold uppercase tracking-wider text-indigo-400 flex items-center gap-1.5">
-                          <Sparkles className="w-3 text-indigo-400" /> Chemical Properties (Scientific Facts)
+                          <Compass className="w-3 text-indigo-400" /> Chemical Properties (Scientific Facts)
                         </span>
 
                         <div className="space-y-4 bg-[#0B0F19]/60 backdrop-blur-xl p-5 rounded-2xl border border-white/5 shadow-inner relative isolate overflow-hidden text-xs">
@@ -4275,8 +4339,8 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           {/* Scientific Factual Insight / Fact (Bilingual Support) */}
                           <div className="border-t border-slate-900/60 pt-3 mt-1">
                             <div className="bg-indigo-950/20 border border-indigo-500/15 p-3 rounded-xl relative overflow-hidden group">
-                              <div className="absolute top-0 right-0 p-1 text-indigo-500/30">
-                                <Sparkles className="w-4 h-4 animate-pulse" />
+                              <div className="absolute top-1.5 right-2 text-indigo-500/40">
+                                <Info className="w-4 h-4" />
                               </div>
                               <span className="text-indigo-400 font-sans text-[10px] uppercase font-black tracking-wider flex items-center gap-1">
                                 {isFa ? 'دانستنی‌های علمی' : 'Scientific Insight'}
@@ -4385,7 +4449,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                     </div>
                   ) : (
                     <div className="border border-dashed border-slate-800 p-6 rounded-xl text-center bg-slate-950/40">
-                      <HelpCircle className="w-8 h-8 text-slate-700 animate-pulse mx-auto mb-2" />
+                      <HelpCircle className="w-8 h-8 text-slate-700 mx-auto mb-2" />
                       <p className="text-[11px] font-bold text-slate-400">No Complex Compounds Defined</p>
                       <p className="text-[9px] text-slate-500 max-w-[200px] mx-auto mt-1 leading-normal">
                         This element acts primarily as an alloy interstitial or alloying additive. Choose Diamond Carbon, Silicon, Iron, or Copper to view modeled structures.
@@ -4396,7 +4460,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               </motion.div>
             ) : (
               <div className="bg-slate-900 border border-slate-850 aspect-auto rounded-2xl p-6 text-center text-slate-500 flex flex-col justify-center h-full min-h-[350px]">
-                <Activity className="w-10 h-10 text-slate-700 animate-pulse mx-auto mb-3" />
+                <Activity className="w-10 h-10 text-slate-700 mx-auto mb-3" />
                 <span className="font-bold uppercase tracking-wider text-slate-400 text-xs">No Element Selected</span>
                 <span className="text-[10px] text-slate-500 max-w-[180px] mx-auto mt-1 leading-normal">
                   Select an element box in the grid representation to view deep crystal constants and XRD properties.
@@ -4860,7 +4924,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="p-4 rounded-2xl bg-[#0B0F19] border border-white/5 space-y-2">
           <div className="flex items-center gap-2 text-cyan-400 font-bold text-xs">
-            <Sparkles className="w-4 h-4" />
+            <Atom className="w-4 h-4" />
             1. Light Atom Sensitivity in Heavy Matrices
           </div>
           <p className="text-[11px] text-slate-400 leading-relaxed">

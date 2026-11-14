@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Sparkles, X, ArrowUpRight } from 'lucide-react';
+import React, { useState, useMemo } from 'react';
+import { Activity, X, ArrowUpRight, BarChart3, ScatterChart } from 'lucide-react';
 import { HeatmapMode, CrystalElement } from './types';
 
 interface PeriodicHeatmapLegendProps {
@@ -36,6 +36,46 @@ export function computeUnitCellVolume(el: CrystalElement): number {
   return a * b * c;
 }
 
+export function getElementKEdgeKeV(el: CrystalElement): number {
+  if (el.kEdgeKeV && el.kEdgeKeV > 0) return el.kEdgeKeV;
+  const z = el.number;
+  if (z <= 1) return 0.0136;
+  // Moseley-Dirac relativistic K-edge scaling approximation calibrated across Z = 2..118
+  const effZ = Math.max(0.8, z - 1.15);
+  return 0.013605 * effZ * effZ * (1 + 0.000042 * z * z);
+}
+
+export function getElementKAlpha1KeV(el: CrystalElement): number {
+  if (el.kAlpha1KeV && el.kAlpha1KeV > 0) return el.kAlpha1KeV;
+  const z = el.number;
+  if (z <= 2) return 0.0102 * Math.pow(z - 0.5, 2);
+  // Moseley's Law K_alpha1 approximation: 10.2 eV * (Z - 1)^2 with high-Z relativistic term
+  return 0.010204 * Math.pow(z - 1, 2) * (1 + 0.000038 * z * z);
+}
+
+export function getElementMuRhoCu(el: CrystalElement): number {
+  if (el.muOverRhoCu && el.muOverRhoCu > 0) return el.muOverRhoCu;
+  const z = el.number;
+  // Photoelectric Z^3.5 jump drop above Cu K-alpha 8.048 keV
+  if (z <= 29) return Number((0.014 * Math.pow(z, 3.35)).toFixed(2));
+  return Number((0.0038 * Math.pow(z, 3.25)).toFixed(2));
+}
+
+export function getCuFluorescenceScore(el: CrystalElement): number {
+  const kEdge = getElementKEdgeKeV(el);
+  const cuKa = 8.048;
+  // Secondary fluorescence peaks sharply when K-edge lies just below 8.048 keV (Sc=4.49 .. Co=7.71 keV)
+  if (kEdge > 1.5 && kEdge < cuKa) {
+    return Number((100 * Math.exp(-Math.pow((cuKa - kEdge) / 3.4, 1.3))).toFixed(1));
+  }
+  // L-edge excitation near Cu Ka (rare earths / heavy metals around Z=55..72)
+  const estL3 = kEdge * 0.145;
+  if (estL3 > 2.5 && estL3 < cuKa) {
+    return Number((42 * Math.exp(-Math.pow((cuKa - estL3) / 3.0, 1.4))).toFixed(1));
+  }
+  return 2;
+}
+
 export const HEATMAP_CONFIGS: Record<HeatmapMode, HeatmapConfig | null> = {
   none: null,
   latticeA: {
@@ -53,6 +93,14 @@ export const HEATMAP_CONFIGS: Record<HeatmapMode, HeatmapConfig | null> = {
     description: 'Crystallographic unit cell volume V = a·b·c·f(α,β,γ) accounting for Bravais lattice symmetry.',
     getValue: el => computeUnitCellVolume(el),
     format: v => `${v.toFixed(1)} Å³`
+  },
+  molarVolume: {
+    label: 'Lothar Meyer Molar Volume (V_m = M/ρ)',
+    shortLabel: 'V_m (cm³/mol)',
+    unit: 'cm³/mol',
+    description: 'Volume occupied by 1 mole of atoms at STP, revealing classic shell-closure periodicity maxima at alkali metals.',
+    getValue: el => (el.density > 0 ? el.weight / el.density : 0),
+    format: v => `${v.toFixed(2)} cm³/mol`
   },
   density: {
     label: 'Crystallographic Mass Density',
@@ -123,8 +171,32 @@ export const HEATMAP_CONFIGS: Record<HeatmapMode, HeatmapConfig | null> = {
     shortLabel: 'μ/ρ Cu-Kα',
     unit: 'cm²/g',
     description: 'Total photoelectric absorption and scattering cross-section per unit mass for 8.048 keV X-rays.',
-    getValue: el => el.muOverRhoCu || 0.016 * Math.pow(el.number, 3.5),
+    getValue: el => getElementMuRhoCu(el),
     format: v => `${v.toFixed(1)} cm²/g`
+  },
+  kEdgeKeV: {
+    label: 'K-Shell Absorption Edge (E_K)',
+    shortLabel: 'E_K Edge (keV)',
+    unit: 'keV',
+    description: 'Minimum photon energy needed to eject a 1s K-shell photoelectron (obeys Moseley scaling E_K ∝ Z²).',
+    getValue: el => getElementKEdgeKeV(el),
+    format: v => (v >= 1 ? `${v.toFixed(2)} keV` : `${(v * 1000).toFixed(0)} eV`)
+  },
+  kAlpha1KeV: {
+    label: 'Characteristic Kα₁ Emission (E_Kα₁)',
+    shortLabel: 'Kα₁ (keV)',
+    unit: 'keV',
+    description: 'Principal 2p₃/₂ → 1s XRF emission energy governing elemental identification and Moseley’s law.',
+    getValue: el => getElementKAlpha1KeV(el),
+    format: v => (v >= 1 ? `${v.toFixed(2)} keV` : `${(v * 1000).toFixed(0)} eV`)
+  },
+  cuFluorescenceRisk: {
+    label: 'Cu-Kα Secondary Fluorescence Index',
+    shortLabel: 'Cu Fluo. Index',
+    unit: '%',
+    description: 'Relative background fluorescence severity under Cu-Kα (8.048 keV); peaks in 3d metals Sc–Co (Z=21–27).',
+    getValue: el => getCuFluorescenceScore(el),
+    format: v => `${v.toFixed(0)}%`
   },
   thermalConductivity: {
     label: 'Thermal Conductivity (κ)',
@@ -169,15 +241,32 @@ export function getHeatmapColor(value: number, min: number, max: number): string
 const HEATMAP_MODE_KEYS: Exclude<HeatmapMode, 'none'>[] = [
   'latticeA',
   'unitCellVolume',
+  'molarVolume',
   'density',
   'atomicRadius',
   'electronegativity',
   'ionizationEnergy',
   'meltingPoint',
   'massAttenuation',
+  'kEdgeKeV',
+  'cuFluorescenceRisk',
   'thermalConductivity',
   'electricalConductivity'
 ];
+
+type CorrelationPreset =
+  | 'metric_vs_z'
+  | 'moseley_law'
+  | 'density_vs_radius'
+  | 'melt_vs_chi'
+  | 'molar_vol_vs_z';
+
+const BLOCK_DOT_COLOR: Record<string, string> = {
+  s: '#f59e0b',
+  p: '#10b981',
+  d: '#38bdf8',
+  f: '#e879f9'
+};
 
 export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
   mode,
@@ -187,10 +276,67 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
   onSelectElement
 }) => {
   const [hoveredSparkEl, setHoveredSparkEl] = useState<CrystalElement | null>(null);
-  const config = HEATMAP_CONFIGS[mode];
-  if (!config) return null;
+  const [chartView, setChartView] = useState<'sparkbar' | 'correlation'>('sparkbar');
+  const [corrPreset, setCorrPreset] = useState<CorrelationPreset>('metric_vs_z');
 
-  const sortedElements = [...elements].sort((a, b) => a.number - b.number);
+  const config = HEATMAP_CONFIGS[mode];
+
+  const sortedElements = useMemo(
+    () => [...elements].sort((a, b) => a.number - b.number),
+    [elements]
+  );
+
+  // Build 2D Correlation coordinates
+  const scatterData = useMemo(() => {
+    const activeCfg = config || HEATMAP_CONFIGS.molarVolume!;
+    const pts = sortedElements
+      .map(el => {
+        let x = el.number;
+        let y = activeCfg.getValue(el);
+        if (corrPreset === 'moseley_law') {
+          x = el.number;
+          y = Math.sqrt(Math.max(0, getElementKEdgeKeV(el)));
+        } else if (corrPreset === 'density_vs_radius') {
+          x = el.atomicRadius || 0;
+          y = el.density || 0;
+        } else if (corrPreset === 'melt_vs_chi') {
+          x = el.electronegativity || 0;
+          y = el.meltingPoint;
+        } else if (corrPreset === 'molar_vol_vs_z') {
+          x = el.number;
+          y = el.density > 0 ? el.weight / el.density : 0;
+        }
+        return { el, x, y };
+      })
+      .filter(p => Number.isFinite(p.x) && Number.isFinite(p.y) && p.x > 0 && (corrPreset === 'melt_vs_chi' || p.y > 0));
+
+    const xs = pts.map(p => p.x);
+    const ys = pts.map(p => p.y);
+    const minX = xs.length ? Math.min(...xs) : 0;
+    const maxX = xs.length ? Math.max(...xs) : 118;
+    const minY = ys.length ? Math.min(...ys) : 0;
+    const maxY = ys.length ? Math.max(...ys) : 1;
+
+    let xLabel = 'Atomic Number Z';
+    let yLabel = `${activeCfg.shortLabel}`;
+    if (corrPreset === 'moseley_law') {
+      xLabel = 'Atomic Number Z';
+      yLabel = '√E_K (keV¹/²) — Moseley Law';
+    } else if (corrPreset === 'density_vs_radius') {
+      xLabel = 'Atomic Radius r_at (pm)';
+      yLabel = 'Density ρ (g/cm³)';
+    } else if (corrPreset === 'melt_vs_chi') {
+      xLabel = 'Pauling Electronegativity χ';
+      yLabel = 'Melting Point T_m (°C)';
+    } else if (corrPreset === 'molar_vol_vs_z') {
+      xLabel = 'Atomic Number Z';
+      yLabel = 'Molar Volume V_m (cm³/mol)';
+    }
+
+    return { pts, minX, maxX, minY, maxY, xLabel, yLabel };
+  }, [sortedElements, config, corrPreset]);
+
+  if (!config) return null;
 
   const validPairs = sortedElements
     .map(el => ({ el, val: config.getValue(el) }))
@@ -210,12 +356,28 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
   // Period start atomic numbers for visual shell markers
   const periodStarts = new Set([1, 3, 11, 19, 37, 55, 87]);
 
+  // SVG plot geometry
+  const svgW = 720;
+  const svgH = 148;
+  const pad = { l: 46, r: 18, t: 14, b: 24 };
+  const plotW = svgW - pad.l - pad.r;
+  const plotH = svgH - pad.t - pad.b;
+
+  const mapX = (x: number) =>
+    pad.l + ((x - scatterData.minX) / Math.max(1e-6, scatterData.maxX - scatterData.minX)) * plotW;
+  const mapY = (y: number) =>
+    pad.t + plotH - ((y - scatterData.minY) / Math.max(1e-6, scatterData.maxY - scatterData.minY)) * plotH;
+
+  const activeScatterPt = activeEl
+    ? scatterData.pts.find(p => p.el.number === activeEl.number) || null
+    : null;
+
   return (
     <div className="p-4 rounded-2xl bg-[#0B0F19] border border-cyan-500/30 shadow-lg space-y-3 animate-in fade-in duration-150">
       {/* Header + Quick Property Switcher */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-2.5 border-b border-slate-800/80 pb-2.5">
-        <div className="flex items-center gap-2">
-          <Sparkles className="w-4 h-4 text-cyan-400 shrink-0" />
+        <div className="flex items-center gap-2.5">
+          <Activity className="w-4 h-4 text-cyan-400 shrink-0" />
           <div>
             <div className="flex items-center gap-2 text-xs font-mono font-bold uppercase text-white tracking-wider">
               <span>Periodic Property Spectrum: {config.label}</span>
@@ -230,6 +392,34 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
         </div>
 
         <div className="flex items-center gap-2 self-start lg:self-auto shrink-0">
+          {/* Chart View Switcher: Sparkbar vs 2D XY Correlation */}
+          <div className="flex items-center bg-[#070b14] p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
+            <button
+              type="button"
+              onClick={() => setChartView('sparkbar')}
+              className={`px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                chartView === 'sparkbar'
+                  ? 'bg-cyan-600 text-white font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <BarChart3 className="w-3 h-3" />
+              <span>Z-Wave</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => setChartView('correlation')}
+              className={`px-2 py-1 rounded flex items-center gap-1 transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                chartView === 'correlation'
+                  ? 'bg-indigo-600 text-white font-bold'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              <ScatterChart className="w-3 h-3" />
+              <span>XY Correlation</span>
+            </button>
+          </div>
+
           <button
             type="button"
             onClick={() => onSelectMode('none')}
@@ -265,43 +455,248 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
         })}
       </div>
 
-      {/* Interactive 118-Element Periodic Trend Sparkbar Spectrum (Z = 1..118) */}
-      <div className="space-y-1">
-        <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-400 tabular-nums">
-          <span>PERIODIC WAVE PROFILE (Z = 1 → 118 · VERTICAL TICKS MARK ALKALI SHELL STARTS)</span>
-          {activeEl && (
-            <span className="text-cyan-300 font-bold">
-              Z={activeEl.number} {activeEl.symbol} ({activeEl.name}): {config.format(activeVal)}
-            </span>
-          )}
+      {chartView === 'sparkbar' ? (
+        /* Interactive 118-Element Periodic Trend Sparkbar Spectrum (Z = 1..118) */
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-400 tabular-nums">
+            <span>PERIODIC WAVE PROFILE (Z = 1 → 118 · VERTICAL TICKS MARK ALKALI SHELL STARTS)</span>
+            {activeEl && (
+              <span className="text-cyan-300 font-bold">
+                Z={activeEl.number} {activeEl.symbol} ({activeEl.name}): {config.format(activeVal)}
+              </span>
+            )}
+          </div>
+          <div className="h-14 w-full bg-[#060911] border border-slate-800/90 rounded-xl px-2 pt-2.5 pb-1 flex items-end gap-[1.5px] overflow-x-auto relative">
+            {sortedElements.map(el => {
+              const val = config.getValue(el);
+              const norm = Math.max(0.08, Math.min(1, (val - min) / (max - min || 1)));
+              const color = getHeatmapColor(val, min, max);
+              const isSel = selectedElement === el.number;
+              const isPeriodStart = periodStarts.has(el.number);
+              return (
+                <button
+                  key={`spark-${el.number}`}
+                  type="button"
+                  onClick={() => onSelectElement && onSelectElement(el.number)}
+                  onMouseEnter={() => setHoveredSparkEl(el)}
+                  onMouseLeave={() => setHoveredSparkEl(null)}
+                  title={`Z=${el.number} ${el.symbol} (${el.name}): ${config.format(val)}`}
+                  className={`flex-1 min-w-[3.5px] rounded-t-[1.5px] transition-all cursor-pointer relative ${
+                    isSel ? 'ring-1 ring-white z-10 scale-y-105' : 'opacity-85 hover:opacity-100'
+                  } ${isPeriodStart && el.number > 1 ? 'border-l border-slate-600/60' : ''}`}
+                  style={{
+                    height: `${Math.round(norm * 100)}%`,
+                    backgroundColor: isSel ? '#ffffff' : color
+                  }}
+                />
+              );
+            })}
+          </div>
         </div>
-        <div className="h-14 w-full bg-[#060911] border border-slate-800/90 rounded-xl px-2 pt-2.5 pb-1 flex items-end gap-[1.5px] overflow-x-auto relative">
-          {sortedElements.map(el => {
-            const val = config.getValue(el);
-            const norm = Math.max(0.08, Math.min(1, (val - min) / (max - min || 1)));
-            const color = getHeatmapColor(val, min, max);
-            const isSel = selectedElement === el.number;
-            const isPeriodStart = periodStarts.has(el.number);
-            return (
-              <button
-                key={`spark-${el.number}`}
-                type="button"
-                onClick={() => onSelectElement && onSelectElement(el.number)}
-                onMouseEnter={() => setHoveredSparkEl(el)}
-                onMouseLeave={() => setHoveredSparkEl(null)}
-                title={`Z=${el.number} ${el.symbol} (${el.name}): ${config.format(val)}`}
-                className={`flex-1 min-w-[3.5px] rounded-t-[1.5px] transition-all cursor-pointer relative ${
-                  isSel ? 'ring-1 ring-white z-10 scale-y-105' : 'opacity-85 hover:opacity-100'
-                } ${isPeriodStart && el.number > 1 ? 'border-l border-slate-600/60' : ''}`}
-                style={{
-                  height: `${Math.round(norm * 100)}%`,
-                  backgroundColor: isSel ? '#ffffff' : color
-                }}
-              />
-            );
-          })}
+      ) : (
+        /* Interactive 2D Periodic Correlation & Moseley Law Plot */
+        <div className="space-y-2 bg-[#060911] border border-slate-800/90 rounded-xl p-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono">
+            <div className="flex flex-wrap items-center gap-1">
+              {(
+                [
+                  { id: 'metric_vs_z', label: `${config.shortLabel} vs Z` },
+                  { id: 'moseley_law', label: 'Moseley √E_K vs Z' },
+                  { id: 'molar_vol_vs_z', label: 'Lothar Meyer V_m vs Z' },
+                  { id: 'density_vs_radius', label: 'ρ vs r_at' },
+                  { id: 'melt_vs_chi', label: 'T_melt vs χ' }
+                ] as const
+              ).map(p => (
+                <button
+                  key={p.id}
+                  type="button"
+                  onClick={() => setCorrPreset(p.id)}
+                  className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${
+                    corrPreset === p.id
+                      ? 'bg-indigo-600/30 text-indigo-200 border-indigo-500/60 font-bold'
+                      : 'bg-slate-900/80 text-slate-400 border-slate-800 hover:text-slate-200'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+
+            <div className="flex items-center gap-2.5 text-[9.5px] text-slate-400 tabular-nums">
+              {(['s', 'p', 'd', 'f'] as const).map(b => (
+                <span key={b} className="inline-flex items-center gap-1">
+                  <span
+                    className="w-2 h-2 rounded-full"
+                    style={{ backgroundColor: BLOCK_DOT_COLOR[b] }}
+                  />
+                  <span>{b}-blk</span>
+                </span>
+              ))}
+            </div>
+          </div>
+
+          <div className="w-full overflow-x-auto">
+            <svg viewBox={`0 0 ${svgW} ${svgH}`} className="w-full h-36 min-w-[540px] select-none">
+              {/* Horizontal Gridlines & Y-ticks */}
+              {[0, 0.25, 0.5, 0.75, 1].map((f, idx) => {
+                const y = pad.t + plotH * (1 - f);
+                const val = scatterData.minY + f * (scatterData.maxY - scatterData.minY);
+                return (
+                  <g key={`yg-${idx}`}>
+                    <line
+                      x1={pad.l}
+                      y1={y}
+                      x2={svgW - pad.r}
+                      y2={y}
+                      stroke="#1e293b"
+                      strokeDasharray={idx === 0 ? undefined : '3 3'}
+                    />
+                    <text
+                      x={pad.l - 5}
+                      y={y + 3}
+                      textAnchor="end"
+                      className="fill-slate-500 font-mono text-[8px] tabular-nums"
+                    >
+                      {Math.abs(val) >= 100 ? val.toFixed(0) : val.toFixed(1)}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Vertical Gridlines & X-ticks */}
+              {[0, 0.25, 0.5, 0.75, 1].map((f, idx) => {
+                const x = pad.l + plotW * f;
+                const val = scatterData.minX + f * (scatterData.maxX - scatterData.minX);
+                return (
+                  <g key={`xg-${idx}`}>
+                    <line
+                      x1={x}
+                      y1={pad.t}
+                      x2={x}
+                      y2={pad.t + plotH}
+                      stroke="#1e293b"
+                      strokeDasharray={idx === 0 ? undefined : '3 3'}
+                    />
+                    <text
+                      x={x}
+                      y={svgH - 6}
+                      textAnchor="middle"
+                      className="fill-slate-500 font-mono text-[8px] tabular-nums"
+                    >
+                      {Math.abs(val) >= 10 ? val.toFixed(0) : val.toFixed(1)}
+                    </text>
+                  </g>
+                );
+              })}
+
+              {/* Cu K-alpha 8.048 keV Threshold Marker in Moseley Law view */}
+              {corrPreset === 'moseley_law' && (() => {
+                const sqrtCu = Math.sqrt(8.048);
+                if (sqrtCu < scatterData.minY || sqrtCu > scatterData.maxY) return null;
+                const yCu = mapY(sqrtCu);
+                return (
+                  <g>
+                    <line
+                      x1={pad.l}
+                      y1={yCu}
+                      x2={svgW - pad.r}
+                      y2={yCu}
+                      stroke="#f43f5e"
+                      strokeWidth="1.2"
+                      strokeDasharray="4 3"
+                    />
+                    <text
+                      x={svgW - pad.r - 4}
+                      y={yCu - 4}
+                      textAnchor="end"
+                      className="fill-rose-400 font-mono text-[8px] font-bold"
+                    >
+                      Cu Kα = 8.048 keV (Fluorescence boundary)
+                    </text>
+                  </g>
+                );
+              })()}
+
+              {/* Continuous Z-trend polyline for Z-ordered presets */}
+              {(corrPreset === 'metric_vs_z' || corrPreset === 'moseley_law' || corrPreset === 'molar_vol_vs_z') && (
+                <polyline
+                  fill="none"
+                  stroke="#38bdf8"
+                  strokeOpacity="0.35"
+                  strokeWidth="1.2"
+                  points={scatterData.pts.map(p => `${mapX(p.x).toFixed(1)},${mapY(p.y).toFixed(1)}`).join(' ')}
+                />
+              )}
+
+              {/* Active / Hovered Crosshair Probe */}
+              {activeScatterPt && (
+                <g className="pointer-events-none">
+                  <line
+                    x1={mapX(activeScatterPt.x)}
+                    y1={pad.t}
+                    x2={mapX(activeScatterPt.x)}
+                    y2={pad.t + plotH}
+                    stroke="#22d3ee"
+                    strokeWidth="0.9"
+                    strokeDasharray="2 2"
+                  />
+                  <line
+                    x1={pad.l}
+                    y1={mapY(activeScatterPt.y)}
+                    x2={svgW - pad.r}
+                    y2={mapY(activeScatterPt.y)}
+                    stroke="#22d3ee"
+                    strokeWidth="0.9"
+                    strokeDasharray="2 2"
+                  />
+                </g>
+              )}
+
+              {/* Data Points */}
+              {scatterData.pts.map(pt => {
+                const cx = mapX(pt.x);
+                const cy = mapY(pt.y);
+                const isSel = selectedElement === pt.el.number;
+                const isHov = hoveredSparkEl?.number === pt.el.number;
+                const fill = BLOCK_DOT_COLOR[pt.el.block] || '#94a3b8';
+                return (
+                  <g
+                    key={`sc-${pt.el.number}`}
+                    className="cursor-pointer"
+                    onMouseEnter={() => setHoveredSparkEl(pt.el)}
+                    onMouseLeave={() => setHoveredSparkEl(null)}
+                    onClick={() => onSelectElement && onSelectElement(pt.el.number)}
+                  >
+                    <circle
+                      cx={cx}
+                      cy={cy}
+                      r={isSel || isHov ? 5 : 2.6}
+                      fill={isSel ? '#ffffff' : fill}
+                      fillOpacity={isSel || isHov ? 1 : 0.85}
+                      stroke={isSel ? '#22d3ee' : '#060911'}
+                      strokeWidth={isSel ? 1.5 : 0.7}
+                    />
+                    {(isSel || isHov) && (
+                      <text
+                        x={cx + 7}
+                        y={Math.max(pad.t + 9, cy - 5)}
+                        className="fill-cyan-200 font-mono text-[8.5px] font-bold pointer-events-none"
+                      >
+                        {pt.el.symbol} ({pt.x.toFixed(1)}, {pt.y.toFixed(2)})
+                      </text>
+                    )}
+                  </g>
+                );
+              })}
+
+              {/* Axis Caption */}
+              <text x={pad.l + 4} y={pad.t + 9} className="fill-slate-400 font-mono text-[8px] font-bold">
+                {scatterData.yLabel} vs {scatterData.xLabel}
+              </text>
+            </svg>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Calibrated Color Ramp & Min / Mean / Max Readout */}
       <div className="space-y-1.5 pt-0.5">
@@ -350,3 +745,4 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
     </div>
   );
 };
+

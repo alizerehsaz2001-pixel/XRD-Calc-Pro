@@ -337,42 +337,311 @@ export const CRYSTAL_SYSTEMS_CATALOG: CrystalSystemData[] = [
   }
 ];
 
-export const BRAVAIS_14_CATALOG: {
+export interface Bravais14Entry {
   pearson: string;
   systemId: CrystalSystemId;
   centering: CenteringType;
   label: string;
   Z: number;
   extinctionRule: string;
-}[] = [
-  { pearson: 'cP', systemId: 'cubic', centering: 'P', label: 'Simple Cubic', Z: 1, extinctionRule: 'All h,k,l' },
-  { pearson: 'cI', systemId: 'cubic', centering: 'I', label: 'Body-Centered Cubic', Z: 2, extinctionRule: 'h+k+l = 2n' },
-  { pearson: 'cF', systemId: 'cubic', centering: 'F', label: 'Face-Centered Cubic', Z: 4, extinctionRule: 'h,k,l unmixed' },
-  { pearson: 'hP', systemId: 'hexagonal', centering: 'P', label: 'Hexagonal Primitive', Z: 1, extinctionRule: 'All h,k,l' },
-  { pearson: 'hR', systemId: 'trigonal', centering: 'R', label: 'Rhombohedral', Z: 3, extinctionRule: '-h+k+l = 3n (Obv)' },
-  { pearson: 'tP', systemId: 'tetragonal', centering: 'P', label: 'Tetragonal Primitive', Z: 1, extinctionRule: 'All h,k,l' },
-  { pearson: 'tI', systemId: 'tetragonal', centering: 'I', label: 'Tetragonal Body-Centered', Z: 2, extinctionRule: 'h+k+l = 2n' },
-  { pearson: 'oP', systemId: 'orthorhombic', centering: 'P', label: 'Orthorhombic Primitive', Z: 1, extinctionRule: 'All h,k,l' },
-  { pearson: 'oI', systemId: 'orthorhombic', centering: 'I', label: 'Orthorhombic Body-Centered', Z: 2, extinctionRule: 'h+k+l = 2n' },
-  { pearson: 'oF', systemId: 'orthorhombic', centering: 'F', label: 'Orthorhombic Face-Centered', Z: 4, extinctionRule: 'h,k,l unmixed' },
-  { pearson: 'oC', systemId: 'orthorhombic', centering: 'C', label: 'Orthorhombic Base-Centered', Z: 2, extinctionRule: 'h+k = 2n' },
-  { pearson: 'mP', systemId: 'monoclinic', centering: 'P', label: 'Monoclinic Primitive', Z: 1, extinctionRule: 'All h,k,l' },
-  { pearson: 'mC', systemId: 'monoclinic', centering: 'C', label: 'Monoclinic Base-Centered', Z: 2, extinctionRule: 'h+k = 2n' },
-  { pearson: 'aP', systemId: 'triclinic', centering: 'P', label: 'Triclinic Primitive', Z: 1, extinctionRule: 'All h,k,l' },
+  reciprocalDual: string;
+  wignerSeitzPolyhedron: string;
+  bzKPoints: string;
+  bzType: 'cube' | 'trunc_oct' | 'rhomb_dodec' | 'hex_prism' | 'rhombohedron' | 'tet_prism' | 'oblique';
+  coordinationNumber: string;
+  maxApf: string;
+  prototype: string;
+  sgCount: number;
+  basisCoords: [number, number, number][];
+  primMatrix: [number, number, number][];
+  primVectorsFormula: string[];
+}
+
+export const BRAVAIS_14_CATALOG: Bravais14Entry[] = [
+  {
+    pearson: 'cP',
+    systemId: 'cubic',
+    centering: 'P',
+    label: 'Simple Cubic (SC)',
+    Z: 1,
+    extinctionRule: 'All h,k,l allowed',
+    reciprocalDual: 'cP* = cP (Self-Dual)',
+    wignerSeitzPolyhedron: 'Regular Hexahedron (Cube · 6F, 12E, 8V)',
+    bzKPoints: 'Γ(0,0,0) · X(½,0,0) · M(½,½,0) · R(½,½,½)',
+    bzType: 'cube',
+    coordinationNumber: 'CN = 6 (Octahedral ⟨100⟩)',
+    maxApf: '52.36% (π/6)',
+    prototype: 'α-Po (Ah), CsCl (B2)',
+    sgCount: 15,
+    basisCoords: [[0, 0, 0]],
+    primMatrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    primVectorsFormula: ['a_p = a', 'b_p = b', 'c_p = c']
+  },
+  {
+    pearson: 'cI',
+    systemId: 'cubic',
+    centering: 'I',
+    label: 'Body-Centered Cubic (BCC)',
+    Z: 2,
+    extinctionRule: 'h + k + l = 2n',
+    reciprocalDual: 'cI* = cF (FCC Reciprocal)',
+    wignerSeitzPolyhedron: 'WS: Truncated Octahedron (14F) · 1st BZ: Rhombic Dodecahedron (12F)',
+    bzKPoints: 'Γ(0,0,0) · H(0,0,1) · P(½,½,½) · N(½,½,0)',
+    bzType: 'rhomb_dodec',
+    coordinationNumber: 'CN = 8 (⟨111⟩ Body Diagonal)',
+    maxApf: '68.02% (π√3/8)',
+    prototype: 'α-Fe, W, Cr, Mo, Ta (A2)',
+    sgCount: 10,
+    basisCoords: [[0, 0, 0], [0.5, 0.5, 0.5]],
+    primMatrix: [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]],
+    primVectorsFormula: ['a_p = ½(-a + b + c)', 'b_p = ½(a - b + c)', 'c_p = ½(a + b - c) · α_p = 109.47°']
+  },
+  {
+    pearson: 'cF',
+    systemId: 'cubic',
+    centering: 'F',
+    label: 'Face-Centered Cubic (FCC)',
+    Z: 4,
+    extinctionRule: 'h, k, l unmixed parity',
+    reciprocalDual: 'cF* = cI (BCC Reciprocal)',
+    wignerSeitzPolyhedron: 'WS: Rhombic Dodecahedron (12F) · 1st BZ: Truncated Octahedron (14F, 36E, 24V)',
+    bzKPoints: 'Γ(0,0,0) · X(0,1,0) · L(½,½,½) · W(½,1,0) · K(¾,¾,0)',
+    bzType: 'trunc_oct',
+    coordinationNumber: 'CN = 12 (⟨110⟩ Face Diagonal)',
+    maxApf: '74.05% (π√2/6 · Kepler Limit)',
+    prototype: 'Cu, Au, Ag, Al, Ni (A1), NaCl (B1)',
+    sgCount: 11,
+    basisCoords: [[0, 0, 0], [0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]],
+    primMatrix: [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]],
+    primVectorsFormula: ['a_p = ½(b + c)', 'b_p = ½(a + c)', 'c_p = ½(a + b) · α_p = 60.00°']
+  },
+  {
+    pearson: 'hP',
+    systemId: 'hexagonal',
+    centering: 'P',
+    label: 'Hexagonal Primitive',
+    Z: 1,
+    extinctionRule: 'All h,k,l (HCP: h+2k=3n, l odd)',
+    reciprocalDual: 'hP* = hP (Rotated 30°)',
+    wignerSeitzPolyhedron: 'Hexagonal Prism (8F, 18E, 12V)',
+    bzKPoints: 'Γ(0,0,0) · M(½,0,0) · K(⅓,⅓,0) · A(0,0,½) · L(½,0,½) · H(⅓,⅓,½)',
+    bzType: 'hex_prism',
+    coordinationNumber: 'CN = 12 (Ideal c/a = 1.633)',
+    maxApf: '74.05% (with 2-atom HCP basis)',
+    prototype: 'Mg, α-Ti, Zn, Graphite, ZnO (B4)',
+    sgCount: 27,
+    basisCoords: [[0, 0, 0]],
+    primMatrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    primVectorsFormula: ['a_p = a', 'b_p = b (γ = 120°)', 'c_p = c (⊥ basal)']
+  },
+  {
+    pearson: 'hR',
+    systemId: 'trigonal',
+    centering: 'R',
+    label: 'Rhombohedral (Obverse)',
+    Z: 3,
+    extinctionRule: '−h + k + l = 3n',
+    reciprocalDual: 'hR* = hR',
+    wignerSeitzPolyhedron: 'Rhombohedral Dodecahedron / Truncated Octahedron (α-dependent)',
+    bzKPoints: 'Γ(0,0,0) · T(½,½,½) · L(½,0,0) · F(½,½,0)',
+    bzType: 'rhombohedron',
+    coordinationNumber: 'CN = 6 (Rhombohedral)',
+    maxApf: '52.36%–74.05% (α-dependent)',
+    prototype: 'α-Al₂O₃ Corundum, CaCO₃ Calcite, Bi',
+    sgCount: 25,
+    basisCoords: [[0, 0, 0], [0.6667, 0.3333, 0.3333], [0.3333, 0.6667, 0.6667]],
+    primMatrix: [[0.6667, 0.3333, 0.3333], [-0.3333, 0.3333, 0.3333], [-0.3333, -0.6667, 0.3333]],
+    primVectorsFormula: ['a_R = ⅓(2a_H + b_H + c_H)', 'b_R = ⅓(-a_H + b_H + c_H)', 'c_R = ⅓(-a_H - 2b_H + c_H)']
+  },
+  {
+    pearson: 'tP',
+    systemId: 'tetragonal',
+    centering: 'P',
+    label: 'Tetragonal Primitive',
+    Z: 1,
+    extinctionRule: 'All h,k,l allowed',
+    reciprocalDual: 'tP* = tP',
+    wignerSeitzPolyhedron: 'Tetragonal Rectangular Prism (6F, 12E, 8V)',
+    bzKPoints: 'Γ(0,0,0) · X(0,½,0) · M(½,½,0) · Z(0,0,½) · R(0,½,½) · A(½,½,½)',
+    bzType: 'tet_prism',
+    coordinationNumber: 'CN = 4 or 2 (c/a dependent)',
+    maxApf: '52.36% (as c/a → 1)',
+    prototype: 'TiO₂ Rutile (C4), BaTiO₃ (P4mm)',
+    sgCount: 49,
+    basisCoords: [[0, 0, 0]],
+    primMatrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    primVectorsFormula: ['a_p = a', 'b_p = b (|a|=|b|)', 'c_p = c']
+  },
+  {
+    pearson: 'tI',
+    systemId: 'tetragonal',
+    centering: 'I',
+    label: 'Tetragonal Body-Centered (BCT)',
+    Z: 2,
+    extinctionRule: 'h + k + l = 2n',
+    reciprocalDual: 'tI* = tF ≅ tI (45° Bain Dual)',
+    wignerSeitzPolyhedron: 'Elongated / Compressed Truncated Octahedron (14F)',
+    bzKPoints: 'Γ(0,0,0) · X(½,½,0) · M(0,0,1) · N(0,½,½) · P(½,½,½)',
+    bzType: 'trunc_oct',
+    coordinationNumber: 'CN = 8 or 12 (c/a = √2 → FCC)',
+    maxApf: '74.05% (at Bain c/a = √2)',
+    prototype: 'β-Sn (A5), In (A6), TiO₂ Anatase',
+    sgCount: 19,
+    basisCoords: [[0, 0, 0], [0.5, 0.5, 0.5]],
+    primMatrix: [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]],
+    primVectorsFormula: ['a_p = ½(-a + b + c)', 'b_p = ½(a - b + c)', 'c_p = ½(a + b - c)']
+  },
+  {
+    pearson: 'oP',
+    systemId: 'orthorhombic',
+    centering: 'P',
+    label: 'Orthorhombic Primitive',
+    Z: 1,
+    extinctionRule: 'All h,k,l allowed',
+    reciprocalDual: 'oP* = oP',
+    wignerSeitzPolyhedron: 'Orthorhombic Rectangular Cuboid (6F, 12E, 8V)',
+    bzKPoints: 'Γ(0,0,0) · X(½,0,0) · Y(0,½,0) · Z(0,0,½) · R(½,½,½)',
+    bzType: 'tet_prism',
+    coordinationNumber: 'CN = 2 (along min(a,b,c))',
+    maxApf: '52.36%',
+    prototype: 'Forsterite Mg₂SiO₄, Cementite Fe₃C',
+    sgCount: 30,
+    basisCoords: [[0, 0, 0]],
+    primMatrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    primVectorsFormula: ['a_p = a', 'b_p = b', 'c_p = c']
+  },
+  {
+    pearson: 'oI',
+    systemId: 'orthorhombic',
+    centering: 'I',
+    label: 'Orthorhombic Body-Centered',
+    Z: 2,
+    extinctionRule: 'h + k + l = 2n',
+    reciprocalDual: 'oI* = oF (Face-Centered Dual)',
+    wignerSeitzPolyhedron: 'Anisotropic Truncated Octahedron (14F)',
+    bzKPoints: 'Γ(0,0,0) · X · L(½,½,½) · W · T',
+    bzType: 'rhomb_dodec',
+    coordinationNumber: 'CN = 8 (Body Diagonal)',
+    maxApf: '68.02%',
+    prototype: 'Ga, I₂, α-Np',
+    sgCount: 9,
+    basisCoords: [[0, 0, 0], [0.5, 0.5, 0.5]],
+    primMatrix: [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]],
+    primVectorsFormula: ['a_p = ½(-a + b + c)', 'b_p = ½(a - b + c)', 'c_p = ½(a + b - c)']
+  },
+  {
+    pearson: 'oF',
+    systemId: 'orthorhombic',
+    centering: 'F',
+    label: 'Orthorhombic Face-Centered',
+    Z: 4,
+    extinctionRule: 'h, k, l unmixed parity',
+    reciprocalDual: 'oF* = oI (Body-Centered Dual)',
+    wignerSeitzPolyhedron: 'Anisotropic Rhombic Dodecahedron / Truncated Octahedron',
+    bzKPoints: 'Γ(0,0,0) · Y · Z · T · L(½,½,½)',
+    bzType: 'trunc_oct',
+    coordinationNumber: 'CN = 4–12',
+    maxApf: '74.05%',
+    prototype: 'α-S₈ (Fddd), γ-Pu',
+    sgCount: 5,
+    basisCoords: [[0, 0, 0], [0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]],
+    primMatrix: [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]],
+    primVectorsFormula: ['a_p = ½(b + c)', 'b_p = ½(a + c)', 'c_p = ½(a + b)']
+  },
+  {
+    pearson: 'oC',
+    systemId: 'orthorhombic',
+    centering: 'C',
+    label: 'Orthorhombic Base-Centered',
+    Z: 2,
+    extinctionRule: 'h + k = 2n',
+    reciprocalDual: 'oC* = oC (Base-Centered Dual)',
+    wignerSeitzPolyhedron: 'Hexagonal Prism (8F, 18E, 12V)',
+    bzKPoints: 'Γ(0,0,0) · S(½,½,0) · Y(0,1,0) · Z(0,0,½) · R(½,½,½)',
+    bzType: 'hex_prism',
+    coordinationNumber: 'CN = 4–6 (Basal Rhombus)',
+    maxApf: '60.46%',
+    prototype: 'α-U (Cmcm), Aragonite',
+    sgCount: 15,
+    basisCoords: [[0, 0, 0], [0.5, 0.5, 0]],
+    primMatrix: [[0.5, -0.5, 0], [0.5, 0.5, 0], [0, 0, 1]],
+    primVectorsFormula: ['a_p = ½(a - b)', 'b_p = ½(a + b)', 'c_p = c']
+  },
+  {
+    pearson: 'mP',
+    systemId: 'monoclinic',
+    centering: 'P',
+    label: 'Monoclinic Primitive',
+    Z: 1,
+    extinctionRule: 'All h,k,l allowed',
+    reciprocalDual: 'mP* = mP (β* = 180° − β)',
+    wignerSeitzPolyhedron: 'Hexagonal Prism along unique b-axis (8F)',
+    bzKPoints: 'Γ(0,0,0) · Y(0,½,0) · B(½,0,0) · Z(0,0,½) · C(0,½,½)',
+    bzType: 'oblique',
+    coordinationNumber: 'CN = 2–6',
+    maxApf: '52.36%',
+    prototype: 'm-ZrO₂ Baddeleyite (P2₁/c), Malachite',
+    sgCount: 6,
+    basisCoords: [[0, 0, 0]],
+    primMatrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    primVectorsFormula: ['a_p = a', 'b_p = b (unique 2-fold)', 'c_p = c (β > 90°)']
+  },
+  {
+    pearson: 'mC',
+    systemId: 'monoclinic',
+    centering: 'C',
+    label: 'Monoclinic Base-Centered',
+    Z: 2,
+    extinctionRule: 'h + k = 2n',
+    reciprocalDual: 'mC* = mC',
+    wignerSeitzPolyhedron: 'Oblique Truncated Octahedron / Dodecahedron (12F–14F)',
+    bzKPoints: 'Γ(0,0,0) · Y(0,1,0) · A(½,½,0) · M(½,½,½) · V(0,0,½)',
+    bzType: 'oblique',
+    coordinationNumber: 'CN = 4–8',
+    maxApf: '68.02%',
+    prototype: 'Gypsum CaSO₄·2H₂O, Orthoclase (C2/m)',
+    sgCount: 7,
+    basisCoords: [[0, 0, 0], [0.5, 0.5, 0]],
+    primMatrix: [[0.5, -0.5, 0], [0.5, 0.5, 0], [0, 0, 1]],
+    primVectorsFormula: ['a_p = ½(a - b)', 'b_p = ½(a + b)', 'c_p = c']
+  },
+  {
+    pearson: 'aP',
+    systemId: 'triclinic',
+    centering: 'P',
+    label: 'Triclinic Primitive (Anorthic)',
+    Z: 1,
+    extinctionRule: 'All h,k,l allowed',
+    reciprocalDual: 'aP* = aP (Full 3×3 Tensor Dual)',
+    wignerSeitzPolyhedron: 'General Fedorov Parallelohedron (Truncated Octahedron · 14F)',
+    bzKPoints: 'Γ(0,0,0) · X(½,0,0) · Y(0,½,0) · Z(0,0,½) · R(½,½,½)',
+    bzType: 'oblique',
+    coordinationNumber: 'CN = 2–6 (General)',
+    maxApf: '52.36%–74.05%',
+    prototype: 'Albite NaAlSi₃O₈, Kyanite, CuSO₄·5H₂O',
+    sgCount: 2,
+    basisCoords: [[0, 0, 0]],
+    primMatrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
+    primVectorsFormula: ['a_p = a', 'b_p = b', 'c_p = c (α ≠ β ≠ γ ≠ 90°)']
+  },
 ];
 
 export const UnitCellsSection: React.FC = () => {
   const [selectedSystemId, setSelectedSystemId] = useState<CrystalSystemId>('cubic');
   const [activeCentering, setActiveCentering] = useState<CenteringType>('P');
   const [viewMode, setViewMode] = useState<UnitCellsViewMode>('3d');
-  const [showAll14Matrix, setShowAll14Matrix] = useState<boolean>(false);
+  const [showAll14Matrix, setShowAll14Matrix] = useState<boolean>(true);
+  const [bravaisTestHkl, setBravaisTestHkl] = useState<[number, number, number]>([1, 1, 1]);
 
   // Materials filter state
   const [materialCategoryFilter, setMaterialCategoryFilter] = useState<'All' | 'Metal' | 'Ceramic' | 'Mineral' | 'Semiconductor' | 'Geological'>('All');
   const [showAllSystemsMaterials, setShowAllSystemsMaterials] = useState<boolean>(false);
 
-  // Symmetry-lowering family selector in Theory tab
+  // Symmetry-lowering family selector & continuous Bärnighausen distortion strain state in Theory tab
   const [selectedSplittingFamily, setSelectedSplittingFamily] = useState<'200' | '110' | '111'>('200');
+  const [tetStrainCA, setTetStrainCA] = useState<number>(1.035);
+  const [orthoStrainBA, setOrthoStrainBA] = useState<number>(0.972);
+  const [monoShearBeta, setMonoShearBeta] = useState<number>(92.4);
 
   // Interactive Metric Tensor (G_ij & G^ij) Calculator State
   const [mtA, setMtA] = useState<number>(4.913);
@@ -435,12 +704,15 @@ export const UnitCellsSection: React.FC = () => {
     return CRYSTAL_SYSTEMS_CATALOG.find(s => s.id === selectedSystemId) || CRYSTAL_SYSTEMS_CATALOG[0];
   }, [selectedSystemId]);
 
-  const activePearsonSymbol = useMemo(() => {
-    const match = BRAVAIS_14_CATALOG.find(
-      b => b.systemId === selectedSystemId && b.centering === activeCentering
+  const activeBravaisEntry = useMemo(() => {
+    return (
+      BRAVAIS_14_CATALOG.find(
+        b => b.systemId === selectedSystemId && b.centering === activeCentering
+      ) || BRAVAIS_14_CATALOG[0]
     );
-    return match?.pearson || 'cP';
   }, [selectedSystemId, activeCentering]);
+
+  const activePearsonSymbol = activeBravaisEntry.pearson;
 
   // Analytical 3x3 Metric Tensor Engine (Direct G_ij & Reciprocal G^ij)
   const computeMetricTensorData = (
@@ -554,6 +826,42 @@ export const UnitCellsSection: React.FC = () => {
     // Weiss Zone Law h*u + k*v + l*w
     const weissDot = mtHkl1[0] * u + mtHkl1[1] * v + mtHkl1[2] * w;
 
+    // Niggli Reduced Cell 6 Scalar Invariants: N = (A, B, C; xi, eta, zeta) = (g11, g22, g33; 2*g23, 2*g13, 2*g12)
+    const niggliA = G[0][0];
+    const niggliB = G[1][1];
+    const niggliC = G[2][2];
+    const niggliXi = 2 * G[1][2];
+    const niggliEta = 2 * G[0][2];
+    const niggliZeta = 2 * G[0][1];
+
+    const mainReduced = niggliA <= niggliB + 1e-4 && niggliB <= niggliC + 1e-4;
+    const specialReduced =
+      Math.abs(niggliXi) <= niggliB + 1e-4 &&
+      Math.abs(niggliEta) <= niggliA + 1e-4 &&
+      Math.abs(niggliZeta) <= niggliA + 1e-4;
+    const isNiggliReduced = mainReduced && specialReduced;
+    const niggliType =
+      niggliXi > 1e-4 && niggliEta > 1e-4 && niggliZeta > 1e-4
+        ? 'Type I (All Acute · ξ,η,ζ > 0)'
+        : 'Type II (Obtuse/Orthogonal · ξ,η,ζ ≤ 0)';
+
+    // Deduce metric crystal class from (a,b,c,alpha,beta,gamma)
+    const eqAB = Math.abs(mtA - mtB) < 0.02;
+    const eqBC = Math.abs(mtB - mtC) < 0.02;
+    const is90A = Math.abs(mtAlpha - 90) < 0.2;
+    const is90B = Math.abs(mtBeta - 90) < 0.2;
+    const is90G = Math.abs(mtGamma - 90) < 0.2;
+    const is120G = Math.abs(mtGamma - 120) < 0.2;
+    const eqAngles = Math.abs(mtAlpha - mtBeta) < 0.2 && Math.abs(mtBeta - mtGamma) < 0.2;
+
+    let deducedSystem = 'Triclinic (aP)';
+    if (eqAB && eqBC && is90A && is90B && is90G) deducedSystem = 'Cubic (cP / cI / cF)';
+    else if (eqAB && is90A && is90B && is120G) deducedSystem = 'Hexagonal / Trigonal (hP / hR)';
+    else if (eqAB && eqBC && eqAngles && !is90A) deducedSystem = 'Rhombohedral Primitive (hR)';
+    else if (eqAB && !eqBC && is90A && is90B && is90G) deducedSystem = 'Tetragonal (tP / tI)';
+    else if (!eqAB && !eqBC && is90A && is90B && is90G) deducedSystem = 'Orthorhombic (oP / oI / oF / oC)';
+    else if (is90A && is90G && !is90B) deducedSystem = 'Monoclinic (mP / mC)';
+
     return {
       ...tensor,
       d1,
@@ -563,6 +871,19 @@ export const UnitCellsSection: React.FC = () => {
       interplanarAngleDeg,
       directLengthA,
       weissDot,
+      niggli: {
+        A: niggliA,
+        B: niggliB,
+        C: niggliC,
+        xi: niggliXi,
+        eta: niggliEta,
+        zeta: niggliZeta,
+        mainReduced,
+        specialReduced,
+        isNiggliReduced,
+        niggliType,
+        deducedSystem
+      }
     };
   }, [mtA, mtB, mtC, mtAlpha, mtBeta, mtGamma, mtHkl1, mtHkl2, mtUvw]);
 
@@ -876,7 +1197,7 @@ export const UnitCellsSection: React.FC = () => {
           <div className="bg-[#070A12] border border-slate-800/90 rounded-lg p-2.5 space-y-2">
             <div className="flex items-center justify-between px-1">
               <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold">
-                01 // Direct &amp; Reciprocal Space
+                01 · Direct &amp; Reciprocal Space
               </span>
               <span className="text-[9px] font-mono text-slate-500">G_ij · (hkl) · Wulff</span>
             </div>
@@ -935,7 +1256,7 @@ export const UnitCellsSection: React.FC = () => {
           <div className="bg-[#070A12] border border-slate-800/90 rounded-lg p-2.5 space-y-2">
             <div className="flex items-center justify-between px-1">
               <span className="text-[10px] font-mono uppercase tracking-widest text-amber-400 font-bold">
-                02 // Packing, Slip &amp; 7 Systems
+                02 · Packing, Slip &amp; 7 Systems
               </span>
               <span className="text-[9px] font-mono text-slate-500">APF · Burgers · Indicatrix</span>
             </div>
@@ -982,7 +1303,7 @@ export const UnitCellsSection: React.FC = () => {
           <div className="bg-[#070A12] border border-slate-800/90 rounded-lg p-2.5 space-y-2">
             <div className="flex items-center justify-between px-1">
               <span className="text-[10px] font-mono uppercase tracking-widest text-slate-300 font-bold">
-                03 // Catalog, Code &amp; Mastery
+                03 · Catalog, Code &amp; Mastery
               </span>
               <span className="text-[9px] font-mono text-slate-500">XRD Stick · Py · Quiz</span>
             </div>
@@ -1055,7 +1376,7 @@ export const UnitCellsSection: React.FC = () => {
           </div>
         </div>
 
-        {/* Collapsible 14 Bravais Lattices Quick-Jump Matrix */}
+        {/* Collapsible 14 Bravais Lattices Master Atlas & Transformation Workbench */}
         <AnimatePresence>
           {showAll14Matrix && (
             <motion.div
@@ -1064,15 +1385,23 @@ export const UnitCellsSection: React.FC = () => {
               exit={{ opacity: 0, height: 0 }}
               className="overflow-hidden"
             >
-              <div className="bg-[#0B0F19] border border-slate-800 rounded-xl p-4 space-y-3">
-                <div className="flex items-center justify-between flex-wrap gap-2">
-                  <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold">
-                    Complete 14 Bravais Lattices Direct Selector (Pearson Symbols cP → aP)
-                  </span>
-                  <span className="text-[10px] font-mono text-slate-500">
-                    Click any Bravais lattice to synchronize Crystal System &amp; Centering Mode
+              <div className="bg-[#0B0F19] border border-slate-800 rounded-xl p-4 space-y-4">
+                <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-800/80 pb-2.5">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold">
+                      Complete 14 Bravais Lattices Master Atlas (Pearson cP → aP · 230 Space Groups)
+                    </span>
+                    <span className="text-slate-700">·</span>
+                    <span className="text-[10px] font-mono text-amber-400">
+                      Active: {activeBravaisEntry.pearson} ({activeBravaisEntry.label}) · {activeBravaisEntry.reciprocalDual}
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    Select any of the 14 Bravais lattices to inspect Primitive Transformation Matrix P, Wigner-Seitz BZ &amp; F_hkl Phasors
                   </span>
                 </div>
+
+                {/* 14 Bravais Lattices CAD Isometric Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                   {BRAVAIS_14_CATALOG.map((item) => {
                     const isCurrent = item.systemId === selectedSystemId && item.centering === activeCentering;
@@ -1080,30 +1409,306 @@ export const UnitCellsSection: React.FC = () => {
                       <button
                         key={item.pearson}
                         onClick={() => handleSelectBravais14(item.systemId, item.centering)}
-                        className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between ${
+                        className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between relative overflow-hidden ${
                           isCurrent
-                            ? 'bg-[#0B1324] border-cyan-500/60 text-white'
+                            ? 'bg-[#0B1324] border-cyan-500/70 text-white shadow-md'
                             : 'bg-[#070A12] border-slate-800/90 text-slate-300 hover:border-slate-700'
                         }`}
                       >
                         <div className="flex items-center justify-between w-full mb-1">
-                          <span className={`font-mono text-xs font-extrabold ${isCurrent ? 'text-cyan-300' : 'text-slate-200'}`}>
+                          <span className={`font-mono text-xs font-extrabold ${isCurrent ? 'text-cyan-300' : 'text-slate-100'}`}>
                             {item.pearson}
                           </span>
-                          <span className="font-mono text-[9px] text-amber-400 tabular-nums">
-                            Z={item.Z}
+                          <span className="font-mono text-[9px] text-amber-400 tabular-nums font-semibold">
+                            Z={item.Z} · {item.sgCount}SG
                           </span>
                         </div>
-                        <div className="text-[10px] font-bold text-slate-200 truncate">
+
+                        <div className="my-1 py-0.5 flex items-center justify-center bg-[#050811] rounded border border-slate-800/70">
+                          <CrystalSystemMiniSchematic
+                            systemId={item.systemId}
+                            centering={item.centering}
+                            isSelected={isCurrent}
+                            size="sm"
+                          />
+                        </div>
+
+                        <div className="text-[10px] font-bold text-slate-200 truncate mt-1">
                           {item.label}
                         </div>
-                        <div className="text-[9px] font-mono text-slate-500 truncate mt-0.5">
-                          {item.extinctionRule}
+                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 truncate mt-0.5">
+                          <span className="text-cyan-400/90 truncate">{item.extinctionRule}</span>
                         </div>
+                        <div className="text-[8.5px] font-mono text-slate-500 truncate">
+                          {item.prototype}
+                        </div>
+                        {isCurrent && (
+                          <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-cyan-400" />
+                        )}
                       </button>
                     );
                   })}
                 </div>
+
+                {/* Active Bravais Lattice Deep Metrology: Primitive Matrix P + Wigner-Seitz/Brillouin Zone + F_hkl Phasors */}
+                {(() => {
+                  const [th, tk, tl] = bravaisTestHkl;
+                  const P = activeBravaisEntry.primMatrix;
+                  const hp = P[0][0] * th + P[0][1] * tk + P[0][2] * tl;
+                  const kp = P[1][0] * th + P[1][1] * tk + P[1][2] * tl;
+                  const lp = P[2][0] * th + P[2][1] * tk + P[2][2] * tl;
+                  const isPrimitiveInt =
+                    Math.abs(hp - Math.round(hp)) < 0.02 &&
+                    Math.abs(kp - Math.round(kp)) < 0.02 &&
+                    Math.abs(lp - Math.round(lp)) < 0.02;
+
+                  const evalReflection = (h: number, k: number, l: number) => {
+                    let re = 0;
+                    let im = 0;
+                    const phases: string[] = [];
+                    activeBravaisEntry.basisCoords.forEach(([u, v, w]) => {
+                      const dot = h * u + k * v + l * w;
+                      const rad = 2 * Math.PI * dot;
+                      re += Math.cos(rad);
+                      im += Math.sin(rad);
+                      const normPhase = ((dot % 1) + 1) % 1;
+                      if (Math.abs(normPhase) < 0.02 || Math.abs(normPhase - 1) < 0.02) phases.push('+1');
+                      else if (Math.abs(normPhase - 0.5) < 0.02) phases.push('−1');
+                      else if (Math.abs(normPhase - 0.3333) < 0.03) phases.push('e^{i2π/3}');
+                      else if (Math.abs(normPhase - 0.6667) < 0.03) phases.push('e^{i4π/3}');
+                      else phases.push(`e^{i2π(${dot.toFixed(2)})}`);
+                    });
+                    const fSq = re * re + im * im;
+                    return { re, im, fSq, allowed: fSq > 0.1, phasesStr: phases.join(' ') };
+                  };
+
+                  const testPlanes: [number, number, number][] = [
+                    [1, 0, 0],
+                    [1, 1, 0],
+                    [1, 1, 1],
+                    [2, 0, 0],
+                    [2, 1, 0],
+                    [2, 1, 1],
+                    [2, 2, 0],
+                    [1, 0, 1]
+                  ];
+
+                  return (
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 pt-2 border-t border-slate-800/80 font-mono text-xs">
+                      {/* Column 1 (4 Cols): Primitive ↔ Conventional Matrix P & Basis Coordinates */}
+                      <div className="lg:col-span-4 bg-[#070A12] border border-slate-800 rounded-xl p-3.5 space-y-2.5">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                          <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
+                            1. Primitive ↔ Conventional Matrix P
+                          </span>
+                          <span className="text-[10px] text-slate-400 tabular-nums">
+                            det(P) = 1/Z = {(1 / activeBravaisEntry.Z).toFixed(3)}
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-12 gap-2 items-center">
+                          <div className="col-span-6 bg-[#0B0F19] border border-slate-800 rounded-lg p-2">
+                            <div className="text-[9px] text-slate-500 mb-1 text-center">P (a_p = P · a_conv)</div>
+                            <div className="grid grid-cols-3 gap-1 text-center text-[10px] tabular-nums">
+                              {P.flatMap((row, rI) =>
+                                row.map((val, cI) => (
+                                  <div
+                                    key={`${rI}-${cI}`}
+                                    className={`py-0.5 rounded ${
+                                      Math.abs(val) > 0.01 ? 'bg-emerald-500/10 text-emerald-300 font-bold' : 'text-slate-500'
+                                    }`}
+                                  >
+                                    {val === 0.6667 ? '+⅔' : val === -0.6667 ? '−⅔' : val === 0.3333 ? '+⅓' : val === -0.3333 ? '−⅓' : val === 0.5 ? '+½' : val === -0.5 ? '−½' : val}
+                                  </div>
+                                ))
+                              )}
+                            </div>
+                          </div>
+
+                          <div className="col-span-6 space-y-1 text-[10px]">
+                            {activeBravaisEntry.primVectorsFormula.map((line, idx) => (
+                              <div key={idx} className="text-slate-300 bg-[#0B0F19] px-2 py-1 rounded border border-slate-800/80 truncate">
+                                {line}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1 pt-1 border-t border-slate-800/70">
+                          <div className="flex items-center justify-between text-[10px]">
+                            <span className="text-slate-400">Basis Sites (Z = {activeBravaisEntry.Z}):</span>
+                            <span className="text-amber-300 truncate max-w-[190px]">
+                              {activeBravaisEntry.basisCoords
+                                .map(([u, v, w]) => `(${u === 0.6667 ? '⅔' : u === 0.3333 ? '⅓' : u},${v === 0.6667 ? '⅔' : v === 0.3333 ? '⅓' : v},${w === 0.6667 ? '⅔' : w === 0.3333 ? '⅓' : w})`)
+                                .join(' ')}
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between gap-2 bg-[#0B0F19] p-2 rounded-lg border border-slate-800">
+                            <span className="text-[10px] text-slate-400">Map (hkl)_c={bravaisTestHkl.join('')} → (hkl)_p:</span>
+                            <span className={`text-[11px] font-bold tabular-nums ${isPrimitiveInt ? 'text-emerald-400' : 'text-rose-400'}`}>
+                              ({hp.toFixed(2)}, {kp.toFixed(2)}, {lp.toFixed(2)}) {isPrimitiveInt ? '∈ ℤ³ (Allowed)' : '∉ ℤ³ (Extinct)'}
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Column 2 (4 Cols): Wigner-Seitz Proximity Cell & 1st Brillouin Zone Dual SVG */}
+                      <div className="lg:col-span-4 bg-[#070A12] border border-slate-800 rounded-xl p-3.5 space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                          <span className="text-[10px] uppercase tracking-wider text-cyan-400 font-bold">
+                            2. Wigner–Seitz &amp; 1st Brillouin Zone
+                          </span>
+                          <span className="text-[10px] text-amber-400 font-bold">{activeBravaisEntry.reciprocalDual}</span>
+                        </div>
+
+                        <div className="grid grid-cols-12 gap-2 items-center">
+                          <div className="col-span-5 bg-[#050811] border border-slate-800/90 rounded-lg p-1.5 flex items-center justify-center">
+                            <svg viewBox="0 0 110 92" className="w-full h-22 select-none overflow-visible">
+                              {activeBravaisEntry.bzType === 'trunc_oct' && (
+                                <g>
+                                  {/* Truncated Octahedron (14 Faces: 8 Hexagons + 6 Squares) */}
+                                  <polygon points="38,10 72,10 94,30 94,62 72,82 38,82 16,62 16,30" fill="rgba(14,165,233,0.12)" stroke="#38bdf8" strokeWidth="1.3" />
+                                  <polygon points="44,24 66,24 76,38 66,56 44,56 34,38" fill="rgba(56,189,248,0.18)" stroke="#7dd3fc" strokeWidth="1.1" />
+                                  <line x1="38" y1="10" x2="44" y2="24" stroke="#38bdf8" strokeWidth="1" />
+                                  <line x1="72" y1="10" x2="66" y2="24" stroke="#38bdf8" strokeWidth="1" />
+                                  <line x1="94" y1="30" x2="76" y2="38" stroke="#38bdf8" strokeWidth="1" />
+                                  <line x1="16" y1="30" x2="34" y2="38" stroke="#38bdf8" strokeWidth="1" />
+                                  <line x1="72" y1="82" x2="66" y2="56" stroke="#38bdf8" strokeWidth="1" />
+                                  <line x1="38" y1="82" x2="44" y2="56" stroke="#38bdf8" strokeWidth="1" />
+                                  {/* High-symmetry k-space vectors */}
+                                  <circle cx="55" cy="46" r="2.5" fill="#fbbf24" />
+                                  <line x1="55" y1="46" x2="94" y2="46" stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="2 1.5" />
+                                  <line x1="55" y1="46" x2="55" y2="38" stroke="#34d399" strokeWidth="1.2" />
+                                  <text x="51" y="44" fill="#fef08a" fontSize="7.5" fontWeight="bold">Γ</text>
+                                  <text x="96" y="48" fill="#fbbf24" fontSize="7.5" fontWeight="bold">X</text>
+                                  <text x="58" y="36" fill="#34d399" fontSize="7.5" fontWeight="bold">L</text>
+                                </g>
+                              )}
+                              {activeBravaisEntry.bzType === 'rhomb_dodec' && (
+                                <g>
+                                  {/* Rhombic Dodecahedron (12 Rhombic Faces) */}
+                                  <polygon points="55,8 92,28 92,64 55,84 18,64 18,28" fill="rgba(245,158,11,0.12)" stroke="#f59e0b" strokeWidth="1.3" />
+                                  <polygon points="55,22 78,46 55,70 32,46" fill="rgba(251,191,36,0.18)" stroke="#fbbf24" strokeWidth="1.15" />
+                                  <line x1="55" y1="8" x2="55" y2="22" stroke="#f59e0b" strokeWidth="1" />
+                                  <line x1="92" y1="28" x2="78" y2="46" stroke="#f59e0b" strokeWidth="1" />
+                                  <line x1="92" y1="64" x2="78" y2="46" stroke="#f59e0b" strokeWidth="1" />
+                                  <line x1="55" y1="84" x2="55" y2="70" stroke="#f59e0b" strokeWidth="1" />
+                                  <line x1="18" y1="64" x2="32" y2="46" stroke="#f59e0b" strokeWidth="1" />
+                                  <line x1="18" y1="28" x2="32" y2="46" stroke="#f59e0b" strokeWidth="1" />
+                                  <circle cx="55" cy="46" r="2.5" fill="#38bdf8" />
+                                  <line x1="55" y1="46" x2="55" y2="8" stroke="#38bdf8" strokeWidth="1.2" strokeDasharray="2 1.5" />
+                                  <line x1="55" y1="46" x2="78" y2="46" stroke="#34d399" strokeWidth="1.2" />
+                                  <text x="46" y="50" fill="#bae6fd" fontSize="7.5" fontWeight="bold">Γ</text>
+                                  <text x="60" y="13" fill="#38bdf8" fontSize="7.5" fontWeight="bold">H</text>
+                                  <text x="80" y="49" fill="#34d399" fontSize="7.5" fontWeight="bold">N</text>
+                                </g>
+                              )}
+                              {activeBravaisEntry.bzType === 'hex_prism' && (
+                                <g>
+                                  <polygon points="55,10 86,20 86,34 55,44 24,34 24,20" fill="rgba(56,189,248,0.18)" stroke="#38bdf8" strokeWidth="1.2" />
+                                  <polygon points="55,48 86,58 86,72 55,82 24,72 24,58" fill="rgba(14,165,233,0.10)" stroke="#0284c7" strokeWidth="1" strokeDasharray="2 1.5" />
+                                  <line x1="24" y1="20" x2="24" y2="58" stroke="#38bdf8" strokeWidth="1.1" />
+                                  <line x1="24" y1="34" x2="24" y2="72" stroke="#38bdf8" strokeWidth="1.1" />
+                                  <line x1="55" y1="44" x2="55" y2="82" stroke="#38bdf8" strokeWidth="1.2" />
+                                  <line x1="86" y1="34" x2="86" y2="72" stroke="#38bdf8" strokeWidth="1.1" />
+                                  <line x1="86" y1="20" x2="86" y2="58" stroke="#38bdf8" strokeWidth="1.1" />
+                                  <circle cx="55" cy="46" r="2.5" fill="#fbbf24" />
+                                  <line x1="55" y1="46" x2="55" y2="27" stroke="#f59e0b" strokeWidth="1.2" />
+                                  <line x1="55" y1="46" x2="86" y2="51" stroke="#34d399" strokeWidth="1.2" />
+                                  <text x="45" y="50" fill="#fef08a" fontSize="7.5" fontWeight="bold">Γ</text>
+                                  <text x="58" y="25" fill="#fbbf24" fontSize="7.5" fontWeight="bold">A</text>
+                                  <text x="89" y="54" fill="#34d399" fontSize="7.5" fontWeight="bold">K</text>
+                                </g>
+                              )}
+                              {(activeBravaisEntry.bzType === 'cube' || activeBravaisEntry.bzType === 'tet_prism' || activeBravaisEntry.bzType === 'rhombohedron' || activeBravaisEntry.bzType === 'oblique') && (
+                                <g>
+                                  <rect x="22" y="26" width="46" height="46" fill="rgba(56,189,248,0.14)" stroke="#38bdf8" strokeWidth="1.2" />
+                                  <polygon points="22,26 38,12 84,12 68,26" fill="rgba(56,189,248,0.22)" stroke="#38bdf8" strokeWidth="1.1" />
+                                  <polygon points="68,26 84,12 84,58 68,72" fill="rgba(2,132,199,0.18)" stroke="#0284c7" strokeWidth="1.1" />
+                                  <circle cx="53" cy="42" r="2.5" fill="#fbbf24" />
+                                  <line x1="53" y1="42" x2="76" y2="35" stroke="#f59e0b" strokeWidth="1.2" />
+                                  <line x1="53" y1="42" x2="84" y2="12" stroke="#34d399" strokeWidth="1.2" strokeDasharray="2 1.5" />
+                                  <text x="43" y="46" fill="#fef08a" fontSize="7.5" fontWeight="bold">Γ</text>
+                                  <text x="78" y="39" fill="#fbbf24" fontSize="7.5" fontWeight="bold">X</text>
+                                  <text x="86" y="14" fill="#34d399" fontSize="7.5" fontWeight="bold">R</text>
+                                </g>
+                              )}
+                            </svg>
+                          </div>
+
+                          <div className="col-span-7 space-y-1.5 text-[10px]">
+                            <div className="bg-[#0B0F19] p-2 rounded-lg border border-slate-800">
+                              <span className="text-[9px] text-slate-500 block">Proximity / Brillouin Polyhedron</span>
+                              <span className="text-slate-200 font-semibold leading-snug block mt-0.5">
+                                {activeBravaisEntry.wignerSeitzPolyhedron}
+                              </span>
+                            </div>
+                            <div className="bg-[#0B0F19] p-2 rounded-lg border border-slate-800">
+                              <span className="text-[9px] text-slate-500 block">High-Symmetry k-Space Points</span>
+                              <span className="text-cyan-300 font-semibold block mt-0.5 truncate">
+                                {activeBravaisEntry.bzKPoints}
+                              </span>
+                            </div>
+                            <div className="flex justify-between text-[10px] text-slate-400 px-0.5">
+                              <span>{activeBravaisEntry.coordinationNumber}</span>
+                              <span className="text-amber-300 font-bold">APF ≤ {activeBravaisEntry.maxApf.split(' ')[0]}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+
+                      {/* Column 3 (4 Cols): Live Structure Factor Phasor F_hkl & Extinction Ladder */}
+                      <div className="lg:col-span-4 bg-[#070A12] border border-slate-800 rounded-xl p-3.5 space-y-2">
+                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                          <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">
+                            3. F_hkl = Σ exp[2πi(hu+kv+lw)] Phasor Ladder
+                          </span>
+                          <span className="text-[10px] text-cyan-300 font-bold">{activeBravaisEntry.extinctionRule}</span>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-1.5 max-h-[146px] overflow-y-auto pr-0.5">
+                          {testPlanes.map(([ph, pk, pl]) => {
+                            const res = evalReflection(ph, pk, pl);
+                            const isTestActive = th === ph && tk === pk && tl === pl;
+                            return (
+                              <button
+                                key={`${ph}${pk}${pl}`}
+                                onClick={() => {
+                                  playSynthTone('tick');
+                                  setBravaisTestHkl([ph, pk, pl]);
+                                }}
+                                className={`p-1.5 rounded-lg border text-left transition-all flex items-center justify-between ${
+                                  isTestActive
+                                    ? 'bg-cyan-500/15 border-cyan-500/60 text-white'
+                                    : 'bg-[#0B0F19] border-slate-800/90 hover:border-slate-700'
+                                }`}
+                              >
+                                <div>
+                                  <div className="flex items-center gap-1.5">
+                                    <span className="font-bold text-slate-100 text-[11px]">({ph}{pk}{pl})</span>
+                                    <span className="text-[9px] text-slate-500">s={ph * ph + pk * pk + pl * pl}</span>
+                                  </div>
+                                  <div className="text-[8.5px] text-slate-400 truncate max-w-[100px]">
+                                    {res.phasesStr}
+                                  </div>
+                                </div>
+                                <span
+                                  className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold tabular-nums ${
+                                    res.allowed
+                                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                                  }`}
+                                >
+                                  {res.allowed ? `${Math.round(res.fSq)}f²` : '0'}
+                                </span>
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             </motion.div>
           )}
@@ -1621,8 +2226,61 @@ export const UnitCellsSection: React.FC = () => {
               In high-symmetry Cubic crystals, symmetry-equivalent planes within a family <span className="font-mono text-cyan-300">&#123;hkl&#125;</span> share the exact same interplanar spacing <span className="font-mono text-amber-300">d_hkl</span>, superimposing into a single intense Bragg peak. When a crystal undergoes a distortion (e.g., ferroelectric BaTiO₃ cooling from Cubic → Tetragonal → Orthorhombic → Rhombohedral), metric degeneracy is lifted and the peak splits into diagnostic multiplets:
             </p>
 
+            {/* Interactive Bärnighausen Spontaneous Strain Sliders */}
+            <div className="bg-[#070A12] border border-slate-800 rounded-2xl p-4 grid grid-cols-1 md:grid-cols-3 gap-4 font-mono text-xs">
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-300">
+                  <span className="text-cyan-400 font-bold">Tetragonal Ratio (c/a):</span>
+                  <span className="tabular-nums font-bold text-white">{tetStrainCA.toFixed(3)} ({((tetStrainCA - 1) * 100).toFixed(1)}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.93"
+                  max="1.07"
+                  step="0.005"
+                  value={tetStrainCA}
+                  onChange={e => setTetStrainCA(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-800 accent-cyan-400 rounded-lg cursor-pointer"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-300">
+                  <span className="text-emerald-400 font-bold">Orthorhombic Ratio (b/a):</span>
+                  <span className="tabular-nums font-bold text-white">{orthoStrainBA.toFixed(3)} ({((orthoStrainBA - 1) * 100).toFixed(1)}%)</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.93"
+                  max="1.07"
+                  step="0.005"
+                  value={orthoStrainBA}
+                  onChange={e => setOrthoStrainBA(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-800 accent-emerald-400 rounded-lg cursor-pointer"
+                />
+              </div>
+              <div className="space-y-1">
+                <div className="flex justify-between text-slate-300">
+                  <span className="text-amber-400 font-bold">Monoclinic / Rhomb Angle (β / α):</span>
+                  <span className="tabular-nums font-bold text-white">{monoShearBeta.toFixed(1)}° (Δ={(monoShearBeta - 90).toFixed(1)}°)</span>
+                </div>
+                <input
+                  type="range"
+                  min="85.0"
+                  max="95.0"
+                  step="0.2"
+                  value={monoShearBeta}
+                  onChange={e => setMonoShearBeta(parseFloat(e.target.value))}
+                  className="w-full h-1.5 bg-slate-800 accent-amber-400 rounded-lg cursor-pointer"
+                />
+              </div>
+            </div>
+
             {/* Live Simulated Multiplet Diffractogram SVG */}
             {(() => {
+              const tetSplit = Math.max(-0.65, Math.min(0.65, (tetStrainCA - 1) * 10));
+              const orthoSplit = Math.max(-0.65, Math.min(0.65, (1 - orthoStrainBA) * 10));
+              const shearSplit = Math.max(-0.65, Math.min(0.65, ((monoShearBeta - 90) / 5) * 0.45));
+
               const panels =
                 selectedSplittingFamily === '200'
                   ? [
@@ -1634,21 +2292,21 @@ export const UnitCellsSection: React.FC = () => {
                       },
                       {
                         title: '2. Tetragonal (4/mmm)',
-                        subtitle: '2:1 Doublet • m = 4 + 2',
+                        subtitle: `2:1 Doublet • c/a=${tetStrainCA.toFixed(3)}`,
                         color: '#22d3ee',
                         peaks: [
-                          { pos: -0.36, amp: 0.48, label: '(002)' },
-                          { pos: 0.28, amp: 0.96, label: '(200)/(020)' }
+                          { pos: -tetSplit, amp: 0.48, label: '(002)' },
+                          { pos: tetSplit * 0.5, amp: 0.96, label: '(200)/(020)' }
                         ]
                       },
                       {
                         title: '3. Orthorhombic (mmm)',
-                        subtitle: '1:1:1 Triplet • m = 2+2+2',
+                        subtitle: `1:1:1 Triplet • b/a=${orthoStrainBA.toFixed(3)}`,
                         color: '#34d399',
                         peaks: [
-                          { pos: -0.45, amp: 0.58, label: '(002)' },
-                          { pos: 0.0, amp: 0.58, label: '(020)' },
-                          { pos: 0.45, amp: 0.58, label: '(200)' }
+                          { pos: -tetSplit, amp: 0.58, label: '(002)' },
+                          { pos: -orthoSplit, amp: 0.58, label: '(020)' },
+                          { pos: tetSplit * 0.6 + orthoSplit * 0.4, amp: 0.58, label: '(200)' }
                         ]
                       },
                       {
@@ -1668,30 +2326,30 @@ export const UnitCellsSection: React.FC = () => {
                       },
                       {
                         title: '2. Tetragonal (4/mmm)',
-                        subtitle: '1:2 Doublet • m = 4 + 8',
+                        subtitle: `1:2 Doublet • c/a=${tetStrainCA.toFixed(3)}`,
                         color: '#22d3ee',
                         peaks: [
-                          { pos: -0.32, amp: 0.48, label: '(110)' },
-                          { pos: 0.28, amp: 0.96, label: '(101)/(011)' }
+                          { pos: -tetSplit * 0.85, amp: 0.48, label: '(110)' },
+                          { pos: tetSplit * 0.75, amp: 0.96, label: '(101)/(011)' }
                         ]
                       },
                       {
                         title: '3. Orthorhombic (mmm)',
-                        subtitle: '1:1:1 Triplet • m = 4+4+4',
+                        subtitle: `1:1:1 Triplet • b/a=${orthoStrainBA.toFixed(3)}`,
                         color: '#34d399',
                         peaks: [
-                          { pos: -0.45, amp: 0.58, label: '(011)' },
-                          { pos: 0.0, amp: 0.58, label: '(101)' },
-                          { pos: 0.45, amp: 0.58, label: '(110)' }
+                          { pos: -tetSplit, amp: 0.58, label: '(011)' },
+                          { pos: -orthoSplit * 0.5, amp: 0.58, label: '(101)' },
+                          { pos: tetSplit * 0.7 + orthoSplit * 0.5, amp: 0.58, label: '(110)' }
                         ]
                       },
                       {
                         title: '4. Rhombohedral (-3m)',
-                        subtitle: '1:1 Doublet • m = 6 + 6',
+                        subtitle: `1:1 Doublet • α=${monoShearBeta.toFixed(1)}°`,
                         color: '#c084fc',
                         peaks: [
-                          { pos: -0.3, amp: 0.72, label: '(110)' },
-                          { pos: 0.3, amp: 0.72, label: '(1-10)' }
+                          { pos: -shearSplit, amp: 0.72, label: '(110)' },
+                          { pos: shearSplit, amp: 0.72, label: '(1-10)' }
                         ]
                       }
                     ]
@@ -1710,20 +2368,20 @@ export const UnitCellsSection: React.FC = () => {
                       },
                       {
                         title: '3. Rhombohedral (-3m)',
-                        subtitle: '1:3 Doublet • m = 2 + 6',
+                        subtitle: `1:3 Doublet • α=${monoShearBeta.toFixed(1)}°`,
                         color: '#c084fc',
                         peaks: [
-                          { pos: -0.36, amp: 0.34, label: '(111)' },
-                          { pos: 0.26, amp: 0.98, label: '(11-1)' }
+                          { pos: -shearSplit * 1.15, amp: 0.34, label: '(111)' },
+                          { pos: shearSplit * 0.8, amp: 0.98, label: '(11-1)' }
                         ]
                       },
                       {
                         title: '4. Monoclinic (2/m)',
-                        subtitle: '1:1 Doublet • ±h Cross-Term',
+                        subtitle: `1:1 Doublet • β=${monoShearBeta.toFixed(1)}°`,
                         color: '#fb7185',
                         peaks: [
-                          { pos: -0.32, amp: 0.72, label: '(111)' },
-                          { pos: 0.32, amp: 0.72, label: '(-111)' }
+                          { pos: -shearSplit, amp: 0.72, label: '(111)' },
+                          { pos: shearSplit, amp: 0.72, label: '(-111)' }
                         ]
                       }
                     ];
@@ -2211,6 +2869,64 @@ export const UnitCellsSection: React.FC = () => {
                     <div className={`text-[10px] ${liveMetricCalc.weissDot === 0 ? 'text-emerald-400' : 'text-slate-500'}`}>
                       hu+kv+lw = {liveMetricCalc.weissDot} {liveMetricCalc.weissDot === 0 ? '(In Zone)' : ''}
                     </div>
+                  </div>
+                </div>
+
+                {/* Niggli Reduced Cell Invariants N = (A, B, C; xi, eta, zeta) & Metric Bravais Classifier */}
+                <div className="bg-[#070A12] border border-slate-800 rounded-2xl p-4 space-y-2.5 text-xs">
+                  <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-800 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] uppercase tracking-wider text-cyan-400 font-bold">
+                        Niggli Reduced Cell Vector N = (A, B, C; ξ, η, ζ)
+                      </span>
+                      <span className="text-slate-700">·</span>
+                      <span className="text-[10px] text-amber-400 font-bold">{liveMetricCalc.niggli.deducedSystem}</span>
+                    </div>
+                    <span
+                      className={`text-[10px] font-bold px-2 py-0.5 rounded border ${
+                        liveMetricCalc.niggli.isNiggliReduced
+                          ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                          : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                      }`}
+                    >
+                      {liveMetricCalc.niggli.isNiggliReduced
+                        ? 'Niggli Reduced Conditions Satisfied (A ≤ B ≤ C, |ξ|≤B, |η|,|ζ|≤A)'
+                        : 'Non-Reduced Setting (Requires Basis Permutations A ≤ B ≤ C)'}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 sm:grid-cols-6 gap-2 text-center text-[11px] tabular-nums">
+                    <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-2">
+                      <span className="text-[9px] text-slate-500 block">A = a²</span>
+                      <span className="text-cyan-300 font-bold">{liveMetricCalc.niggli.A.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-2">
+                      <span className="text-[9px] text-slate-500 block">B = b²</span>
+                      <span className="text-cyan-300 font-bold">{liveMetricCalc.niggli.B.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-2">
+                      <span className="text-[9px] text-slate-500 block">C = c²</span>
+                      <span className="text-cyan-300 font-bold">{liveMetricCalc.niggli.C.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-2">
+                      <span className="text-[9px] text-slate-500 block">ξ = 2bc·cosα</span>
+                      <span className="text-amber-300 font-bold">{liveMetricCalc.niggli.xi.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-2">
+                      <span className="text-[9px] text-slate-500 block">η = 2ac·cosβ</span>
+                      <span className="text-amber-300 font-bold">{liveMetricCalc.niggli.eta.toFixed(2)}</span>
+                    </div>
+                    <div className="bg-[#0B0F19] border border-slate-800 rounded-lg p-2">
+                      <span className="text-[9px] text-slate-500 block">ζ = 2ab·cosγ</span>
+                      <span className="text-amber-300 font-bold">{liveMetricCalc.niggli.zeta.toFixed(2)}</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between text-[10px] text-slate-400 pt-0.5">
+                    <span>Classification: <strong className="text-slate-200">{liveMetricCalc.niggli.niggliType}</strong></span>
+                    <span>
+                      Main: {liveMetricCalc.niggli.mainReduced ? 'A ≤ B ≤ C ✓' : 'A ≤ B ≤ C ✗'} · Special: {liveMetricCalc.niggli.specialReduced ? '|ξ|≤B, |η|,|ζ|≤A ✓' : 'Violated ✗'}
+                    </span>
                   </div>
                 </div>
               </div>

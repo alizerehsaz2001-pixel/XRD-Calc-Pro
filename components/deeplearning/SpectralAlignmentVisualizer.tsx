@@ -739,6 +739,88 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     };
   }, [chartData, selectedCandidate, primaryCalibratedPeaks]);
 
+  // Cross-Correlation Function C(Δ2θ) & Peak-to-Peak Angular Discrepancy Vectors
+  const crossCorrelationTelemetry = useMemo(() => {
+    const lags: Array<{ shift: number; corr: number }> = [];
+    const baseRefPeaks = selectedCandidate?.matched_peaks || [];
+    let bestShift = 0;
+    let bestCorr = -1;
+
+    for (let i = -20; i <= 20; i++) {
+      const s = Number((i * 0.03).toFixed(2));
+      let score = 0;
+      if (parsedPoints.length > 0 && baseRefPeaks.length > 0) {
+        let sumOverlap = 0;
+        let sumWeight = 0;
+        for (const mp of baseRefPeaks) {
+          const targetT = mp.refT + s;
+          let minDiff = 999;
+          for (const p of parsedPoints) {
+            const d = Math.abs(p.twoTheta - targetT);
+            if (d < minDiff) minDiff = d;
+          }
+          const w = Math.max(0.1, (mp.refI || 50) / 100);
+          sumOverlap += w * Math.exp(-(minDiff * minDiff) / (2 * 0.14 * 0.14));
+          sumWeight += w;
+        }
+        score = sumWeight > 0 ? (sumOverlap / sumWeight) * 100 : 50;
+      } else {
+        score = 96 * Math.exp(-(s * s) / (2 * 0.16 * 0.16));
+      }
+      const clamped = Number(Math.max(4, Math.min(99.9, score)).toFixed(1));
+      lags.push({ shift: s, corr: clamped });
+      if (clamped > bestCorr) {
+        bestCorr = clamped;
+        bestShift = s;
+      }
+    }
+
+    const peakShiftVectors = primaryCalibratedPeaks.slice(0, 12).map((refP) => {
+      let nearestExp = refP.calibratedRefT;
+      let minAbs = 999;
+      for (const p of parsedPoints) {
+        const diff = p.twoTheta - refP.calibratedRefT;
+        if (Math.abs(diff) < Math.abs(minAbs)) {
+          minAbs = diff;
+          nearestExp = p.twoTheta;
+        }
+      }
+      const deltaDeg = minAbs < 2.0 ? Number(minAbs.toFixed(4)) : 0;
+      const hklLabel =
+        refP.h !== undefined && refP.k !== undefined && refP.l !== undefined
+          ? `(${refP.h}${refP.k}${refP.l})`
+          : refP.hkl
+          ? `(${refP.hkl})`
+          : `${refP.calibratedRefT.toFixed(1)}°`;
+      return {
+        hkl: hklLabel,
+        refT: refP.calibratedRefT,
+        obsT: nearestExp,
+        deltaDeg,
+        deltaMilliDeg: Math.round(deltaDeg * 1000),
+        refI: refP.refI,
+      };
+    });
+
+    const rmsShiftMilliDeg =
+      peakShiftVectors.length > 0
+        ? Math.round(
+            Math.sqrt(
+              peakShiftVectors.reduce((acc, v) => acc + v.deltaMilliDeg * v.deltaMilliDeg, 0) /
+                peakShiftVectors.length
+            )
+          )
+        : 0;
+
+    return {
+      lags,
+      bestShift,
+      bestCorr: Number(bestCorr.toFixed(1)),
+      peakShiftVectors,
+      rmsShiftMilliDeg,
+    };
+  }, [parsedPoints, selectedCandidate, primaryCalibratedPeaks]);
+
   // Anti-collision Staggering for Reflection Stick Badges
   const staggeredRefPeaks = useMemo(() => {
     if (!primaryCalibratedPeaks.length) return [];
@@ -1279,45 +1361,37 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
       ref={visualizerRef}
       className={`relative flex flex-col transition-all duration-300 ${
         isFullscreen
-          ? "fixed inset-0 z-50 bg-[#050A14] p-6 overflow-y-auto"
-          : "bg-gradient-to-br from-[#0B1121] to-[#070B14] p-6 sm:p-8 rounded-[2.5rem] shadow-2xl border border-slate-800/80 overflow-hidden"
+          ? "fixed inset-0 z-50 bg-[#050811] p-6 overflow-y-auto"
+          : "bg-[#070A12] p-4 sm:p-6 rounded-sm border border-slate-800 overflow-hidden"
       }`}
     >
-      {/* Subtle grid background */}
-      <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI0MCIgaGVpZ2h0PSI0MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSAwIDQwIEwgNDAgNDAgNDAgMCBMIDQwIDQwIFoiIGZpbGw9Im5vbmUiIHN0cm9rZT0icmdiYSgyNTUsIDI1NSwgMjU1LCAwLjA1KSIgc3Ryb2tlLXdpZHRoPSIxIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-40 pointer-events-none mix-blend-screen" />
-      <div className="absolute top-0 left-0 w-full h-[3px] bg-gradient-to-r from-transparent via-cyan-500/80 to-transparent opacity-80 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
-
       {/* TOP BAR: Title, Live Status, Fullscreen, Caliper & Export */}
-      <div className="flex flex-col gap-4 mb-5 relative z-10">
-        <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 bg-[#0A101C]/80 backdrop-blur-md rounded-2xl border border-slate-800/80 shadow-inner">
-          <div className="flex items-center gap-4">
-            <div className="relative">
-              <div className="absolute inset-0 bg-cyan-500/30 blur-xl rounded-full" />
-              <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-[#0F172A] to-[#0A101C] border border-cyan-500/40 flex items-center justify-center relative shadow-[inset_0_2px_15px_rgba(34,211,238,0.2)]">
-                <Activity className="w-6 h-6 text-cyan-400 drop-shadow-[0_0_8px_rgba(34,211,238,0.8)]" />
-              </div>
+      <div className="flex flex-col gap-3.5 mb-4 relative z-10">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 bg-[#0B0F19] rounded-sm border border-slate-800">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-sm bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center shrink-0">
+              <Activity className="w-5 h-5 text-cyan-400" />
             </div>
             <div>
-              <div className="flex items-center gap-2.5">
-                <h3 className="text-lg font-black text-white tracking-[0.15em] uppercase drop-shadow-md">
-                  Spectral Alignment Visualization
-                </h3>
-                <span className="px-2 py-0.5 rounded-full bg-cyan-500/10 border border-cyan-500/30 text-[9px] text-cyan-400 tracking-widest font-mono font-bold flex items-center gap-1.5">
-                  <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-                  PRO XRD
+              <div className="flex items-center gap-3 flex-wrap">
+                <span className="text-[11px] font-mono uppercase tracking-widest text-cyan-400 font-bold">
+                  XRD-ALIGN · KINEMATIC RIETVELD PROFILE & RECIPROCAL LATTICE CALIBRATION
+                </span>
+                <span className="text-[11px] font-mono tabular-nums text-emerald-400 font-bold">
+                  ● λ = {activeWavelength.toFixed(4)} Å ({selectedWavelengthId})
                 </span>
               </div>
-              <p className="text-[10px] text-cyan-400/80 font-mono uppercase tracking-[0.15em] font-semibold mt-0.5">
-                Multi-Domain Kinematic Profile Overlay & Lattice Calibration
-              </p>
+              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mt-0.5">
+                Spectral Cross-Correlation, Peak Deconvolution & Residual Difference Console
+              </h3>
             </div>
           </div>
 
           {/* Quick Action Buttons */}
           <div className="flex flex-wrap items-center gap-2">
             {/* Wavelength Preset Selector */}
-            <div className="flex items-center bg-[#09101F]/90 px-2.5 py-1 rounded-xl border border-slate-700/80 font-mono text-[10px]">
-              <span className="text-slate-400 mr-1.5 uppercase font-bold">λ Source:</span>
+            <div className="flex items-center bg-[#070A12] px-2.5 py-1.5 rounded-sm border border-slate-800 font-mono text-[11px]">
+              <span className="text-slate-400 mr-1.5 uppercase font-bold">λ Anode:</span>
               <select
                 value={selectedWavelengthId}
                 onChange={(e) => setSelectedWavelengthId(e.target.value)}
@@ -1340,70 +1414,67 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   setCaliperPt2(null);
                 }
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
                 caliperActive
-                  ? "bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-[0_0_12px_rgba(245,158,11,0.3)]"
-                  : "bg-[#09101F]/80 text-slate-400 border-slate-700/80 hover:text-slate-200"
+                  ? "bg-amber-500/20 text-amber-300 border-amber-500"
+                  : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
               }`}
               title="Activate Peak Caliper to measure 2θ and d-spacing distances between reflections"
             >
-              <Crosshair className={`w-3.5 h-3.5 ${caliperActive ? "text-amber-400 animate-spin" : ""}`} />
-              Caliper Tool
+              <Crosshair className="w-3.5 h-3.5 text-amber-400" />
+              <span>Caliper</span>
             </button>
 
             {/* Microstructure & Crystallite Suite Drawer Toggle */}
             <button
               onClick={() => setShowInspectorDrawer(!showInspectorDrawer)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
                 showInspectorDrawer
-                  ? "bg-gradient-to-r from-indigo-500/30 to-purple-500/30 text-indigo-200 border-indigo-500/60 shadow-[0_0_15px_rgba(99,102,241,0.4)]"
-                  : "bg-[#09101F]/80 text-slate-300 border-slate-700/80 hover:text-white hover:border-indigo-500/50"
+                  ? "bg-indigo-600 text-white border-indigo-500"
+                  : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
               }`}
               title="Open Scherrer Domain Size, Williamson-Hall & Multi-Phase Analysis Suite"
             >
-              <Atom className={`w-3.5 h-3.5 ${showInspectorDrawer ? "text-indigo-400 animate-spin" : "text-indigo-400"}`} />
-              Microstructure ({detectedPeaks.length})
+              <Atom className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Microstructure ({detectedPeaks.length})</span>
             </button>
 
             {/* Reflection Table Drawer Toggle */}
             <button
               onClick={() => setShowReflectionTable(!showReflectionTable)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
                 showReflectionTable
-                  ? "bg-indigo-500/20 text-indigo-300 border-indigo-500/50 shadow-[0_0_12px_rgba(99,102,241,0.3)]"
-                  : "bg-[#09101F]/80 text-slate-400 border-slate-700/80 hover:text-slate-200"
+                  ? "bg-indigo-600/30 text-indigo-200 border-indigo-500"
+                  : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
               }`}
               title="Open Indexed Reflections (hkl) Matching Table"
             >
-              <Table className="w-3.5 h-3.5" />
-              Reflections ({staggeredRefPeaks.length})
+              <Table className="w-3.5 h-3.5 text-cyan-400" />
+              <span>hkl Table ({staggeredRefPeaks.length})</span>
             </button>
 
             {/* Calibration Sliders Panel Toggle */}
             <button
               onClick={() => setShowCalibrationPanel(!showCalibrationPanel)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-[10px] font-mono font-bold transition-all ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
                 showCalibrationPanel || zeroShiftDeg !== 0 || latticeStrainPct !== 0
-                  ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-[0_0_12px_rgba(34,211,238,0.3)]"
-                  : "bg-[#09101F]/80 text-slate-400 border-slate-700/80 hover:text-slate-200"
+                  ? "bg-cyan-600/25 text-cyan-200 border-cyan-500"
+                  : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
               }`}
               title="Adjust Zero-Shift Offset and Lattice Strain"
             >
               <Sliders className="w-3.5 h-3.5 text-cyan-400" />
-              Calibration
-              {(zeroShiftDeg !== 0 || latticeStrainPct !== 0) && (
-                <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-              )}
+              <span>Calibration</span>
             </button>
 
             {/* Export Dropdown */}
             <div className="relative">
               <button
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-700/80 bg-[#09101F]/80 hover:bg-slate-800 text-slate-300 text-[10px] font-mono font-bold transition-all"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-slate-800 bg-[#070A12] hover:bg-slate-900 text-slate-300 text-[11px] font-mono font-bold transition-colors cursor-pointer"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-400" />
-                Export
+                <span>Export</span>
                 <ChevronDown className="w-3 h-3 text-slate-500" />
               </button>
 
@@ -1413,14 +1484,14 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                     initial={{ opacity: 0, y: 6 }}
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: 6 }}
-                    className="absolute right-0 top-full mt-2 w-56 bg-[#070D18]/95 backdrop-blur-xl border border-slate-700/80 rounded-2xl shadow-2xl p-2 z-50 flex flex-col gap-1 font-mono text-[11px]"
+                    className="absolute right-0 top-full mt-1.5 w-56 bg-[#0B0F19] border border-slate-700 rounded-sm shadow-2xl p-1.5 z-50 flex flex-col gap-1 font-mono text-[11px]"
                   >
                     <button
                       onClick={() => {
                         handleExportCSV();
                         setShowExportMenu(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-emerald-500/10 hover:text-emerald-300 transition-colors text-left"
+                      className="flex items-center gap-2 px-3 py-2 rounded-sm text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-300 transition-colors text-left"
                     >
                       <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
                       Export Aligned CSV (XY)
@@ -1430,7 +1501,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                         handleExportSVG();
                         setShowExportMenu(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-sky-500/10 hover:text-sky-300 transition-colors text-left"
+                      className="flex items-center gap-2 px-3 py-2 rounded-sm text-slate-200 hover:bg-sky-500/15 hover:text-sky-300 transition-colors text-left"
                     >
                       <Camera className="w-4 h-4 text-sky-400" />
                       Export Publication SVG
@@ -1440,7 +1511,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                         handleCopySummary();
                         setShowExportMenu(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-xl text-slate-200 hover:bg-cyan-500/10 hover:text-cyan-300 transition-colors text-left"
+                      className="flex items-center gap-2 px-3 py-2 rounded-sm text-slate-200 hover:bg-cyan-500/15 hover:text-cyan-300 transition-colors text-left"
                     >
                       {copiedNotification ? <Check className="w-4 h-4 text-cyan-400" /> : <Copy className="w-4 h-4 text-cyan-400" />}
                       {copiedNotification ? "Copied to Clipboard!" : "Copy Report Summary"}
@@ -1453,7 +1524,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
             {/* Fullscreen Toggle */}
             <button
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-2 rounded-xl border border-slate-700/80 bg-[#09101F]/80 hover:bg-slate-800 text-slate-400 hover:text-white transition-all"
+              className="p-1.5 rounded-sm border border-slate-800 bg-[#070A12] hover:bg-slate-900 text-slate-400 hover:text-white transition-colors cursor-pointer"
               title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen Workbench"}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -1463,67 +1534,283 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
         {/* SCIENTIFIC HUD METRICS STRIP: Target, R_wp, GOF, Cosine, Zero-Shift & Strain */}
         {selectedCandidate && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-            <div className="bg-[#0A101C]/60 border border-cyan-500/20 rounded-2xl p-3 flex flex-col justify-between shadow-inner">
-              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Target Phase</span>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
+              <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Target Reference</span>
               <span className="text-xs font-bold text-cyan-300 font-mono truncate mt-0.5">
                 {selectedCandidate.phase_name}
               </span>
-              <span className="text-[8px] font-mono text-slate-500 mt-1 truncate">
-                {selectedCandidate.formula || selectedCandidate.crystalSystem || "Indexed Reflection Target"}
+              <span className="text-[10px] font-mono text-slate-400 mt-1 truncate">
+                {selectedCandidate.formula || "Crystalline"} · {selectedCandidate.spaceGroup || selectedCandidate.crystalSystem || "P1"}
               </span>
             </div>
 
-            <div className="bg-[#0A101C]/60 border border-emerald-500/20 rounded-2xl p-3 flex flex-col justify-between shadow-inner">
-              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Residual (R_wp / R_exp)</span>
-              <span className="text-xl font-black text-emerald-400 font-mono mt-0.5">
-                {alignmentMetrics.rwp}% <span className="text-[10px] font-normal text-slate-400">/ {alignmentMetrics.rexp}%</span>
+            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Rietveld R_wp</span>
+                <span className="text-[10px] font-mono text-slate-400 tabular-nums">R_exp {alignmentMetrics.rexp}%</span>
+              </div>
+              <span className="text-lg font-bold text-emerald-400 font-mono tabular-nums mt-0.5">
+                {alignmentMetrics.rwp}%
               </span>
-              <span className="text-[8px] font-mono text-slate-500 mt-1">
-                R_p = {alignmentMetrics.rp}% • Weighted Profile
-              </span>
+              <div className="w-full h-1.5 bg-[#050811] border border-slate-800 overflow-hidden mt-1">
+                <div
+                  className="h-full bg-emerald-400"
+                  style={{ width: `${Math.max(8, Math.min(100, 100 - alignmentMetrics.rwp * 1.5))}%` }}
+                />
+              </div>
             </div>
 
-            <div className="bg-[#0A101C]/60 border border-teal-500/20 rounded-2xl p-3 flex flex-col justify-between shadow-inner">
-              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Goodness of Fit (S)</span>
-              <span className="text-xl font-black text-teal-300 font-mono mt-0.5">
+            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Goodness S (χ)</span>
+                <span className="text-[10px] font-mono text-teal-400 tabular-nums">DW d={alignmentMetrics.durbinWatson}</span>
+              </div>
+              <span className="text-lg font-bold text-teal-300 font-mono tabular-nums mt-0.5">
                 {alignmentMetrics.gof}
               </span>
-              <span className="text-[8px] font-mono text-slate-500 mt-1">
-                Durbin-Watson d = {alignmentMetrics.durbinWatson}
+              <span className="text-[10px] font-mono text-slate-400 mt-0.5 tabular-nums">
+                R_p = {alignmentMetrics.rp}% (Profile Fit)
               </span>
             </div>
 
-            <div className="bg-[#0A101C]/60 border border-indigo-500/20 rounded-2xl p-3 flex flex-col justify-between shadow-inner">
-              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Cross-Correlation</span>
-              <span className="text-xl font-black text-indigo-300 font-mono mt-0.5">
+            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Cosine Similarity</span>
+                <span className="text-[10px] font-mono text-indigo-400 tabular-nums">cos(θ)</span>
+              </div>
+              <span className="text-lg font-bold text-indigo-300 font-mono tabular-nums mt-0.5">
                 {alignmentMetrics.cosine}%
               </span>
-              <span className="text-[8px] font-mono text-slate-500 mt-1">
-                Continuous Spectral Cosine
+              <div className="w-full h-1.5 bg-[#050811] border border-slate-800 overflow-hidden mt-1">
+                <div
+                  className="h-full bg-indigo-400"
+                  style={{ width: `${Math.max(5, Math.min(100, alignmentMetrics.cosine))}%` }}
+                />
+              </div>
+            </div>
+
+            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Goniometer Shift</span>
+                <button
+                  type="button"
+                  onClick={handleAutoAlign}
+                  disabled={isAutoAligning}
+                  className="text-[9px] font-mono font-bold text-cyan-300 hover:text-white underline cursor-pointer"
+                  title="Run cross-correlation zero-shift optimization"
+                >
+                  {isAutoAligning ? "Aligning..." : "Auto-Align"}
+                </button>
+              </div>
+              <span className="text-sm font-bold text-amber-300 font-mono tabular-nums mt-0.5">
+                Δ2θ: {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}°
+              </span>
+              <span className="text-[10px] font-mono text-amber-400/80 mt-0.5 tabular-nums">
+                Strain ε: {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%
               </span>
             </div>
 
-            <div className="bg-[#0A101C]/60 border border-amber-500/20 rounded-2xl p-3 flex flex-col justify-between shadow-inner">
-              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Active Calibration</span>
-              <div className="flex items-baseline gap-1 mt-0.5 font-mono">
-                <span className="text-xs font-bold text-amber-300">
-                  Δ2θ: {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}°
+            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Indexed (hkl)</span>
+                <span className="text-[10px] font-mono text-rose-400 tabular-nums">RMS ±{crossCorrelationTelemetry.rmsShiftMilliDeg}m°</span>
+              </div>
+              <span className="text-lg font-bold text-rose-300 font-mono tabular-nums mt-0.5">
+                {alignmentMetrics.matchCount} <span className="text-xs font-normal text-slate-400">lines</span>
+              </span>
+              <span className="text-[10px] font-mono text-slate-400 mt-0.5 tabular-nums">
+                FWHM = {effFwhm.toFixed(2)}° 2θ
+              </span>
+            </div>
+          </div>
+        )}
+
+        {/* INTERACTIVE SVG CROSS-CORRELATION LAG C(Δ2θ) & PEAK SHIFT DISCREPANCY VECTOR STRIP */}
+        {selectedCandidate && (
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
+            {/* Left 6 Cols: Cross-Correlation Function C(Δ2θ) */}
+            <div className="lg:col-span-6 bg-[#050811] border border-slate-800 rounded-sm p-2.5 flex flex-col justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 text-[10px] font-mono tabular-nums">
+                <span className="text-cyan-400 font-bold uppercase tracking-wider">
+                  A. Spectral Cross-Correlation Response C(Δ2θ) ∈ [-0.60°, +0.60°]
+                </span>
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400">
+                    Optimal Lag:{' '}
+                    <strong className="text-emerald-400">
+                      {crossCorrelationTelemetry.bestShift >= 0 ? '+' : ''}
+                      {crossCorrelationTelemetry.bestShift.toFixed(2)}° ({crossCorrelationTelemetry.bestCorr}%)
+                    </strong>
+                  </span>
+                  {Math.abs(zeroShiftDeg - crossCorrelationTelemetry.bestShift) > 0.01 && (
+                    <button
+                      type="button"
+                      onClick={() => setZeroShiftDeg(crossCorrelationTelemetry.bestShift)}
+                      className="px-1.5 py-0.5 rounded-sm bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold cursor-pointer"
+                    >
+                      Snap Δ2θ
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              <svg
+                viewBox="0 0 440 82"
+                className="w-full h-20 select-none"
+                role="img"
+                aria-label="Spectral Cross-Correlation Function vs Angular Lag"
+              >
+                <defs>
+                  <linearGradient id="xcorrAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.32" />
+                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.02" />
+                  </linearGradient>
+                </defs>
+                {[18, 42, 66].map((gy) => (
+                  <line
+                    key={gy}
+                    x1="20"
+                    y1={gy}
+                    x2="420"
+                    y2={gy}
+                    stroke="#1e293b"
+                    strokeWidth="0.8"
+                    strokeDasharray="2 2"
+                  />
+                ))}
+                {/* Zero Lag Center Reference Line */}
+                <line x1="220" y1="8" x2="220" y2="68" stroke="#475569" strokeWidth="1" strokeDasharray="3 2" />
+                <text x="220" y="78" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="monospace">
+                  0.00°
+                </text>
+                <text x="24" y="78" textAnchor="start" fill="#64748b" fontSize="8" fontFamily="monospace">
+                  -0.60°
+                </text>
+                <text x="416" y="78" textAnchor="end" fill="#64748b" fontSize="8" fontFamily="monospace">
+                  +0.60°
+                </text>
+
+                {/* Area & Curve of C(Δ2θ) */}
+                <polygon
+                  fill="url(#xcorrAreaGrad)"
+                  points={`20,66 ${crossCorrelationTelemetry.lags
+                    .map((pt, idx) => {
+                      const px = 20 + (idx / Math.max(1, crossCorrelationTelemetry.lags.length - 1)) * 400;
+                      const py = 66 - (pt.corr / 100) * 54;
+                      return `${px.toFixed(1)},${py.toFixed(1)}`;
+                    })
+                    .join(' ')} 420,66`}
+                />
+                <polyline
+                  fill="none"
+                  stroke="#06b6d4"
+                  strokeWidth="1.8"
+                  points={crossCorrelationTelemetry.lags
+                    .map((pt, idx) => {
+                      const px = 20 + (idx / Math.max(1, crossCorrelationTelemetry.lags.length - 1)) * 400;
+                      const py = 66 - (pt.corr / 100) * 54;
+                      return `${px.toFixed(1)},${py.toFixed(1)}`;
+                    })
+                    .join(' ')}
+                />
+
+                {/* Optimal Lag Marker */}
+                {(() => {
+                  const optX = Math.max(
+                    20,
+                    Math.min(420, 220 + (crossCorrelationTelemetry.bestShift / 0.6) * 200)
+                  );
+                  const optY = 66 - (crossCorrelationTelemetry.bestCorr / 100) * 54;
+                  return (
+                    <g>
+                      <line x1={optX} y1={optY} x2={optX} y2="66" stroke="#10b981" strokeWidth="1.2" strokeDasharray="2 2" />
+                      <circle cx={optX} cy={optY} r="3.5" fill="#10b981" stroke="#ffffff" strokeWidth="1" />
+                    </g>
+                  );
+                })()}
+
+                {/* Current Active Zero-Shift Cursor */}
+                {(() => {
+                  const curX = Math.max(20, Math.min(420, 220 + (zeroShiftDeg / 0.6) * 200));
+                  return (
+                    <g>
+                      <line x1={curX} y1="8" x2={curX} y2="66" stroke="#f59e0b" strokeWidth="1.5" />
+                      <rect x={curX - 22} y="6" width="44" height="12" fill="#070A12" stroke="#f59e0b" strokeWidth="0.8" />
+                      <text x={curX} y="14.5" textAnchor="middle" fill="#fcd34d" fontSize="7.5" fontFamily="monospace" fontWeight="bold">
+                        {zeroShiftDeg >= 0 ? `+${zeroShiftDeg.toFixed(2)}°` : `${zeroShiftDeg.toFixed(2)}°`}
+                      </text>
+                    </g>
+                  );
+                })()}
+              </svg>
+            </div>
+
+            {/* Right 6 Cols: Reciprocal Lattice Peak-to-Peak Angular Discrepancy Vectors (Δ2θ_hkl) */}
+            <div className="lg:col-span-6 bg-[#050811] border border-slate-800 rounded-sm p-2.5 flex flex-col justify-between">
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 text-[10px] font-mono tabular-nums">
+                <span className="text-indigo-400 font-bold uppercase tracking-wider">
+                  B. Bragg Reflection Residual Shift Map Δ2θ_hkl = 2θ_obs − 2θ_calc
+                </span>
+                <span className="text-slate-400">
+                  RMS Dispersion: <strong className="text-cyan-400">±{crossCorrelationTelemetry.rmsShiftMilliDeg} m°</strong>
                 </span>
               </div>
-              <span className="text-[8px] font-mono text-amber-400/80 mt-1">
-                Strain: {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%
-              </span>
-            </div>
 
-            <div className="bg-[#0A101C]/60 border border-rose-500/20 rounded-2xl p-3 flex flex-col justify-between shadow-inner">
-              <span className="text-[9px] font-mono uppercase text-slate-400 tracking-wider">Reflections Matched</span>
-              <span className="text-xl font-black text-rose-300 font-mono mt-0.5">
-                {alignmentMetrics.matchCount} <span className="text-[10px] font-normal text-slate-400">peaks</span>
-              </span>
-              <span className="text-[8px] font-mono text-slate-500 mt-1">
-                λ = {activeWavelength.toFixed(4)} Å
-              </span>
+              <svg
+                viewBox="0 0 440 82"
+                className="w-full h-20 select-none"
+                role="img"
+                aria-label="Bragg Reflection Angular Discrepancy Vector Map"
+              >
+                {/* Zero Discrepancy Center Line */}
+                <line x1="20" y1="38" x2="420" y2="38" stroke="#334155" strokeWidth="1" />
+                {/* ±0.15° Tolerance Corridor */}
+                <line x1="20" y1="18" x2="420" y2="18" stroke="#1e293b" strokeWidth="0.8" strokeDasharray="3 3" />
+                <line x1="20" y1="58" x2="420" y2="58" stroke="#1e293b" strokeWidth="0.8" strokeDasharray="3 3" />
+                <text x="16" y="20" textAnchor="end" fill="#64748b" fontSize="7" fontFamily="monospace">
+                  +150m°
+                </text>
+                <text x="16" y="40" textAnchor="end" fill="#94a3b8" fontSize="7" fontFamily="monospace">
+                  0
+                </text>
+                <text x="16" y="60" textAnchor="end" fill="#64748b" fontSize="7" fontFamily="monospace">
+                  -150m°
+                </text>
+
+                {crossCorrelationTelemetry.peakShiftVectors.map((vec, vIdx) => {
+                  const total = Math.max(1, crossCorrelationTelemetry.peakShiftVectors.length);
+                  const vx = 38 + (vIdx / Math.max(1, total - 1)) * 368;
+                  const clampedDeg = Math.max(-0.22, Math.min(0.22, vec.deltaDeg));
+                  const vy = 38 - (clampedDeg / 0.15) * 20;
+                  const isGood = Math.abs(vec.deltaDeg) < 0.06;
+                  const strokeCol = isGood ? '#10b981' : Math.abs(vec.deltaDeg) < 0.14 ? '#06b6d4' : '#f59e0b';
+
+                  return (
+                    <g
+                      key={`${vec.hkl}_${vIdx}`}
+                      className="cursor-pointer"
+                      onClick={() => {
+                        setFocusedTwoTheta(vec.refT);
+                        setTimeout(() => setFocusedTwoTheta(null), 3500);
+                      }}
+                    >
+                      <line x1={vx} y1="38" x2={vx} y2={vy} stroke={strokeCol} strokeWidth="2.5" />
+                      <circle cx={vx} cy={vy} r="3" fill={strokeCol} />
+                      <text
+                        x={vx}
+                        y="75"
+                        textAnchor="middle"
+                        fill="#cbd5e1"
+                        fontSize="7.5"
+                        fontFamily="monospace"
+                      >
+                        {vec.hkl}
+                      </text>
+                    </g>
+                  );
+                })}
+              </svg>
             </div>
           </div>
         )}
@@ -2623,7 +2910,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   strokeWidth={2}
                   strokeDasharray="3 3"
                   label={{
-                    value: "SCANNING IN PROGRESS //",
+                    value: "SCANNING IN PROGRESS",
                     position: "insideTopLeft",
                     fill: "#22d3ee",
                     fontSize: 9,
@@ -2976,20 +3263,20 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
           </ResponsiveContainer>
         </div>
 
-        {/* GSAS-II / FULLPROF STYLE BRAGG REFLECTION COMB */}
+        {/* GSAS-II / FULLPROF STYLE HIGH-PRECISION SVG BRAGG REFLECTION & INTENSITY COMB */}
         {showBraggComb && activeCandidates.length > 0 && (
-          <div className={`px-4 py-2 border-t transition-colors ${
+          <div className={`px-4 py-2.5 border-t transition-colors ${
             themeMode === "publication"
               ? "bg-[#F8FAFC] border-slate-200 text-slate-800"
-              : "bg-[#050813] border-slate-800/80 text-slate-300"
+              : "bg-[#050813] border-slate-800 text-slate-300"
           }`}>
-            <div className="flex items-center justify-between mb-1.5 text-[9px] font-mono">
-              <span className="font-bold uppercase tracking-widest text-slate-400 flex items-center gap-1.5">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                Bragg Reflection Comb (hkl markers)
+            <div className="flex items-center justify-between mb-1.5 text-[10px] font-mono">
+              <span className="font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
+                <span className="w-2 h-2 bg-emerald-400 inline-block" />
+                <span>GSAS-II / FullProf Bragg Reflection Tick & Intensity Comb (hkl)</span>
               </span>
-              <span className="text-slate-400 text-[8px]">
-                Hover tick for reflection data • Click to focus angle
+              <span className="text-slate-400 text-[9px] tabular-nums">
+                Click any reflection tick to spotlight peak position in diffractogram
               </span>
             </div>
 
@@ -3003,48 +3290,71 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
                 return (
                   <div key={`comb-${cand.phase_name}-${cIdx}`} className="flex items-center gap-3">
-                    <div className="w-28 flex items-center gap-1.5 shrink-0" title={cand.phase_name}>
-                      <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+                    <div className="w-32 flex items-center gap-1.5 shrink-0" title={cand.phase_name}>
+                      <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: color }} />
                       <span className="text-[10px] font-mono font-bold truncate">
-                        {cand.phase_name.split(" ")[0]}
+                        {cand.phase_name.split(" ")[0]} ({peaks.length})
                       </span>
                     </div>
 
-                    <div className={`flex-1 relative h-6 rounded-lg border transition-colors ${
+                    <div className={`flex-1 relative h-7 rounded-sm border overflow-hidden ${
                       themeMode === "publication"
                         ? "bg-slate-100 border-slate-300"
-                        : "bg-[#09101F]/80 border-slate-800"
+                        : "bg-[#09101F] border-slate-800"
                     }`}>
-                      {peaks.map((p, pIdx) => {
-                        const coord = mapCoord(p.calibratedRefT);
-                        const leftPct = ((coord - minVal) / span) * 100;
-                        if (leftPct < 0 || leftPct > 100) return null;
+                      <svg viewBox="0 0 800 28" preserveAspectRatio="none" className="w-full h-full">
+                        <line x1="0" y1="26" x2="800" y2="26" stroke="#1e293b" strokeWidth="1" />
+                        {peaks.map((p, pIdx) => {
+                          const coord = mapCoord(p.calibratedRefT);
+                          const leftPct = ((coord - minVal) / span) * 100;
+                          if (leftPct < 0 || leftPct > 100) return null;
+                          const px = (leftPct / 100) * 800;
+                          const tickH = Math.max(6, Math.min(22, Math.sqrt(Math.max(5, p.refI || 50)) * 2.1));
+                          const hklStr =
+                            p.h !== undefined && p.k !== undefined && p.l !== undefined
+                              ? `(${p.h}${p.k}${p.l})`
+                              : p.hkl
+                              ? `(${p.hkl})`
+                              : "";
 
-                        return (
-                          <div
-                            key={`tick-${pIdx}`}
-                            onClick={() => setFocusedTwoTheta(p.calibratedRefT)}
-                            className="absolute top-0 bottom-0 w-[2px] cursor-pointer hover:w-[4px] hover:z-30 transition-all group/tick"
-                            style={{
-                              left: `${leftPct}%`,
-                              backgroundColor: color,
-                            }}
-                          >
-                            <div className={`absolute bottom-full left-1/2 -translate-x-1/2 mb-1.5 hidden group-hover/tick:flex flex-col items-center px-2 py-1 rounded-md shadow-2xl pointer-events-none z-50 whitespace-nowrap text-[9px] font-mono border ${
-                              themeMode === "publication"
-                                ? "bg-white text-slate-900 border-slate-300 shadow-slate-300/80"
-                                : "bg-[#070D18] text-white border-slate-700 shadow-black/90"
-                            }`}>
-                              <span className="font-bold" style={{ color }}>
-                                {p.hkl ? `(${p.hkl})` : "Bragg Reflection"}
-                              </span>
-                              <span className={themeMode === "publication" ? "text-slate-600" : "text-slate-300"}>
-                                {p.calibratedRefT.toFixed(2)}° 2θ • {p.calibratedD?.toFixed(4)} Å
-                              </span>
-                            </div>
-                          </div>
-                        );
-                      })}
+                          return (
+                            <g
+                              key={`svg-tick-${pIdx}`}
+                              className="cursor-pointer"
+                              onClick={() => {
+                                setFocusedTwoTheta(p.calibratedRefT);
+                                setTimeout(() => setFocusedTwoTheta(null), 3500);
+                              }}
+                            >
+                              <title>
+                                {`${cand.phase_name} ${hklStr} · ${p.calibratedRefT.toFixed(2)}° 2θ · d=${p.calibratedD?.toFixed(4)} Å · I=${(p.refI || 0).toFixed(0)}%`}
+                              </title>
+                              <line
+                                x1={px}
+                                y1={26}
+                                x2={px}
+                                y2={26 - tickH}
+                                stroke={color}
+                                strokeWidth="2.2"
+                              />
+                              <circle cx={px} cy={26 - tickH} r="1.8" fill={color} />
+                              {p.refI >= 35 && hklStr && (
+                                <text
+                                  x={px}
+                                  y={Math.max(8, 23 - tickH)}
+                                  textAnchor="middle"
+                                  fill={themeMode === "publication" ? "#0f172a" : "#e2e8f0"}
+                                  fontSize="7.5"
+                                  fontFamily="monospace"
+                                  fontWeight="bold"
+                                >
+                                  {hklStr}
+                                </text>
+                              )}
+                            </g>
+                          );
+                        })}
+                      </svg>
                     </div>
                   </div>
                 );

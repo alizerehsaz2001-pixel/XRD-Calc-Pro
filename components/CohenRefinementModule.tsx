@@ -268,13 +268,17 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
         rwpPct: data.rwpPct,
         gof: data.gof,
         aic: data.aic,
+        aicc: data.aicc,
+        bic: data.bic,
+        driftPValue: data.driftPValue,
+        driftSignificant: data.driftSignificant,
         smithSnyderFN: data.smithSnyderFN,
         sampleDisplacementUm: data.aberrations.sampleDisplacementUm
       };
     };
   }, [peaks, crystalSystem, wavelength, weightingScheme, goniometerRadiusMm]);
 
-  // Auto-select optimal drift model across all 9 kernels
+  // Auto-select optimal drift model across all 9 kernels using small-sample AICc
   const handleAutoSelectOptimalDrift = () => {
     const candidates: DriftFunctionType[] = [
       'nelson_riley',
@@ -288,17 +292,37 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
       'none'
     ];
     let bestDrift: DriftFunctionType = driftType;
+    let bestAicc = Infinity;
     let bestRms = Infinity;
     for (const d of candidates) {
       const r = solveSystemForComparator(d);
-      if (r && r.rmsTwoTheta < bestRms) {
+      const score = r?.aicc ?? r?.aic ?? Infinity;
+      if (r && score < bestAicc) {
+        bestAicc = score;
         bestRms = r.rmsTwoTheta;
         bestDrift = d;
       }
     }
     setDriftType(bestDrift);
     playSynthTone('chime');
-    notifyStatus(`Selected optimal drift model: ${bestDrift.replace('_', ' ')} (RMS Δ2θ = ±${bestRms.toFixed(4)}°)`);
+    notifyStatus(`Optimal AICc kernel: ${bestDrift.replace('_', ' ')} (RMS Δ2θ = ±${bestRms.toFixed(4)}°)`);
+  };
+
+  // Inject realistic synthetic specimen displacement (+120 um) + 0.025 deg zero-shift to verify drift recovery
+  const handleInjectSyntheticDriftTest = () => {
+    const dzMm = 0.12; // 120 um specimen displacement
+    const zeroOffsetDeg = 0.025;
+    setPeaks(prev =>
+      prev.map((p, idx) => {
+        const thetaRad = (p.twoTheta / 2) * (Math.PI / 180);
+        const dispShiftDeg = -((2 * dzMm) / Math.max(50, goniometerRadiusMm)) * Math.cos(thetaRad) * (180 / Math.PI);
+        const jitter = Math.sin(idx * 2.17) * 0.004;
+        const shifted = Math.max(5, Math.min(175, p.twoTheta + dispShiftDeg + zeroOffsetDeg + jitter));
+        return { ...p, twoTheta: parseFloat(shifted.toFixed(4)) };
+      })
+    );
+    playSynthTone('tick');
+    notifyStatus('Injected Δz = +120 μm & Δ2θ₀ = +0.025° synthetic drift test');
   };
 
   // Auto-prune outlier peaks
@@ -537,7 +561,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
               Cohen&apos;s Least-Squares Matrix Refinement Console
             </h1>
             <p className="text-xs text-slate-400 max-w-3xl">
-              Analytical least-squares inversion separating zero-drift lattice constants ($a_0, b_0, c_0, \alpha, \beta, \gamma$) from systematic goniometer displacement, transparency, and absorption errors.
+              Equilibrated Householder QR inversion separating zero-drift unit-cell constants (a₀, b₀, c₀, α, β, γ) from systematic goniometer displacement, transparency, and zero-shift aberrations.
             </p>
           </div>
 
@@ -545,19 +569,29 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
             <button
               type="button"
               onClick={handleAutoSelectOptimalDrift}
-              className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 shadow-sm"
-              title="Benchmark all 9 drift models and select the one with minimum RMS Δ2θ"
+              className="px-3 py-2 bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-bold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5"
+              title="Benchmark all 9 drift models and select lowest AICc"
             >
               <Sparkles className="w-3.5 h-3.5" />
-              Find Optimal Drift
+              Optimal Drift (AICc)
+            </button>
+
+            <button
+              type="button"
+              onClick={handleInjectSyntheticDriftTest}
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-slate-700 text-xs font-bold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5"
+              title="Perturb active peaks with +120 μm displacement + 0.025° zero-shift to test recovery"
+            >
+              <Crosshair className="w-3.5 h-3.5" />
+              Test Drift Recovery
             </button>
 
             <button
               type="button"
               onClick={handleAutoMaskOutliers}
               disabled={!isSuccess}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-40"
-              title="Automatically disable reflections with |Δ2θ| > 0.04° or |r*| > 2.5"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 border border-slate-700 text-xs font-bold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 disabled:opacity-40"
+              title="Disable reflections with |Δ2θ| > 0.04° or |r*| > 2.5"
             >
               <Filter className="w-3.5 h-3.5" />
               Prune Outliers
@@ -567,9 +601,9 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
               type="button"
               onClick={handleExportCsv}
               disabled={!isSuccess}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-40"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 text-xs font-bold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 disabled:opacity-40"
             >
-              <Download className="w-3.5 h-3.5 text-indigo-400" />
+              <Download className="w-3.5 h-3.5 text-cyan-400" />
               CSV
             </button>
 
@@ -577,16 +611,16 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
               type="button"
               onClick={handleCopyReport}
               disabled={!isSuccess}
-              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5 disabled:opacity-40"
+              className="px-3 py-2 bg-slate-800 hover:bg-slate-700 text-white border border-slate-700 text-xs font-bold rounded-lg transition-colors whitespace-nowrap shrink-0 flex items-center gap-1.5 disabled:opacity-40"
             >
-              {copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-indigo-400" />}
+              {copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-cyan-400" />}
               {copiedReport ? 'Copied' : 'Copy Report'}
             </button>
 
             <button
               type="button"
               onClick={handleClearAllPeaks}
-              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl transition-all"
+              className="p-2 bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-lg transition-colors"
               title="Reset reflections to preset default"
             >
               <RotateCcw className="w-4 h-4" />
@@ -891,52 +925,54 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
                 </div>
               </div>
 
-              {/* Card 4: Systematic Drift & Physical Goniometer Diagnosis */}
-              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+              {/* Card 4: Systematic Drift & Partial F-Test Significance */}
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 font-mono tabular-nums">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Drift Coeff D</span>
-                  <span className="text-[10px] font-mono text-amber-600 dark:text-amber-400 font-bold">
+                  <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Drift Coeff D</span>
+                  <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold">
                     Δz ≈ {refinementData.aberrations.sampleDisplacementUm.toFixed(1)} μm
                   </span>
                 </div>
-                <div className="text-xl font-black font-mono text-amber-600 dark:text-amber-400">
+                <div className="text-xl font-bold text-amber-600 dark:text-amber-400">
                   {refinementData.D.toExponential(3)}
                 </div>
-                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800 truncate">
-                  σ(D) = ±{refinementData.sigma.sigmaD.toExponential(2)}
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800 truncate">
+                  {driftType === 'none'
+                    ? 'Fixed D = 0 (Null baseline)'
+                    : `p=${(refinementData.driftPValue ?? 1).toFixed(3)} ${refinementData.driftSignificant ? '(● Sig.)' : '(○ NS)'}`}
                 </div>
               </div>
 
               {/* Card 5: Angular & d-Spacing Residuals */}
-              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 font-mono tabular-nums">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">RMS Δ2θ Shift</span>
-                  <span className="text-[10px] font-mono text-cyan-600 dark:text-cyan-400 font-bold">
+                  <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">RMS Δ2θ Shift</span>
+                  <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold">
                     R_wp={refinementData.rwpPct.toFixed(2)}%
                   </span>
                 </div>
-                <div className="text-xl font-black font-mono text-slate-800 dark:text-slate-100">
+                <div className="text-xl font-bold text-slate-800 dark:text-slate-100">
                   ±{refinementData.rmsTwoThetaShift.toFixed(4)}°
                 </div>
-                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
                   RMS Δd/d = ±{refinementData.rmsDeltaDPpm.toFixed(1)} ppm
                 </div>
               </div>
 
               {/* Card 6: Indexing Figures of Merit & Conditioning */}
-              <div className="p-4 bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-sm space-y-1">
+              <div className="p-4 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 space-y-1 font-mono tabular-nums">
                 <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-500">Indexing FoM</span>
-                  <span className="text-[10px] font-mono text-indigo-600 dark:text-indigo-400 font-bold">
-                    DOF={refinementData.dof}
+                  <span className="text-[10px] font-sans font-bold uppercase tracking-wider text-slate-500">Indexing FoM</span>
+                  <span className="text-[10px] text-cyan-600 dark:text-cyan-400 font-bold">
+                    DOF={refinementData.dof} · Nₚ={refinementData.nPossible}
                   </span>
                 </div>
-                <div className="text-lg font-black font-mono text-indigo-600 dark:text-indigo-400">
+                <div className="text-lg font-bold text-cyan-700 dark:text-cyan-400">
                   F<sub>N</sub>={refinementData.smithSnyderFN.toFixed(1)}{' '}
                   <span className="text-xs text-slate-500">M<sub>20</sub>={refinementData.deWolffM20.toFixed(1)}</span>
                 </div>
-                <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
-                  κ₁(M) = {(refinementData.conditionNumber || 1).toExponential(2)}
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 pt-1 border-t border-slate-100 dark:border-slate-800">
+                  κ₂(M) = {(refinementData.spectralConditionNumber || 1).toExponential(2)}
                 </div>
               </div>
             </div>
@@ -1048,6 +1084,7 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
           driftD={refinementData.D}
           rmsTwoTheta={refinementData.rmsTwoThetaShift}
           precision={decimalPrecision}
+          irlsHistory={refinementData.irlsHistory}
           onTogglePeak={handleTogglePeakById}
         />
       )}
@@ -1100,15 +1137,21 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
           vectorX={refinementData.vectorX}
           matrixLabels={matrixLabels}
           validPeaks={refinementData.validPeaks}
+          peakDetails={refinementData.peakDetails}
           basisMatrix={refinementData.basisMatrix}
           onCopyLatex={handleCopyLatex}
           copiedMatrix={copiedMatrix}
-          variance={refinementData.variance}
+          variance={refinementData.weightedVariance}
           dof={refinementData.dof}
           sumResidualSquare={refinementData.sumResidualSquare}
           crystalSystem={crystalSystem}
           wavelength={wavelength}
           driftType={driftType}
+          weightingScheme={weightingScheme}
+          eigenvalues={refinementData.eigenvalues}
+          spectralConditionNumber={refinementData.spectralConditionNumber}
+          vifs={refinementData.vifs}
+          solverResidualNorm={refinementData.solverResidualNorm}
         />
       )}
 
@@ -1116,9 +1159,11 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
       {activeTab === 'tensor' && refinementData && (
         <CohenMetricTensorCard
           lattice={refinementData.lattice}
+          reciprocalLattice={refinementData.reciprocalLattice}
           sigma={refinementData.sigma}
           volume={refinementData.volume}
           crystalSystem={crystalSystem}
+          wavelength={wavelength}
           molarMass={activePreset?.molarMass}
           formulaUnitsZ={activePreset?.formulaUnitsZ}
           precision={decimalPrecision}

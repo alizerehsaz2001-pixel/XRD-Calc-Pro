@@ -232,28 +232,29 @@ export const RIRMatrixInspector: React.FC<RIRMatrixInspectorProps> = ({
     return computeRIRCovariance(phases, intensityUncertaintyPct, rirUncertaintyPct);
   }, [phases, intensityUncertaintyPct, rirUncertaintyPct]);
 
-  // Detection limits & penetration depths
+  // Detection limits & penetration depths calibrated to phase mass fractions & bulk sample MAC
   const detectionLimits = useMemo(() => {
-    return computeDetectionLimits(phases, 80, 65.0);
-  }, [phases]);
+    const crystWtPcts = matrixCalcs.vectorW.map(w => w * (100 - amorphousWtPct));
+    const bulkMac = matrixCalcs.vectorW.reduce((s, w, i) => s + w * (phases[i]?.mac || 50), 0) * ((100 - amorphousWtPct) / 100) + (amorphousWtPct / 100) * 30.0;
+    const bulkRho = matrixCalcs.vectorW.reduce((s, w, i) => s + w * (phases[i]?.density || 3.0), 0) * ((100 - amorphousWtPct) / 100) + (amorphousWtPct / 100) * 2.2;
+    return computeDetectionLimits(phases, 80, bulkMac || 65.0, crystWtPcts, bulkRho || 3.0);
+  }, [phases, matrixCalcs, amorphousWtPct]);
 
-  // Run Monte Carlo on demand or when phases change
+  // Run Monte Carlo synchronously (~3ms for 5,000 draws)
   const handleRunMonteCarlo = () => {
-    setMcRunning(true);
     playSynthTone('tick');
-    setTimeout(() => {
-      const res = runRIRMonteCarloSimulation(phases, intensityUncertaintyPct, rirUncertaintyPct, 4000);
-      setMcResult(res);
-      setMcRunning(false);
-      playSynthTone('success');
-    }, 100);
+    const res = runRIRMonteCarloSimulation(phases, intensityUncertaintyPct, rirUncertaintyPct, 5000);
+    setMcResult(res);
+    setMcRunning(false);
+    playSynthTone('success');
   };
 
   useEffect(() => {
-    if (activeTab === 'monte_carlo' && !mcResult) {
-      handleRunMonteCarlo();
+    if (activeTab === 'monte_carlo') {
+      const res = runRIRMonteCarloSimulation(phases, intensityUncertaintyPct, rirUncertaintyPct, 5000);
+      setMcResult(res);
     }
-  }, [activeTab]);
+  }, [activeTab, phases, intensityUncertaintyPct, rirUncertaintyPct]);
 
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
@@ -364,19 +365,19 @@ if amorphous_wt_pct > 0:
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-5">
         <div className="flex items-center gap-3.5">
           <div className="p-3 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-inner">
-            <Cpu className="w-6 h-6 animate-pulse" />
+            <Cpu className="w-6 h-6" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h2 className="text-xl font-black text-slate-100 tracking-tight">
-                RIR Matrix Algebra & Covariance Inspector
+                RIR Matrix Algebra &amp; Covariance Inspector
               </h2>
-              <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-mono px-2 py-0.5 rounded-full font-bold border border-indigo-500/30">
+              <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-mono tabular-nums px-2 py-0.5 rounded-full font-bold border border-indigo-500/30">
                 {n}×{n} System
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Interactive Chung adiabatic transformation vectors, Jacobian error propagation tensors, and Monte Carlo stochastic validation.
+              Interactive Chung adiabatic transformation vectors, Jacobian error propagation tensors, and 5,000-trial Monte Carlo stochastic validation.
             </p>
           </div>
         </div>
@@ -385,13 +386,13 @@ if amorphous_wt_pct > 0:
         <div className="flex items-center gap-2 flex-wrap sm:flex-nowrap">
           <div className="bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Condition Ratio:</span>
-            <span className="font-mono text-xs font-bold text-amber-400">
+            <span className="font-mono tabular-nums text-xs font-bold text-amber-400">
               {matrixCalcs.conditionNumber.toFixed(2)}
             </span>
           </div>
           <div className="bg-slate-950/80 border border-slate-800 px-3 py-1.5 rounded-xl flex items-center gap-2">
             <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">Max Sensitivity:</span>
-            <span className="font-mono text-xs font-bold text-cyan-400">
+            <span className="font-mono tabular-nums text-xs font-bold text-cyan-400">
               {matrixCalcs.maxSensitivity.toExponential(2)}
             </span>
           </div>
@@ -438,14 +439,14 @@ if amorphous_wt_pct > 0:
 
         <button
           onClick={() => { playSynthTone('tick'); setActiveTab('monte_carlo'); }}
-          className={`flex-1 min-w-[130px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 min-w-[130px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap ${
             activeTab === 'monte_carlo'
               ? 'bg-indigo-600 text-white shadow-lg shadow-indigo-500/20'
               : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
           }`}
         >
           <Activity className="w-3.5 h-3.5 text-amber-300" />
-          <span>4. Monte Carlo (4k Runs)</span>
+          <span>4. Monte Carlo (5k Runs)</span>
         </button>
 
         <button
@@ -625,10 +626,10 @@ if amorphous_wt_pct > 0:
             <div>
               <span className="text-xs font-bold text-amber-400 flex items-center gap-2">
                 <Activity className="w-4 h-4" />
-                <span>4,000-Iteration Stochastic Error Engine</span>
+                <span>5,000-Iteration Stochastic Error Engine ({mcResult?.computationTimeMs ?? 0} ms)</span>
               </span>
               <p className="text-[11px] text-slate-400 mt-0.5">
-                Evaluates non-linear error distribution tails and compares empirical percentiles with 1st-order analytical Taylor series.
+                Evaluates non-linear closure tails and compares empirical percentiles against 1st-order analytical Taylor covariance.
               </p>
             </div>
             <button

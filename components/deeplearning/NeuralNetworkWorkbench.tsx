@@ -1329,7 +1329,7 @@ class ${activeArch.shortTag.replace(/[^a-zA-Z0-9]/g, '')}CrystallographyNet(nn.M
           <div className="space-y-0.5">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold">
-                [NN-CORE // PHYSICS-INFORMED NEURAL CRYSTALLOGRAPHY WORKBENCH]
+                NN-CORE · PHYSICS-INFORMED NEURAL CRYSTALLOGRAPHY WORKBENCH
               </span>
               <span
                 className={`text-xs font-mono font-bold uppercase ${
@@ -2038,6 +2038,31 @@ class ${activeArch.shortTag.replace(/[^a-zA-Z0-9]/g, '')}CrystallographyNet(nn.M
                         strokeDasharray="3 3"
                       />
                     ))}
+                    {[60, 140, 220, 300, 380].map((gx, gIdx) => (
+                      <g key={gx}>
+                        <line
+                          x1={gx}
+                          y1="10"
+                          x2={gx}
+                          y2="120"
+                          stroke="#1e293b"
+                          strokeWidth="0.7"
+                          strokeOpacity="0.6"
+                        />
+                        <text
+                          x={gx}
+                          y="131"
+                          textAnchor="middle"
+                          fill="#64748b"
+                          fontSize="7.5"
+                          fontFamily="monospace"
+                        >
+                          {25 + gIdx * 12}°
+                        </text>
+                      </g>
+                    ))}
+                    {/* Baseline axis */}
+                    <line x1="4" y1="120" x2="416" y2="120" stroke="#334155" strokeWidth="1" />
 
                     <polyline
                       fill="none"

@@ -63,6 +63,17 @@ export const SPACE_GROUPS_DATABASE: SpaceGroupInfo[] = [
     extinctionRules: { general: 'None' },
     famousMaterials: ['Kaolinite', 'Kyanite', 'Chalcanthite']
   },
+  {
+    number: 2,
+    symbol: 'C-1',
+    crystalSystem: 'Triclinic',
+    pointGroup: '-1',
+    bravais: 'C',
+    laueClass: '-1',
+    centeringDescription: 'C-Centered Triclinic (conventional feldspar setting): h + k = 2n.',
+    extinctionRules: { general: 'hkl: h + k = 2n (C-centering)' },
+    famousMaterials: ['Microcline (KAlSi3O8)', 'Albite (NaAlSi3O8)', 'Anorthite (CaAl2Si2O8)']
+  },
 
   // MONOCLINIC
   {
@@ -172,7 +183,29 @@ export const SPACE_GROUPS_DATABASE: SpaceGroupInfo[] = [
         '00l: l = 2n'
       ]
     },
-    famousMaterials: ['Orthorhombic Perovskite (CaTiO3)', 'GdFeO3', 'Cementite (Fe3C)', 'Forsterite (Mg2SiO4)', 'LaMnO3']
+    famousMaterials: ['Orthorhombic Perovskite (CaTiO3)', 'GdFeO3', 'Cementite (Fe3C)', 'LaMnO3']
+  },
+  {
+    number: 62,
+    symbol: 'Pbnm',
+    crystalSystem: 'Orthorhombic',
+    pointGroup: 'mmm',
+    bravais: 'P',
+    laueClass: 'mmm',
+    centeringDescription: 'Non-standard setting of Pnma (#62) with b-glide perpendicular to a and n-glide perpendicular to b. Standard mineralogical setting for Olivine/Forsterite.',
+    extinctionRules: {
+      general: 'None',
+      zonal: [
+        '0kl: k = 2n (b-glide perp to a)',
+        'h0l: h + l = 2n (n-glide perp to b)'
+      ],
+      serial: [
+        'h00: h = 2n',
+        '0k0: k = 2n',
+        '00l: l = 2n'
+      ]
+    },
+    famousMaterials: ['Forsterite (Mg2SiO4)', 'Fayalite (Fe2SiO4)', 'Olivine']
   },
   {
     number: 63,
@@ -288,6 +321,20 @@ export const SPACE_GROUPS_DATABASE: SpaceGroupInfo[] = [
   },
 
   // TRIGONAL / RHOMBOHEDRAL
+  {
+    number: 152,
+    symbol: 'P3_1 2 1',
+    crystalSystem: 'Trigonal',
+    pointGroup: '32',
+    bravais: 'P',
+    laueClass: '-3m',
+    centeringDescription: 'Primitive chiral trigonal enantiomorph with 3_1 screw axis along c. Archetype of right/left-handed Alpha-Quartz.',
+    extinctionRules: {
+      general: 'None',
+      serial: ['00l: l = 3n (3_1 / 3_2 screw axis along c)']
+    },
+    famousMaterials: ['Alpha-Quartz (SiO2)', 'Berlinite (AlPO4)', 'Cinnabar (HgS)']
+  },
   {
     number: 161,
     symbol: 'R3c',
@@ -707,6 +754,38 @@ export function checkExtinction(
         violatedRule = '4_1 screw axis extinction in I4_1/amd: (00l) requires l = 4n.';
       }
     }
+    if (absL === 0) {
+      const passed = absH % 2 === 0 && absK % 2 === 0 && (absH + absK) % 4 === 0;
+      conditions.push({
+        type: 'Glide Plane (Zonal)',
+        condition: 'hk0: h, k even and h + k = 4n (d-glide)',
+        passed,
+        reason: `h = ${absH}, k = ${absK}, h+k = ${absH + absK}`
+      });
+      if (!passed && isAllowed) {
+        isAllowed = false;
+        category = 'GLIDE_PLANE_EXTINCTION';
+        violatedRule = 'd-glide extinction in I4_1/amd: (hk0) requires h, k even and h + k = 4n.';
+      }
+    }
+  }
+
+  // Alpha-Quartz (P3_1 2 1 #152)
+  if (sg.symbol === 'P3_1 2 1' || sg.number === 152) {
+    if (absH === 0 && absK === 0) {
+      const passed = absL % 3 === 0;
+      conditions.push({
+        type: 'Screw Axis (Serial)',
+        condition: '00l: l = 3n (3_1 screw axis along c)',
+        passed,
+        reason: `l = ${absL} (${passed ? 'Multiple of 3 ✓' : 'Forbidden (must be 3n) ✗'})`
+      });
+      if (!passed) {
+        isAllowed = false;
+        category = 'SCREW_AXIS_EXTINCTION';
+        violatedRule = '3_1 screw axis extinction in P3_1 2 1: (00l) requires l = 3n.';
+      }
+    }
   }
 
   // P2_1/c (#14)
@@ -743,8 +822,8 @@ export function checkExtinction(
     }
   }
 
-  // Pnma (#62)
-  if (sg.symbol === 'Pnma' || sg.number === 62) {
+  // Pnma (#62) & Pbnm (#62 setting)
+  if (sg.symbol === 'Pnma') {
     // 0kl: k + l = 2n (n-glide)
     if (absH === 0) {
       const passed = (absK + absL) % 2 === 0;
@@ -773,6 +852,37 @@ export function checkExtinction(
         isAllowed = false;
         category = 'GLIDE_PLANE_EXTINCTION';
         violatedRule = 'a-glide plane extinction: (hk0) requires h = 2n.';
+      }
+    }
+  } else if (sg.symbol === 'Pbnm') {
+    // 0kl: k = 2n (b-glide perp to a)
+    if (absH === 0) {
+      const passed = absK % 2 === 0;
+      conditions.push({
+        type: 'Glide Plane (Zonal)',
+        condition: '0kl: k = 2n (b-glide plane perp to a)',
+        passed,
+        reason: `k = ${absK} (${passed ? 'Even ✓' : 'Odd ✗'})`
+      });
+      if (!passed) {
+        isAllowed = false;
+        category = 'GLIDE_PLANE_EXTINCTION';
+        violatedRule = 'b-glide plane extinction in Pbnm: (0kl) requires k = 2n.';
+      }
+    }
+    // h0l: h + l = 2n (n-glide perp to b)
+    if (absK === 0) {
+      const passed = (absH + absL) % 2 === 0;
+      conditions.push({
+        type: 'Glide Plane (Zonal)',
+        condition: 'h0l: h + l = 2n (n-glide plane perp to b)',
+        passed,
+        reason: `h + l = ${absH} + ${absL} = ${absH + absL} (${passed ? 'Even ✓' : 'Odd ✗'})`
+      });
+      if (!passed) {
+        isAllowed = false;
+        category = 'GLIDE_PLANE_EXTINCTION';
+        violatedRule = 'n-glide plane extinction in Pbnm: (h0l) requires h + l = 2n.';
       }
     }
   }

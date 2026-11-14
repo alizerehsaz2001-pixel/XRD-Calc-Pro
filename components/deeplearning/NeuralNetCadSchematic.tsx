@@ -103,7 +103,7 @@ export const NeuralNetCadSchematic: React.FC<NeuralNetCadSchematicProps> = ({
       <div className="px-4 py-2.5 bg-[#0B0F19] border-b border-slate-800 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-3">
           <span className="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold">
-            [CAD-NN // NEURAL CRYSTALLOGRAPHY TOPOLOGY & PHYSICS-INFORMED TENSOR PIPELINE]
+            CAD-NN · NEURAL CRYSTALLOGRAPHY TOPOLOGY & PHYSICS-INFORMED TENSOR PIPELINE
           </span>
           <span className="text-[11px] font-mono tabular-nums text-slate-400">
             Backbone: <strong className="text-white uppercase">{selectedArchId}</strong> · RF ={' '}
@@ -333,7 +333,17 @@ export const NeuralNetCadSchematic: React.FC<NeuralNetCadSchematicProps> = ({
                     <stop offset="0%" stopColor="#6366f1" stopOpacity="0.35" />
                     <stop offset="100%" stopColor="#6366f1" stopOpacity="0.02" />
                   </linearGradient>
+                  <pattern id="cadSubGrid1" width="20" height="20" patternUnits="userSpaceOnUse">
+                    <path
+                      d="M 20 0 L 0 0 0 20"
+                      fill="none"
+                      stroke="#1e293b"
+                      strokeWidth="0.5"
+                      strokeOpacity="0.45"
+                    />
+                  </pattern>
                 </defs>
+                <rect x="0" y="0" width="860" height="220" fill="url(#cadSubGrid1)" />
 
                 {/* Left Panel Frame: Spectral Domain 2theta */}
                 <rect

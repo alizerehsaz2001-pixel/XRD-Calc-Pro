@@ -2921,7 +2921,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           <div className="space-y-1">
             <div className="flex items-center gap-3 flex-wrap">
               <span className="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold">
-                [DL-XRD // NEURAL NETWORK CRYSTALLOGRAPHY & PHASE IDENTIFICATION ENGINE]
+                DL-XRD · NEURAL NETWORK CRYSTALLOGRAPHY & PHASE IDENTIFICATION ENGINE
               </span>
               <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
                 ● AI CORE READY ({engineConfig.activation} · {engineConfig.filters} Filters)
@@ -3191,89 +3191,331 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </div>
             </div>
 
-          {/* Network Topology Visualization */}
-          <div className="mb-6 bg-[#050A14]/80 backdrop-blur-md border border-slate-800/80 hover:border-slate-700 shadow-inner rounded-2xl relative z-10 p-5 overflow-hidden group">
-            <div className="absolute inset-0 bg-grid-white/[0.02] [mask-image:linear-gradient(to_bottom,transparent,black,transparent)] pointer-events-none" />
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-2 text-indigo-400 font-black uppercase tracking-widest text-xs">
-                <Cpu className="w-4 h-4 text-indigo-400 animate-pulse" />
-                <span>Live Network Topology</span>
+          {/* High-Precision SVG Live Neural Pipeline & Spectral Receptive Field Schematic */}
+          <div className="mb-6 bg-[#070A12] border border-slate-800 rounded-sm relative z-10 p-4 overflow-hidden">
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-3 pb-2 border-b border-slate-800">
+              <div className="flex items-center gap-2 text-indigo-400 font-mono font-bold uppercase tracking-wider text-xs">
+                <Cpu className="w-3.5 h-3.5 text-cyan-400" />
+                <span>Live 1D-ResNet Spectral Tensor Flow & Receptive Field Schematic</span>
               </div>
-              <span className="text-xs font-mono text-slate-500 bg-[#03060C] px-2 py-0.5 rounded border border-slate-800/80 shadow-inner">
-                {engineConfig.depth}-Layer ResNet
-              </span>
+              <div className="flex items-center gap-3 text-[11px] font-mono tabular-nums text-slate-400">
+                <span>
+                  Depth: <strong className="text-white">{engineConfig.depth}L</strong>
+                </span>
+                <span className="text-slate-700">·</span>
+                <span>
+                  RF:{' '}
+                  <strong className="text-cyan-400">
+                    {(((engineConfig.kernelSize - 1) * engineConfig.depth + 1) * 0.02).toFixed(2)}° 2θ
+                  </strong>
+                </span>
+                <span className="text-slate-700">·</span>
+                <span>
+                  Params:{' '}
+                  <strong className="text-emerald-400">
+                    {(
+                      (engineConfig.filters * engineConfig.kernelSize * engineConfig.depth * 38) /
+                      1000
+                    ).toFixed(1)}
+                    k
+                  </strong>
+                </span>
+              </div>
             </div>
-            
-            <div className="relative h-20 flex items-center justify-between px-2">
-              {/* Input */}
-              <div className="flex flex-col items-center gap-2 z-10">
-                <div className="w-8 h-8 rounded-lg bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.15)]">
-                  <Activity className="w-4 h-4 text-emerald-400" />
-                </div>
-                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">Input</span>
-              </div>
-              
-              {/* Conv Layer */}
-              <div className="flex-1 h-px bg-slate-700/50 relative">
-                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-indigo-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear' }} />
-              </div>
-              
-              {/* Conv Block */}
-              <div className="flex flex-col items-center gap-2 z-10">
-                <div className="w-12 h-12 rounded-xl bg-indigo-500/20 border border-indigo-500/40 flex items-center justify-center relative overflow-hidden group-hover:border-indigo-400 transition-colors shadow-[inset_0_2px_15px_rgba(99,102,241,0.1)]">
-                   <div className="absolute inset-0 flex items-center justify-center opacity-30 gap-0.5">
-                     {Array.from({ length: 3 }).map((_, i) => (
-                       <div key={i} className="w-0.5 h-6 bg-indigo-400 rounded-full" />
-                     ))}
-                   </div>
-                   <span className="text-xs font-black text-indigo-300 relative z-10 bg-indigo-950/80 px-1 rounded">{engineConfig.kernelSize}</span>
-                </div>
-                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">Conv1D</span>
-              </div>
-              
-              {/* Filters */}
-              <div className="flex-1 h-px bg-slate-700/50 relative">
-                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-fuchsia-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: 0.2 }} />
-              </div>
 
-              {/* Feature Maps */}
-              <div className="flex flex-col items-center gap-2 z-10">
-                <div className="w-10 h-10 relative">
-                   {Array.from({ length: 3 }).map((_, i) => (
-                     <div key={i} className="absolute top-0 left-0 w-full h-full rounded-lg bg-fuchsia-500/20 border border-fuchsia-500/40 shadow-[0_0_10px_rgba(217,70,239,0.1)]" style={{ marginLeft: i * 4, marginTop: i * -4 }} />
-                   ))}
-                   <div className="absolute inset-0 flex items-center justify-center z-20 ml-2 -mt-2">
-                     <span className="text-xs font-black text-fuchsia-300 drop-shadow-md">{engineConfig.filters}</span>
-                   </div>
-                </div>
-                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest ml-2">Features</span>
-              </div>
-              
-              <div className="flex-1 h-px bg-slate-700/50 relative">
-                <motion.div className="absolute top-0 left-0 h-full w-1/3 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent" animate={{ x: ['0%', '300%'] }} transition={{ duration: 1.5, repeat: Infinity, ease: 'linear', delay: 0.4 }} />
-              </div>
-              
-              {/* Output */}
-              <div className="flex flex-col items-center gap-2 z-10">
-                <div className="w-8 h-8 rounded-lg bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center shadow-[0_0_15px_rgba(6,182,212,0.15)]">
-                  <span className="text-xs font-black text-cyan-300 uppercase">{engineConfig.pooling}</span>
-                </div>
-                <span className="text-xs font-mono font-bold text-slate-400 uppercase tracking-widest">Pool</span>
-              </div>
+            <div className="bg-[#050811] border border-slate-800/90 rounded-sm p-2.5 overflow-x-auto">
+              <svg
+                viewBox="0 0 640 132"
+                className="w-full min-w-[540px] h-auto select-none"
+                role="img"
+                aria-label="Live 1D Convolutional ResNet Pipeline Schematic"
+              >
+                <defs>
+                  <linearGradient id="dlPipeFlow" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stopColor="#10b981" stopOpacity="0.7" />
+                    <stop offset="45%" stopColor="#6366f1" stopOpacity="0.85" />
+                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.9" />
+                  </linearGradient>
+                  <pattern id="dlCadGrid" width="16" height="16" patternUnits="userSpaceOnUse">
+                    <path
+                      d="M 16 0 L 0 0 0 16"
+                      fill="none"
+                      stroke="#1e293b"
+                      strokeWidth="0.5"
+                      strokeOpacity="0.55"
+                    />
+                  </pattern>
+                </defs>
+
+                <rect x="0" y="0" width="640" height="132" fill="url(#dlCadGrid)" />
+
+                {/* Identity Residual Skip Arc across Conv -> Feature Stack */}
+                <path
+                  d="M 195 32 C 255 6, 355 6, 415 32"
+                  fill="none"
+                  stroke="#818cf8"
+                  strokeWidth="1.3"
+                  strokeDasharray="4 2"
+                />
+                <rect
+                  x="262"
+                  y="4"
+                  width="88"
+                  height="14"
+                  fill="#070A12"
+                  stroke="#4f46e5"
+                  strokeWidth="0.8"
+                />
+                <text
+                  x="306"
+                  y="13.5"
+                  textAnchor="middle"
+                  fill="#a5b4fc"
+                  fontSize="8"
+                  fontFamily="monospace"
+                  fontWeight="bold"
+                >
+                  Skip h_l + F(h_l)
+                </text>
+
+                {/* Connecting Tensor Bus Lines */}
+                <line x1="126" y1="68" x2="154" y2="68" stroke="url(#dlPipeFlow)" strokeWidth="2" />
+                <line x1="274" y1="68" x2="304" y2="68" stroke="url(#dlPipeFlow)" strokeWidth="2" />
+                <line x1="436" y1="68" x2="466" y2="68" stroke="url(#dlPipeFlow)" strokeWidth="2" />
+                <line x1="544" y1="68" x2="568" y2="68" stroke="url(#dlPipeFlow)" strokeWidth="2" />
+
+                {/* Stage 1: Input Diffractogram Tensor [1 x 2048] */}
+                <g transform="translate(10, 24)">
+                  <rect
+                    x="0"
+                    y="0"
+                    width="116"
+                    height="88"
+                    fill="#090D18"
+                    stroke="#10b981"
+                    strokeWidth="1.2"
+                  />
+                  <text
+                    x="8"
+                    y="14"
+                    fill="#34d399"
+                    fontSize="8.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    01. INPUT I(2θ)
+                  </text>
+                  <polyline
+                    fill="none"
+                    stroke="#10b981"
+                    strokeWidth="1.5"
+                    points="8,64 20,63 26,38 32,63 46,63 54,22 60,63 76,63 82,45 88,63 100,50 108,63"
+                  />
+                  <line x1="8" y1="65" x2="108" y2="65" stroke="#334155" strokeWidth="0.8" />
+                  <text x="8" y="80" fill="#94a3b8" fontSize="8" fontFamily="monospace">
+                    [1×2048] · {parsedPoints.length} pks
+                  </text>
+                </g>
+
+                {/* Stage 2: 1D Conv Kernel Filter Bank */}
+                <g transform="translate(154, 24)">
+                  <rect
+                    x="0"
+                    y="0"
+                    width="120"
+                    height="88"
+                    fill="#090D18"
+                    stroke="#6366f1"
+                    strokeWidth="1.2"
+                  />
+                  <text
+                    x="8"
+                    y="14"
+                    fill="#818cf8"
+                    fontSize="8.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    02. CONV1D (K={engineConfig.kernelSize})
+                  </text>
+                  {/* Pseudo-Voigt Kernel Bell Curve */}
+                  <path
+                    d="M 14 64 Q 42 62 52 34 Q 60 18 68 34 Q 78 62 106 64"
+                    fill="rgba(99, 102, 241, 0.18)"
+                    stroke="#818cf8"
+                    strokeWidth="1.6"
+                  />
+                  {/* Receptive Field Kernel Taps */}
+                  {Array.from({ length: Math.min(9, engineConfig.kernelSize) }).map((_, kIdx) => {
+                    const span = Math.min(9, engineConfig.kernelSize);
+                    const kx = 22 + (kIdx / Math.max(1, span - 1)) * 76;
+                    return (
+                      <line
+                        key={kIdx}
+                        x1={kx}
+                        y1="58"
+                        x2={kx}
+                        y2="66"
+                        stroke="#c7d2fe"
+                        strokeWidth="1.2"
+                      />
+                    );
+                  })}
+                  <text x="8" y="80" fill="#cbd5e1" fontSize="8" fontFamily="monospace">
+                    {engineConfig.kernelProfile} · {engineConfig.activation}
+                  </text>
+                </g>
+
+                {/* Stage 3: Multi-Channel Feature Map Tensor Stack */}
+                <g transform="translate(304, 24)">
+                  <rect
+                    x="0"
+                    y="0"
+                    width="132"
+                    height="88"
+                    fill="#090D18"
+                    stroke="#a855f7"
+                    strokeWidth="1.2"
+                  />
+                  <text
+                    x="8"
+                    y="14"
+                    fill="#c084fc"
+                    fontSize="8.5"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    03. {engineConfig.depth}× RES-BLOCKS
+                  </text>
+                  {/* Stacked Isometric Feature Planes */}
+                  {[0, 1, 2, 3].map((planeIdx) => (
+                    <rect
+                      key={planeIdx}
+                      x={14 + planeIdx * 8}
+                      y={24 + planeIdx * 5}
+                      width="78"
+                      height="28"
+                      fill="rgba(168, 85, 247, 0.14)"
+                      stroke="#a855f7"
+                      strokeWidth="1"
+                    />
+                  ))}
+                  <text
+                    x="65"
+                    y="49"
+                    textAnchor="middle"
+                    fill="#f3e8ff"
+                    fontSize="9"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    {engineConfig.filters} Channels
+                  </text>
+                  <text x="8" y="80" fill="#cbd5e1" fontSize="8" fontFamily="monospace">
+                    Tensor [{engineConfig.filters}×512] · BN
+                  </text>
+                </g>
+
+                {/* Stage 4: Pooling & Unit Hypersphere Latent Bottleneck */}
+                <g transform="translate(466, 24)">
+                  <rect
+                    x="0"
+                    y="0"
+                    width="78"
+                    height="88"
+                    fill="#090D18"
+                    stroke="#06b6d4"
+                    strokeWidth="1.2"
+                  />
+                  <text
+                    x="6"
+                    y="14"
+                    fill="#22d3ee"
+                    fontSize="8"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    04. {engineConfig.pooling.toUpperCase()} POOL
+                  </text>
+                  <circle
+                    cx="39"
+                    cy="44"
+                    r="17"
+                    fill="#082f49"
+                    stroke="#06b6d4"
+                    strokeWidth="1.3"
+                  />
+                  <ellipse
+                    cx="39"
+                    cy="44"
+                    rx="17"
+                    ry="6"
+                    fill="none"
+                    stroke="#22d3ee"
+                    strokeWidth="0.8"
+                    strokeDasharray="2 2"
+                  />
+                  <line x1="39" y1="44" x2="51" y2="33" stroke="#34d399" strokeWidth="1.5" />
+                  <circle cx="51" cy="33" r="2.5" fill="#34d399" />
+                  <text x="6" y="80" fill="#94a3b8" fontSize="8" fontFamily="monospace">
+                    z ∈ S¹²⁷ (||z||=1)
+                  </text>
+                </g>
+
+                {/* Stage 5: Softmax + Dirichlet QPA Output */}
+                <g transform="translate(568, 24)">
+                  <rect
+                    x="0"
+                    y="0"
+                    width="62"
+                    height="88"
+                    fill="#090D18"
+                    stroke="#10b981"
+                    strokeWidth="1.2"
+                  />
+                  <text
+                    x="6"
+                    y="14"
+                    fill="#34d399"
+                    fontSize="8"
+                    fontFamily="monospace"
+                    fontWeight="bold"
+                  >
+                    05. QPA
+                  </text>
+                  {[
+                    { y: 26, w: 44, col: '#10b981' },
+                    { y: 40, w: 26, col: '#06b6d4' },
+                    { y: 54, w: 14, col: '#6366f1' },
+                  ].map((b, bIdx) => (
+                    <rect
+                      key={bIdx}
+                      x="8"
+                      y={b.y}
+                      width={b.w}
+                      height="8"
+                      fill={b.col}
+                    />
+                  ))}
+                  <text x="6" y="80" fill="#94a3b8" fontSize="7.5" fontFamily="monospace">
+                    ∑w_p=100%
+                  </text>
+                </g>
+              </svg>
             </div>
-            
-            <div className="mt-5 grid grid-cols-3 gap-2 border-t border-slate-700/50 pt-3">
+
+            <div className="mt-3 grid grid-cols-3 gap-2 pt-2.5 border-t border-slate-800/90 text-xs font-mono tabular-nums">
               <div className="flex flex-col">
-                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Activation</span>
-                <span className="text-xs font-black text-indigo-300">{engineConfig.activation}</span>
+                <span className="text-[10px] text-slate-400 uppercase">Activation Gate</span>
+                <span className="font-bold text-indigo-300">{engineConfig.activation}</span>
               </div>
-              <div className="flex flex-col items-center border-x border-slate-700/50">
-                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Profile</span>
-                <span className="text-xs font-black text-fuchsia-300">{engineConfig.kernelProfile}</span>
+              <div className="flex flex-col items-center border-x border-slate-800">
+                <span className="text-[10px] text-slate-400 uppercase">Kernel Profile</span>
+                <span className="font-bold text-cyan-300">{engineConfig.kernelProfile}</span>
               </div>
               <div className="flex flex-col items-end">
-                <span className="text-[7.5px] font-mono text-slate-500 uppercase tracking-widest mb-0.5">Optimization</span>
-                <span className="text-xs font-black text-emerald-300">{engineConfig.optimization}</span>
+                <span className="text-[10px] text-slate-400 uppercase">Optimizer</span>
+                <span className="font-bold text-emerald-300">{engineConfig.optimization}</span>
               </div>
             </div>
           </div>
@@ -6658,27 +6900,29 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             wtPct: Number(((r.weightedFlux / sumFlux) * 100).toFixed(1))
           }));
 
+          const phaseColors = ['#10b981', '#06b6d4', '#6366f1', '#f59e0b'];
+
           return (
             <div
               id="dl-executive-scorecard-anchor"
-              className="bg-gradient-to-br from-[#070D1B] via-[#0A1224] to-[#070D1B] p-5 rounded-3xl border border-indigo-500/25 shadow-xl space-y-4"
+              className="bg-[#070A12] p-5 rounded-sm border border-slate-800 space-y-4"
             >
-              <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
+                  <div className="w-9 h-9 rounded-sm bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
                     <CheckCircle2 className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h2 className="text-sm sm:text-base font-black text-white uppercase tracking-wider">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <h2 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider font-mono">
                         Executive Neural Phase ID & Chung RIR Quantitative Scorecard
                       </h2>
-                      <span className="px-2 py-0.5 rounded-full bg-indigo-500/15 border border-indigo-500/30 text-[10px] font-mono font-bold text-indigo-300">
-                        {isMixMode ? 'Multi-Phase Deconvolution' : 'Single / Primary Phase Mode'}
+                      <span className="text-xs font-mono font-bold text-indigo-400">
+                        · {isMixMode ? 'MULTI-PHASE DECONVOLUTION' : 'SINGLE / PRIMARY PHASE MODE'}
                       </span>
                     </div>
                     <p className="text-xs text-slate-400">
-                      Click any candidate card to inspect its crystal structure, spectral alignment, and microstructure parameters
+                      Select any candidate card below to inspect its reciprocal lattice alignment, crystal symmetry, and microstructure parameters
                     </p>
                   </div>
                 </div>
@@ -6691,9 +6935,9 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'bragg' }));
                       playSynthTone('switch');
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/30 text-cyan-300 text-xs font-mono font-bold transition-all cursor-pointer"
+                    className="px-3 py-1.5 rounded-sm bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold transition-colors cursor-pointer"
                   >
-                    → Send to Bragg Engine
+                    → Bragg Engine
                   </button>
                   <button
                     type="button"
@@ -6701,9 +6945,9 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'scherrer' }));
                       playSynthTone('switch');
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-indigo-300 text-xs font-mono font-bold transition-all cursor-pointer"
+                    className="px-3 py-1.5 rounded-sm bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-mono font-bold transition-colors cursor-pointer"
                   >
-                    → Send to Scherrer
+                    → Scherrer
                   </button>
                   <button
                     type="button"
@@ -6711,16 +6955,54 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                       window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'wh' }));
                       playSynthTone('switch');
                     }}
-                    className="px-3 py-1.5 rounded-xl bg-purple-500/10 hover:bg-purple-500/20 border border-purple-500/30 text-purple-300 text-xs font-mono font-bold transition-all cursor-pointer"
+                    className="px-3 py-1.5 rounded-sm bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold transition-colors cursor-pointer"
                   >
-                    → Send to Williamson-Hall
+                    → Williamson-Hall
                   </button>
+                </div>
+              </div>
+
+              {/* Integrated Chung RIR Multi-Phase Weight Fraction (wt%) Stacked Bar Graphic */}
+              <div className="p-3 rounded-sm bg-[#0B0F19] border border-slate-800 space-y-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono tabular-nums">
+                  <span className="text-slate-300 font-bold uppercase tracking-wider">
+                    Chung Adiabatic Matrix-Flushing QPA Partition: w_α = (I_α / RIR_α) / ∑(I_k / RIR_k)
+                  </span>
+                  <span className="text-emerald-400 font-bold">
+                    ∑ w_p = 100.0 wt% ({qpaItems.length} Candidate Phases)
+                  </span>
+                </div>
+                <div className="h-3.5 w-full rounded-sm bg-[#050811] border border-slate-800 overflow-hidden flex">
+                  {qpaItems.map(({ cand, wtPct }, idx) => (
+                    <div
+                      key={cand.card_id || cand.phase_name}
+                      style={{
+                        width: `${Math.max(4, Number(wtPct))}%`,
+                        backgroundColor: phaseColors[idx % phaseColors.length],
+                      }}
+                      className="h-full border-r border-slate-950 last:border-r-0 transition-all duration-300"
+                      title={`${cand.phase_name} (${cand.formula}): ${wtPct}% wt`}
+                    />
+                  ))}
+                </div>
+                <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono tabular-nums text-slate-400">
+                  {qpaItems.map(({ cand, estRIR, wtPct }, idx) => (
+                    <span key={cand.card_id || idx} className="flex items-center gap-1.5">
+                      <span
+                        className="w-2.5 h-2.5 inline-block rounded-none"
+                        style={{ backgroundColor: phaseColors[idx % phaseColors.length] }}
+                      />
+                      <strong className="text-slate-200">{cand.phase_name}</strong>: {wtPct}% wt (I/I_c=
+                      {estRIR.toFixed(2)})
+                    </span>
+                  ))}
                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
                 {qpaItems.map(({ cand, estRIR, wtPct }, idx) => {
                   const isSelected = selectedCandidate?.phase_name === cand.phase_name;
+                  const barColor = phaseColors[idx % phaseColors.length];
                   return (
                     <button
                       key={cand.card_id || cand.phase_name}
@@ -6729,40 +7011,50 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         setSelectedCandidate(cand);
                         playSynthTone('tick');
                       }}
-                      className={`p-3.5 rounded-2xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+                      className={`p-3.5 rounded-sm border text-left transition-all cursor-pointer flex flex-col justify-between ${
                         isSelected
-                          ? 'bg-indigo-950/50 border-indigo-400 shadow-lg shadow-indigo-500/15 ring-1 ring-indigo-400/40'
-                          : 'bg-[#050A14]/90 border-slate-800 hover:border-slate-700'
+                          ? 'bg-indigo-950/45 border-indigo-400'
+                          : 'bg-[#0B0F19] border-slate-800 hover:border-slate-700'
                       }`}
                     >
-                      <div>
-                        <div className="flex items-center justify-between gap-2 mb-1.5">
-                          <span className="px-2 py-0.5 rounded bg-slate-800 text-[10px] font-mono font-bold text-slate-300">
-                            #{idx + 1} • {cand.card_id}
+                      <div className="space-y-1.5">
+                        <div className="flex items-center justify-between gap-2 font-mono text-[11px] tabular-nums">
+                          <span className="text-slate-400 font-bold">
+                            #{idx + 1} · {cand.card_id}
                           </span>
                           <span
-                            className={`px-2 py-0.5 rounded text-xs font-mono font-black ${
+                            className={`font-bold ${
                               cand.confidence_score >= 85
-                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
+                                ? 'text-emerald-400'
                                 : cand.confidence_score >= 65
-                                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
-                                : 'bg-amber-500/15 text-amber-400 border border-amber-500/30'
+                                ? 'text-cyan-400'
+                                : 'text-amber-400'
                             }`}
                           >
-                            {cand.confidence_score.toFixed(1)}%
+                            {cand.confidence_score.toFixed(1)}% Match
                           </span>
                         </div>
-                        <div className="text-sm font-black text-white truncate">
+                        <div className="text-sm font-bold text-white truncate">
                           {cand.phase_name}
                         </div>
-                        <div className="text-xs font-mono text-indigo-300 truncate mt-0.5">
-                          {cand.formula} • {cand.crystalSystem || 'Crystalline'} ({cand.spaceGroup || 'P1'})
+                        <div className="text-xs font-mono text-indigo-300 truncate">
+                          {cand.formula} · {cand.crystalSystem || 'Crystalline'} ({cand.spaceGroup || 'P1'})
+                        </div>
+                        {/* Confidence & Weight Bar */}
+                        <div className="w-full h-1.5 bg-[#050811] border border-slate-800 overflow-hidden mt-1">
+                          <div
+                            className="h-full"
+                            style={{
+                              width: `${Math.min(100, Math.max(8, cand.confidence_score))}%`,
+                              backgroundColor: barColor,
+                            }}
+                          />
                         </div>
                       </div>
 
-                      <div className="mt-3 pt-2.5 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono">
+                      <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono tabular-nums">
                         <span className="text-slate-400">
-                          Peaks: <strong className="text-white">{cand.matched_peaks?.length || 0}</strong> • RIR={estRIR.toFixed(1)}
+                          Peaks: <strong className="text-white">{cand.matched_peaks?.length || 0}</strong> · RIR={estRIR.toFixed(1)}
                         </span>
                         <span className="text-emerald-400 font-bold">
                           {wtPct}% wt
@@ -6777,21 +7069,21 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
         })()}
 
         {/* Sub-view Switcher: Spectral Alignment vs ML Techniques Studio */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-slate-900/90 backdrop-blur-xl rounded-2xl border border-slate-800 shadow-xl">
+        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#070A12] rounded-sm border border-slate-800">
           <div className="flex items-center gap-2 flex-wrap">
             <button
               onClick={() => {
                 setResultsSubTab('alignment');
                 playSynthTone('tick');
               }}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-sm text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer border ${
                 resultsSubTab === 'alignment'
-                  ? 'bg-gradient-to-r from-violet-600 to-indigo-600 text-white shadow-lg shadow-indigo-500/25 ring-2 ring-indigo-400/40'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+                  ? 'bg-indigo-600 text-white border-indigo-500'
+                  : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
               }`}
             >
-              <Activity className="w-4 h-4 text-cyan-400" />
-              <span>Spectral Cross-Correlation & Alignment</span>
+              <Activity className="w-4 h-4 text-cyan-300" />
+              <span>01. Spectral Cross-Correlation & Alignment</span>
             </button>
 
             <button
@@ -6799,31 +7091,28 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 setResultsSubTab('ml_techniques');
                 playSynthTone('switch');
               }}
-              className={`px-4 py-2.5 rounded-xl text-xs font-black uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer ${
+              className={`px-4 py-2 rounded-sm text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer border ${
                 resultsSubTab === 'ml_techniques'
-                  ? 'bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 text-white shadow-lg shadow-indigo-500/25 ring-2 ring-purple-400/40'
-                  : 'text-slate-400 hover:text-white hover:bg-slate-800/80'
+                  ? 'bg-cyan-600 text-white border-cyan-500'
+                  : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
               }`}
             >
-              <Brain className="w-4 h-4 text-purple-300 animate-pulse" />
-              <span>ML Techniques & Neural Architecture Studio</span>
-              <span className="px-2 py-0.5 rounded-full bg-cyan-400/20 text-cyan-200 text-[10px] font-mono border border-cyan-400/30">
-                Transformers & Deconv v5.0
+              <Brain className="w-4 h-4 text-amber-300" />
+              <span>02. ML Techniques & PyTorch Architecture Studio</span>
+              <span className="text-[10px] font-mono text-cyan-200 opacity-90">
+                [PINN + NNLS v5.0]
               </span>
             </button>
           </div>
 
-          <div className="hidden sm:flex items-center gap-3 text-[11px] font-mono text-slate-400 pr-2">
-            <span className="flex items-center gap-1.5 text-cyan-400 font-bold">
-              <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-              Spectral Transformers
-            </span>
-            <span>•</span>
-            <span className="text-emerald-400">Multi-Phase Deconv</span>
-            <span>•</span>
+          <div className="hidden sm:flex items-center gap-2.5 text-[11px] font-mono tabular-nums text-slate-400 pr-2">
+            <span className="text-cyan-400 font-bold">● Spectral Transformers</span>
+            <span className="text-slate-700">·</span>
+            <span className="text-emerald-400">NNLS Deconv</span>
+            <span className="text-slate-700">·</span>
             <span className="text-indigo-400">PINN Extinctions</span>
-            <span>•</span>
-            <span className="text-purple-400">MC-Dropout Uncertainty</span>
+            <span className="text-slate-700">·</span>
+            <span className="text-amber-400">MC-Dropout</span>
           </div>
         </div>
 
@@ -6857,53 +7146,50 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               exit={{ opacity: 0, y: -20 }}
               className="space-y-6 pt-4"
             >
-              <div className="bg-[#0B1221]/80 backdrop-blur-xl text-white p-8 rounded-[2rem] shadow-2xl border border-slate-800/80 hover:border-slate-700/80 relative overflow-hidden">
-                {/* Animated subtle grid and gradient */}
-                <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-[0.03] pointer-events-none mix-blend-screen"></div>
-                <div className="absolute -top-1/2 -right-1/4 w-[800px] h-[800px] bg-indigo-500/10 rounded-full blur-[150px] pointer-events-none" />
-                <div className="absolute bottom-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-violet-500/50 to-transparent opacity-50" />
-
-                {/* HexTech UI Accents */}
-                <div className="absolute top-0 left-12 w-24 h-1 bg-violet-500" />
-                <div className="absolute top-1 left-12 w-32 h-px bg-violet-400/50" />
-
-                {/* Warning Ribbon */}
-                <div className="absolute top-0 right-10 bg-gradient-to-r from-amber-500 to-amber-400 text-slate-950 text-xs font-black px-5 py-2 uppercase tracking-[0.2em] rounded-b-lg flex items-center gap-2 shadow-[0_4px_20px_rgba(245,158,11,0.3)] z-20">
-                  <ShieldAlert className="w-4 h-4 animate-pulse opacity-80" />
-                  Laboratory Verification Required
+              <div className="bg-[#070A12] text-white p-6 sm:p-8 rounded-sm border border-slate-800 relative overflow-hidden">
+                {/* Warning Status Bar */}
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-5 pb-3 border-b border-slate-800 text-xs font-mono">
+                  <span className="text-indigo-400 font-bold uppercase tracking-wider">
+                    CRYSTALLOGRAPHIC PHASE DOSSIER · {selectedCandidate.card_id || 'ICDD-REF'}
+                  </span>
+                  <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                    <ShieldAlert className="w-3.5 h-3.5" />
+                    <span>LABORATORY RIETVELD VERIFICATION RECOMMENDED</span>
+                  </span>
                 </div>
 
                 {/* Mixture Candidates Selector */}
                 {result?.candidates && result.candidates.length > 1 && (
-                  <div className="flex flex-col gap-2 mb-8 relative z-10 p-5 bg-[#050A14]/40 rounded-3xl border border-slate-700/50 shadow-[inset_0_2px_10px_rgba(0,0,0,0.2)]">
-                    <div className="w-full mb-3 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-700/40 pb-4 gap-3 relative">
+                  <div className="flex flex-col gap-2 mb-6 relative z-10 p-4 bg-[#0B0F19] rounded-sm border border-slate-800">
+                    <div className="w-full mb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-lg bg-indigo-500/20 flex items-center justify-center border border-indigo-500/30">
-                          <Layers className="w-3.5 h-3.5 text-indigo-300" />
-                        </div>
-                        <span className="text-sm font-black text-slate-200 uppercase tracking-[0.15em]">
-                          Identified Mixture Components
+                        <Layers className="w-4 h-4 text-indigo-400" />
+                        <span className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider">
+                          Identified Mixture Components ({result.candidates.length} Phases)
                         </span>
                       </div>
-                      <div className="flex items-center gap-1.5 px-3 py-1.5 bg-amber-500/10 border border-amber-500/20 rounded-lg text-xs font-black text-amber-400 uppercase tracking-widest shadow-[0_0_10px_rgba(245,158,11,0.1)] backdrop-blur-md">
-                        <ShieldAlert className="w-3 h-3" />
-                        {t("Laboratory Verification Required", "Laboratory Verification Required")}
-                      </div>
+                      <span className="text-[11px] font-mono text-slate-400">
+                        Click phase tab to switch active crystallographic dossier
+                      </span>
                     </div>
-                    <div className="flex flex-wrap gap-2.5">
+                    <div className="flex flex-wrap gap-2">
                     {result.candidates.map((candidate, idx) => (
                       <button
                         key={candidate.phase_name + idx}
                         onClick={() => setSelectedCandidate(candidate)}
-                        className={`px-4 py-2.5 rounded-xl border text-sm font-bold tracking-wider uppercase transition-all flex items-center gap-2 ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-600 border-indigo-500 text-white shadow-[0_0_20px_rgba(79,70,229,0.4)]" : "bg-[#03060C]/50 border-slate-800/80/80 text-slate-400 hover:bg-slate-800 hover:text-white"}`}
+                        className={`px-3.5 py-2 rounded-sm border text-xs font-mono font-bold uppercase transition-colors flex items-center gap-2 cursor-pointer ${
+                          selectedCandidate.phase_name === candidate.phase_name
+                            ? 'bg-indigo-600 border-indigo-500 text-white'
+                            : 'bg-[#070A12] border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white'
+                        }`}
                       >
-                        {candidate.phase_name}
-                        <span className={`px-1.5 py-0.5 rounded text-xs font-mono ${selectedCandidate.phase_name === candidate.phase_name ? "bg-indigo-500/50 text-white" : "bg-slate-800 text-slate-500"}`}>
+                        <span>{candidate.phase_name}</span>
+                        <span className="tabular-nums opacity-90">
                           {candidate.confidence_score.toFixed(0)}%
                         </span>
                         {candidate.mlValidationScore !== undefined && (
-                          <span className={`px-1.5 py-0.5 rounded text-[10px] font-mono tracking-tight ${selectedCandidate.phase_name === candidate.phase_name ? "bg-emerald-500/30 text-emerald-200 border border-emerald-400/40" : "bg-emerald-950/40 text-emerald-400 border border-emerald-800/40"}`} title="Phys-ML Validation Match">
-                            ML:{candidate.mlValidationScore.toFixed(0)}%
+                          <span className="text-[10px] font-mono text-emerald-300 tabular-nums" title="Phys-ML Validation Match">
+                            · ML:{candidate.mlValidationScore.toFixed(0)}%
                           </span>
                         )}
                       </button>
@@ -6912,9 +7198,9 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   </div>
                 )}
 
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 mb-8 p-5 sm:p-6 bg-[#070B14] rounded-2xl border border-slate-800 relative z-10">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 mb-8 p-5 sm:p-6 bg-[#0B0F19] rounded-sm border border-slate-800 relative z-10">
                   <div className="flex items-start sm:items-center gap-4">
-                    <div className="w-14 h-14 bg-slate-900 rounded-xl border border-slate-800 flex items-center justify-center shrink-0 text-indigo-400">
+                    <div className="w-14 h-14 bg-[#070A12] rounded-sm border border-slate-800 flex items-center justify-center shrink-0 text-indigo-400">
                       <Brain className="w-7 h-7" />
                     </div>
 

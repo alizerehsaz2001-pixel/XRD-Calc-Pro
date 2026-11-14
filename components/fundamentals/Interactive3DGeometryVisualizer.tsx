@@ -167,6 +167,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
   const [showAngleArcs, setShowAngleArcs] = useState<boolean>(true);
   const [showSymmetryAxes, setShowSymmetryAxes] = useState<boolean>(true);
   const [showCoordinationPolyhedron, setShowCoordinationPolyhedron] = useState<boolean>(false);
+  const [showPrimitiveCellOverlay, setShowPrimitiveCellOverlay] = useState<boolean>(true);
   const [hexPrismMode, setHexPrismMode] = useState<boolean>(true);
 
   // Miller Plane (hkl) Slicing Overlay
@@ -1101,6 +1102,104 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       }
     }
 
+    // 3D Inscribed Primitive Cell (V_p = V_conv / Z) inside Non-Primitive Conventional Cells (I, F, C, R)
+    const primitiveCellEdges: { p1: { px: number; py: number }; p2: { px: number; py: number }; isBasis: boolean; label?: string }[] = [];
+    const primitiveCellFaces: string[] = [];
+
+    if (showPrimitiveCellOverlay && activeCentering !== 'P') {
+      let pVecs: [[number, number, number], [number, number, number], [number, number, number]] | null = null;
+      if (activeCentering === 'F') {
+        // Rhombohedral primitive cell of FCC/oF: a_p = 1/2(b+c), b_p = 1/2(a+c), c_p = 1/2(a+b)
+        pVecs = [
+          [0, 0.5, 0.5],
+          [0.5, 0, 0.5],
+          [0.5, 0.5, 0]
+        ];
+      } else if (activeCentering === 'I') {
+        // Primitive cell of BCC/tI/oI: a_p = a, b_p = b, c_p = 1/2(a+b+c)
+        pVecs = [
+          [1, 0, 0],
+          [0, 1, 0],
+          [0.5, 0.5, 0.5]
+        ];
+      } else if (activeCentering === 'C') {
+        // Primitive rhombic prism of C-centered cell: a_p = 1/2(a+b), b_p = 1/2(-a+b), c_p = c (shifted to fit inside [0,1]^3)
+        pVecs = [
+          [0.5, 0.5, 0],
+          [0, 1, 0],
+          [0, 0, 1]
+        ];
+      } else if (activeCentering === 'R' && trigonalSetting === 'hexagonal_obverse') {
+        // Obverse rhombohedral primitive vectors inside hexagonal triple cell
+        pVecs = [
+          [2 / 3, 1 / 3, 1 / 3],
+          [-1 / 3, 1 / 3, 1 / 3],
+          [-1 / 3, -2 / 3, 1 / 3]
+        ];
+      }
+
+      if (pVecs) {
+        const [v1, v2, v3] = pVecs;
+        const pOrigin: [number, number, number] =
+          activeCentering === 'R' && trigonalSetting === 'hexagonal_obverse' ? [1 / 3, 2 / 3, 0] : [0, 0, 0];
+
+        const getPNode = (i1: number, i2: number, i3: number) => {
+          const u = pOrigin[0] + i1 * v1[0] + i2 * v2[0] + i3 * v3[0];
+          const v = pOrigin[1] + i1 * v1[1] + i2 * v2[1] + i3 * v3[1];
+          const w = pOrigin[2] + i1 * v1[2] + i2 * v2[2] + i3 * v3[2];
+          const cart = fracToCart(u, v, w);
+          return project(cart.x, cart.y, cart.z);
+        };
+
+        const pCorners = [
+          getPNode(0, 0, 0), // 0
+          getPNode(1, 0, 0), // 1 (a_p)
+          getPNode(1, 1, 0), // 2
+          getPNode(0, 1, 0), // 3 (b_p)
+          getPNode(0, 0, 1), // 4 (c_p)
+          getPNode(1, 0, 1), // 5
+          getPNode(1, 1, 1), // 6
+          getPNode(0, 1, 1)  // 7
+        ];
+
+        const pEdgeIdx: [number, number, boolean, string?][] = [
+          [0, 1, true, 'a_p'],
+          [0, 3, true, 'b_p'],
+          [0, 4, true, 'c_p'],
+          [1, 2, false],
+          [2, 3, false],
+          [4, 5, false],
+          [5, 6, false],
+          [6, 7, false],
+          [7, 4, false],
+          [1, 5, false],
+          [2, 6, false],
+          [3, 7, false]
+        ];
+
+        pEdgeIdx.forEach(([iA, iB, isBasis, label]) => {
+          primitiveCellEdges.push({
+            p1: pCorners[iA],
+            p2: pCorners[iB],
+            isBasis,
+            label
+          });
+        });
+
+        const pFaceIdx = [
+          [0, 1, 2, 3],
+          [4, 5, 6, 7],
+          [0, 1, 5, 4],
+          [2, 3, 7, 6],
+          [1, 2, 6, 5],
+          [0, 3, 7, 4]
+        ];
+        pFaceIdx.forEach(quad => {
+          primitiveCellFaces.push(quad.map(idx => `${pCorners[idx].px.toFixed(1)},${pCorners[idx].py.toFixed(1)}`).join(' '));
+        });
+      }
+    }
+
     // 3D Orientation Gizmo (Bottom-Left HUD Triad)
     const gizmoOrigin = { x: 48, y: 374 };
     const gizmoLen = 26;
@@ -1139,6 +1238,8 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
       millerPlanePolygons,
       symmetryAxes,
       coordinationPolygons,
+      primitiveCellEdges,
+      primitiveCellFaces,
       gizmoVectors
     };
   }, [
@@ -1155,6 +1256,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     hklL,
     activeSystem.id,
     showCoordinationPolyhedron,
+    showPrimitiveCellOverlay,
     showCenterings,
     supercellMode,
     trigonalSetting
@@ -1357,7 +1459,7 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                   onClick={() => { playSynthTone('tick'); setIsAutoRotating(!isAutoRotating); }}
                   className={`px-2.5 py-1 rounded-lg text-xs font-mono font-bold flex items-center gap-1 transition-all ${
                     isAutoRotating
-                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30 animate-pulse'
+                      ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/30'
                       : 'text-slate-400 hover:text-white hover:bg-slate-800'
                   }`}
                   title="Toggle Turntable Rotation"
@@ -1391,6 +1493,20 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                 >
                   Polyhedron
                 </button>
+
+                {activeCentering !== 'P' && (
+                  <button
+                    onClick={() => { playSynthTone('tick'); setShowPrimitiveCellOverlay(!showPrimitiveCellOverlay); }}
+                    className={`px-2 py-1 rounded-lg text-[11px] font-mono font-bold transition-all ${
+                      showPrimitiveCellOverlay
+                        ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                    title="Toggle Inscribed Primitive Sub-Cell (V_prim = V_conv / Z)"
+                  >
+                    Prim Cell (V/{packingTelemetry.netZ})
+                  </button>
+                )}
 
                 <div className="w-[1px] h-4 bg-slate-800 mx-0.5" />
 
@@ -1627,6 +1743,47 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                         strokeLinejoin="round"
                       />
                     ))}
+
+                    {/* 3D Inscribed Primitive Sub-Cell Overlay (V_p = V_conv / Z) */}
+                    {showPrimitiveCellOverlay && activeCentering !== 'P' && (
+                      <g>
+                        {projection.primitiveCellFaces.map((pts, idx) => (
+                          <polygon
+                            key={`prim-face-${idx}`}
+                            points={pts}
+                            fill="#10b981"
+                            fillOpacity="0.11"
+                            stroke="none"
+                          />
+                        ))}
+                        {projection.primitiveCellEdges.map((pe, idx) => (
+                          <g key={`prim-edge-${idx}`}>
+                            <line
+                              x1={pe.p1.px}
+                              y1={pe.p1.py}
+                              x2={pe.p2.px}
+                              y2={pe.p2.py}
+                              stroke={pe.isBasis ? '#34d399' : '#10b981'}
+                              strokeWidth={pe.isBasis ? '2.2' : '1.3'}
+                              strokeDasharray={pe.isBasis ? 'none' : '3 2'}
+                              opacity={pe.isBasis ? '0.95' : '0.75'}
+                            />
+                            {pe.label && (
+                              <text
+                                x={(pe.p1.px + pe.p2.px) / 2 + 5}
+                                y={(pe.p1.py + pe.p2.py) / 2 - 4}
+                                fill="#6ee7b7"
+                                fontSize="9.5"
+                                fontFamily="monospace"
+                                fontWeight="bold"
+                              >
+                                {pe.label}
+                              </text>
+                            )}
+                          </g>
+                        ))}
+                      </g>
+                    )}
 
                     {/* 3D Crystallographic Symmetry Axes Overlay */}
                     {showSymmetryAxes && projection.symmetryAxes.map((ax, idx) => (
@@ -2592,6 +2749,16 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                     className="rounded bg-slate-800 border-slate-700 text-cyan-500"
                   />
                   <span>Coord. Polyhedron</span>
+                </label>
+
+                <label className="flex items-center gap-2 cursor-pointer text-emerald-300 col-span-2">
+                  <input
+                    type="checkbox"
+                    checked={showPrimitiveCellOverlay}
+                    onChange={(e) => setShowPrimitiveCellOverlay(e.target.checked)}
+                    className="rounded bg-slate-800 border-slate-700 text-emerald-500"
+                  />
+                  <span>Inscribed Primitive Sub-Cell (a_p, b_p, c_p · V_p = V/Z)</span>
                 </label>
               </div>
 

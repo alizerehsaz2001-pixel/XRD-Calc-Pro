@@ -718,17 +718,75 @@ export function runCohenLeastSquaresRefinement(
     }
   }
 
-  // Error propagation to direct cell constants (σ_a = (a / 2) * (σ_A / A))
-  const sigmaA = a > 0 && beta[0] > 0 ? (a / 2) * (stdBeta[0] / beta[0]) : 0;
-  const sigmaB = b > 0 && numCellParams >= 2 && beta[1] > 0 
-    ? (b / 2) * (stdBeta[1] / beta[1]) 
-    : (crystalSystem === 'Cubic' || crystalSystem === 'Tetragonal' || crystalSystem === 'Hexagonal' ? sigmaA : 0);
-  const sigmaC = c > 0 && numCellParams >= 2 
-    ? (crystalSystem === 'Cubic' ? sigmaA : (c / 2) * (stdBeta[crystalSystem === 'Orthorhombic' ? 2 : 1] / beta[crystalSystem === 'Orthorhombic' ? 2 : 1]))
-    : 0;
+  // Error propagation via full Jacobian covariance: Sigma_p = J * Cov(beta) * J^T
+  const extractDirectCell = (bVec: number[]): [number, number, number, number, number, number, number] => {
+    let ca = a, cb = b, cc = c, calpha = alpha, cbeta = betaAngle, cgamma = gamma, cvol = vol;
+    if (crystalSystem === 'Cubic') {
+      if (bVec[0] <= 0) return [a, b, c, alpha, betaAngle, gamma, vol];
+      ca = Math.sqrt(lam2 / (4 * bVec[0])); cb = ca; cc = ca; cvol = ca ** 3;
+    } else if (crystalSystem === 'Tetragonal') {
+      if (bVec[0] <= 0 || bVec[1] <= 0) return [a, b, c, alpha, betaAngle, gamma, vol];
+      ca = Math.sqrt(lam2 / (4 * bVec[0])); cb = ca; cc = Math.sqrt(lam2 / (4 * bVec[1])); cvol = ca * ca * cc;
+    } else if (crystalSystem === 'Hexagonal' || crystalSystem === 'Trigonal') {
+      if (bVec[0] <= 0 || bVec[1] <= 0) return [a, b, c, alpha, betaAngle, gamma, vol];
+      ca = Math.sqrt(lam2 / (3 * bVec[0])); cb = ca; cc = Math.sqrt(lam2 / (4 * bVec[1])); cgamma = 120;
+      cvol = (Math.sqrt(3) / 2) * ca * ca * cc;
+    } else if (crystalSystem === 'Orthorhombic') {
+      if (bVec[0] <= 0 || bVec[1] <= 0 || bVec[2] <= 0) return [a, b, c, alpha, betaAngle, gamma, vol];
+      ca = Math.sqrt(lam2 / (4 * bVec[0])); cb = Math.sqrt(lam2 / (4 * bVec[1])); cc = Math.sqrt(lam2 / (4 * bVec[2])); cvol = ca * cb * cc;
+    } else if (crystalSystem === 'Monoclinic') {
+      if (bVec[0] <= 0 || bVec[1] <= 0 || bVec[2] <= 0) return [a, b, c, alpha, betaAngle, gamma, vol];
+      cb = Math.sqrt(lam2 / (4 * bVec[1]));
+      const cosB = Math.max(-0.999999, Math.min(0.999999, -bVec[3] / Math.sqrt(Math.max(1e-12, bVec[0] * bVec[2]))));
+      const bRad = Math.acos(cosB);
+      cbeta = bRad * (180 / Math.PI);
+      const sinB = Math.sin(bRad);
+      ca = Math.sqrt(lam2 / (4 * bVec[0])) / Math.max(1e-6, sinB);
+      cc = Math.sqrt(lam2 / (4 * bVec[2])) / Math.max(1e-6, sinB);
+      cvol = ca * cb * cc * sinB;
+    } else if (crystalSystem === 'Triclinic') {
+      const [s11, s22, s33, s12, s23, s13] = bVec;
+      if (s11 <= 0 || s22 <= 0 || s33 <= 0) return [a, b, c, alpha, betaAngle, gamma, vol];
+      const as = Math.sqrt(s11) * (2 / wavelength), bs = Math.sqrt(s22) * (2 / wavelength), cs = Math.sqrt(s33) * (2 / wavelength);
+      const gs = Math.acos(Math.max(-0.999999, Math.min(0.999999, s12 / Math.sqrt(s11 * s22))));
+      const als = Math.acos(Math.max(-0.999999, Math.min(0.999999, s23 / Math.sqrt(s22 * s33))));
+      const bes = Math.acos(Math.max(-0.999999, Math.min(0.999999, s13 / Math.sqrt(s11 * s33))));
+      const vsRad = Math.max(1e-10, 1 - Math.cos(als) ** 2 - Math.cos(bes) ** 2 - Math.cos(gs) ** 2 + 2 * Math.cos(als) * Math.cos(bes) * Math.cos(gs));
+      const vs = as * bs * cs * Math.sqrt(vsRad);
+      cvol = 1 / vs;
+      ca = (bs * cs * Math.sin(als)) / vs; cb = (as * cs * Math.sin(bes)) / vs; cc = (as * bs * Math.sin(gs)) / vs;
+      calpha = Math.acos(Math.max(-1, Math.min(1, (Math.cos(bes) * Math.cos(gs) - Math.cos(als)) / Math.max(1e-9, Math.sin(bes) * Math.sin(gs))))) * 180 / Math.PI;
+      cbeta = Math.acos(Math.max(-1, Math.min(1, (Math.cos(als) * Math.cos(gs) - Math.cos(bes)) / Math.max(1e-9, Math.sin(als) * Math.sin(gs))))) * 180 / Math.PI;
+      cgamma = Math.acos(Math.max(-1, Math.min(1, (Math.cos(als) * Math.cos(bes) - Math.cos(gs)) / Math.max(1e-9, Math.sin(als) * Math.sin(bes))))) * 180 / Math.PI;
+    }
+    return [ca, cb, cc, calpha, cbeta, cgamma, cvol];
+  };
 
-  const sigmaBeta = crystalSystem === 'Monoclinic' && numCellParams >= 4 ? stdBeta[3] * 50 : 0;
-  const sigmaVol = vol * Math.sqrt(Math.pow(sigmaA / a, 2) + Math.pow(sigmaB / b, 2) + Math.pow(sigmaC / c, 2));
+  const jacobian: number[][] = Array.from({ length: 7 }, () => Array(P).fill(0));
+  for (let j = 0; j < P; j++) {
+    const hStep = Math.max(1e-8, Math.abs(beta[j]) * 1e-5);
+    const bp = [...beta]; bp[j] += hStep;
+    const bm = [...beta]; bm[j] -= hStep;
+    const fp = extractDirectCell(bp);
+    const fm = extractDirectCell(bm);
+    for (let k = 0; k < 7; k++) jacobian[k][j] = (fp[k] - fm[k]) / (2 * hStep);
+  }
+  const propagatedVar = Array(7).fill(0);
+  for (let k = 0; k < 7; k++) {
+    let v = 0;
+    for (let r = 0; r < P; r++) {
+      for (let cIdx = 0; cIdx < P; cIdx++) v += jacobian[k][r] * covBeta[r][cIdx] * jacobian[k][cIdx];
+    }
+    propagatedVar[k] = Math.max(0, v);
+  }
+
+  const sigmaA = Math.sqrt(propagatedVar[0]);
+  const sigmaB = Math.sqrt(propagatedVar[1]);
+  const sigmaC = Math.sqrt(propagatedVar[2]);
+  const sigmaAlpha = Math.sqrt(propagatedVar[3]);
+  const sigmaBeta = Math.sqrt(propagatedVar[4]);
+  const sigmaGamma = Math.sqrt(propagatedVar[5]);
+  const sigmaVol = Math.sqrt(propagatedVar[6]);
 
   const driftResult: RefinementParameterResult | undefined = useDrift
     ? {
@@ -747,9 +805,9 @@ export function runCohenLeastSquaresRefinement(
       a: { value: a, stdError: sigmaA, unit: 'Å' },
       b: { value: b, stdError: sigmaB, unit: 'Å' },
       c: { value: c, stdError: sigmaC, unit: 'Å' },
-      alpha: { value: alpha, stdError: 0, unit: '°' },
+      alpha: { value: alpha, stdError: sigmaAlpha, unit: '°' },
       beta: { value: betaAngle, stdError: sigmaBeta, unit: '°' },
-      gamma: { value: gamma, stdError: 0, unit: '°' },
+      gamma: { value: gamma, stdError: sigmaGamma, unit: '°' },
       volume: { value: vol, stdError: sigmaVol, unit: 'Å³' },
       driftParam: driftResult
     },

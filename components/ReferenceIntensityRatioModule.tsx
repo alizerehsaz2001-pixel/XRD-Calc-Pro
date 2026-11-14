@@ -1,36 +1,26 @@
 import React, { useState, useMemo, useRef } from 'react';
 import {
   Layers,
-  Activity,
   FlaskConical,
   Download,
   Plus,
   Trash2,
   FileSpreadsheet,
   Calculator,
-  Info,
   Sparkles,
-  RefreshCw,
-  RotateCcw,
   BarChart3,
   PieChart as PieChartIcon,
   Check,
   BookOpen,
   Scale,
-  Search,
   Upload,
-  FileText,
   Database,
-  HelpCircle,
-  Eye,
   Sliders,
-  Play,
   Copy,
   CheckCircle2,
   TrendingUp,
   AlertTriangle,
   Cpu,
-  Share2,
   Code2,
   GitMerge
 } from 'lucide-react';
@@ -41,13 +31,7 @@ import {
   Pie,
   Cell,
   ResponsiveContainer,
-  Tooltip as RechartsTooltip,
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Legend
+  Tooltip as RechartsTooltip
 } from 'recharts';
 import { playSynthTone } from '../utils/sound';
 import { RIRMatrixInspector, RIRMatrixPhase } from './rir/RIRMatrixInspector';
@@ -56,10 +40,14 @@ import { RIRDiffractionVisualizer } from './rir/RIRDiffractionVisualizer';
 import { RIRDatabaseExplorer, RIRDatabaseItem, DATABASE_PRESETS } from './rir/RIRDatabaseExplorer';
 import { RIRTheoryGuide } from './rir/RIRTheoryGuide';
 import { RIRScriptExport } from './rir/RIRScriptExport';
-import { RIRBrindleyInspector, calcBrindleyTau } from './rir/RIRBrindleyInspector';
+import { RIRBrindleyInspector } from './rir/RIRBrindleyInspector';
 import { PawleyRIRBridge } from './rir/PawleyRIRBridge';
-import { computeRIRCovariance, computeDetectionLimits } from './rir/rirMathUtils';
-import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
+import {
+  computeRIRCovariance,
+  computeDetectionLimits,
+  solveSelfConsistentBrindley,
+  computeSpikingUncertainty
+} from './rir/rirMathUtils';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
@@ -153,47 +141,22 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     { id: '3', name: 'Corundum (α-Al₂O₃)', hkl: '(113)', twoTheta: 43.36, intensity: 1500, rir: 1.00, density: 3.98, mac: 31.8, notes: 'Added Internal Standard (10 wt%)', color: COLOR_PALETTE[2] },
   ]);
 
-  const [appState, setAppState] = useState<'setup' | 'computing' | 'results'>('setup');
-  const [computingStep, setComputingStep] = useState(-1);
-
   const [mainTab, setMainTab] = useState<'analysis' | 'pawley_bridge' | 'matrix' | 'calibration' | 'spectrum' | 'database' | 'microabsorption' | 'script' | 'theory'>('analysis');
   const [amorphousWtPct, setAmorphousWtPct] = useState<number>(0);
+  const [amorphousDensity, setAmorphousDensity] = useState<number>(2.2);
   const [internalStandardMode, setInternalStandardMode] = useState<boolean>(false);
   const [standardPhaseId, setStandardPhaseId] = useState<string>('3');
   const [standardAddedWtPct, setStandardAddedWtPct] = useState<number>(10.0);
   const [useBrindley, setUseBrindley] = useState<boolean>(false);
   const [particleDiameterUm, setParticleDiameterUm] = useState<number>(5.0);
 
-  // Uncertainty Estimator State
+  // Uncertainty & Chart Mode State
   const [intensityUncertaintyPct, setIntensityUncertaintyPct] = useState<number>(3.0);
   const [rirUncertaintyPct, setRirUncertaintyPct] = useState<number>(5.0);
   const [chartUnitMode, setChartUnitMode] = useState<'wt' | 'vol'>('wt');
   const [actionNotification, setActionNotification] = useState<string | null>(null);
   const [copiedReport, setCopiedReport] = useState(false);
   const [expandedMultiPeakPhases, setExpandedMultiPeakPhases] = useState<Record<string, boolean>>({});
-
-  // Compute flow
-  const startComputation = () => {
-    setAppState('computing');
-    setComputingStep(0);
-    playSynthTone('tick');
-    setTimeout(() => {
-      setComputingStep(1);
-      playSynthTone('tick');
-    }, 600);
-    setTimeout(() => {
-      setComputingStep(2);
-      playSynthTone('tick');
-    }, 1200);
-    setTimeout(() => {
-      setComputingStep(3);
-      playSynthTone('tick');
-    }, 1800);
-    setTimeout(() => {
-      setAppState('results');
-      playSynthTone('success');
-    }, 2400);
-  };
 
   // Add Phase
   const addPhase = () => {
@@ -377,7 +340,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   };
 
   // Pawley/Le Bail Bridge Handlers
-  const handleImportPawleyPhase = (newPhase: RIRMatrixPhase) => {
+  const handleImportPawleyPhase = (newPhase: RIRMatrixPhase & { peaks?: RIRAssignedPeak[] }) => {
     playSynthTone('success');
     const colorIndex = phases.length % COLOR_PALETTE.length;
     setPhases(prev => [
@@ -388,7 +351,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         color: COLOR_PALETTE[colorIndex]
       }
     ]);
-    setActionNotification(`Imported ${newPhase.name} from Pawley deconvolution!`);
+    setActionNotification(`Imported ${newPhase.name} from Pawley deconvolution.`);
     setTimeout(() => setActionNotification(null), 3500);
   };
 
@@ -400,39 +363,26 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     setTimeout(() => setActionNotification(null), 3500);
   };
 
-  // Quantitative calculations (automatically computed in real time whenever peak intensities are assigned)
+  // Real-time Quantitative Calculations (Self-Consistent Brindley + Adiabatic / Internal Standard Spiking)
   const calculations = useMemo(() => {
-    // 1. Effective intensities (incorporating relative peak scaling I_rel% and Brindley microabsorption if active)
-    const D_cm = (particleDiameterUm || 5.0) * 1e-4;
+    const brindleySol = useBrindley
+      ? solveSelfConsistentBrindley(phases, particleDiameterUm)
+      : null;
 
-    // Estimate preliminary sample linear absorption muBar
-    const tempPhaseProps = phases.map(p => {
-      const rho = p.density && p.density > 0 ? p.density : 3.0;
-      const mac = p.mac && p.mac > 0 ? p.mac : 50.0;
-      const mu = rho * mac;
-      const relScale = (p.relIntensity && p.relIntensity > 0 ? p.relIntensity : 100) / 100;
-      const normI = (p.intensity || 0) / relScale;
-      const rI = normI / (p.rir > 0 ? p.rir : 1.0);
-      return { id: p.id, rho, mac, mu, rI, normI };
-    });
-    const tempSumRI = tempPhaseProps.reduce((s, p) => s + p.rI, 0);
-    const sampleMuBar = tempSumRI > 0
-      ? tempPhaseProps.reduce((s, p) => s + (p.rI / tempSumRI) * p.mu, 0)
-      : 150.0;
-
-    const effPhases = phases.map(p => {
+    const effPhases = phases.map((p, idx) => {
       const rho = p.density && p.density > 0 ? p.density : 3.0;
       const mac = p.mac && p.mac > 0 ? p.mac : 50.0;
       const mu = rho * mac;
       const relIntensityPct = p.relIntensity && p.relIntensity > 0 ? p.relIntensity : 100;
       const relScale = relIntensityPct / 100;
       const normI100 = (p.intensity || 0) / relScale;
-      const tau = useBrindley ? calcBrindleyTau(mu - sampleMuBar, D_cm) : 1.0;
+      const tau = brindleySol ? (brindleySol.phaseStates[idx]?.tau ?? 1.0) : 1.0;
       const effI = normI100 / tau;
       const rI = effI / (p.rir > 0 ? p.rir : 1.0);
       const assignedPeakCount = p.peaks && p.peaks.length > 0
         ? p.peaks.filter(pk => (pk.intensity || 0) > 0).length
         : ((p.intensity || 0) > 0 ? 1 : 0);
+
       return {
         ...p,
         rho,
@@ -447,43 +397,36 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       };
     });
 
-    let totalObservedIntensity = effPhases.reduce((sum, p) => sum + (p.intensity || 0), 0);
-    let totalReducedIntensity = effPhases.reduce((sum, p) => sum + p.rI, 0);
-    let weightedMacSum = 0;
-
-    let totalVolumeFactor = 0;
-    effPhases.forEach(p => {
-      const vFactor = p.rI / p.rho;
-      totalVolumeFactor += vFactor;
-    });
+    const totalObservedIntensity = effPhases.reduce((sum, p) => sum + (p.intensity || 0), 0);
+    const totalReducedIntensity = effPhases.reduce((sum, p) => sum + p.rI, 0);
 
     const relErrI = (intensityUncertaintyPct || 0) / 100;
     const relErrRIR = (rirUncertaintyPct || 0) / 100;
     const baseRelError = Math.sqrt(relErrI * relErrI + relErrRIR * relErrRIR);
 
-    // Check if internal standard mode is active and standard exists
+    // Check internal standard spiking mode
     const standardPhase = internalStandardMode ? effPhases.find(p => p.id === standardPhaseId) : null;
-    const standardSpikedFrac = (standardAddedWtPct || 10.0) / 100;
+    const standardSpikedFrac = Math.min(0.95, Math.max(0.01, (standardAddedWtPct || 10.0) / 100));
+    const isInternalStandardActive = !!(standardPhase && standardPhase.rI > 0);
 
     let measuredAmorphousPct = amorphousWtPct;
     let originalSampleCrystSum = 0;
 
-    if (standardPhase && standardPhase.rI > 0 && standardSpikedFrac > 0 && standardSpikedFrac < 1) {
-      // Calculate original sample crystalline fractions (wt%) for unknown phases
+    if (isInternalStandardActive && standardPhase) {
       const mult = standardSpikedFrac / (1 - standardSpikedFrac);
       effPhases.forEach(p => {
         if (p.id !== standardPhase.id) {
-          const w_orig = mult * (p.rI / standardPhase.rI) * 100;
-          originalSampleCrystSum += w_orig;
+          originalSampleCrystSum += mult * (p.rI / standardPhase.rI) * 100;
         }
       });
       measuredAmorphousPct = Math.max(0, Number((100 - originalSampleCrystSum).toFixed(2)));
     }
 
-    const effectiveAmorphousWtPct = internalStandardMode && standardPhase ? measuredAmorphousPct : amorphousWtPct;
-    const amorphousFactor = (100 - Math.min(99, Math.max(0, effectiveAmorphousWtPct))) / 100;
+    const effectiveAmorphousWtPct = isInternalStandardActive ? measuredAmorphousPct : amorphousWtPct;
+    const amorphousFactor = Math.max(0, (100 - Math.min(99.5, Math.max(0, effectiveAmorphousWtPct))) / 100);
+    const rhoAmorphous = amorphousDensity > 0 ? amorphousDensity : 2.2;
 
-    // Calculate exact analytical Jacobian covariance propagation for adiabatic RIR
+    // Covariance analysis for adiabatic Chung normalization
     const covarAnalysis = computeRIRCovariance(
       effPhases.map(p => ({
         id: p.id,
@@ -499,136 +442,199 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       rirUncertaintyPct
     );
 
-    const prelimSampleMAC = effPhases.reduce((acc, p) => {
-      const w = totalReducedIntensity > 0 ? p.rI / totalReducedIntensity : 0;
-      return acc + w * p.mac;
-    }, 0) * amorphousFactor + (effectiveAmorphousWtPct / 100) * 30.0;
-
-    const detectionLimits = computeDetectionLimits(effPhases, 80, prelimSampleMAC || 65.0);
-
-    const phaseResults = effPhases.map((p, idx) => {
-      let crystallineFraction = 0;
-      let totalSampleFraction = 0;
-
-      if (standardPhase && standardPhase.rI > 0 && standardSpikedFrac > 0 && standardSpikedFrac < 1) {
+    // Phase weight fractions (crystalline basis & bulk total sample basis)
+    const rawWeights = effPhases.map((p, idx) => {
+      if (isInternalStandardActive && standardPhase) {
         if (p.id === standardPhase.id) {
-          // Standard phase was added externally: 0 wt% in original sample, standardSpikedFrac in spiked blend
-          crystallineFraction = 0;
-          totalSampleFraction = standardSpikedFrac * 100;
-        } else {
-          const mult = standardSpikedFrac / (1 - standardSpikedFrac);
-          const w_orig = mult * (p.rI / standardPhase.rI) * 100;
-          crystallineFraction = originalSampleCrystSum > 0 ? (w_orig / originalSampleCrystSum) * 100 : 0;
-          totalSampleFraction = w_orig;
+          return {
+            crystWt: 0,
+            totalWt: 0, // excluded from unspiked sample basis
+            spikedBlendWt: standardSpikedFrac * 100,
+            errCryst: 0,
+            errTotal: 0
+          };
         }
-      } else {
-        // Standard Chung adiabatic normalization
-        crystallineFraction = totalReducedIntensity > 0 ? (p.rI / totalReducedIntensity) * 100 : 0;
-        totalSampleFraction = crystallineFraction * amorphousFactor;
+        const mult = standardSpikedFrac / (1 - standardSpikedFrac);
+        const wOrig = mult * (p.rI / standardPhase.rI) * 100;
+        const wCryst = originalSampleCrystSum > 0 ? (wOrig / originalSampleCrystSum) * 100 : 0;
+        const sigmaTotal = computeSpikingUncertainty(
+          p.effI,
+          standardPhase.effI,
+          p.rir > 0 ? p.rir : 1.0,
+          standardPhase.rir > 0 ? standardPhase.rir : 1.0,
+          wOrig,
+          standardAddedWtPct,
+          intensityUncertaintyPct,
+          rirUncertaintyPct
+        );
+        const sigmaCryst = originalSampleCrystSum > 0 ? (sigmaTotal / Math.max(1e-6, originalSampleCrystSum / 100)) : 0;
+        return {
+          crystWt: wCryst,
+          totalWt: wOrig,
+          spikedBlendWt: wOrig * (1 - standardSpikedFrac),
+          errCryst: sigmaCryst,
+          errTotal: sigmaTotal
+        };
       }
 
-      const crystallineVolFraction = totalVolumeFactor > 0 ? ((p.rI / p.rho) / totalVolumeFactor) * 100 : 0;
-      const totalSampleVolFraction = crystallineVolFraction * amorphousFactor;
-
-      // Use analytical covariance standard deviation if available (converted to wt%), fallback to base relative error
-      const analyticalSigmaCryst = (covarAnalysis.stdDevW && covarAnalysis.stdDevW[idx] !== undefined)
+      const wCryst = totalReducedIntensity > 0 ? (p.rI / totalReducedIntensity) * 100 : 0;
+      const wTotal = wCryst * amorphousFactor;
+      const analyticalSigmaCryst = covarAnalysis.stdDevW?.[idx] !== undefined
         ? covarAnalysis.stdDevW[idx] * 100
-        : crystallineFraction * baseRelError;
+        : wCryst * baseRelError;
+      return {
+        crystWt: wCryst,
+        totalWt: wTotal,
+        spikedBlendWt: wTotal,
+        errCryst: analyticalSigmaCryst,
+        errTotal: analyticalSigmaCryst * amorphousFactor
+      };
+    });
 
-      const errMarginCrystalline = analyticalSigmaCryst;
-      const errMarginTotal = analyticalSigmaCryst * amorphousFactor;
+    // True bulk mixture MAC & bulk density for crystalline + amorphous composite
+    const crystOnlyMac = rawWeights.reduce((acc, rw, i) => acc + (rw.crystWt / 100) * effPhases[i].mac, 0);
+    const totalSampleMAC = crystOnlyMac * amorphousFactor + (effectiveAmorphousWtPct / 100) * 30.0;
+
+    // Crystalline & bulk volume fractions
+    const crystVolRaw = rawWeights.map((rw, i) => rw.crystWt / effPhases[i].rho);
+    const sumCrystVolRaw = crystVolRaw.reduce((s, v) => s + v, 0);
+
+    const bulkVolRaw = rawWeights.map((rw, i) => rw.totalWt / effPhases[i].rho);
+    const amorphousVolRaw = effectiveAmorphousWtPct > 0 ? effectiveAmorphousWtPct / rhoAmorphous : 0;
+    const sumBulkVolRaw = bulkVolRaw.reduce((s, v) => s + v, 0) + amorphousVolRaw;
+    const amorphousVolPct = sumBulkVolRaw > 0 ? (amorphousVolRaw / sumBulkVolRaw) * 100 : 0;
+    const bulkDensity = sumBulkVolRaw > 0 ? 100 / sumBulkVolRaw : 3.0;
+
+    // Concentration-calibrated LOD/LOQ and mixture-absorption penetration depths
+    const detectionLimits = computeDetectionLimits(
+      effPhases.map(p => ({
+        id: p.id,
+        name: p.name,
+        hkl: p.hkl,
+        twoTheta: p.twoTheta,
+        intensity: p.effI,
+        rir: p.rir,
+        density: p.density,
+        mac: p.mac
+      })),
+      80,
+      totalSampleMAC || 65.0,
+      rawWeights.map(rw => rw.totalWt),
+      bulkDensity
+    );
+
+    const phaseResults = effPhases.map((p, idx) => {
+      const rw = rawWeights[idx];
+      const crystallineVolFraction = sumCrystVolRaw > 0 ? (crystVolRaw[idx] / sumCrystVolRaw) * 100 : 0;
+      const totalSampleVolFraction = sumBulkVolRaw > 0 ? (bulkVolRaw[idx] / sumBulkVolRaw) * 100 : 0;
       const errMarginVol = crystallineVolFraction * baseRelError;
-
-      weightedMacSum += (crystallineFraction / 100) * p.mac;
       const dl = detectionLimits[idx];
 
       return {
         ...p,
         reducedIntensity: p.rI,
         tau: p.tau,
-        crystallineFraction,
-        totalSampleFraction,
+        crystallineFraction: rw.crystWt,
+        totalSampleFraction: rw.totalWt,
         crystallineVolFraction,
         totalSampleVolFraction,
-        errMarginCrystalline,
-        errMarginTotal,
+        errMarginCrystalline: rw.errCryst,
+        errMarginTotal: rw.errTotal,
         errMarginVol,
         lodWtPct: dl?.lodWtPct ?? 0.5,
         loqWtPct: dl?.loqWtPct ?? 1.5,
         penetrationDepthUm: dl?.penetrationDepthUm ?? 25.0,
-        isInternalStandard: p.id === standardPhaseId,
+        isInternalStandard: p.id === standardPhaseId && isInternalStandardActive,
         color: p.color || COLOR_PALETTE[idx % COLOR_PALETTE.length]
       };
     });
 
-    const totalSampleMAC = (weightedMacSum * amorphousFactor) + ((effectiveAmorphousWtPct / 100) * 30.0);
     const assignedPhasesCount = phaseResults.filter(p => (p.intensity || 0) > 0).length;
     const assignedPeaksCount = phaseResults.reduce((acc, p) => acc + p.assignedPeakCount, 0);
 
     return {
       totalObservedIntensity,
       totalReducedIntensity,
-      totalVolumeFactor,
       phaseResults,
       amorphousFactor,
       effectiveAmorphousWtPct,
+      amorphousVolPct,
       measuredAmorphousPct,
-      isInternalStandardActive: !!(standardPhase && standardPhase.rI > 0),
+      isInternalStandardActive,
       totalSampleMAC,
+      bulkDensity,
+      conditionNumber: covarAnalysis.conditionNumber,
+      brindleyIterations: brindleySol?.iterations ?? 0,
       assignedPhasesCount,
       assignedPeaksCount,
       hasAssignedIntensities: assignedPhasesCount > 0
     };
-  }, [phases, amorphousWtPct, intensityUncertaintyPct, rirUncertaintyPct, useBrindley, particleDiameterUm, internalStandardMode, standardPhaseId, standardAddedWtPct]);
+  }, [
+    phases,
+    amorphousWtPct,
+    amorphousDensity,
+    intensityUncertaintyPct,
+    rirUncertaintyPct,
+    useBrindley,
+    particleDiameterUm,
+    internalStandardMode,
+    standardPhaseId,
+    standardAddedWtPct
+  ]);
 
   const dominantPhase = useMemo(() => {
     if (!calculations.phaseResults || calculations.phaseResults.length === 0) return null;
     return [...calculations.phaseResults].sort((a, b) => b.crystallineFraction - a.crystallineFraction)[0];
   }, [calculations]);
 
-  // Chart data for Pie
+  // Chart data on Total Bulk Sample basis (accurate wt% and true density-weighted vol%)
   const pieChartData = useMemo(() => {
-    const data = calculations.phaseResults.map(p => ({
-      name: p.name,
-      value: Number((chartUnitMode === 'wt' ? p.crystallineFraction : p.crystallineVolFraction).toFixed(2)),
-      color: p.color,
-      rir: p.rir,
-      intensity: p.intensity,
-      density: p.density,
-      crystWtPct: p.crystallineFraction,
-      crystVolPct: p.crystallineVolFraction
-    }));
+    const data = calculations.phaseResults
+      .filter(p => !(calculations.isInternalStandardActive && p.isInternalStandard))
+      .map(p => ({
+        name: p.name,
+        value: Number((chartUnitMode === 'wt' ? p.totalSampleFraction : p.totalSampleVolFraction).toFixed(2)),
+        color: p.color,
+        rir: p.rir,
+        intensity: p.intensity,
+        density: p.density,
+        crystWtPct: p.crystallineFraction,
+        crystVolPct: p.crystallineVolFraction
+      }));
 
-    if (amorphousWtPct > 0) {
+    if (calculations.effectiveAmorphousWtPct > 0) {
+      const amVal = chartUnitMode === 'wt' ? calculations.effectiveAmorphousWtPct : calculations.amorphousVolPct;
       data.push({
         name: 'Amorphous Matrix',
-        value: Number(amorphousWtPct.toFixed(2)),
+        value: Number(amVal.toFixed(2)),
         color: '#64748b',
         rir: 0,
         intensity: 0,
-        density: 2.2,
-        crystWtPct: amorphousWtPct,
-        crystVolPct: amorphousWtPct
+        density: amorphousDensity,
+        crystWtPct: calculations.effectiveAmorphousWtPct,
+        crystVolPct: calculations.amorphousVolPct
       });
     }
 
     return data;
-  }, [calculations, amorphousWtPct, chartUnitMode]);
+  }, [calculations, amorphousDensity, chartUnitMode]);
 
   // Copy Summary Report
   const copyReportToClipboard = () => {
     playSynthTone('success');
     let report = `XRD QUANTITATIVE PHASE ANALYSIS REPORT (RIR METHOD)\n`;
-    report += `====================================================\n`;
+    report += `====================================================================================\n`;
     report += `Date/Time: ${new Date().toLocaleString()}\n`;
-    report += `Amorphous Content Correction: ${amorphousWtPct} wt%\n`;
+    report += `Quantification Mode: ${calculations.isInternalStandardActive ? `Internal Standard Spiking (${standardAddedWtPct} wt%)` : 'Chung Adiabatic Normalization'}\n`;
+    report += `Brindley Microabsorption: ${useBrindley ? `Active (D = ${particleDiameterUm} µm, converged in ${calculations.brindleyIterations} iter)` : 'Disabled'}\n`;
+    report += `Amorphous Matrix: ${calculations.effectiveAmorphousWtPct.toFixed(2)} wt% (${calculations.amorphousVolPct.toFixed(2)} vol%)\n`;
     report += `Sample Mass Attenuation Coefficient (Cu Kα): ${calculations.totalSampleMAC.toFixed(2)} cm²/g\n`;
-    report += `Assumed Measurement Uncertainty: ±${intensityUncertaintyPct}% (Int), ±${rirUncertaintyPct}% (RIR)\n\n`;
+    report += `Assumed Uncertainty: ±${intensityUncertaintyPct}% (Int), ±${rirUncertaintyPct}% (RIR)\n\n`;
 
     report += `PHASE QUANTITATIVE SUMMARY:\n`;
-    report += `------------------------------------------------------------------------------------\n`;
-    report += `Phase Name              | hkl   | 2-Theta | Int (I) | RIR   | Density | Cryst. wt%     | Cryst. vol%\n`;
-    report += `------------------------------------------------------------------------------------\n`;
+    report += `------------------------------------------------------------------------------------------------\n`;
+    report += `Phase Name              | hkl   | 2-Theta | Int (I) | RIR   | Cryst. wt%     | Total Bulk wt%\n`;
+    report += `------------------------------------------------------------------------------------------------\n`;
 
     calculations.phaseResults.forEach(p => {
       const namePad = p.name.padEnd(23, ' ').substring(0, 23);
@@ -636,18 +642,17 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       const ttPad = p.twoTheta.toFixed(2).padStart(7, ' ');
       const intPad = p.intensity.toString().padStart(7, ' ');
       const rirPad = p.rir.toFixed(2).padStart(5, ' ');
-      const denPad = (p.density || 3.0).toFixed(2).padStart(7, ' ');
       const crystPad = `${p.crystallineFraction.toFixed(1)} ± ${p.errMarginCrystalline.toFixed(1)}%`.padStart(14, ' ');
-      const volPad = `${p.crystallineVolFraction.toFixed(1)} ± ${p.errMarginVol.toFixed(1)}%`.padStart(12, ' ');
+      const totPad = `${p.totalSampleFraction.toFixed(1)} ± ${p.errMarginTotal.toFixed(1)}%`.padStart(14, ' ');
 
-      report += `${namePad} | ${hklPad} | ${ttPad} | ${intPad} | ${rirPad} | ${denPad} | ${crystPad} | ${volPad}\n`;
+      report += `${namePad} | ${hklPad} | ${ttPad} | ${intPad} | ${rirPad} | ${crystPad} | ${totPad}\n`;
     });
 
-    report += `------------------------------------------------------------------------------------\n`;
-    if (amorphousWtPct > 0) {
-      report += `Amorphous Matrix        | ---   | ---     | ---     | ---   | ---     | ${amorphousWtPct.toFixed(1)} wt%         | ${amorphousWtPct.toFixed(1)} vol%\n`;
+    report += `------------------------------------------------------------------------------------------------\n`;
+    if (calculations.effectiveAmorphousWtPct > 0) {
+      report += `Amorphous Matrix        | ---   | ---     | ---     | ---   | ---            | ${calculations.effectiveAmorphousWtPct.toFixed(2)} wt% (${calculations.amorphousVolPct.toFixed(2)} vol%)\n`;
     }
-    report += `====================================================================================\n`;
+    report += `================================================================================================\n`;
 
     navigator.clipboard.writeText(report);
     setCopiedReport(true);
@@ -662,25 +667,27 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
     csvContent += `# XRD Quantitative Phase Analysis via Reference Intensity Ratio (RIR)\n`;
     csvContent += `# Generated: ${timestamp}\n`;
-    csvContent += `# Amorphous Content Correction: ${amorphousWtPct}%\n`;
+    csvContent += `# Mode: ${calculations.isInternalStandardActive ? 'Internal Standard Spiking' : 'Chung Adiabatic'}\n`;
+    csvContent += `# Amorphous Matrix Content: ${calculations.effectiveAmorphousWtPct.toFixed(2)} wt% (${calculations.amorphousVolPct.toFixed(2)} vol%)\n`;
     csvContent += `# Total Sample Mass Attenuation Coeff (Cu K-alpha): ${calculations.totalSampleMAC.toFixed(2)} cm2/g\n\n`;
 
-    csvContent += `Phase Name,Reflection (hkl),2-Theta (deg),Integrated Intensity (I),RIR (I/Ic),Density (g/cm3),MAC (cm2/g),Reduced Intensity (I/RIR),Crystalline Wt (%),Err Margin (%),Crystalline Vol (%),Err Margin (%),Total Sample Wt (%),Notes\n`;
+    csvContent += `Phase Name,Reflection (hkl),2-Theta (deg),Integrated Intensity (I),RIR (I/Ic),Brindley Tau,Density (g/cm3),MAC (cm2/g),Reduced Intensity (I/RIR),Crystalline Wt (%),Err Margin (%),Total Bulk Wt (%),Total Bulk Vol (%),LOD (wt%),Depth_99 (um),Notes\n`;
 
     calculations.phaseResults.forEach(p => {
       const nameEscaped = `"${p.name.replace(/"/g, '""')}"`;
       const hklEscaped = `"${p.hkl.replace(/"/g, '""')}"`;
       const notesEscaped = `"${(p.notes || '').replace(/"/g, '""')}"`;
-      csvContent += `${nameEscaped},${hklEscaped},${p.twoTheta},${p.intensity},${p.rir},${p.density || 3.0},${p.mac || 0},${p.reducedIntensity.toFixed(2)},${p.crystallineFraction.toFixed(2)},${p.errMarginCrystalline.toFixed(2)},${p.crystallineVolFraction.toFixed(2)},${p.errMarginVol.toFixed(2)},${p.totalSampleFraction.toFixed(2)},${notesEscaped}\n`;
+      csvContent += `${nameEscaped},${hklEscaped},${p.twoTheta},${p.intensity},${p.rir},${p.tau.toFixed(4)},${p.density || 3.0},${p.mac || 0},${p.reducedIntensity.toFixed(2)},${p.crystallineFraction.toFixed(2)},${p.errMarginCrystalline.toFixed(2)},${p.totalSampleFraction.toFixed(2)},${p.totalSampleVolFraction.toFixed(2)},${p.lodWtPct},${p.penetrationDepthUm},${notesEscaped}\n`;
     });
 
-    csvContent += `\n`;
-    csvContent += `Sum Total,---,---,---,---,---,${calculations.totalSampleMAC.toFixed(2)},${calculations.totalReducedIntensity.toFixed(2)},100.00,---,100.00,---,${(100 - amorphousWtPct).toFixed(2)},---\n`;
+    if (calculations.effectiveAmorphousWtPct > 0) {
+      csvContent += `Amorphous Matrix,---,---,---,---,---,${amorphousDensity},30.0,---,0.00,---,${calculations.effectiveAmorphousWtPct.toFixed(2)},${calculations.amorphousVolPct.toFixed(2)},---,---,Diffuse Halo\n`;
+    }
 
     const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `RIR_Quantitative_Analysis_${new Date().toISOString().slice(0,10)}.csv`);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `RIR_Quantitative_Analysis_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -799,139 +806,88 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       {dominantPhase && (
         <PhysicalMeaningSummary
           title="Quantitative Phase Composition Verdict"
-          tone={amorphousWtPct > 20 ? 'warning' : 'success'}
-          statement={`Sample is dominantly composed of ${dominantPhase.name} at ${dominantPhase.crystallineFraction.toFixed(1)} wt% (crystalline basis) with total calculated sample MAC of ${calculations.totalSampleMAC.toFixed(1)} cm²/g.`}
-          contextNote={`Identified ${calculations.phaseResults.length} crystalline phases. ${amorphousWtPct > 0 ? `Amorphous matrix accounts for ${amorphousWtPct.toFixed(1)} wt% of the total bulk sample.` : 'Zero amorphous background detected; 100% crystalline sample.'} ${dominantPhase.crystallineFraction > 70 ? 'High phase purity observed.' : 'Complex multiphase mixture.'}`}
+          tone={calculations.effectiveAmorphousWtPct > 20 ? 'warning' : 'success'}
+          statement={`Sample is dominantly ${dominantPhase.name} at ${dominantPhase.crystallineFraction.toFixed(1)} wt% (crystalline basis) with composite sample MAC μ* = ${calculations.totalSampleMAC.toFixed(1)} cm²/g.`}
+          contextNote={`Quantified ${calculations.phaseResults.length} phases (${calculations.isInternalStandardActive ? 'Internal Standard Spiking' : 'Chung Adiabatic'}). ${calculations.effectiveAmorphousWtPct > 0 ? `Amorphous matrix: ${calculations.effectiveAmorphousWtPct.toFixed(1)} wt% (${calculations.amorphousVolPct.toFixed(1)} vol%).` : '100% crystalline mixture.'}`}
           metrics={[
             { label: 'Dominant Phase', value: dominantPhase.name, unit: '' },
-            { label: 'Dominant wt%', value: dominantPhase.crystallineFraction.toFixed(1), unit: '%' },
-            { label: 'Phase Count', value: String(calculations.phaseResults.length), unit: '' },
+            { label: 'Cryst. wt%', value: dominantPhase.crystallineFraction.toFixed(1), unit: '%' },
+            { label: 'Amorphous', value: calculations.effectiveAmorphousWtPct.toFixed(1), unit: 'wt%' },
             { label: 'Sample MAC', value: calculations.totalSampleMAC.toFixed(1), unit: 'cm²/g' }
           ]}
         />
       )}
 
-      {appState === 'setup' && (
-        <>
-          {/* Top Module Navigation Bar */}
-          <div className="bg-slate-900/90 border border-slate-800/80 rounded-2xl p-1.5 backdrop-blur-md flex flex-wrap gap-1.5 shadow-xl">
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('analysis'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'analysis'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <FlaskConical className="w-4 h-4 text-indigo-300" />
-              <span>Phase Engine</span>
-            </button>
+      {/* Top Instrumentation Telemetry Strip */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
+        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Regime</span>
+          <span className="text-xs font-mono font-bold text-indigo-300 truncate block mt-0.5">
+            {calculations.isInternalStandardActive ? 'Internal Std Spike' : 'Chung Adiabatic'}
+          </span>
+        </div>
+        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Active Phases</span>
+          <span className="text-sm font-mono tabular-nums font-black text-slate-100 block mt-0.5">
+            {calculations.assignedPhasesCount}/{phases.length} <span className="text-[10px] font-normal text-slate-400">({calculations.assignedPeaksCount} pks)</span>
+          </span>
+        </div>
+        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Crystalline Bulk</span>
+          <span className="text-sm font-mono tabular-nums font-black text-emerald-400 block mt-0.5">
+            {(100 - calculations.effectiveAmorphousWtPct).toFixed(1)} wt%
+          </span>
+        </div>
+        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Amorphous Matrix</span>
+          <span className="text-sm font-mono tabular-nums font-black text-rose-400 block mt-0.5">
+            {calculations.effectiveAmorphousWtPct.toFixed(1)} wt%
+          </span>
+        </div>
+        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Microabsorption</span>
+          <span className="text-xs font-mono tabular-nums font-bold text-cyan-300 block mt-0.5">
+            {useBrindley ? `Brindley ${particleDiameterUm}µm (${calculations.brindleyIterations}i)` : 'Ideal (Off)'}
+          </span>
+        </div>
+        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
+          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Cond. Ratio κ</span>
+          <span className="text-sm font-mono tabular-nums font-black text-amber-400 block mt-0.5">
+            {calculations.conditionNumber.toFixed(2)}
+          </span>
+        </div>
+      </div>
 
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('pawley_bridge'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'pawley_bridge'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <GitMerge className="w-4 h-4 text-violet-300" />
-              <span>Pawley Pipeline</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('matrix'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'matrix'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <Cpu className="w-4 h-4 text-cyan-300" />
-              <span>Matrix & Covariance</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('calibration'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'calibration'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <Calculator className="w-4 h-4 text-amber-300" />
-              <span>Calibration Studio</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('spectrum'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'spectrum'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <BarChart3 className="w-4 h-4 text-emerald-300" />
-              <span>XRD Spectrum</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('database'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'database'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <Database className="w-4 h-4 text-purple-300" />
-              <span>Reference DB</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('microabsorption'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'microabsorption'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <Layers className="w-4 h-4 text-cyan-400" />
-              <span>Brindley Correction</span>
-              {useBrindley && <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />}
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('script'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'script'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <Code2 className="w-4 h-4 text-purple-400" />
-              <span>Script Export</span>
-            </button>
-
-            <button
-              onClick={() => { playSynthTone('tick'); setMainTab('theory'); }}
-              className={`flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 ${
-                mainTab === 'theory'
-                  ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                  : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
-              }`}
-            >
-              <BookOpen className="w-4 h-4 text-rose-300" />
-              <span>Theory</span>
-            </button>
-
-            <button
-              onClick={startComputation}
-              className="flex-1 min-w-[130px] py-2.5 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 text-white shadow-md ring-1 ring-emerald-500/50 active:scale-95"
-            >
-              <Play className="w-4 h-4 fill-white" />
-              <span>Compute RIR</span>
-            </button>
-          </div>
+      {/* Top Module Navigation Bar */}
+      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 backdrop-blur-md flex flex-wrap gap-1 shadow-xl">
+        {[
+          { id: 'analysis', label: 'Phase Engine', icon: <FlaskConical className="w-3.5 h-3.5 text-indigo-300" /> },
+          { id: 'pawley_bridge', label: 'Pawley Bridge', icon: <GitMerge className="w-3.5 h-3.5 text-violet-300" /> },
+          { id: 'matrix', label: 'Matrix & Covariance', icon: <Cpu className="w-3.5 h-3.5 text-cyan-300" /> },
+          { id: 'calibration', label: 'Calibration', icon: <Calculator className="w-3.5 h-3.5 text-amber-300" /> },
+          { id: 'spectrum', label: 'XRD Spectrum', icon: <BarChart3 className="w-3.5 h-3.5 text-emerald-300" /> },
+          { id: 'database', label: 'Reference DB', icon: <Database className="w-3.5 h-3.5 text-purple-300" /> },
+          { id: 'microabsorption', label: `Brindley${useBrindley ? ' •' : ''}`, icon: <Layers className="w-3.5 h-3.5 text-cyan-400" /> },
+          { id: 'script', label: 'Script Export', icon: <Code2 className="w-3.5 h-3.5 text-purple-400" /> },
+          { id: 'theory', label: 'Theory', icon: <BookOpen className="w-3.5 h-3.5 text-rose-300" /> }
+        ].map(tab => (
+          <button
+            key={tab.id}
+            onClick={() => {
+              playSynthTone('tick');
+              setMainTab(tab.id as typeof mainTab);
+            }}
+            className={`flex-1 min-w-[115px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
+              mainTab === tab.id
+                ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+            }`}
+          >
+            {tab.icon}
+            <span>{tab.label}</span>
+          </button>
+        ))}
+      </div>
 
           {/* Action Notification */}
           <AnimatePresence>
@@ -1005,10 +961,25 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <input
+                          ref={fileInputRef}
+                          type="file"
+                          accept=".json"
+                          onChange={handleJSONImport}
+                          className="hidden"
+                        />
+                        <button
+                          onClick={() => fileInputRef.current?.click()}
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
+                          title="Import saved RIR JSON session"
+                        >
+                          <Upload className="w-3.5 h-3.5 text-cyan-400" />
+                          <span>Import JSON</span>
+                        </button>
                         <button
                           onClick={normalizeIntensities}
-                          className="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5"
+                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
                           title="Normalize max peak to 10,000 cps"
                         >
                           <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
@@ -1016,7 +987,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                         </button>
                         <button
                           onClick={addPhase}
-                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5"
+                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
                         >
                           <Plus className="w-3.5 h-3.5" />
                           <span>Add Phase</span>
@@ -1396,29 +1367,47 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                         )}
                       </div>
 
-                      {/* Amorphous Slider (if not in internal standard mode) */}
-                      {!internalStandardMode && (
-                        <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-2">
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                              <span className="w-2 h-2 rounded-full bg-rose-500" />
-                              Manual Amorphous Matrix Correction:
-                            </span>
-                            <span className="font-mono font-bold text-rose-400 text-sm">
-                              {amorphousWtPct}%
-                            </span>
+                      {/* Amorphous Matrix & Density Settings */}
+                      <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3">
+                        {!internalStandardMode && (
+                          <div className="space-y-2">
+                            <div className="flex justify-between items-center text-xs">
+                              <span className="font-bold text-slate-300 flex items-center gap-1.5">
+                                <span className="w-2 h-2 rounded-full bg-rose-500" />
+                                Manual Amorphous Matrix Content:
+                              </span>
+                              <span className="font-mono tabular-nums font-bold text-rose-400 text-sm">
+                                {amorphousWtPct}%
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min="0"
+                              max="90"
+                              step="1"
+                              value={amorphousWtPct}
+                              onChange={e => setAmorphousWtPct(parseFloat(e.target.value) || 0)}
+                              className="w-full accent-rose-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
+                            />
                           </div>
-                          <input
-                            type="range"
-                            min="0"
-                            max="90"
-                            step="1"
-                            value={amorphousWtPct}
-                            onChange={(e) => setAmorphousWtPct(parseFloat(e.target.value) || 0)}
-                            className="w-full accent-rose-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                          />
+                        )}
+
+                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/70">
+                          <span className="text-slate-400">Amorphous Skeleton Density ρ<sub>am</sub> (for vol%):</span>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min="0.5"
+                              max="6.0"
+                              step="0.05"
+                              value={amorphousDensity}
+                              onChange={e => setAmorphousDensity(Math.max(0.5, parseFloat(e.target.value) || 2.2))}
+                              className="w-20 bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-right font-mono tabular-nums text-xs outline-none focus:border-rose-500/60"
+                            />
+                            <span className="text-[11px] font-mono text-slate-400">g/cm³</span>
+                          </div>
                         </div>
-                      )}
+                      </div>
 
                       <div className="grid grid-cols-2 gap-3">
                         <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 space-y-1">
@@ -1523,31 +1512,53 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                       </ResponsiveContainer>
                     </div>
 
-                    {/* Breakdown Bars */}
+                    {/* Breakdown Bars (Bulk Total Basis + Amorphous if present) */}
                     <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
-                      {calculations.phaseResults.map(p => {
-                        const val = chartUnitMode === 'wt' ? p.crystallineFraction : p.crystallineVolFraction;
-                        const err = chartUnitMode === 'wt' ? p.errMarginCrystalline : p.errMarginVol;
-                        return (
-                          <div key={p.id} className="space-y-1">
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="font-bold text-slate-200 flex items-center gap-2 truncate max-w-[160px]">
-                                <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                                {p.name}
-                              </span>
-                              <span className="font-mono font-bold text-slate-200">
-                                {val.toFixed(1)} <span className="text-slate-400 font-normal">± {err.toFixed(1)}%</span>
-                              </span>
+                      {calculations.phaseResults
+                        .filter(p => !(calculations.isInternalStandardActive && p.isInternalStandard))
+                        .map(p => {
+                          const val = chartUnitMode === 'wt' ? p.totalSampleFraction : p.totalSampleVolFraction;
+                          const err = chartUnitMode === 'wt' ? p.errMarginTotal : p.errMarginVol * calculations.amorphousFactor;
+                          return (
+                            <div key={p.id} className="space-y-1">
+                              <div className="flex justify-between items-center text-xs">
+                                <span className="font-bold text-slate-200 flex items-center gap-2 truncate max-w-[175px]">
+                                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
+                                  {p.name}
+                                </span>
+                                <span className="font-mono tabular-nums font-bold text-slate-200">
+                                  {val.toFixed(1)} <span className="text-slate-400 font-normal">± {err.toFixed(1)}%</span>
+                                </span>
+                              </div>
+                              <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                                <div
+                                  className="h-full rounded-full transition-all duration-300"
+                                  style={{ width: `${Math.min(100, Math.max(0, val))}%`, backgroundColor: p.color }}
+                                />
+                              </div>
                             </div>
-                            <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                              <div
-                                className="h-full rounded-full transition-all duration-500"
-                                style={{ width: `${Math.min(100, Math.max(0, val))}%`, backgroundColor: p.color }}
-                              />
-                            </div>
+                          );
+                        })}
+
+                      {calculations.effectiveAmorphousWtPct > 0 && (
+                        <div className="space-y-1 pt-1">
+                          <div className="flex justify-between items-center text-xs">
+                            <span className="font-bold text-slate-300 flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full shrink-0 bg-slate-500" />
+                              Amorphous Matrix
+                            </span>
+                            <span className="font-mono tabular-nums font-bold text-rose-300">
+                              {(chartUnitMode === 'wt' ? calculations.effectiveAmorphousWtPct : calculations.amorphousVolPct).toFixed(1)} {chartUnitMode}%
+                            </span>
                           </div>
-                        );
-                      })}
+                          <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
+                            <div
+                              className="h-full rounded-full transition-all duration-300 bg-slate-500"
+                              style={{ width: `${Math.min(100, Math.max(0, chartUnitMode === 'wt' ? calculations.effectiveAmorphousWtPct : calculations.amorphousVolPct))}%` }}
+                            />
+                          </div>
+                        </div>
+                      )}
                     </div>
 
                     {/* Summary Export Action Buttons */}
@@ -1593,13 +1604,12 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                         <h3 className="text-base font-black text-slate-100 tracking-tight">
                           Quantitative Phase Analysis Results Summary Table
                         </h3>
-                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30 flex items-center gap-1.5">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                          Auto-Calculated ({calculations.assignedPhasesCount}/{phases.length} Phases Assigned, {calculations.assignedPeaksCount} Peaks)
+                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
+                          Auto-Computed ({calculations.assignedPhasesCount}/{phases.length} Phases, {calculations.assignedPeaksCount} Peaks)
                         </span>
                       </div>
                       <p className="text-xs text-slate-400 mt-0.5">
-                        Automatically computes Chung adiabatic mass fractions (wt%), volumetric fractions (vol%), reduced intensities (I/RIR), and analytical Jacobian uncertainties as peak intensities are assigned.
+                        Live Chung adiabatic / spiking mass fractions (wt%), density-adjusted volume fractions (vol%), reduced intensities, and propagated uncertainties.
                       </p>
                     </div>
                   </div>
@@ -1773,9 +1783,9 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
                               {calculations.effectiveAmorphousWtPct.toFixed(2)} wt%
                             </td>
                             <td className="px-3 py-3 text-right font-bold text-rose-400">
-                              {calculations.effectiveAmorphousWtPct.toFixed(2)} vol%
+                              {calculations.amorphousVolPct.toFixed(2)} vol% (bulk)
                             </td>
-                            <td className="px-3 py-3 text-right text-slate-500">---</td>
+                            <td className="px-3 py-3 text-right text-slate-500">ρ={amorphousDensity.toFixed(2)}</td>
                           </tr>
                         )}
                       </tbody>
@@ -1820,7 +1830,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           {mainTab === 'matrix' && (
             <RIRMatrixInspector
               phases={phases}
-              amorphousWtPct={amorphousWtPct}
+              amorphousWtPct={calculations.effectiveAmorphousWtPct}
               intensityUncertaintyPct={intensityUncertaintyPct}
               rirUncertaintyPct={rirUncertaintyPct}
             />
@@ -1838,7 +1848,7 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           {mainTab === 'spectrum' && (
             <RIRDiffractionVisualizer
               phases={phases}
-              amorphousWtPct={amorphousWtPct}
+              amorphousWtPct={calculations.effectiveAmorphousWtPct}
               internalStandardPhaseId={internalStandardMode ? standardPhaseId : undefined}
               onUpdatePhaseIntensity={(phaseId, newIntensity) => updatePhase(phaseId, 'intensity', newIntensity)}
             />
@@ -1881,245 +1891,6 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           {mainTab === 'theory' && (
             <RIRTheoryGuide />
           )}
-        </>
-      )}
-
-      {/* COMPUTING PROGRESS SCREEN */}
-      {appState === 'computing' && (
-        <div className="bg-slate-900/90 border border-slate-800 rounded-3xl p-12 shadow-2xl flex flex-col items-center justify-center space-y-10 min-h-[440px] animate-in fade-in">
-          <div className="relative w-28 h-28 flex items-center justify-center">
-            <div className="absolute inset-0 border-4 border-slate-800 rounded-full"></div>
-            <div className="absolute inset-0 border-4 border-emerald-500 rounded-full border-t-transparent animate-spin"></div>
-            <Activity className="w-10 h-10 text-emerald-400 animate-pulse" />
-          </div>
-
-          <div className="space-y-4 w-full max-w-lg">
-            <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${computingStep >= 0 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'bg-slate-950/40 border-slate-800 text-slate-600'}`}>
-              <span className="font-mono text-xs font-bold flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-slate-950 flex items-center justify-center text-xs border border-slate-800">1</span>
-                Parsing Integrated Bragg Intensities & Backgrounds...
-              </span>
-              {computingStep > 0 && <Check className="w-4 h-4 text-emerald-400" />}
-            </div>
-
-            <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${computingStep >= 1 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'bg-slate-950/40 border-slate-800 text-slate-600'}`}>
-              <span className="font-mono text-xs font-bold flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-slate-950 flex items-center justify-center text-xs border border-slate-800">2</span>
-                Applying Reference Intensity Ratio ($I/I_c$) Constants...
-              </span>
-              {computingStep > 1 && <Check className="w-4 h-4 text-emerald-400" />}
-            </div>
-
-            <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${computingStep >= 2 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'bg-slate-950/40 border-slate-800 text-slate-600'}`}>
-              <span className="font-mono text-xs font-bold flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-slate-950 flex items-center justify-center text-xs border border-slate-800">3</span>
-                Executing Analytical Covariance & Error Propagation...
-              </span>
-              {computingStep > 2 && <Check className="w-4 h-4 text-emerald-400" />}
-            </div>
-
-            <div className={`flex items-center justify-between p-4 rounded-2xl border transition-all duration-300 ${computingStep >= 3 ? 'bg-indigo-500/10 border-indigo-500/30 text-indigo-300' : 'bg-slate-950/40 border-slate-800 text-slate-600'}`}>
-              <span className="font-mono text-xs font-bold flex items-center gap-3">
-                <span className="w-6 h-6 rounded-full bg-slate-950 flex items-center justify-center text-xs border border-slate-800">4</span>
-                Normalizing Mass & Volume Phase Vectors...
-              </span>
-              {computingStep > 3 && <Check className="w-4 h-4 text-emerald-400" />}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* FINAL RESULTS DASHBOARD */}
-      {appState === 'results' && (
-        <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400">
-                <CheckCircle2 className="w-6 h-6" />
-              </div>
-              <div>
-                <h2 className="text-xl font-black text-slate-100 tracking-tight">
-                  Quantitative Phase Analysis Results
-                </h2>
-                <p className="text-xs text-slate-400 mt-0.5">
-                  Reference Intensity Ratio (Chung Adiabatic Method) Matrix Inversion Complete.
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 flex-wrap">
-              <button
-                onClick={() => { playSynthTone('tick'); setMainTab('script'); setAppState('setup'); }}
-                className="px-3.5 py-2 rounded-xl bg-purple-950/50 hover:bg-purple-900/60 text-purple-300 text-xs font-bold border border-purple-500/40 flex items-center gap-2 transition-all shadow-md"
-              >
-                <Code2 className="w-4 h-4 text-purple-400" />
-                <span>Python & Origin Scripts</span>
-              </button>
-              <button
-                onClick={copyReportToClipboard}
-                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all"
-              >
-                {copiedReport ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
-                <span>{copiedReport ? 'Copied!' : 'Copy Report'}</span>
-              </button>
-              <button
-                onClick={exportCSV}
-                className="px-3.5 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all"
-              >
-                <Download className="w-4 h-4 text-cyan-400" />
-                <span>Export CSV</span>
-              </button>
-              <button
-                onClick={() => setAppState('setup')}
-                className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-indigo-500/20"
-              >
-                <RefreshCw className="w-4 h-4" />
-                <span>Adjust Parameters</span>
-              </button>
-            </div>
-          </div>
-
-          {/* Quick Metrics Bar */}
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
-            <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Crystalline Mass</span>
-              <span className="text-xl font-mono font-black text-indigo-400 mt-1">{(100 - calculations.effectiveAmorphousWtPct).toFixed(1)} wt%</span>
-            </div>
-            <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                {calculations.isInternalStandardActive ? 'Spiked Amorphous' : 'Amorphous Matrix'}
-              </span>
-              <span className="text-xl font-mono font-black text-rose-400 mt-1">{calculations.effectiveAmorphousWtPct.toFixed(1)} wt%</span>
-            </div>
-            <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Microabsorption</span>
-              <span className="text-sm font-mono font-black text-cyan-400 mt-1">
-                {useBrindley ? `Brindley (${particleDiameterUm} µm)` : 'None (Ideal)'}
-              </span>
-            </div>
-            <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Sample MAC (μ*)</span>
-              <span className="text-xl font-mono font-black text-cyan-400 mt-1">{calculations.totalSampleMAC.toFixed(1)} <span className="text-xs font-normal text-slate-400">cm²/g</span></span>
-            </div>
-            <div className="bg-slate-900/80 border border-slate-800 p-4 rounded-2xl flex flex-col justify-between shadow-md col-span-2 md:col-span-1">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Dominant Phase</span>
-              <span className="text-xs font-bold text-emerald-400 mt-1 truncate">
-                {dominantPhase ? `${dominantPhase.name} (${dominantPhase.crystallineFraction.toFixed(1)}%)` : 'N/A'}
-              </span>
-            </div>
-          </div>
-
-          {/* Results Visual & Table Grid */}
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-            {/* Table (7 cols) */}
-            <div className="lg:col-span-7 bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-              <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
-                <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                <span>Phase Quantities & Error Propagation</span>
-              </h3>
-
-              <div className="overflow-x-auto rounded-2xl border border-slate-800">
-                <table className="w-full text-xs font-mono">
-                  <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                    <tr>
-                      <th className="px-4 py-3 text-left font-sans">Phase</th>
-                      <th className="px-3 py-3 text-right">Int (I)</th>
-                      <th className="px-3 py-3 text-right">RIR</th>
-                      <th className="px-3 py-3 text-right text-indigo-300 font-bold">Mass (wt%)</th>
-                      <th className="px-3 py-3 text-right text-amber-300">Volume (vol%)</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-800/60">
-                    {calculations.phaseResults.map(p => (
-                      <tr key={p.id} className="hover:bg-slate-950/50 transition-colors">
-                        <td className="px-4 py-3 font-bold text-slate-200 font-sans flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: p.color }} />
-                          <span>{p.name}</span>
-                        </td>
-                        <td className="px-3 py-3 text-right text-slate-400">{p.intensity}</td>
-                        <td className="px-3 py-3 text-right text-slate-400">{p.rir.toFixed(2)}</td>
-                        <td className="px-3 py-3 text-right font-bold text-indigo-300">
-                          {p.crystallineFraction.toFixed(2)} ± {p.errMarginCrystalline.toFixed(2)}%
-                        </td>
-                        <td className="px-3 py-3 text-right text-amber-300">
-                          {p.crystallineVolFraction.toFixed(2)} ± {p.errMarginVol.toFixed(2)}%
-                        </td>
-                      </tr>
-                    ))}
-                    {amorphousWtPct > 0 && (
-                      <tr className="bg-rose-950/10 text-rose-300">
-                        <td className="px-4 py-3 font-bold font-sans flex items-center gap-2">
-                          <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                          <span>Amorphous Matrix</span>
-                        </td>
-                        <td className="px-3 py-3 text-right text-slate-500">---</td>
-                        <td className="px-3 py-3 text-right text-slate-500">---</td>
-                        <td className="px-3 py-3 text-right font-bold text-rose-400">{amorphousWtPct.toFixed(2)} wt%</td>
-                        <td className="px-3 py-3 text-right text-rose-400">{amorphousWtPct.toFixed(2)} vol%</td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Visual Pie Distribution (5 cols) */}
-            <div className="lg:col-span-5 bg-slate-900/80 border border-slate-800 rounded-3xl p-6 shadow-xl flex flex-col justify-between space-y-4">
-              <h3 className="font-bold text-slate-200 text-sm flex items-center gap-2">
-                <PieChartIcon className="w-4 h-4 text-indigo-400" />
-                <span>Phase Mass Fractions (wt%)</span>
-              </h3>
-
-              <div className="h-64 w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieChartData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={55}
-                      outerRadius={85}
-                      paddingAngle={3}
-                      dataKey="value"
-                    >
-                      {pieChartData.map((entry, index) => (
-                        <Cell key={`cell-res-${index}`} fill={entry.color} />
-                      ))}
-                    </Pie>
-                    <RechartsTooltip
-                      content={({ active, payload }) => {
-                        if (active && payload && payload.length) {
-                          const data = payload[0].payload;
-                          return (
-                            <div className="bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-xs font-mono text-slate-200 shadow-xl">
-                              <div className="font-bold text-sm" style={{ color: data.color }}>{data.name}</div>
-                              <div className="text-white mt-1 font-black">{data.value} wt%</div>
-                            </div>
-                          );
-                        }
-                        return null;
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-
-              <div className="flex justify-center gap-3">
-                <button
-                  onClick={() => {
-                    setAppState('setup');
-                    setMainTab('matrix');
-                  }}
-                  className="w-full py-2.5 bg-slate-950 hover:bg-slate-800 text-cyan-300 rounded-xl text-xs font-bold border border-cyan-800/40 flex items-center justify-center gap-2 transition-all"
-                >
-                  <Cpu className="w-4 h-4" />
-                  <span>Inspect Full Matrix & Covariance</span>
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 };

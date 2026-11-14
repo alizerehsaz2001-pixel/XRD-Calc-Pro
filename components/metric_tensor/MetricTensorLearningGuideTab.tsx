@@ -1,121 +1,108 @@
 import React from 'react';
-import { 
-  BookOpen, 
-  Sparkles, 
-  Layers, 
-  HelpCircle, 
-  Compass, 
-  Cpu, 
-  CheckCircle2,
-  Table
-} from 'lucide-react';
+import { BookOpen, Layers, Compass, Cpu, Table } from 'lucide-react';
 
 export const MetricTensorLearningGuideTab: React.FC = () => {
   return (
     <div className="space-y-6">
-
       {/* Hero Pedagogical Banner */}
-      <div className="bg-slate-950 rounded-3xl p-6 lg:p-8 border border-slate-800/80 shadow-xl space-y-4">
+      <div className="bg-slate-950 rounded-2xl p-6 lg:p-8 border border-slate-800 space-y-4">
         <div className="flex items-center gap-3">
-          <div className="p-3 rounded-2xl bg-cyan-500/20 text-cyan-400 border border-cyan-500/30">
+          <div className="p-3 rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
             <BookOpen className="w-6 h-6" />
           </div>
           <div>
             <h3 className="text-xl font-bold text-white tracking-tight">
-              Why Metric Tensors? The Universal Language of Crystallography
+              Why Metric Tensors? Universal Differential Geometry of Crystals
             </h3>
             <p className="text-xs text-slate-300">
-              One unified mathematical framework replaces dozens of tedious trig formulas for every crystal system.
+              One unified bilinear algebra replaces system-specific trigonometric d-spacing and angle formulas across all 230 space groups.
             </p>
           </div>
         </div>
 
         <p className="text-xs text-slate-300 leading-relaxed">
-          In high-school or introductory physics, students are taught separate <span className="font-mono text-cyan-300">d</span>-spacing formulas for cubic (<span className="font-mono text-cyan-300">1/d² = (h²+k²+l²)/a²</span>), tetragonal, hexagonal, and orthorhombic crystals. For low-symmetry monoclinic and triclinic systems, the textbook formulas become gigantic, 10-term trigonometric monsters.
-          <br /><br />
-          <strong>The Metric Tensor solves this completely:</strong> With matrix algebra, the single formula <span className="font-mono text-emerald-400 font-bold">1/d² = hᵀ · G* · h</span> works identically across <em>all 230 space groups and all 7 crystal systems</em>!
+          Crystal lattices generally use non-orthogonal basis vectors (e.g., Hexagonal γ = 120°, Monoclinic β ≠ 90°, Triclinic α ≠ β ≠ γ). Instead of memorizing dozens of trigonometric formulas, the covariant metric tensor <strong className="text-violet-300">G</strong> and its contravariant dual inverse <strong className="text-cyan-300">G* = G⁻¹</strong> turn every distance, bond angle, interplanar angle, zone axis, and finite strain into compact matrix products.
         </p>
       </div>
 
       {/* 3 Key Concepts Grid */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-
-        {/* Concept 1: Direct Metric G */}
-        <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800/80 shadow-xl space-y-3">
+        <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
           <div className="flex items-center gap-2 text-violet-400">
-            <span className="p-2 rounded-xl bg-violet-500/10 border border-violet-500/30">
+            <span className="p-2 rounded-lg bg-violet-500/10 border border-violet-500/30">
               <Layers className="w-4 h-4" />
             </span>
-            <h4 className="font-bold text-sm text-white">1. Direct Metric [G]</h4>
+            <h4 className="font-bold text-sm text-white">1. Covariant Metric [G]</h4>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Stores basis vector lengths and interaxial angles in direct space:
+            Stores direct-space basis dot products and maps fractional displacements into Ångströms:
           </p>
           <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 font-mono text-[11px] text-violet-300">
             G_ij = a_i · a_j
             <br />
-            det(G) = V² (Volume squared)
+            d²_bond = Δxᵀ G Δx
+            <br />
+            det(G) = V²
           </div>
           <p className="text-[11px] text-slate-400">
-            Calculates lengths of real-space directions [uvw]: <span className="font-mono text-white">||u|| = √(uᵀ G u)</span>.
+            Also determines unit cell volume and inter-direction angles cos θ = (u₁ᵀ G u₂)/(||u₁|| ||u₂||).
           </p>
         </div>
 
-        {/* Concept 2: Reciprocal Metric G* */}
-        <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800/80 shadow-xl space-y-3">
+        <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
           <div className="flex items-center gap-2 text-cyan-400">
-            <span className="p-2 rounded-xl bg-cyan-500/10 border border-cyan-500/30">
+            <span className="p-2 rounded-lg bg-cyan-500/10 border border-cyan-500/30">
               <Compass className="w-4 h-4" />
             </span>
-            <h4 className="font-bold text-sm text-white">2. Reciprocal Metric [G*]</h4>
+            <h4 className="font-bold text-sm text-white">2. Contravariant Metric [G*]</h4>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            The exact matrix inverse of direct metric tensor G:
+            Exact inverse metric tensor storing reciprocal lattice inner products:
           </p>
           <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 font-mono text-[11px] text-cyan-300">
             G* = G⁻¹
             <br />
             1/d² = hᵀ G* h
+            <br />
+            cos φ = (h₁ᵀ G* h₂)/(|g₁*||g₂*|)
           </div>
           <p className="text-[11px] text-slate-400">
-            Directly gives diffraction plane spacings and angles between reciprocal lattice vectors.
+            Directly contracts with covariant Miller triples (hkl) to compute Bragg d-spacings and Ewald intersections.
           </p>
         </div>
 
-        {/* Concept 3: Busing-Levy Matrix B */}
-        <div className="bg-slate-950 p-6 rounded-3xl border border-slate-800/80 shadow-xl space-y-3">
+        <div className="bg-slate-950 p-6 rounded-2xl border border-slate-800 space-y-3">
           <div className="flex items-center gap-2 text-emerald-400">
-            <span className="p-2 rounded-xl bg-emerald-500/10 border border-emerald-500/30">
+            <span className="p-2 rounded-lg bg-emerald-500/10 border border-emerald-500/30">
               <Cpu className="w-4 h-4" />
             </span>
-            <h4 className="font-bold text-sm text-white">3. Busing-Levy [B]</h4>
+            <h4 className="font-bold text-sm text-white">3. Dual Orthogonalization [A & B]</h4>
           </div>
           <p className="text-xs text-slate-300 leading-relaxed">
-            Maps fractional coordinates into orthonormal Ångström space:
+            Maps crystal spaces into a common right-handed orthonormal Cartesian lab frame:
           </p>
           <div className="p-3 bg-slate-900 rounded-xl border border-slate-800 font-mono text-[11px] text-emerald-300">
-            r_Cart = B · r_frac
+            r_Cart = A · x_frac (Aᵀ A = G)
             <br />
-            Bᵀ · B ≡ G*
+            q_Cart = B · h_hkl (Bᵀ B = G*)
+            <br />
+            Aᵀ B = I₃ (Biorthogonal)
           </div>
           <p className="text-[11px] text-slate-400">
-            Fundamental to single-crystal diffractometer orientation and 3D crystal visualization.
+            Direct positions use A (Å); reciprocal diffraction vectors use B (Å⁻¹) per Busing & Levy (1967).
           </p>
         </div>
-
       </div>
 
       {/* 7 Crystal Systems Metric Tensor Symmetry Table */}
-      <div className="bg-slate-950 p-6 lg:p-8 rounded-3xl border border-slate-800/80 shadow-xl space-y-4">
+      <div className="bg-slate-950 p-6 lg:p-8 rounded-2xl border border-slate-800 space-y-4">
         <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
           <Table className="w-5 h-5 text-indigo-400" />
-          <h4 className="font-bold text-white text-base">
-            Tensor Symmetry & Zeroes across all 7 Crystal Systems
-          </h4>
+          <h4 className="font-bold text-white text-base">Metric Tensor [G] Forms Across All 7 Crystal Systems</h4>
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-left font-mono text-xs border-collapse">
+          <table className="w-full text-left font-mono text-xs border-collapse tabular-nums">
             <thead>
               <tr className="border-b border-slate-800 text-slate-400 bg-slate-900/50">
                 <th className="p-3">System</th>
@@ -171,7 +158,6 @@ export const MetricTensorLearningGuideTab: React.FC = () => {
           </table>
         </div>
       </div>
-
     </div>
   );
 };

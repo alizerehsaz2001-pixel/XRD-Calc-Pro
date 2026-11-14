@@ -23,10 +23,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 110,
-      bg1: -0.35,
-      bg2: 0.002
+      bg1: -14,
+      bg2: 4,
+      bg3: -1
     },
-    description: 'NIST Standard Reference Material for line position and profile shape calibration. Pure diamond cubic structure with characteristic FCC systematic absences.'
+    description:
+      'NIST Standard Reference Material for line position and profile calibration. Diamond cubic Fd-3m structure with strict systematic absences on (200), (222), and (420), plus exact (511)/(333) accidental superposition.'
   },
   {
     id: 'lab6_srm660a',
@@ -50,10 +52,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 95,
-      bg1: -0.28,
-      bg2: 0.0015
+      bg1: -10,
+      bg2: 3,
+      bg3: 0
     },
-    description: 'Primitive cubic profile standard with exceptionally narrow instrumental peak widths and high diffracted intensity across all reflections.'
+    description:
+      'Primitive cubic profile standard with exceptionally narrow instrumental FWHM and no systematic centering absences.'
   },
   {
     id: 'rutile_tio2',
@@ -77,10 +81,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 125,
-      bg1: -0.42,
-      bg2: 0.003
+      bg1: -16,
+      bg2: 5,
+      bg3: -1
     },
-    description: 'High-index tetragonal mineral phase with characteristic strong (110) and (101) doublets and well-defined anisotropic broadening.'
+    description:
+      'Primitive tetragonal P4_2/mnm mineral archetype with strong (110) and (101) doublets and n-glide zonal extinctions.'
   },
   {
     id: 'anatase_tio2',
@@ -104,10 +110,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 140,
-      bg1: -0.5,
-      bg2: 0.0035
+      bg1: -18,
+      bg2: 6,
+      bg3: -1.5
     },
-    description: 'Body-centered tetragonal photocatalytic polymorph with prominent c/a elongation (~2.51) leading to dense peak clusters at high angles.'
+    description:
+      'Body-centered tetragonal polymorph with high c/a ratio (~2.51), yielding dense peak multiplets at mid-to-high angles.'
   },
   {
     id: 'corundum_al2o3',
@@ -131,10 +139,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 105,
-      bg1: -0.32,
-      bg2: 0.0022
+      bg1: -12,
+      bg2: 4,
+      bg3: 0
     },
-    description: 'Rhombohedral crystal indexed in hexagonal setting. Widely used internal standard for Quantitative Phase Analysis (RIR) and Le Bail indexing.'
+    description:
+      'Rhombohedral R-3c internal standard indexed on hexagonal axes. Ideal testbed for obverse centering (-h+k+l = 3n) and c-glide constraints.'
   },
   {
     id: 'quartz_sio2',
@@ -158,10 +168,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 115,
-      bg1: -0.38,
-      bg2: 0.0025
+      bg1: -15,
+      bg2: 4.5,
+      bg3: -1
     },
-    description: 'Chiral trigonal framework silicate displaying strong (100), (101), and (110) peaks with subtle trigonal split features.'
+    description:
+      'Chiral trigonal silicate displaying strong (100), (101), and (110) reflections with 3_1 screw axis extinctions along 00l.'
   },
   {
     id: 'zno_wurtzite',
@@ -185,10 +197,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 130,
-      bg1: -0.45,
-      bg2: 0.003
+      bg1: -16,
+      bg2: 5,
+      bg3: -1
     },
-    description: 'Hexagonal semiconductor showcasing the classic (100), (002), (101) triplet reflection cluster around 31° to 37° 2Theta.'
+    description:
+      'Hexagonal P6_3mc semiconductor showcasing the hallmark (100), (002), (101) low-angle cluster between 31° and 37° 2Theta.'
   },
   {
     id: 'forsterite_mg2sio4',
@@ -212,10 +226,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 135,
-      bg1: -0.48,
-      bg2: 0.0032
+      bg1: -18,
+      bg2: 6,
+      bg3: -1.5
     },
-    description: 'Orthorhombic magnesium nesosilicate with 3 unequal axes (a ≠ b ≠ c). Generates dozens of overlapping reflections ideal for whole-pattern partitioning tests.'
+    description:
+      'Orthorhombic silicate (a ≠ b ≠ c) generating dozens of closely overlapping doublets ideal for testing Pawley covariance vs Le Bail stability.'
   },
   {
     id: 'baddeleyite_zro2',
@@ -240,10 +256,12 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 150,
-      bg1: -0.55,
-      bg2: 0.004
+      bg1: -20,
+      bg2: 7,
+      bg3: -2
     },
-    description: 'Monoclinic ceramic phase displaying non-orthogonal beta angle (~99.23°) resulting in pairs of (-111) and (111) reflection doublets.'
+    description:
+      'Monoclinic P2_1/c phase with β ≈ 99.23°, splitting equivalent peaks into characteristic (-111) and (111) reflection doublets.'
   },
   {
     id: 'microcline_feldspar',
@@ -270,9 +288,11 @@ export const PAWLEY_PRESETS: PawleyPreset[] = [
     },
     background: {
       bg0: 160,
-      bg1: -0.6,
-      bg2: 0.0045
+      bg1: -22,
+      bg2: 8,
+      bg3: -2
     },
-    description: 'Full triclinic framework tectosilicate where all 3 axes and all 3 inter-axial angles differ from 90°, representing the most complex pattern decomposition topology.'
+    description:
+      'Low-symmetry triclinic C-1 framework silicate with oblique inter-axial angles, showcasing dense multiplet overlap and extreme normal-matrix coupling.'
   }
 ];

@@ -1,26 +1,27 @@
-import React, { useState } from 'react';
-import { 
-  Grid, 
-  Copy, 
-  Check, 
-  Info, 
-  Scale, 
-  Sparkles, 
-  Box, 
-  Layers, 
-  Compass, 
-  ArrowRight,
-  HelpCircle
+import React, { useState, useMemo } from 'react';
+import {
+  Grid,
+  Copy,
+  Check,
+  Info,
+  Scale,
+  Compass,
+  Box,
+  ArrowRightLeft,
+  Activity
 } from 'lucide-react';
 import { LatticeParams, CrystalSystem, fmt } from './metricTensorTypes';
+import {
+  DirectMetricResult,
+  NiggliReductionResult,
+  applyBasisTransform
+} from './metricTensorEngine';
 
 interface MetricTensorOverviewTabProps {
   system: CrystalSystem;
   params: LatticeParams;
-  metricG: number[][];
+  directMetric: DirectMetricResult;
   metricGStar: number[][];
-  detG: number;
-  volumeV: number;
   reciprocalVolumeVStar: number;
   aStar: number;
   bStar: number;
@@ -28,19 +29,64 @@ interface MetricTensorOverviewTabProps {
   alphaStar: number;
   betaStar: number;
   gammaStar: number;
-  invariantsG: { I1: number; I2: number; I3: number };
-  niggliVector: { A: number; B: number; C: number; D: number; E: number; F: number; isNiggliOrdered: boolean };
+  niggli: NiggliReductionResult;
   copyToClipboard: (text: string, key: string) => void;
   copiedKey: string | null;
 }
 
+const BASIS_PRESETS: { name: string; desc: string; P: number[][] }[] = [
+  {
+    name: 'Identity (I)',
+    desc: 'Standard conventional basis',
+    P: [
+      [1, 0, 0],
+      [0, 1, 0],
+      [0, 0, 1]
+    ]
+  },
+  {
+    name: 'Rhombohedral -> Hexagonal (Obverse)',
+    desc: 'det(P) = 3 | a_H = a_R - b_R, b_H = b_R - c_R, c_H = a_R + b_R + c_R',
+    P: [
+      [1, 0, 1],
+      [-1, 1, 1],
+      [0, -1, 1]
+    ]
+  },
+  {
+    name: 'Hexagonal -> Primitive Rhomb.',
+    desc: '2×1×1 shear / diagnostic unimodular check',
+    P: [
+      [1, 1, 0],
+      [0, 1, 0],
+      [0, 0, 1]
+    ]
+  },
+  {
+    name: 'F-Centered -> Primitive',
+    desc: 'det(P) = 0.25 | P = ½[[0,1,1],[1,0,1],[1,1,0]]',
+    P: [
+      [0, 0.5, 0.5],
+      [0.5, 0, 0.5],
+      [0.5, 0.5, 0]
+    ]
+  },
+  {
+    name: '2×2×1 Supercell',
+    desc: 'det(P) = 4 | Quadruples unit cell volume',
+    P: [
+      [2, 0, 0],
+      [0, 2, 0],
+      [0, 0, 1]
+    ]
+  }
+];
+
 export const MetricTensorOverviewTab: React.FC<MetricTensorOverviewTabProps> = ({
   system,
   params,
-  metricG,
+  directMetric,
   metricGStar,
-  detG,
-  volumeV,
   reciprocalVolumeVStar,
   aStar,
   bStar,
@@ -48,23 +94,29 @@ export const MetricTensorOverviewTab: React.FC<MetricTensorOverviewTabProps> = (
   alphaStar,
   betaStar,
   gammaStar,
-  invariantsG,
-  niggliVector,
+  niggli,
   copyToClipboard,
   copiedKey
 }) => {
-  // Cell inspector state (which cell is currently selected for deep-dive)
+  const { G: metricG, detG, volumeV, invariants: invariantsG, eigen, conditionNumber } = directMetric;
+
   const [selectedCell, setSelectedCell] = useState<{ tensor: 'G' | 'GStar'; i: number; j: number } | null>({
     tensor: 'G',
     i: 0,
     j: 1
   });
 
+  const [transformP, setTransformP] = useState<number[][]>(BASIS_PRESETS[0].P);
+  const basisResult = useMemo(
+    () => applyBasisTransform(metricG, metricGStar, transformP),
+    [metricG, metricGStar, transformP]
+  );
+
   const getCellExplanation = () => {
     if (!selectedCell) return null;
     const { tensor, i, j } = selectedCell;
     const val = tensor === 'G' ? metricG[i][j] : metricGStar[i][j];
-    
+
     if (tensor === 'G') {
       const names = [
         ['g₁₁ = a²', 'g₁₂ = a·b cos(γ)', 'g₁₃ = a·c cos(β)'],
@@ -72,17 +124,41 @@ export const MetricTensorOverviewTab: React.FC<MetricTensorOverviewTabProps> = (
         ['g₃₁ = a·c cos(β)', 'g₃₂ = b·c cos(α)', 'g₃₃ = c²']
       ];
       const formulas = [
-        [`(${params.a})² = ${fmt(params.a * params.a, 4)} Å²`, `${params.a} × ${params.b} × cos(${params.gamma}°) = ${fmt(val, 4)} Å²`, `${params.a} × ${params.c} × cos(${params.beta}°) = ${fmt(val, 4)} Å²`],
-        [`${params.a} × ${params.b} × cos(${params.gamma}°) = ${fmt(val, 4)} Å²`, `(${params.b})² = ${fmt(params.b * params.b, 4)} Å²`, `${params.b} × ${params.c} × cos(${params.alpha}°) = ${fmt(val, 4)} Å²`],
-        [`${params.a} × ${params.c} × cos(${params.beta}°) = ${fmt(val, 4)} Å²`, `${params.b} × ${params.c} × cos(${params.alpha}°) = ${fmt(val, 4)} Å²`, `(${params.c})² = ${fmt(params.c * params.c, 4)} Å²`]
+        [
+          `(${fmt(params.a, 3)})² = ${fmt(params.a * params.a, 4)}`,
+          `${fmt(params.a, 3)} × ${fmt(params.b, 3)} × cos(${fmt(params.gamma, 2)}°) = ${fmt(val, 4)}`,
+          `${fmt(params.a, 3)} × ${fmt(params.c, 3)} × cos(${fmt(params.beta, 2)}°) = ${fmt(val, 4)}`
+        ],
+        [
+          `${fmt(params.a, 3)} × ${fmt(params.b, 3)} × cos(${fmt(params.gamma, 2)}°) = ${fmt(val, 4)}`,
+          `(${fmt(params.b, 3)})² = ${fmt(params.b * params.b, 4)}`,
+          `${fmt(params.b, 3)} × ${fmt(params.c, 3)} × cos(${fmt(params.alpha, 2)}°) = ${fmt(val, 4)}`
+        ],
+        [
+          `${fmt(params.a, 3)} × ${fmt(params.c, 3)} × cos(${fmt(params.beta, 2)}°) = ${fmt(val, 4)}`,
+          `${fmt(params.b, 3)} × ${fmt(params.c, 3)} × cos(${fmt(params.alpha, 2)}°) = ${fmt(val, 4)}`,
+          `(${fmt(params.c, 3)})² = ${fmt(params.c * params.c, 4)}`
+        ]
       ];
       const descriptions = [
-        ['Squared length of basis vector a', 'Dot product of basis vectors a · b (depends on angle γ)', 'Dot product of basis vectors a · c (depends on angle β)'],
-        ['Dot product of basis vectors b · a (symmetric)', 'Squared length of basis vector b', 'Dot product of basis vectors b · c (depends on angle α)'],
-        ['Dot product of basis vectors c · a (symmetric)', 'Dot product of basis vectors c · b (symmetric)', 'Squared length of basis vector c']
+        [
+          'Squared length of basis vector a',
+          'Covariant inner product a · b controlled by interaxial angle γ',
+          'Covariant inner product a · c controlled by interaxial angle β'
+        ],
+        [
+          'Symmetric inner product b · a = a · b',
+          'Squared length of basis vector b',
+          'Covariant inner product b · c controlled by interaxial angle α'
+        ],
+        [
+          'Symmetric inner product c · a = a · c',
+          'Symmetric inner product c · b = b · c',
+          'Squared length of basis vector c'
+        ]
       ];
       return {
-        title: `Direct Metric Tensor Element g${i+1}${j+1}`,
+        title: `Direct Metric Element g${i + 1}${j + 1}`,
         symbol: names[i][j],
         calc: formulas[i][j],
         desc: descriptions[i][j],
@@ -96,12 +172,13 @@ export const MetricTensorOverviewTab: React.FC<MetricTensorOverviewTabProps> = (
         ['g*³¹ = a*·c* cos(β*)', 'g*³² = b*·c* cos(α*)', 'g*³³ = c*²']
       ];
       return {
-        title: `Reciprocal Metric Tensor Element g*${i+1}${j+1}`,
+        title: `Reciprocal Metric Element g*${i + 1}${j + 1}`,
         symbol: names[i][j],
-        calc: `Inverse matrix [G]⁻¹ element at row ${i+1}, col ${j+1}`,
-        desc: i === j 
-          ? `Squared reciprocal basis length (1/d² along axis ${i+1})`
-          : `Reciprocal dot product between basis ${i+1}* and ${j+1}*`,
+        calc: `Cofactor inverse [G]⁻¹[${i + 1},${j + 1}]`,
+        desc:
+          i === j
+            ? `Squared reciprocal axis length (1/d² along basis ${i + 1}*)`
+            : `Reciprocal coupling between basis ${i + 1}* and ${j + 1}*`,
         value: fmt(val, 5),
         unit: 'Å⁻²'
       };
@@ -112,68 +189,34 @@ export const MetricTensorOverviewTab: React.FC<MetricTensorOverviewTabProps> = (
 
   return (
     <div className="space-y-6">
-      
-      {/* Quick Friendly Intro Card */}
-      <div className="bg-gradient-to-r from-violet-950/40 via-slate-900/60 to-cyan-950/30 p-5 rounded-3xl border border-slate-800/80 shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
-        <div className="flex items-center gap-3.5">
-          <div className="p-3 rounded-2xl bg-cyan-500/10 text-cyan-300 border border-cyan-500/20">
-            <Sparkles className="w-6 h-6 text-cyan-400" />
-          </div>
-          <div>
-            <h3 className="text-base font-bold text-white flex items-center gap-2">
-              The Metric Tensor: GPS of Crystallography
-              <span className="text-[10px] px-2 py-0.5 rounded-full bg-violet-500/20 text-violet-300 font-mono">
-                {system} System
-              </span>
-            </h3>
-            <p className="text-xs text-slate-300 max-w-2xl mt-0.5">
-              The direct tensor <strong className="text-violet-300">[G]</strong> stores all unit cell lengths and angles (<span className="font-mono text-cyan-300">g_ij = a_i · a_j</span>). Its matrix inverse <strong className="text-cyan-300">[G*]</strong> instantly computes diffraction plane spacings (<span className="font-mono text-emerald-300">1/d² = hᵀ G* h</span>).
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2 self-end md:self-center shrink-0">
-          <div className="text-right font-mono text-xs">
-            <span className="text-slate-400 block text-[10px] uppercase font-bold tracking-wider">Unit Cell Volume</span>
-            <span className="text-cyan-300 font-black text-base">{fmt(volumeV, 3)} Å³</span>
-          </div>
-        </div>
-      </div>
-
       {/* Dual Tensor Showcase: Direct Metric G vs Reciprocal Metric G* */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
         {/* Direct Metric Tensor G Card */}
-        <div className="bg-slate-950 rounded-3xl p-6 border border-slate-800/80 shadow-xl space-y-5 hover:border-violet-500/40 transition-colors">
+        <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 space-y-5 hover:border-violet-500/40 transition-colors">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-violet-500/20 text-violet-300 text-xs font-mono font-bold uppercase">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-violet-500/15 border border-violet-500/30 text-violet-300 text-[11px] font-mono font-bold uppercase tracking-wider">
                 <Grid className="w-3.5 h-3.5" />
-                <span>DIRECT SPACE [G]</span>
+                <span>COVARIANT METRIC [G]</span>
               </div>
-              <h3 className="text-base font-bold text-white">
-                Direct Metric Tensor (g_ij = a_i · a_j)
-              </h3>
-              <p className="text-[11px] text-slate-400">
-                Click any cell to inspect its exact formula and physical meaning
-              </p>
+              <h3 className="text-base font-bold text-white">Direct Metric Tensor (gᵢⱼ = aᵢ · aⱼ)</h3>
+              <p className="text-xs text-slate-400">Click any element to inspect its analytic basis inner product</p>
             </div>
 
             <button
               onClick={() => copyToClipboard(JSON.stringify(metricG), 'G')}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer border border-slate-800"
+              className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer border border-slate-800"
               title="Copy Matrix G"
             >
               {copiedKey === 'G' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
 
-          {/* Interactive Matrix Box */}
-          <div className="p-4 bg-slate-900/70 rounded-2xl border border-slate-800 flex items-center justify-center font-mono">
+          <div className="p-4 bg-slate-900/70 rounded-xl border border-slate-800 flex items-center justify-center font-mono tabular-nums">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-serif text-violet-400 font-bold">G = </span>
-              <div className="border-l-2 border-t-2 border-b-2 border-violet-500/80 rounded-l-lg py-3 px-1" />
-              <div className="grid grid-cols-3 gap-2.5 text-center px-2">
+              <span className="text-xl font-serif text-violet-400 font-bold">G =</span>
+              <div className="border-l-2 border-t-2 border-b-2 border-violet-500/70 rounded-l-md py-3 px-1" />
+              <div className="grid grid-cols-3 gap-2 text-center px-1">
                 {metricG.map((row, i) =>
                   row.map((val, j) => {
                     const isSelected = selectedCell?.tensor === 'G' && selectedCell.i === i && selectedCell.j === j;
@@ -182,16 +225,16 @@ export const MetricTensorOverviewTab: React.FC<MetricTensorOverviewTabProps> = (
                       <button
                         key={`g-${i}-${j}`}
                         onClick={() => setSelectedCell({ tensor: 'G', i, j })}
-                        className={`px-3 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer text-left relative ${
+                        className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer text-left ${
                           isSelected
-                            ? 'bg-violet-600 text-white shadow-[0_0_15px_rgba(139,92,246,0.5)] ring-2 ring-violet-300'
+                            ? 'bg-violet-600 text-white ring-2 ring-violet-300'
                             : isDiagonal
                             ? 'bg-violet-600/20 text-violet-200 border border-violet-500/30 hover:bg-violet-600/30'
-                            : 'bg-slate-800/60 text-slate-300 border border-slate-800 hover:bg-slate-700/60'
+                            : 'bg-slate-800/70 text-slate-300 border border-slate-700/70 hover:bg-slate-700/70'
                         }`}
                       >
-                        <div className="text-[9px] text-slate-400 font-sans">
-                          {i === j ? (i === 0 ? 'a² (g₁₁)' : i === 1 ? 'b² (g₂₂)' : 'c² (g₃₃)') : `g${i+1}${j+1}`}
+                        <div className="text-[10px] text-slate-400 font-sans">
+                          {i === j ? (i === 0 ? 'a² (g₁₁)' : i === 1 ? 'b² (g₂₂)' : 'c² (g₃₃)') : `g${i + 1}${j + 1}`}
                         </div>
                         <div className="text-xs">{fmt(val, 4)}</div>
                       </button>
@@ -199,75 +242,73 @@ export const MetricTensorOverviewTab: React.FC<MetricTensorOverviewTabProps> = (
                   })
                 )}
               </div>
-              <div className="border-r-2 border-t-2 border-b-2 border-violet-500/80 rounded-r-lg py-3 px-1" />
+              <div className="border-r-2 border-t-2 border-b-2 border-violet-500/70 rounded-r-md py-3 px-1" />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
-            <div className="p-2.5 bg-slate-900/40 rounded-xl border border-slate-800 text-center">
+          <div className="grid grid-cols-3 gap-2 text-[11px] font-mono tabular-nums">
+            <div className="p-2.5 bg-slate-900/50 rounded-lg border border-slate-800 text-center">
               <span className="text-slate-400 block text-[10px]">det(G) = V²</span>
               <span className="text-violet-300 font-bold">{fmt(detG, 3)} Å⁶</span>
             </div>
-            <div className="p-2.5 bg-slate-900/40 rounded-xl border border-slate-800 text-center">
+            <div className="p-2.5 bg-slate-900/50 rounded-lg border border-slate-800 text-center">
               <span className="text-slate-400 block text-[10px]">Cell Volume V</span>
               <span className="text-cyan-300 font-bold">{fmt(volumeV, 3)} Å³</span>
             </div>
-            <div className="p-2.5 bg-slate-900/40 rounded-xl border border-slate-800 text-center">
-              <span className="text-slate-400 block text-[10px]">Trace Tr(G)</span>
-              <span className="text-emerald-300 font-bold">{fmt(invariantsG.I1, 3)} Å²</span>
+            <div className="p-2.5 bg-slate-900/50 rounded-lg border border-slate-800 text-center">
+              <span className="text-slate-400 block text-[10px]">Invariants I₁ / I₂</span>
+              <span className="text-emerald-300 font-bold">
+                {fmt(invariantsG.I1, 1)} / {fmt(invariantsG.I2, 0)}
+              </span>
             </div>
           </div>
         </div>
 
         {/* Reciprocal Metric Tensor G* Card */}
-        <div className="bg-slate-950 rounded-3xl p-6 border border-slate-800/80 shadow-xl space-y-5 hover:border-cyan-500/40 transition-colors">
+        <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 space-y-5 hover:border-cyan-500/40 transition-colors">
           <div className="flex justify-between items-start">
             <div className="space-y-1">
-              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/20 text-cyan-300 text-xs font-mono font-bold uppercase">
+              <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-cyan-500/15 border border-cyan-500/30 text-cyan-300 text-[11px] font-mono font-bold uppercase tracking-wider">
                 <Box className="w-3.5 h-3.5" />
-                <span>RECIPROCAL SPACE [G*]</span>
+                <span>CONTRAVARIANT METRIC [G*]</span>
               </div>
-              <h3 className="text-base font-bold text-white">
-                Reciprocal Metric Tensor (G* = G⁻¹)
-              </h3>
-              <p className="text-[11px] text-slate-400">
-                Directly contracts with Miller indices (h k l) to find 1/d²
-              </p>
+              <h3 className="text-base font-bold text-white">Reciprocal Metric Tensor (G* = G⁻¹)</h3>
+              <p className="text-xs text-slate-400">Contracts with Miller indices (hkl) to evaluate 1/d²</p>
             </div>
 
             <button
               onClick={() => copyToClipboard(JSON.stringify(metricGStar), 'GStar')}
-              className="p-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer border border-slate-800"
+              className="p-2 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-300 transition-colors cursor-pointer border border-slate-800"
               title="Copy Matrix G*"
             >
               {copiedKey === 'GStar' ? <Check className="w-4 h-4 text-emerald-400" /> : <Copy className="w-4 h-4" />}
             </button>
           </div>
 
-          {/* Interactive Matrix Box */}
-          <div className="p-4 bg-slate-900/70 rounded-2xl border border-slate-800 flex items-center justify-center font-mono">
+          <div className="p-4 bg-slate-900/70 rounded-xl border border-slate-800 flex items-center justify-center font-mono tabular-nums">
             <div className="flex items-center gap-2">
-              <span className="text-2xl font-serif text-cyan-400 font-bold">G* = </span>
-              <div className="border-l-2 border-t-2 border-b-2 border-cyan-500/80 rounded-l-lg py-3 px-1" />
-              <div className="grid grid-cols-3 gap-2.5 text-center px-2">
+              <span className="text-xl font-serif text-cyan-400 font-bold">G* =</span>
+              <div className="border-l-2 border-t-2 border-b-2 border-cyan-500/70 rounded-l-md py-3 px-1" />
+              <div className="grid grid-cols-3 gap-2 text-center px-1">
                 {metricGStar.map((row, i) =>
                   row.map((val, j) => {
-                    const isSelected = selectedCell?.tensor === 'GStar' && selectedCell.i === i && selectedCell.j === j;
+                    const isSelected =
+                      selectedCell?.tensor === 'GStar' && selectedCell.i === i && selectedCell.j === j;
                     const isDiagonal = i === j;
                     return (
                       <button
                         key={`gstar-${i}-${j}`}
                         onClick={() => setSelectedCell({ tensor: 'GStar', i, j })}
-                        className={`px-3 py-2.5 rounded-xl text-xs font-mono font-bold transition-all cursor-pointer text-left ${
+                        className={`px-3 py-2 rounded-lg text-xs font-mono font-bold transition-all cursor-pointer text-left ${
                           isSelected
-                            ? 'bg-cyan-500 text-slate-950 shadow-[0_0_15px_rgba(6,182,212,0.5)] ring-2 ring-cyan-200 font-black'
+                            ? 'bg-cyan-500 text-slate-950 ring-2 ring-cyan-200 font-black'
                             : isDiagonal
                             ? 'bg-cyan-600/20 text-cyan-200 border border-cyan-500/30 hover:bg-cyan-600/30'
-                            : 'bg-slate-800/60 text-slate-300 border border-slate-800 hover:bg-slate-700/60'
+                            : 'bg-slate-800/70 text-slate-300 border border-slate-700/70 hover:bg-slate-700/70'
                         }`}
                       >
-                        <div className="text-[9px] text-slate-400 font-sans">
-                          {i === j ? (i === 0 ? 'a*² (g*₁₁)' : i === 1 ? 'b*² (g*₂₂)' : 'c*² (g*₃₃)') : `g*${i+1}${j+1}`}
+                        <div className="text-[10px] text-slate-400 font-sans">
+                          {i === j ? (i === 0 ? 'a*²' : i === 1 ? 'b*²' : 'c*²') : `g*${i + 1}${j + 1}`}
                         </div>
                         <div className="text-xs">{fmt(val, 5)}</div>
                       </button>
@@ -275,139 +316,289 @@ export const MetricTensorOverviewTab: React.FC<MetricTensorOverviewTabProps> = (
                   })
                 )}
               </div>
-              <div className="border-r-2 border-t-2 border-b-2 border-cyan-500/80 rounded-r-lg py-3 px-1" />
+              <div className="border-r-2 border-t-2 border-b-2 border-cyan-500/70 rounded-r-md py-3 px-1" />
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 text-[11px] font-mono">
-            <div className="p-2.5 bg-slate-900/40 rounded-xl border border-slate-800 text-center">
+          <div className="grid grid-cols-3 gap-2 text-[11px] font-mono tabular-nums">
+            <div className="p-2.5 bg-slate-900/50 rounded-lg border border-slate-800 text-center">
               <span className="text-slate-400 block text-[10px]">a* (Å⁻¹)</span>
               <span className="text-cyan-300 font-bold">{fmt(aStar, 4)}</span>
             </div>
-            <div className="p-2.5 bg-slate-900/40 rounded-xl border border-slate-800 text-center">
+            <div className="p-2.5 bg-slate-900/50 rounded-lg border border-slate-800 text-center">
               <span className="text-slate-400 block text-[10px]">b* (Å⁻¹)</span>
               <span className="text-cyan-300 font-bold">{fmt(bStar, 4)}</span>
             </div>
-            <div className="p-2.5 bg-slate-900/40 rounded-xl border border-slate-800 text-center">
+            <div className="p-2.5 bg-slate-900/50 rounded-lg border border-slate-800 text-center">
               <span className="text-slate-400 block text-[10px]">c* (Å⁻¹)</span>
               <span className="text-cyan-300 font-bold">{fmt(cStar, 4)}</span>
             </div>
           </div>
         </div>
-
       </div>
 
-      {/* Interactive Matrix Cell Inspector (User-Friendly Explainer) */}
+      {/* Interactive Matrix Cell Inspector */}
       {cellInfo && (
-        <div className="bg-slate-900/80 rounded-2xl p-4 border border-violet-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-mono text-xs shadow-md">
+        <div className="bg-slate-900/80 rounded-xl p-4 border border-violet-500/30 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 font-mono text-xs tabular-nums">
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-violet-600/20 text-violet-300 border border-violet-500/30">
+            <div className="p-2 rounded-lg bg-violet-600/20 text-violet-300 border border-violet-500/30">
               <Info className="w-4 h-4" />
             </div>
             <div>
-              <span className="text-white font-bold text-sm block">{cellInfo.title}: <span className="text-cyan-300">{cellInfo.symbol}</span></span>
+              <span className="text-white font-bold text-sm block">
+                {cellInfo.title}: <span className="text-cyan-300">{cellInfo.symbol}</span>
+              </span>
               <span className="text-slate-300 text-xs font-sans">{cellInfo.desc}</span>
             </div>
           </div>
 
-          <div className="bg-slate-950 px-4 py-2 rounded-xl border border-slate-800 self-stretch sm:self-center text-right">
-            <span className="text-[10px] text-slate-400 block font-sans">Formula & Value:</span>
-            <span className="text-emerald-400 font-bold text-sm">{cellInfo.calc} = {cellInfo.value} {cellInfo.unit}</span>
+          <div className="bg-slate-950 px-4 py-2 rounded-lg border border-slate-800 self-stretch sm:self-center text-right">
+            <span className="text-[10px] text-slate-400 block font-sans">Analytic Evaluation:</span>
+            <span className="text-emerald-400 font-bold text-sm">
+              {cellInfo.calc} ({cellInfo.unit})
+            </span>
           </div>
         </div>
       )}
 
-      {/* Reciprocal Parameters & Niggli Metric Reduction */}
+      {/* Row 2: Reciprocal Parameters & Spectral Conditioning + Full Niggli Reduction */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        
-        {/* Reciprocal Cell Parameters Card */}
-        <div className="bg-slate-950 rounded-3xl p-6 border border-slate-800/80 shadow-xl space-y-4">
+        {/* Reciprocal Cell Parameters & Eigen-spectrum */}
+        <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 space-y-4">
           <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
             <Compass className="w-5 h-5 text-cyan-400" />
             <div>
-              <h3 className="text-sm font-bold text-white">
-                Reciprocal Lattice Constants & Interaxial Angles
-              </h3>
+              <h3 className="text-sm font-bold text-white">Reciprocal Parameters & Spectral Conditioning</h3>
               <p className="text-[11px] text-slate-400">
-                Computed from reciprocal metric elements: cos(α*) = g*₂₃ / (b* · c*)
+                Reciprocal angles cos(α*) = g*₂₃/(b*c*) and Jacobi eigenvalues of G
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-3 font-mono text-xs">
-            <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 space-y-1">
-              <span className="text-slate-400 text-[10px] block">α* (angle b*^c*)</span>
-              <span className="text-white font-bold text-sm">{fmt(alphaStar, 2)}°</span>
+          <div className="grid grid-cols-3 gap-3 font-mono text-xs tabular-nums">
+            <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 space-y-1">
+              <span className="text-slate-400 text-[10px] block">α* (b* ∧ c*)</span>
+              <span className="text-white font-bold text-sm">{fmt(alphaStar, 3)}°</span>
             </div>
-            <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 space-y-1">
-              <span className="text-slate-400 text-[10px] block">β* (angle a*^c*)</span>
-              <span className="text-white font-bold text-sm">{fmt(betaStar, 2)}°</span>
+            <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 space-y-1">
+              <span className="text-slate-400 text-[10px] block">β* (a* ∧ c*)</span>
+              <span className="text-white font-bold text-sm">{fmt(betaStar, 3)}°</span>
             </div>
-            <div className="p-3 bg-slate-900/50 rounded-xl border border-slate-800 space-y-1">
-              <span className="text-slate-400 text-[10px] block">γ* (angle a*^b*)</span>
-              <span className="text-white font-bold text-sm">{fmt(gammaStar, 2)}°</span>
+            <div className="p-3 bg-slate-900/50 rounded-lg border border-slate-800 space-y-1">
+              <span className="text-slate-400 text-[10px] block">γ* (a* ∧ b*)</span>
+              <span className="text-white font-bold text-sm">{fmt(gammaStar, 3)}°</span>
             </div>
           </div>
 
-          <div className="p-3 bg-cyan-950/30 rounded-xl border border-cyan-500/20 text-xs flex justify-between items-center font-mono">
+          <div className="p-3 bg-cyan-950/20 rounded-lg border border-cyan-500/20 text-xs flex justify-between items-center font-mono tabular-nums">
             <span className="text-slate-300">Reciprocal Cell Volume V* = 1/V:</span>
             <span className="text-cyan-300 font-bold">{fmt(reciprocalVolumeVStar, 6)} Å⁻³</span>
           </div>
+
+          <div className="p-3.5 bg-slate-900/60 rounded-xl border border-slate-800 space-y-2 font-mono text-xs tabular-nums">
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-slate-400 flex items-center gap-1.5 font-sans font-semibold">
+                <Activity className="w-3.5 h-3.5 text-emerald-400" />
+                Metric Eigenvalues λ(G) [Å²]
+              </span>
+              <span className="text-amber-300 font-bold">κ(G) = {fmt(conditionNumber, 2)}</span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 text-center">
+              {eigen.values.map((lam, idx) => (
+                <div key={idx} className="p-2 rounded-lg bg-slate-950 border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">λ{idx + 1} (√λ = {fmt(Math.sqrt(Math.max(0, lam)), 3)} Å)</span>
+                  <span className="text-emerald-300 font-bold">{fmt(lam, 3)}</span>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
 
-        {/* Niggli Metric Reduction & Standard Cell */}
-        <div className="bg-slate-950 rounded-3xl p-6 border border-slate-800/80 shadow-xl space-y-4">
-          <div className="flex items-center gap-2.5 border-b border-slate-800 pb-3">
-            <Scale className="w-5 h-5 text-indigo-400" />
+        {/* Full Křivý–Gruber (1976) Niggli Cell Reduction */}
+        <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+            <div className="flex items-center gap-2.5">
+              <Scale className="w-5 h-5 text-indigo-400" />
+              <div>
+                <h3 className="text-sm font-bold text-white">Křivý–Gruber Niggli Cell Reduction</h3>
+                <p className="text-[11px] text-slate-400">Canonical shortest right-handed basis (G_N = Pᵀ G P)</p>
+              </div>
+            </div>
+            <span
+              className={`px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold border ${
+                niggli.isAlreadyNiggli
+                  ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/30'
+                  : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+              }`}
+            >
+              {niggli.isAlreadyNiggli ? 'ALREADY NIGGLI-REDUCED' : `REDUCED IN ${niggli.iterations} STEPS`}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-3 gap-2 font-mono text-xs tabular-nums">
+            {[
+              { lbl: 'A_N = a_N²', val: niggli.reducedVector.A, c: 'text-indigo-300' },
+              { lbl: 'B_N = b_N²', val: niggli.reducedVector.B, c: 'text-indigo-300' },
+              { lbl: 'C_N = c_N²', val: niggli.reducedVector.C, c: 'text-indigo-300' },
+              { lbl: 'ξ = 2bc cosα', val: niggli.reducedVector.D, c: 'text-cyan-300' },
+              { lbl: 'η = 2ac cosβ', val: niggli.reducedVector.E, c: 'text-cyan-300' },
+              { lbl: 'ζ = 2ab cosγ', val: niggli.reducedVector.F, c: 'text-cyan-300' }
+            ].map((item) => (
+              <div key={item.lbl} className="p-2 bg-slate-900/60 rounded-lg border border-slate-800">
+                <span className="text-slate-500 text-[10px] block">{item.lbl}</span>
+                <span className={`${item.c} font-bold`}>{fmt(item.val, 3)}</span>
+              </div>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-center bg-slate-900/60 p-3 rounded-xl border border-slate-800 font-mono text-[11px] tabular-nums">
+            <div className="sm:col-span-7 space-y-1">
+              <div className="text-slate-400 text-[10px] uppercase font-bold">
+                Reduced Parameters ({niggli.type})
+              </div>
+              <div className="text-white">
+                a={fmt(niggli.reducedParams.a, 4)} b={fmt(niggli.reducedParams.b, 4)} c=
+                {fmt(niggli.reducedParams.c, 4)} Å
+              </div>
+              <div className="text-cyan-300">
+                α={fmt(niggli.reducedParams.alpha, 2)}° β={fmt(niggli.reducedParams.beta, 2)}° γ=
+                {fmt(niggli.reducedParams.gamma, 2)}°
+              </div>
+              <div className="text-[10px] text-emerald-400">
+                ||PᵀGP − G_N||_F = {niggli.reconstructionError.toExponential(1)} (det P = {niggli.detP})
+              </div>
+            </div>
+
+            <div className="sm:col-span-5 bg-slate-950 p-2 rounded-lg border border-slate-800 text-center">
+              <div className="text-[10px] text-slate-500 mb-1">Unimodular P</div>
+              <div className="grid grid-cols-3 gap-1 text-indigo-300 font-bold">
+                {niggli.transformP.flatMap((r, ri) =>
+                  r.map((v, ci) => (
+                    <span key={`p-${ri}-${ci}`} className="bg-slate-900 rounded py-0.5">
+                      {Math.round(v)}
+                    </span>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Row 3: Interactive Unimodular / Supercell Basis Transformation Sandbox */}
+      <div className="bg-slate-950 rounded-2xl p-6 border border-slate-800 space-y-4">
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+          <div className="flex items-center gap-2.5">
+            <ArrowRightLeft className="w-5 h-5 text-emerald-400" />
             <div>
               <h3 className="text-sm font-bold text-white">
-                Niggli Metric 6-Vector (A, B, C, D, E, F)
+                Basis Change & Supercell Metric Transformation Sandbox
               </h3>
               <p className="text-[11px] text-slate-400">
-                Canonical metric representation for Bravais lattice classification
+                Transform unit cell basis [a' b' c'] = [a b c] P with G' = Pᵀ G P and G*' = P⁻¹ G* P⁻ᵀ
               </p>
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-2 font-mono text-xs">
-            <div className="p-2.5 bg-slate-900/50 rounded-xl border border-slate-800">
-              <span className="text-slate-500 text-[10px] block">A = a²</span>
-              <span className="text-indigo-300 font-bold">{fmt(niggliVector.A, 3)}</span>
-            </div>
-            <div className="p-2.5 bg-slate-900/50 rounded-xl border border-slate-800">
-              <span className="text-slate-500 text-[10px] block">B = b²</span>
-              <span className="text-indigo-300 font-bold">{fmt(niggliVector.B, 3)}</span>
-            </div>
-            <div className="p-2.5 bg-slate-900/50 rounded-xl border border-slate-800">
-              <span className="text-slate-500 text-[10px] block">C = c²</span>
-              <span className="text-indigo-300 font-bold">{fmt(niggliVector.C, 3)}</span>
-            </div>
-            <div className="p-2.5 bg-slate-900/50 rounded-xl border border-slate-800">
-              <span className="text-slate-500 text-[10px] block">D = 2bc cosα</span>
-              <span className="text-cyan-300 font-bold">{fmt(niggliVector.D, 3)}</span>
-            </div>
-            <div className="p-2.5 bg-slate-900/50 rounded-xl border border-slate-800">
-              <span className="text-slate-500 text-[10px] block">E = 2ac cosβ</span>
-              <span className="text-cyan-300 font-bold">{fmt(niggliVector.E, 3)}</span>
-            </div>
-            <div className="p-2.5 bg-slate-900/50 rounded-xl border border-slate-800">
-              <span className="text-slate-500 text-[10px] block">F = 2ab cosγ</span>
-              <span className="text-cyan-300 font-bold">{fmt(niggliVector.F, 3)}</span>
-            </div>
-          </div>
-
-          <div className={`p-2.5 rounded-xl border text-xs font-mono font-bold flex items-center justify-between ${
-            niggliVector.isNiggliOrdered
-              ? 'bg-emerald-950/40 border-emerald-500/30 text-emerald-300'
-              : 'bg-amber-950/40 border-amber-500/30 text-amber-300'
-          }`}>
-            <span>Ordering Criterion (A ≤ B ≤ C):</span>
-            <span>{niggliVector.isNiggliOrdered ? 'PASSED ✓' : 'UNORDERED (Permute axes)'}</span>
+          <div className="flex flex-wrap gap-1.5">
+            {BASIS_PRESETS.map((preset) => (
+              <button
+                key={preset.name}
+                onClick={() => setTransformP(preset.P.map((r) => [...r]))}
+                title={preset.desc}
+                className="px-2.5 py-1 rounded-lg bg-slate-900 hover:bg-slate-800 text-emerald-300 border border-slate-800 text-[11px] font-mono font-semibold transition-colors cursor-pointer whitespace-nowrap"
+              >
+                {preset.name}
+              </button>
+            ))}
           </div>
         </div>
 
-      </div>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+          {/* Editable 3x3 Transformation Matrix P */}
+          <div className="lg:col-span-4 bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
+            <div className="flex justify-between items-center text-[11px] font-mono">
+              <span className="text-slate-300 font-bold">Transformation Matrix P</span>
+              <span className={basisResult.isValid ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>
+                det(P) = {fmt(basisResult.detP, 3)}
+              </span>
+            </div>
+            <div className="grid grid-cols-3 gap-2 font-mono">
+              {transformP.map((row, ri) =>
+                row.map((val, ci) => (
+                  <input
+                    key={`tp-${ri}-${ci}`}
+                    type="number"
+                    step="0.5"
+                    value={val}
+                    onChange={(e) => {
+                      const next = transformP.map((r) => [...r]);
+                      next[ri][ci] = parseFloat(e.target.value) || 0;
+                      setTransformP(next);
+                    }}
+                    className="w-full bg-slate-950 text-white text-center font-bold text-xs py-1.5 rounded-lg border border-slate-700 focus:border-emerald-500 outline-none tabular-nums"
+                  />
+                ))
+              )}
+            </div>
+          </div>
 
+          {/* Transformed Metric G' & Parameters */}
+          <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-2 gap-4 font-mono text-xs tabular-nums">
+            <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
+              <div className="text-[11px] text-slate-400 font-sans font-semibold">Transformed Metric G' = Pᵀ G P</div>
+              <div className="grid grid-cols-3 gap-1.5 text-center">
+                {basisResult.GPrime.flatMap((row, ri) =>
+                  row.map((val, ci) => (
+                    <div
+                      key={`gp-${ri}-${ci}`}
+                      className={`py-1.5 px-2 rounded border ${
+                        ri === ci
+                          ? 'bg-emerald-950/30 border-emerald-500/30 text-emerald-200 font-bold'
+                          : 'bg-slate-950 border-slate-800 text-slate-300'
+                      }`}
+                    >
+                      {fmt(val, 3)}
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            <div className="bg-slate-900/60 p-4 rounded-xl border border-slate-800 space-y-2">
+              <div className="text-[11px] text-slate-400 font-sans font-semibold">
+                Transformed Cell Parameters (V' = {fmt(basisResult.volumePrime, 3)} Å³)
+              </div>
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">a' (Å)</span>
+                  <span className="text-white font-bold">{fmt(basisResult.paramsPrime.a, 4)}</span>
+                </div>
+                <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">b' (Å)</span>
+                  <span className="text-white font-bold">{fmt(basisResult.paramsPrime.b, 4)}</span>
+                </div>
+                <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">c' (Å)</span>
+                  <span className="text-white font-bold">{fmt(basisResult.paramsPrime.c, 4)}</span>
+                </div>
+                <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">α' (°)</span>
+                  <span className="text-cyan-300 font-bold">{fmt(basisResult.paramsPrime.alpha, 2)}°</span>
+                </div>
+                <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">β' (°)</span>
+                  <span className="text-cyan-300 font-bold">{fmt(basisResult.paramsPrime.beta, 2)}°</span>
+                </div>
+                <div className="bg-slate-950 p-2 rounded border border-slate-800">
+                  <span className="text-[10px] text-slate-500 block">γ' (°)</span>
+                  <span className="text-cyan-300 font-bold">{fmt(basisResult.paramsPrime.gamma, 2)}°</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 };

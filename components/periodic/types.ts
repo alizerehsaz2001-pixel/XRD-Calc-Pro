@@ -76,6 +76,7 @@ export type HeatmapMode =
   | 'none'
   | 'latticeA'
   | 'unitCellVolume'
+  | 'molarVolume'
   | 'electronegativity'
   | 'atomicRadius'
   | 'ionizationEnergy'
@@ -85,6 +86,9 @@ export type HeatmapMode =
   | 'boilingPoint'
   | 'scatteringPower'
   | 'massAttenuation'
+  | 'kEdgeKeV'
+  | 'kAlpha1KeV'
+  | 'cuFluorescenceRisk'
   | 'thermalConductivity'
   | 'electricalConductivity';
 

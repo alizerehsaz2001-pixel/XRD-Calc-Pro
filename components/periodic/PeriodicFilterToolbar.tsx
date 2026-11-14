@@ -78,6 +78,18 @@ export const QUICK_PRESETS: QuickPreset[] = [
     label: 'Superconductors',
     description: 'Pure metals displaying zero electrical resistance and Meissner flux expulsion at cryogenic temperatures.',
     elementNumbers: [41, 82, 23, 50, 22, 39, 73]
+  },
+  {
+    id: 'cu_fluorescence',
+    label: 'Cu-Kα Fluo. Risk',
+    description: 'Elements (Sc–Co, Z=21–27) whose K-absorption edge sits just below Cu Kα (8.048 keV), triggering severe fluorescence background unless Co/Mo radiation or a monochromator is used.',
+    elementNumbers: [21, 22, 23, 24, 25, 26, 27]
+  },
+  {
+    id: 'battery_cathode',
+    label: 'Battery & Ionics',
+    description: 'Key intercalation alkali cations, polyanion frameworks, and redox transition metals for Li/Na-ion cathodes & solid electrolytes.',
+    elementNumbers: [3, 11, 15, 16, 22, 25, 26, 27, 28, 40, 57]
   }
 ];
 
@@ -290,9 +302,13 @@ export const PeriodicFilterToolbar: React.FC<PeriodicFilterToolbarProps> = ({
             <option value="none" className="bg-[#080d1a] text-slate-300">Heatmap: Off</option>
             <option value="latticeA" className="bg-[#080d1a] text-white">Heatmap: Lattice a₀ (Å)</option>
             <option value="unitCellVolume" className="bg-[#080d1a] text-white">Heatmap: Cell Volume V (Å³)</option>
+            <option value="molarVolume" className="bg-[#080d1a] text-white">Heatmap: Molar Volume V_m (cm³/mol)</option>
             <option value="density" className="bg-[#080d1a] text-white">Heatmap: X-Ray Density (g/cm³)</option>
             <option value="scatteringPower" className="bg-[#080d1a] text-white">Heatmap: Form Factor f₀ (Z e⁻)</option>
             <option value="massAttenuation" className="bg-[#080d1a] text-white">Heatmap: Cu-Kα μ/ρ (cm²/g)</option>
+            <option value="kEdgeKeV" className="bg-[#080d1a] text-white">Heatmap: K-Absorption Edge (keV)</option>
+            <option value="kAlpha1KeV" className="bg-[#080d1a] text-white">Heatmap: Kα₁ Emission Energy (keV)</option>
+            <option value="cuFluorescenceRisk" className="bg-[#080d1a] text-white">Heatmap: Cu-Kα Fluorescence Index</option>
             <option value="atomicRadius" className="bg-[#080d1a] text-white">Heatmap: Atomic Radius (pm)</option>
             <option value="electronegativity" className="bg-[#080d1a] text-white">Heatmap: Electronegativity (χ)</option>
             <option value="ionizationEnergy" className="bg-[#080d1a] text-white">Heatmap: 1st Ionization (eV)</option>

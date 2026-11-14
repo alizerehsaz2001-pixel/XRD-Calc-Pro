@@ -156,7 +156,7 @@ export const RIRDatabaseExplorer: React.FC<RIRDatabaseExplorerProps> = ({
               </span>
             </h2>
             <p className="text-xs text-slate-400 mt-1">
-              Curated library of experimental & calculated $I/I_c$ reference ratios, crystal densities, and Cu Kα mass attenuation coefficients.
+              Curated library of experimental &amp; calculated <span className="font-mono text-slate-200">I/I<sub>c</sub></span> reference ratios, crystal densities, and Cu Kα mass attenuation coefficients.
             </p>
           </div>
         </div>
@@ -242,8 +242,8 @@ export const RIRDatabaseExplorer: React.FC<RIRDatabaseExplorerProps> = ({
 
               <div className="grid grid-cols-3 gap-2 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800/80 text-xs">
                 <div>
-                  <span className="text-[9px] uppercase font-bold text-slate-500 block">RIR ($I/I_c$)</span>
-                  <span className="font-mono font-black text-amber-400 text-sm">{item.rir.toFixed(2)}</span>
+                  <span className="text-[9px] uppercase font-bold text-slate-500 block">RIR (I/I<sub>c</sub>)</span>
+                  <span className="font-mono tabular-nums font-black text-amber-400 text-sm">{item.rir.toFixed(2)}</span>
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-slate-500 block">Peak (hkl)</span>
@@ -251,7 +251,7 @@ export const RIRDatabaseExplorer: React.FC<RIRDatabaseExplorerProps> = ({
                 </div>
                 <div>
                   <span className="text-[9px] uppercase font-bold text-slate-500 block">2θ Angle</span>
-                  <span className="font-mono font-bold text-slate-300">{item.twoTheta}°</span>
+                  <span className="font-mono tabular-nums font-bold text-slate-300">{item.twoTheta}°</span>
                 </div>
               </div>
 

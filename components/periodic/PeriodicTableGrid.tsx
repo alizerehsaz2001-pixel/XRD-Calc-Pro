@@ -1,7 +1,14 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Pin, PinOff, ArrowLeftRight, Sparkles, Compass } from 'lucide-react';
+import { Pin, PinOff, ArrowLeftRight } from 'lucide-react';
 import { CrystalElement, ColorMode, HeatmapMode } from './types';
-import { HEATMAP_CONFIGS, getHeatmapColor, computeUnitCellVolume } from './PeriodicHeatmapLegend';
+import {
+  HEATMAP_CONFIGS,
+  getHeatmapColor,
+  computeUnitCellVolume,
+  getElementKEdgeKeV,
+  getElementMuRhoCu,
+  getCuFluorescenceScore
+} from './PeriodicHeatmapLegend';
 import {
   MicroLatticeGlyph,
   PhaseStateGlyph,
@@ -25,7 +32,7 @@ interface PeriodicTableGridProps {
   onToggleBlockFilter?: (block: string) => void;
 }
 
-type TileViewMode = 'crystallographic' | 'diffraction' | 'electronic';
+type TileViewMode = 'crystallographic' | 'diffraction' | 'electronic' | 'spectroscopy';
 
 const CATEGORY_COLORS: Record<
   string,
@@ -519,6 +526,11 @@ export const PeriodicTableGrid: React.FC<PeriodicTableGridProps> = ({
     } else if (tileViewMode === 'electronic') {
       leftSubText = getShortValenceConfig(el.electronConfig);
       rightSubText = el.electronegativity > 0 ? `χ${el.electronegativity.toFixed(1)}` : '—';
+    } else if (tileViewMode === 'spectroscopy') {
+      const kEdge = getElementKEdgeKeV(el);
+      const muCu = getElementMuRhoCu(el);
+      leftSubText = kEdge >= 1 ? `K ${kEdge.toFixed(1)}` : `K ${Math.round(kEdge * 1000)}e`;
+      rightSubText = `μ${muCu >= 100 ? Math.round(muCu) : muCu.toFixed(1)}`;
     } else {
       if (colorMode === 'structure') {
         rightSubText = el.crystalStructure;
@@ -738,7 +750,8 @@ export const PeriodicTableGrid: React.FC<PeriodicTableGridProps> = ({
               [
                 { id: 'crystallographic', label: 'a₀ & Lattice' },
                 { id: 'diffraction', label: 'SG & ρ_XRD' },
-                { id: 'electronic', label: 'Orbital & χ' }
+                { id: 'electronic', label: 'Orbital & χ' },
+                { id: 'spectroscopy', label: 'E_K & μ/ρ' }
               ] as const
             ).map(tm => (
               <button
@@ -907,29 +920,44 @@ export const PeriodicTableGrid: React.FC<PeriodicTableGridProps> = ({
                   />
                 </div>
 
-                {/* Right: Live Powder XRD Stick Pattern Preview */}
-                <div className="flex-1 min-w-[150px] max-w-[230px] z-10 flex flex-col justify-between h-full py-0.5">
+                {/* Right: Live Powder XRD Stick Pattern Preview & X-Ray Telemetry */}
+                <div className="flex-1 min-w-[155px] max-w-[245px] z-10 flex flex-col justify-between h-full py-0.5">
                   <LiveMiniXrdStickPattern element={activeOrHovered} />
-                  <div className="grid grid-cols-3 gap-1 pt-1 text-[8px] font-mono text-center tabular-nums">
-                    <div className="bg-[#0B0F19] border border-slate-800/90 rounded px-1 py-0.5">
-                      <span className="text-slate-500 block">χ Pauling</span>
-                      <span className="text-amber-300 font-bold">
-                        {activeOrHovered.electronegativity
-                          ? activeOrHovered.electronegativity.toFixed(2)
-                          : '—'}
-                      </span>
-                    </div>
-                    <div className="bg-[#0B0F19] border border-slate-800/90 rounded px-1 py-0.5">
-                      <span className="text-slate-500 block">T_melt</span>
-                      <span className="text-rose-300 font-bold">
-                        {activeOrHovered.meltingPoint}°C
-                      </span>
-                    </div>
-                    <div className="bg-[#0B0F19] border border-slate-800/90 rounded px-1 py-0.5">
-                      <span className="text-slate-500 block">f₀(0)</span>
-                      <span className="text-cyan-300 font-bold">{activeOrHovered.number} e⁻</span>
-                    </div>
-                  </div>
+                  {(() => {
+                    const kEdge = getElementKEdgeKeV(activeOrHovered);
+                    const muCu = getElementMuRhoCu(activeOrHovered);
+                    const fluo = getCuFluorescenceScore(activeOrHovered);
+                    return (
+                      <div className="grid grid-cols-4 gap-1 pt-1 text-[7.5px] font-mono text-center tabular-nums">
+                        <div className="bg-[#0B0F19] border border-slate-800/90 rounded px-1 py-0.5">
+                          <span className="text-slate-500 block">χ Pauling</span>
+                          <span className="text-amber-300 font-bold">
+                            {activeOrHovered.electronegativity
+                              ? activeOrHovered.electronegativity.toFixed(2)
+                              : '—'}
+                          </span>
+                        </div>
+                        <div className="bg-[#0B0F19] border border-slate-800/90 rounded px-1 py-0.5">
+                          <span className="text-slate-500 block">E_K Edge</span>
+                          <span className={fluo >= 55 ? 'text-rose-300 font-bold' : 'text-indigo-300 font-bold'}>
+                            {kEdge >= 1 ? `${kEdge.toFixed(2)}k` : `${Math.round(kEdge * 1000)}e`}
+                          </span>
+                        </div>
+                        <div className="bg-[#0B0F19] border border-slate-800/90 rounded px-1 py-0.5">
+                          <span className="text-slate-500 block">μ/ρ Cu</span>
+                          <span className="text-cyan-300 font-bold">
+                            {muCu >= 100 ? Math.round(muCu) : muCu.toFixed(1)}
+                          </span>
+                        </div>
+                        <div className="bg-[#0B0F19] border border-slate-800/90 rounded px-1 py-0.5">
+                          <span className="text-slate-500 block">Cu Tube</span>
+                          <span className={fluo >= 55 ? 'text-rose-400 font-bold' : 'text-emerald-400 font-bold'}>
+                            {fluo >= 55 ? 'Fluo!' : 'Clear'}
+                          </span>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
@@ -1147,6 +1175,7 @@ export const PeriodicTableGrid: React.FC<PeriodicTableGridProps> = ({
               {(() => {
                 const daPct =
                   ((activeOrHovered.a - pinnedElement.a) / (pinnedElement.a || 1)) * 100;
+                const aVegard50 = 0.5 * (activeOrHovered.a + pinnedElement.a);
                 const drPct =
                   ((activeOrHovered.atomicRadius - pinnedElement.atomicRadius) /
                     (pinnedElement.atomicRadius || 1)) *
@@ -1154,12 +1183,16 @@ export const PeriodicTableGrid: React.FC<PeriodicTableGridProps> = ({
                 const dChi =
                   (activeOrHovered.electronegativity || 0) -
                   (pinnedElement.electronegativity || 0);
+                const mu1 = getElementMuRhoCu(pinnedElement);
+                const mu2 = getElementMuRhoCu(activeOrHovered);
+                const muRatio = mu2 / Math.max(0.01, mu1);
                 const sameLattice =
                   activeOrHovered.crystalStructure === pinnedElement.crystalStructure;
-                const hrFavorable = Math.abs(drPct) <= 15 && Math.abs(dChi) <= 0.4;
+                const hrFavorable = Math.abs(drPct) <= 15 && Math.abs(dChi) <= 0.4 && sameLattice;
+                const hrPartial = Math.abs(drPct) <= 15 && Math.abs(dChi) <= 0.4 && !sameLattice;
 
                 return (
-                  <div className="flex flex-wrap items-center gap-4 text-slate-300">
+                  <div className="flex flex-wrap items-center gap-3.5 text-slate-300 tabular-nums">
                     <div>
                       <span className="text-slate-500">Lattice Δa₀: </span>
                       <strong className={daPct >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
@@ -1167,9 +1200,13 @@ export const PeriodicTableGrid: React.FC<PeriodicTableGridProps> = ({
                       </strong>
                     </div>
                     <div>
+                      <span className="text-slate-500">Vegard 50/50: </span>
+                      <strong className="text-cyan-300">{aVegard50.toFixed(3)} Å</strong>
+                    </div>
+                    <div>
                       <span className="text-slate-500">Size Δr: </span>
                       <strong
-                        className={Math.abs(drPct) <= 15 ? 'text-cyan-300' : 'text-amber-400'}
+                        className={Math.abs(drPct) <= 15 ? 'text-emerald-300' : 'text-amber-400'}
                       >
                         {drPct >= 0 ? `+${drPct.toFixed(1)}%` : `${drPct.toFixed(1)}%`}
                       </strong>
@@ -1181,15 +1218,25 @@ export const PeriodicTableGrid: React.FC<PeriodicTableGridProps> = ({
                       </strong>
                     </div>
                     <div>
-                      <span className="text-slate-500">Symmetry: </span>
-                      <strong className={sameLattice ? 'text-emerald-400' : 'text-slate-400'}>
-                        {sameLattice ? `Isomorphous (${pinnedElement.crystalStructure})` : 'Heteromorphous'}
-                      </strong>
+                      <span className="text-slate-500">μ/ρ Ratio: </span>
+                      <strong className="text-indigo-300">{muRatio.toFixed(2)}×</strong>
                     </div>
                     <div>
                       <span className="text-slate-500">Hume-Rothery: </span>
-                      <strong className={hrFavorable ? 'text-emerald-400' : 'text-amber-400'}>
-                        {hrFavorable ? '● High Solubility (≤15%)' : '▲ Limited Solubility'}
+                      <strong
+                        className={
+                          hrFavorable
+                            ? 'text-emerald-400'
+                            : hrPartial
+                            ? 'text-cyan-300'
+                            : 'text-amber-400'
+                        }
+                      >
+                        {hrFavorable
+                          ? 'Complete Solubility'
+                          : hrPartial
+                          ? 'Partial (ΔStructure)'
+                          : 'Limited Solubility'}
                       </strong>
                     </div>
                   </div>

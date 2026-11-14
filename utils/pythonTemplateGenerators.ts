@@ -1163,20 +1163,52 @@ export function generatePawleyLeBailScript(opts: PythonGeneratorOptions = {}): s
 
   return `#!/usr/bin/env python3
 # ==============================================================================
-# XRD-Calc Pro: Le Bail / Pawley Whole-Pattern Profile Decomposition
-# Structure-Free Reflection Intensity Extraction & Agreement Index R_wp
+# XRD-Calc Pro: Pawley & Le Bail Whole-Pattern Profile Decomposition
+# Iterative Le Bail Partitioning vs Weighted Pawley Normal Matrix Inversion
 # ==============================================================================
 
 import numpy as np
 
 WAVELENGTH = ${wavelength}
+
+def caglioti_fwhm(two_theta_deg, U=0.0045, V=-0.0022, W=0.0082):
+    tan_t = np.tan(np.radians(two_theta_deg / 2.0))
+    return np.sqrt(np.maximum(U * tan_t**2 + V * tan_t + W, 4e-4))
+
+def pseudo_voigt(tt, center, fwhm, eta=0.38):
+    dx = tt - center
+    sigma = fwhm / (2.0 * np.sqrt(2.0 * np.log(2.0)))
+    g = np.exp(-0.5 * (dx / sigma) ** 2) / (sigma * np.sqrt(2.0 * np.pi))
+    l = (0.5 * fwhm) / (np.pi * (dx ** 2 + (0.5 * fwhm) ** 2))
+    return eta * l + (1.0 - eta) * g
+
+def lebail_cycle(y_obs, y_bg, phi_mat, I_curr, omega=0.85):
+    # phi_mat shape: (n_peaks, n_points)
+    y_calc_net = np.maximum(I_curr @ phi_mat, 1e-6)
+    net_obs = np.maximum(y_obs - y_bg, 0.0)
+    numer = (phi_mat * I_curr[:, None]) * (net_obs / y_calc_net)[None, :]
+    I_target = np.sum(numer, axis=1) / np.maximum(np.sum(phi_mat, axis=1), 1e-6)
+    return np.maximum(0.5, I_curr + omega * (I_target - I_curr))
+
+def pawley_cycle(y_obs, y_bg, phi_mat, I_curr, lam=0.005):
+    # Normal equation: (J^T W J + lam * diag) Delta_I = J^T W (y_obs - y_calc)
+    J = phi_mat.T
+    w = 1.0 / np.maximum(y_obs, 1.0)
+    y_calc = y_bg + I_curr @ phi_mat
+    M = J.T @ (w[:, None] * J)
+    M_reg = M + lam * np.diag(np.maximum(np.diag(M), 1e-8))
+    rhs = J.T @ (w * (y_obs - y_calc))
+    delta_I = np.linalg.solve(M_reg, rhs)
+    cov_I = np.linalg.inv(M_reg)
+    chi2 = np.sum(w * (y_obs - y_calc) ** 2) / max(1, len(y_obs) - len(I_curr))
+    esd = np.sqrt(np.maximum(np.diag(cov_I) * chi2, 0.0))
+    return I_curr + 0.9 * delta_I, esd, cov_I
+
 print("=" * 68)
-print("         LE BAIL WHOLE-POWDER PATTERN DECOMPOSITION")
+print("   PAWLEY & LE BAIL WHOLE-POWDER PATTERN DECOMPOSITION ENGINE")
 print("=" * 68)
-print("[*] Initializing iterative reflection extraction...")
-# Le Bail Iteration Formula: I_k^(n+1) = Σ_i [ (Y_obs,i - Y_bg,i) · I_k^(n) · Ω_ik / Y_calc,i ]
-print("[*] Successfully extracted 14 independent peak reflection amplitudes.")
-print("[*] Converged with Profile Residual R_p = 3.12%, R_wp = 4.08%.")
+print(f"Configured Radiation Wavelength: {WAVELENGTH:.5f} Å")
+print("Ready: call lebail_cycle(...) or pawley_cycle(...) on experimental grid.")
 print("=" * 68)
 `;
 }

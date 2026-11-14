@@ -1664,29 +1664,29 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
 
   return (
     <div
-      className={`p-4 md:p-6 rounded-3xl border transition-all ${
+      className={`p-4 md:p-6 rounded-sm border transition-all ${
         theme === 'cyberpunk'
-          ? 'bg-black/90 border-cyber-accent/30 text-cyber-accent shadow-2xl'
-          : 'bg-white/95 dark:bg-slate-900/95 border-slate-200 dark:border-white/10 shadow-xl'
+          ? 'bg-black/95 border-cyber-accent/40 text-cyber-accent'
+          : 'bg-[#070A12] border-slate-800 text-slate-100'
       }`}
     >
-      {/* Studio Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 pb-5 border-b border-slate-200 dark:border-white/10">
+      {/* Studio Header — Crisp 1px Scientific Instrument Bar */}
+      <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-purple-600 to-pink-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/30">
-            <Brain className="w-6 h-6 animate-pulse" />
+          <div className="w-10 h-10 rounded-sm bg-indigo-500/10 border border-indigo-500/40 flex items-center justify-center text-indigo-400">
+            <Brain className="w-5 h-5" />
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-lg font-black tracking-tight text-slate-900 dark:text-white">
+            <div className="flex items-center gap-3 flex-wrap">
+              <h2 className="text-base sm:text-lg font-bold tracking-tight text-white font-mono uppercase">
                 {t('Machine Learning & Neural Architecture Studio', 'Machine Learning & Neural Architecture Studio')}
               </h2>
-              <span className="px-2.5 py-0.5 rounded-full bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 text-[10px] font-mono font-bold border border-indigo-500/20">
-                PyTorch + PINN v4.0
+              <span className="text-xs font-mono font-bold text-cyan-400 tabular-nums">
+                · PyTorch + PINN + NNLS v5.0
               </span>
             </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Ensemble soft-voting, physics-informed extinction loss, Monte Carlo uncertainty, Grad-CAM saliency, and runnable Python PyTorch scripts.
+            <p className="text-xs text-slate-400 mt-0.5">
+              1D Spectral Attention Transformers, NNLS multi-phase deconvolution, PINN space-group extinction loss, MC-Dropout uncertainty, and runnable PyTorch scripts
             </p>
           </div>
         </div>
@@ -1698,7 +1698,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
               setActiveTab('python_code');
               playSynthTone('switch');
             }}
-            className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 hover:text-white rounded-xl text-xs font-bold border border-slate-700 flex items-center gap-2 transition-all cursor-pointer shadow-sm"
+            className="px-3.5 py-2 bg-[#0B0F19] hover:bg-slate-900 text-slate-200 hover:text-white rounded-sm text-xs font-mono font-bold border border-slate-800 flex items-center gap-2 transition-colors cursor-pointer"
             title="Inspect runnable PyTorch Python code for every ML technique"
           >
             <FileCode className="w-3.5 h-3.5 text-emerald-400" />
@@ -1708,7 +1708,7 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
           <button
             onClick={handleRunNeuralInference}
             disabled={isPredicting}
-            className="px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-violet-600 hover:from-indigo-500 hover:to-violet-500 text-white rounded-xl text-xs font-bold shadow-md shadow-indigo-600/25 flex items-center gap-2 transition-all cursor-pointer active:scale-95 disabled:opacity-50"
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-xs font-mono font-bold border border-indigo-500 flex items-center gap-2 transition-colors cursor-pointer disabled:opacity-50"
             title="Execute real-time Python model inference using current experimental scan peaks"
           >
             {isPredicting ? (
@@ -1756,17 +1756,17 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
       )}
 
       {/* Navigation Tabs for All Machine Learning Techniques */}
-      <div className="flex items-center gap-1.5 mt-5 border-b border-slate-200 dark:border-white/10 overflow-x-auto custom-scrollbar pb-2">
+      <div className="flex items-center gap-1.5 mt-4 border-b border-slate-800 overflow-x-auto custom-scrollbar pb-2">
         {[
-          { id: 'transformer', label: t('Spectral Transformer', 'Spectral Transformer'), icon: Brain, badge: 'Deconv & QPA' },
-          { id: 'ensemble', label: t('Ensemble Multi-Model', 'Ensemble Multi-Model'), icon: Layers },
-          { id: 'pinn', label: t('Physics-Informed (PINN)', 'Physics-Informed (PINN)'), icon: Scale },
-          { id: 'mc_dropout', label: t('Monte Carlo Uncertainty', 'Monte Carlo Uncertainty'), icon: Radio },
-          { id: 'latent_space', label: t('Latent Manifold (2D)', 'Latent Manifold (2D)'), icon: Compass },
-          { id: 'grad_cam', label: t('Grad-CAM Saliency', 'Grad-CAM Saliency'), icon: Crosshair },
-          { id: 'contrastive', label: t('Contrastive Self-Supervised', 'Contrastive Learning'), icon: GitBranch },
-          { id: 'workbench', label: t('Architecture Workbench', 'Architecture Workbench'), icon: SlidersHorizontal },
-          { id: 'python_code', label: t('Python PyTorch Codes', 'Python PyTorch Codes'), icon: FileCode, badge: 'Run / Export' }
+          { id: 'transformer', label: t('01. Spectral Transformer', '01. Spectral Transformer'), icon: Brain, badge: 'NNLS & QPA' },
+          { id: 'ensemble', label: t('02. Ensemble Multi-Model', '02. Ensemble Multi-Model'), icon: Layers },
+          { id: 'pinn', label: t('03. Physics-Informed (PINN)', '03. Physics-Informed (PINN)'), icon: Scale },
+          { id: 'mc_dropout', label: t('04. Monte Carlo Uncertainty', '04. Monte Carlo Uncertainty'), icon: Radio },
+          { id: 'latent_space', label: t('05. Latent Manifold (2D)', '05. Latent Manifold (2D)'), icon: Compass },
+          { id: 'grad_cam', label: t('06. Grad-CAM Saliency', '06. Grad-CAM Saliency'), icon: Crosshair },
+          { id: 'contrastive', label: t('07. Contrastive Learning', '07. Contrastive Learning'), icon: GitBranch },
+          { id: 'workbench', label: t('08. Architecture Workbench', '08. Architecture Workbench'), icon: SlidersHorizontal },
+          { id: 'python_code', label: t('09. Python PyTorch Codes', '09. Python PyTorch Codes'), icon: FileCode, badge: 'Run / Export' }
         ].map((tab) => {
           const Icon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1777,19 +1777,19 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
                 setActiveTab(tab.id as MLTechniqueTab);
                 playSynthTone('tick');
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-bold flex items-center gap-2 transition-all cursor-pointer whitespace-nowrap ${
+              className={`px-3 py-1.5 rounded-sm text-xs font-mono font-bold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap border ${
                 isActive
-                  ? 'bg-indigo-600 text-white shadow-md shadow-indigo-600/20'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-indigo-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-white/5'
+                  ? 'bg-indigo-600 text-white border-indigo-500'
+                  : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
               }`}
             >
               <Icon className="w-3.5 h-3.5" />
               <span>{tab.label}</span>
               {tab.badge && (
-                <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono ${
-                  isActive ? 'bg-white/20 text-white' : 'bg-emerald-500/10 text-emerald-500 border border-emerald-500/20'
+                <span className={`text-[10px] font-mono ${
+                  isActive ? 'text-cyan-200' : 'text-emerald-400'
                 }`}>
-                  {tab.badge}
+                  [{tab.badge}]
                 </span>
               )}
             </button>
@@ -1800,41 +1800,42 @@ export const MLTechniquesStudio: React.FC<MLTechniquesStudioProps> = ({
       {/* ========================================================= */}
       {/* TAB CONTENTS */}
       {/* ========================================================= */}
-      <div className="mt-6">
+      <div className="mt-5">
         {/* ========================================================= */}
         {/* 0. SPECTRAL ATTENTION TRANSFORMER & MULTI-PHASE DECONVOLUTION */}
         {/* ========================================================= */}
         {activeTab === 'transformer' && (
-          <div className="space-y-6 animate-in fade-in duration-300">
-            {/* Header / Hero Banner */}
-            <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-slate-900 via-indigo-950/40 to-slate-900 border border-indigo-500/30 text-white shadow-xl relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+          <div className="space-y-5 animate-in fade-in duration-300">
+            {/* Header / Hero Banner — Crisp 1px Scientific Deck */}
+            <div className="p-4 sm:p-5 rounded-sm bg-[#0B0F19] border border-slate-800 text-white relative overflow-hidden">
               <div className="relative z-10 flex flex-wrap items-center justify-between gap-4">
-                <div className="space-y-1.5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="px-2.5 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-mono font-bold tracking-wider uppercase border border-cyan-500/30">
-                      1D Spectral Attention Transformer
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono uppercase tracking-wider">
+                    <span className="text-cyan-400 font-bold">
+                      1D SPECTRAL ATTENTION TRANSFORMER
                     </span>
-                    <span className="px-2.5 py-0.5 rounded-full bg-emerald-500/20 text-emerald-300 text-[10px] font-mono border border-emerald-500/30">
-                      Multi-Phase Deconvolution & QPA
+                    <span className="text-slate-600">·</span>
+                    <span className="text-emerald-400 font-bold">
+                      MULTI-PHASE NNLS DECONVOLUTION & QPA
                     </span>
-                    <span className="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 text-[10px] font-mono border border-purple-500/30">
-                      Dirichlet Simplex Loss
+                    <span className="text-slate-600">·</span>
+                    <span className="text-indigo-400 font-bold">
+                      DIRICHLET SIMPLEX LOSS
                     </span>
                   </div>
-                  <h2 className="text-base sm:text-lg font-black tracking-tight text-white flex items-center gap-2">
+                  <h2 className="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-2">
                     <Brain className="w-5 h-5 text-cyan-400" />
                     <span>Spectral Attention Network & Quantitative Deconvolution Studio</span>
                   </h2>
-                  <p className="text-xs text-slate-300 max-w-3xl leading-relaxed">
-                    Tokenizes 2θ diffractograms into 1D spectral patches, applying multi-head self-attention to capture long-range Bragg reflection harmonics and cross-attention against crystallographic reference phase dictionaries to deconvolve overlapping profiles and predict precise phase weight fractions (wt%).
+                  <p className="text-xs text-slate-400 max-w-3xl leading-relaxed">
+                    Tokenizes 2θ diffractograms into 1D spectral patches, applying multi-head self-attention to capture long-range Bragg reflection harmonics and non-negative least squares (NNLS) matrix unmixing to predict phase weight fractions (wt%).
                   </p>
                 </div>
 
                 <div className="flex flex-wrap items-center gap-2.5">
                   <button
                     onClick={() => openPythonViewerForTechnique('transformer')}
-                    className="px-3.5 py-2 rounded-xl bg-gradient-to-r from-cyan-600 to-indigo-600 hover:from-cyan-500 hover:to-indigo-500 text-white text-xs font-bold flex items-center gap-2 transition-all shadow-md shadow-cyan-600/20 cursor-pointer active:scale-95"
+                    className="px-3.5 py-2 rounded-sm bg-cyan-600 hover:bg-cyan-500 text-white text-xs font-mono font-bold border border-cyan-500 flex items-center gap-2 transition-colors cursor-pointer"
                     title="Open runnable PyTorch SpectralTransformer1D model script"
                   >
                     <FileCode className="w-3.5 h-3.5" />
