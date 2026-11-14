@@ -387,9 +387,13 @@ export interface WHModelComparisonItem {
   modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens' | 'Monshi-Scherrer';
   label: string;
   sizeNm: number;
+  sizeErrorNm?: number;
   strainPercent: number;
+  strainErrorPercent?: number;
   stressMPa?: number;
+  stressErrorMPa?: number;
   energyDensityKjM3?: number;
+  energyDensityErrorKjM3?: number;
   rSquared: number;
   adjustedRSquared?: number;
   rmse?: number;
@@ -402,7 +406,9 @@ export interface WHModelComparisonItem {
 
 export interface WHResult {
   strainPercent: number;
+  strainErrorPercent?: number;
   sizeInterceptNm: number;
+  sizeErrorNm?: number;
   regression: {
     slope: number;
     intercept: number;
@@ -418,13 +424,17 @@ export interface WHResult {
   stephensParams?: {
     S400: number;
     S220: number;
+    etaAnisotropy?: number;
   };
   dislocationDensityM2?: number;
   dislocationDensity10_14?: number;
+  wilkensDislocationDensity10_14?: number;
   specificSurfaceAreaM2g?: number;
   points: WHPoint[];
   stressMPa?: number;
+  stressErrorMPa?: number;
   energyDensityKjM3?: number;
+  energyDensityErrorKjM3?: number;
   pointsExtended?: {
     twoTheta: number;
     fwhmObs: number;

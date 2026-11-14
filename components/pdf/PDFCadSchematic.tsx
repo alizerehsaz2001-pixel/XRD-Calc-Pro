@@ -84,21 +84,51 @@ export const PDFCadSchematic: React.FC<PDFCadSchematicProps> = ({
       }
     }
 
-    // Real-space peak + termination ripples around r1
+    // Real-space peak + exact Fourier termination ripples around r1 via numerical quadrature of W(Q)
     const gPts: string[] = [];
-    for (let i = 0; i <= 70; i++) {
-      const u = i / 70;
-      const dr = (u - 0.5) * 2.8; // -1.4 to +1.4 A around r1
+    const nQInt = 64;
+    const dQInt = qMaxNorm / nQInt;
+    const sigmaBond = 0.045;
+
+    // Normalize peak height at dr = 0
+    let normPeak = 0;
+    for (let k = 1; k <= nQInt; k++) {
+      const qVal = k * dQInt;
+      let wVal = 1.0;
+      if (config.windowFunction === 'lorch') {
+        const arg = (Math.PI * qVal) / qMaxNorm;
+        wVal = Math.sin(arg) / arg;
+      } else if (config.windowFunction === 'cosine_bell') {
+        wVal = Math.cos((0.5 * Math.PI * qVal) / qMaxNorm);
+      }
+      normPeak += wVal * Math.exp(-0.5 * sigmaBond * sigmaBond * qVal * qVal) * dQInt;
+    }
+    normPeak = Math.max(1e-6, normPeak);
+
+    for (let i = 0; i <= 80; i++) {
+      const u = i / 80;
+      const dr = (u - 0.5) * 2.8; // -1.4 to +1.4 Å around r1
       const x = 258 + u * 184;
-      const arg = qMaxNorm * dr;
-      const sinc = Math.abs(arg) < 1e-4 ? 1.0 : Math.sin(arg) / arg;
-      const damp =
-        config.windowFunction === 'lorch'
-          ? Math.exp(-1.8 * dr * dr)
-          : config.windowFunction === 'cosine_bell'
-          ? Math.exp(-1.1 * dr * dr)
-          : Math.exp(-0.25 * dr * dr);
-      const y = 78 - 52 * sinc * damp;
+
+      let sumCos = 0;
+      for (let k = 1; k <= nQInt; k++) {
+        const qVal = k * dQInt;
+        let wVal = 1.0;
+        if (config.windowFunction === 'lorch') {
+          const arg = (Math.PI * qVal) / qMaxNorm;
+          wVal = Math.sin(arg) / arg;
+        } else if (config.windowFunction === 'cosine_bell') {
+          wVal = Math.cos((0.5 * Math.PI * qVal) / qMaxNorm);
+        }
+        sumCos +=
+          wVal *
+          Math.exp(-0.5 * sigmaBond * sigmaBond * qVal * qVal) *
+          Math.cos(qVal * dr) *
+          dQInt;
+      }
+
+      const normalizedKernel = sumCos / normPeak;
+      const y = 78 - 52 * normalizedKernel;
       gPts.push(`${i === 0 ? 'M' : 'L'} ${x.toFixed(1)},${y.toFixed(1)}`);
     }
 

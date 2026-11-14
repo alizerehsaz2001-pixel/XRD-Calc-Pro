@@ -218,8 +218,8 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
       shapeFactorK: render("D = \\frac{K \\cdot \\lambda}{\\beta \\cos\\theta}", true),
       dislocationFormula: render("\\delta = \\frac{1}{D^2} \\quad \\left[\\text{lines/m}^2\\right]", true),
       ssaFormula: render("\\text{SSA} = \\frac{6 \\times 10^3}{\\rho \\cdot D} \\quad \\left[\\text{m}^2/\\text{g}\\right]", true),
-      deKeijserFormula: render("D_L = \\frac{K \\lambda}{\\beta_L \\cos\\theta}, \\quad \\epsilon_G = \\frac{\\beta_G}{4 \\tan\\theta}", true),
-      halderWagnerFormula: render("\\left(\\frac{\\beta_s}{\\beta_o}\\right)^2 = 1 - \\left(\\frac{\\beta_i}{\\beta_o}\\right)^2", true)
+      deKeijserFormula: render("D_V = \\frac{K \\lambda}{\\beta_{C,s} \\cos\\theta}, \\quad e = \\frac{\\beta_{G,s}}{4 \\tan\\theta}", true),
+      halderWagnerFormula: render("\\frac{\\beta_s}{\\beta_o} = 1 - \\left(\\frac{\\beta_i}{\\beta_o}\\right)^2 \\implies \\beta_s = \\beta_o - \\frac{\\beta_i^2}{\\beta_o}", true)
     };
   }, []);
 
@@ -253,10 +253,12 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
     const sumD2 = validResults.reduce((acc, r) => acc + Math.pow(r.sizeNm, 2), 0);
     const areaW = sumD2 > 0 ? sumD3 / sumD2 : arithmetic;
 
-    // 5. Geometric Mean & Log-Normal Std Dev
+    // 5. Geometric Mean & Log-Normal Sample Std Dev (Bessel N-1 corrected)
     const logSum = validResults.reduce((acc, r) => acc + Math.log(Math.max(0.1, r.sizeNm)), 0);
     const geomMean = Math.exp(logSum / validResults.length);
-    const logVar = validResults.reduce((acc, r) => acc + Math.pow(Math.log(Math.max(0.1, r.sizeNm)) - Math.log(geomMean), 2), 0) / validResults.length;
+    const logVar = validResults.length > 1
+      ? validResults.reduce((acc, r) => acc + Math.pow(Math.log(Math.max(0.1, r.sizeNm)) - Math.log(geomMean), 2), 0) / (validResults.length - 1)
+      : 0;
     const geomSd = Math.exp(Math.sqrt(logVar));
 
     return { 
@@ -282,7 +284,7 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
     const count = validResults.length;
     const currentMean = computeAverageSize(validResults, averageType);
     const variance = count > 1 
-      ? validResults.reduce((acc, r) => acc + Math.pow(r.sizeNm - currentMean, 2), 0) / count 
+      ? validResults.reduce((acc, r) => acc + Math.pow(r.sizeNm - currentMean, 2), 0) / (count - 1) 
       : 0;
     const stdDev = Math.sqrt(variance);
     const relDispersion = currentMean > 0 ? (stdDev / currentMean) * 100 : 0;
@@ -1277,11 +1279,11 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
               </div>
 
               <div className="p-3 bg-slate-950/40 rounded-xl border border-slate-800/80 text-[11px] font-mono text-slate-400 leading-relaxed">
-                {broadeningModel === 'Gaussian' && 'Quadratic subtraction (β²_s = β²_o - β²_i). Best for strain dominance.'}
-                {broadeningModel === 'Lorentzian' && 'Linear subtraction (β_s = β_o - β_i). Best for small crystallite size dominance.'}
-                {broadeningModel === 'Pseudo-Voigt' && 'Mixed Voigt decoupling: β_s = β_o (1 - (β_i/β_o)²). Optimal for general XRD.'}
-                {broadeningModel === 'de Keijser' && 'Rigorous Voigt deconvolution separating Lorentzian (Size) & Gaussian (Microstrain RMS).'}
-                {broadeningModel === 'Halder-Wagner' && 'Parabolic Voigt approximation (β_s / β_o)² = 1 - (β_i / β_o)². Simultaneous size/strain.'}
+                {broadeningModel === 'Gaussian' && 'Quadratic subtraction (β²_s = β²_o − β²_i). Best for Gaussian strain/instrument dominance.'}
+                {broadeningModel === 'Lorentzian' && 'Linear Cauchy subtraction (β_s = β_o − β_i). Best for Cauchy size-broadened profiles.'}
+                {broadeningModel === 'Pseudo-Voigt' && `η-weighted Voigt decoupling: β_s = (1−η)√(β²_o−β²_i) + η(β_o−β_i) with η = ${pseudoVoigtEta.toFixed(2)}.`}
+                {broadeningModel === 'de Keijser' && 'Single-line Voigt deconvolution (de Keijser et al. 1982) separating Cauchy size D_v & Gaussian strain e.'}
+                {broadeningModel === 'Halder-Wagner' && 'Parabolic Voigt approximation (Halder & Wagner 1966): β_s = β_o − β²_i / β_o.'}
               </div>
             </div>
 

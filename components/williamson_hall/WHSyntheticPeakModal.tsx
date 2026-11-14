@@ -12,9 +12,9 @@ interface WHSyntheticPeakModalProps {
 
 interface CrystalPreset {
   name: string;
-  system: 'FCC' | 'BCC' | 'Diamond' | 'Hexagonal';
+  system: 'FCC' | 'BCC' | 'Diamond' | 'Hexagonal' | 'Tetragonal';
   a: number; // Angstroms
-  c?: number; // for hexagonal
+  c?: number; // for hexagonal / tetragonal
   youngsModulus?: number; // GPa
   density?: number; // g/cm³
   allowedPlanes: Array<{ h: number; k: number; l: number }>;
@@ -85,7 +85,7 @@ const CRYSTAL_PRESETS: CrystalPreset[] = [
   },
   {
     name: 'Anatase TiO2 (Tetragonal)',
-    system: 'Hexagonal', // generalized multi-axis
+    system: 'Tetragonal',
     a: 3.784,
     c: 9.514,
     youngsModulus: 230,
@@ -127,16 +127,17 @@ export const WHSyntheticPeakModal: React.FC<WHSyntheticPeakModalProps> = ({
   const [targetSizeNm, setTargetSizeNm] = useState<number>(25.0);
   const [targetMicrostrainPercent, setTargetMicrostrainPercent] = useState<number>(0.25);
   const [instrumentalBroadeningDeg, setInstrumentalBroadeningDeg] = useState<number>(instFwhm || 0.08);
-  const [addNoise, setAddNoise] = useState<boolean>(true);
-  const [noiseLevel, setNoiseLevel] = useState<number>(0.008); // degrees FWHM jitter
+  const [synthesisLaw, setSynthesisLaw] = useState<'Additive-WH' | 'Voigt-SSP'>('Additive-WH');
+  const [addNoise, setAddNoise] = useState<boolean>(false);
+  const [noiseLevel] = useState<number>(0.005); // degrees FWHM jitter
 
   const currentPreset = CRYSTAL_PRESETS[selectedPresetIndex];
 
   // Generate simulated peaks based on Bragg diffraction and Williamson-Hall equation:
   // beta_size = (K * lambda) / (D * cos(theta))  [in radians]
   // beta_strain = 4 * epsilon * tan(theta)       [in radians]
-  // beta_sample = sqrt(beta_size^2 + beta_strain^2) or sum
-  // beta_obs = sqrt(beta_sample^2 + beta_inst^2) [Gaussian deconvolution assumption]
+  // Additive-WH: beta_sample = beta_size + beta_strain (exact recovery under UDM)
+  // Voigt-SSP: (d * beta*)^2 = (K / D) * d^2 * beta* + (2 * eps)^2 (exact recovery under SSP)
   const generatedData = useMemo(() => {
     const { a, c, system, allowedPlanes } = currentPreset;
     const radToDeg = 180 / Math.PI;
@@ -160,11 +161,15 @@ export const WHSyntheticPeakModal: React.FC<WHSyntheticPeakModalProps> = ({
       let dSpacing = 0;
 
       if (system === 'Hexagonal' && c) {
-        // Hexagonal / Tetragonal formula
+        // Exact Hexagonal formula: 1/d^2 = (4/3)*(h^2 + hk + k^2)/a^2 + l^2/c^2
         const invD2 = (4 / 3) * (h * h + h * k + k * k) / (a * a) + (l * l) / (c * c);
         if (invD2 > 0) dSpacing = 1 / Math.sqrt(invD2);
+      } else if (system === 'Tetragonal' && c) {
+        // Exact Tetragonal formula: 1/d^2 = (h^2 + k^2)/a^2 + l^2/c^2
+        const invD2 = (h * h + k * k) / (a * a) + (l * l) / (c * c);
+        if (invD2 > 0) dSpacing = 1 / Math.sqrt(invD2);
       } else {
-        // Cubic systems
+        // Cubic systems (FCC, BCC, Diamond)
         const sumSq = h * h + k * k + l * l;
         if (sumSq > 0) dSpacing = a / Math.sqrt(sumSq);
       }
@@ -188,11 +193,13 @@ export const WHSyntheticPeakModal: React.FC<WHSyntheticPeakModalProps> = ({
       // Strain broadening: beta_G = 4 * epsilon * tan(theta)
       const betaStrainRad = 4 * eps * Math.tan(thetaRad);
 
-      // Total sample line broadening in radians (Gaussian approximation)
-      const betaSampleRad = Math.sqrt(Math.pow(betaSizeRad, 2) + Math.pow(betaStrainRad, 2));
+      // Total sample line broadening in radians
+      const betaSampleRad = synthesisLaw === 'Additive-WH'
+        ? betaSizeRad + betaStrainRad
+        : 0.5 * (betaSizeRad + Math.sqrt(betaSizeRad * betaSizeRad + 4 * betaStrainRad * betaStrainRad));
       const betaSampleDeg = betaSampleRad * radToDeg;
 
-      // Add instrumental contribution
+      // Add instrumental contribution (quadrature Gaussian convolution)
       const betaInstDeg = Math.max(0, instrumentalBroadeningDeg);
       let fwhmObsDeg = Math.sqrt(Math.pow(betaSampleDeg, 2) + Math.pow(betaInstDeg, 2));
 
@@ -345,8 +352,8 @@ export const WHSyntheticPeakModal: React.FC<WHSyntheticPeakModalProps> = ({
               </div>
             </div>
 
-            {/* Instrumental Broadening & Noise */}
-            <div className="grid grid-cols-2 gap-3 pt-2 border-t border-white/5">
+            {/* Instrumental Broadening, Synthesis Law & Noise */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-2 border-t border-white/5">
               <div>
                 <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">
                   Instrumental Broadening (β_inst)
@@ -361,6 +368,28 @@ export const WHSyntheticPeakModal: React.FC<WHSyntheticPeakModalProps> = ({
                     className="w-full px-2 py-1 bg-[#0A101C] text-amber-300 border border-white/10 rounded-lg text-xs font-mono"
                   />
                   <span className="text-[9px] font-mono text-slate-500">deg</span>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[8px] font-bold text-slate-400 uppercase mb-1">
+                  Size–Strain Addition Law
+                </label>
+                <div className="grid grid-cols-2 gap-1 bg-[#0A101C] p-0.5 rounded-lg border border-white/10">
+                  {(['Additive-WH', 'Voigt-SSP'] as const).map(law => (
+                    <button
+                      key={law}
+                      type="button"
+                      onClick={() => setSynthesisLaw(law)}
+                      className={`py-1 rounded text-[8.5px] font-mono font-bold transition-colors ${
+                        synthesisLaw === law
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                          : 'text-slate-500 hover:text-slate-300'
+                      }`}
+                    >
+                      {law === 'Additive-WH' ? 'β_D + β_ε' : 'Voigt SSP'}
+                    </button>
+                  ))}
                 </div>
               </div>
 

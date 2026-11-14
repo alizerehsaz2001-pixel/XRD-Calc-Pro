@@ -4,12 +4,61 @@ import { AIResponse, GroundingSource, StandardWavelength, SuggestHKLsResponse, H
 import { MATERIAL_DB } from "../utils/materialDB";
 import { suggestHKLPlanesAlgorithmic } from "../utils/physics";
 
-// Dynamic client getter supporting user custom key overrides
+// Secure client getter: routes through backend /api/gemini/proxy-generate unless user explicitly supplies a custom key in localStorage
 const getGeminiClient = (): GoogleGenAI => {
   const customKey = typeof window !== 'undefined'
-    ? (localStorage.getItem('xrd_custom_gemini_key') || localStorage.getItem('gemini_custom_api_key') || process.env.GEMINI_API_KEY)
-    : process.env.GEMINI_API_KEY;
-  return new GoogleGenAI({ apiKey: (customKey || process.env.GEMINI_API_KEY) as string });
+    ? (localStorage.getItem('xrd_custom_gemini_key') || localStorage.getItem('gemini_custom_api_key') || '')
+    : '';
+  if (customKey && customKey.trim().length >= 20) {
+    return new GoogleGenAI({ apiKey: customKey.trim() });
+  }
+  // Return a proxy-backed client that executes on the server without exposing GEMINI_API_KEY in client bundles
+  const proxyClient = {
+    models: {
+      generateContent: async (params: { model: string; contents: any; config?: any }) => {
+        const res = await fetch('/api/gemini/proxy-generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(params)
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) {
+          const err: any = new Error(data.error || `HTTP ${res.status}`);
+          err.status = res.status;
+          throw err;
+        }
+        return {
+          text: data.text || '',
+          candidates: data.candidates || []
+        };
+      },
+      generateImages: async () => {
+        throw new Error('Use server-side /api/gemini/generate-scientific-image endpoint.');
+      }
+    },
+    chats: {
+      create: ({ model, config }: { model: string; config?: any }) => {
+        const history: Array<{ role: string; parts: Array<{ text: string }> }> = [];
+        return {
+          sendMessage: async ({ message }: { message: string }) => {
+            history.push({ role: 'user', parts: [{ text: message }] });
+            const res = await fetch('/api/gemini/proxy-generate', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ model, contents: history, config })
+            });
+            const data = await res.json();
+            if (!res.ok || !data.success) {
+              throw new Error(data.error || `HTTP ${res.status}`);
+            }
+            history.push({ role: 'model', parts: [{ text: data.text || '' }] });
+            return { text: data.text || '', candidates: data.candidates || [] };
+          }
+        };
+      }
+    }
+  };
+  return proxyClient as unknown as GoogleGenAI;
 };
 
 const extractSources = (metadata: any): GroundingSource[] => {

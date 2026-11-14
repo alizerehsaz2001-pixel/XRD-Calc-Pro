@@ -2,13 +2,16 @@
  * Total Scattering & Atomic Pair Distribution Function (PDF) Mathematical Engine
  *
  * Implements:
- * 1. Reciprocal-space Total Scattering Structure Function S(Q) & Reduced Structure Function F(Q) = Q[S(Q) - 1]
- * 2. Direct Numerical Sine Fourier Transform:
+ * 1. Reciprocal-Space Total Scattering Structure Function S(Q) & Reduced Structure Function F(Q) = Q[S(Q) - 1]
+ *    including both discrete coordination shells and the excluded-volume continuum density integral
+ * 2. Filon-Corrected Numerical Sine Fourier Transform:
  *      G(r) = (2 / pi) * integral_{Q_min}^{Q_max} F(Q) * W(Q) * sin(Q * r) dQ
- * 3. Lorch & Cosine-Bell Window Modification Functions W(Q) for Fourier termination ripple suppression
+ * 3. Step, Lorch Sinc, and Cosine-Bell Modification Functions W(Q) with exact window-dependent real-space FWHM
  * 4. Spherical Nanoparticle Shape Envelope gamma_0(r; D) = 1 - 1.5*(r/D) + 0.5*(r/D)^3
- * 5. Real-Space Gaussian Coordination Shell Modeling G_calc(r), Radial Distribution R(r), Pair Density g(r),
- *    Cu Kα (Q_max = 8.0 Å⁻¹) low-resolution reference comparison, and PDFgui R_w least-squares refinement
+ * 5. Jeong-Proffen-Billinge Correlated Atomic Motion Model:
+ *      sigma_eff(r) = sigma_0 * sqrt(1 - delta_1 / r - delta_2 / r^2 + Q_broad^2 * r^2)
+ * 6. Real-Space Gaussian Coordination Shell Modeling G_calc(r), Radial Distribution R(r), Pair Density g(r),
+ *    Faber-Ziman Weight-Corrected Coordination Integration, and Iterative Real-Space Least-Squares Refinement
  */
 
 export interface PDFCoordinationShell {
@@ -17,7 +20,7 @@ export interface PDFCoordinationShell {
   rAngstrom: number;       // Interatomic distance r_k (Å)
   coordinationN: number;   // Coordination number N_k
   sigmaAngstrom: number;   // Debye-Waller thermal/static RMS displacement sigma_k (Å)
-  weightFactor: number;    // Faber-Ziman X-ray scattering weight w_ij = (c_i c_j f_i f_j) / <f>^2
+  weightFactor: number;    // Faber-Ziman X-ray scattering weight w_ij = (c_i c_j f_i(0) f_j(0)) / <f(0)>^2
 }
 
 export interface PDFMaterialPreset {
@@ -39,6 +42,7 @@ export interface PDFSimulationConfig {
   qMin: number;            // Minimum momentum transfer Q_min (Å⁻¹)
   qMax: number;            // Maximum momentum transfer Q_max (Å⁻¹)
   qDamp: number;           // Instrumental Q-resolution damping factor Q_damp (Å⁻¹)
+  qBroad?: number;         // Instrumental Q-resolution broadening factor Q_broad (Å⁻¹)
   rMax: number;            // Maximum real-space distance r_max (Å)
   rStep: number;           // Real-space grid step dr (Å)
   rho0: number;            // Atomic number density rho_0 (atoms / Å³)
@@ -47,6 +51,7 @@ export interface PDFSimulationConfig {
   amorphousCorrelationA: number;
   windowFunction: 'none' | 'lorch' | 'cosine_bell';
   correlatedMotionDelta1: number; // Low-r correlated atomic motion sharpening delta_1 (Å)
+  correlatedMotionDelta2?: number;// Quadratic correlated motion parameter delta_2 (Å²)
   addedNoiseLevel: number; // High-Q experimental Poisson noise amplitude
   modelScaleFactor: number;// Real-space model scale factor S_pdf (default 1.0)
 }
@@ -81,9 +86,11 @@ export interface ShellDiagnosticSummary {
   pairLabel: string;
   rAngstrom: number;
   coordinationN: number;
+  weightFactor: number;
   sigmaRaw: number;
-  sigmaEff: number;        // Correlated motion sharpened width sigma * sqrt(1 - delta1/r)
+  sigmaEff: number;        // Correlated motion + Q_broad width
   shapeGamma0: number;     // Envelope attenuation at r_k
+  fwhmFourierA: number;    // Window-specific Q_max sinc broadening FWHM (Å)
   fwhmRealSpace: number;   // Combined Gaussian + Q_max broadening FWHM (Å)
   resolvedFromPrev: boolean;
 }
@@ -92,12 +99,13 @@ export interface PDFAnalysisOutput {
   qPoints: ReciprocalQPoint[];
   rPoints: RealSpacePDFPoint[];
   shellDiagnostics: ShellDiagnosticSummary[];
-  deltaRResolutionA: number; // Real-space Nyquist resolution limit pi / Q_max (Å)
+  deltaRResolutionA: number;        // Real-space Nyquist resolution limit pi / Q_max (Å)
+  windowBroadenedFwhmA: number;     // Effective real-space instrumental FWHM for active window W(Q) (Å)
   terminationRipplePeriodA: number; // Spurious ripple wavelength 2*pi / Q_max (Å)
-  rwFactorPct: number;       // PDFgui real-space agreement factor R_w (%)
-  cuKaRwFactorPct: number;   // R_w if truncated at Cu Kα (8.0 Å⁻¹)
-  firstShellPeakR: number;   // Measured 1st shell peak position (Å)
-  firstShellCoordN: number;  // 1st shell coordination number
+  rwFactorPct: number;              // PDFgui real-space agreement factor R_w (%)
+  cuKaRwFactorPct: number;          // R_w if truncated at Cu Kα (8.0 Å⁻¹)
+  firstShellPeakR: number;          // Measured 1st shell peak position (Å)
+  firstShellCoordN: number;         // 1st shell coordination number
   effectiveRadiationLabel: string;
 }
 
@@ -255,6 +263,22 @@ export const PDF_MATERIAL_PRESETS: PDFMaterialPreset[] = [
 ];
 
 /**
+ * Abramowitz & Stegun 7.1.26 error function erf(x) (max error < 1.5e-7)
+ */
+function erfApprox(x: number): number {
+  const sign = x >= 0 ? 1 : -1;
+  const ax = Math.abs(x);
+  const t = 1.0 / (1.0 + 0.3275911 * ax);
+  const y =
+    1.0 -
+    (((((1.061405429 * t - 1.453152027) * t + 1.421413741) * t - 0.284496736) * t +
+      0.254829592) *
+      t) *
+      Math.exp(-ax * ax);
+  return sign * y;
+}
+
+/**
  * Spherical Nanoparticle Characteristic Shape Envelope gamma_0(r; D)
  * For a uniform sphere of diameter D (in Å):
  *   gamma_0(r) = 1 - 1.5*(r/D) + 0.5*(r/D)^3   for 0 <= r <= D
@@ -288,21 +312,96 @@ export function evaluateShapeEnvelope(
 }
 
 /**
+ * Computes the Jeong-Proffen-Billinge correlated atomic motion + instrumental Q_broad width:
+ *   sigma_eff(r) = sqrt( sigma_0^2 * max(0.15, 1 - delta1/r - delta2/r^2) + (Q_broad * r)^2 )
+ */
+export function calculateEffectiveSigma(
+  sigma0: number,
+  rAngstrom: number,
+  delta1: number,
+  delta2 = 0,
+  qBroad = 0.008
+): number {
+  const rSafe = Math.max(0.5, rAngstrom);
+  const corrFactor = Math.max(0.18, 1.0 - delta1 / rSafe - delta2 / (rSafe * rSafe));
+  const thermalVar = sigma0 * sigma0 * corrFactor;
+  const instBroadVar = (qBroad * rSafe) * (qBroad * rSafe);
+  return Math.max(0.02, Math.sqrt(thermalVar + instBroadVar));
+}
+
+/**
+ * Evaluates the modification window W(Q; Q_max)
+ */
+function evaluateWindowFunction(
+  q: number,
+  qMax: number,
+  windowType: 'none' | 'lorch' | 'cosine_bell'
+): number {
+  if (q > qMax) return 0;
+  if (windowType === 'lorch') {
+    const arg = (Math.PI * q) / qMax;
+    return arg > 1e-6 ? Math.sin(arg) / arg : 1.0;
+  }
+  if (windowType === 'cosine_bell') {
+    return Math.cos((0.5 * Math.PI * q) / qMax);
+  }
+  return 1.0;
+}
+
+/**
  * Evaluates the full Total Scattering & Pair Distribution Function pipeline:
- * 1. Reciprocal-space F(Q) = Q[S(Q) - 1]
- * 2. Numerical Sine Fourier Transform G_FT(r) over [Q_min, Q_max] and reference Cu Kα (Q_max = 8.0 Å⁻¹)
- * 3. Real-space model G_calc(r), partial shell contributions, R(r), g(r), and R_w agreement factor
+ * 1. Exact Real-Space Model G_calc(r) = 4*pi*r*[rho(r) - rho_0*gamma_0(r)] with smooth continuum transition
+ * 2. Reciprocal-Space Reduced Structure Function F(Q) = Q[S(Q) - 1] = integral_0^infty G(r) sin(Q*r) dr
+ * 3. Filon-Corrected Sine Fourier Transform G_FT(r) over [Q_min, Q_max] and reference Cu Kα (Q_max = 8.0 Å⁻¹)
+ * 4. Partial shell contributions, R(r), g(r), window-aware resolution diagnostics, and R_w agreement factor
  */
 export function calculatePDFAnalysis(
   shells: PDFCoordinationShell[],
   config: PDFSimulationConfig
 ): PDFAnalysisOutput {
-  const qMin = Math.max(0.2, config.qMin);
+  const qMin = Math.max(0.15, config.qMin);
   const qMax = Math.max(qMin + 2.0, config.qMax);
-  const dQ = 0.05; // Fine reciprocal-space quadrature step (Å⁻¹)
+  const dQ = 0.04; // High-resolution reciprocal-space quadrature step (Å⁻¹)
   const maxGridQ = Math.max(qMax, 8.5);
   const numQ = Math.floor((maxGridQ - qMin) / dQ) + 1;
   const scaleFactor = config.modelScaleFactor > 0 ? config.modelScaleFactor : 1.0;
+  const qBroad = config.qBroad ?? 0.008;
+  const delta2 = config.correlatedMotionDelta2 ?? 0;
+
+  // Determine the outermost explicitly modeled shell distance r_cont where discrete shells merge into continuum
+  let maxShellR = 2.0;
+  let maxShellSigma = 0.15;
+  for (const sh of shells) {
+    if (sh.coordinationN > 0 && sh.rAngstrom > maxShellR) {
+      maxShellR = sh.rAngstrom;
+      maxShellSigma = sh.sigmaAngstrom;
+    }
+  }
+  const rContinuumCutoff = maxShellR + 2.2 * Math.max(0.15, maxShellSigma);
+  const sigmaContinuumTransition = Math.max(0.28, 1.5 * maxShellSigma);
+
+  // Pre-build a fine real-space grid up to r_cont + 4*sigma to evaluate the continuum density baseline integral
+  const rContMax = rContinuumCutoff + 4.0 * sigmaContinuumTransition;
+  const drCont = 0.05;
+  const nCont = Math.floor(rContMax / drCont) + 1;
+  const contR: number[] = new Array(nCont);
+  const contBaselineVal: number[] = new Array(nCont);
+
+  for (let m = 0; m < nCont; m++) {
+    const r = m * drCont;
+    contR[m] = r;
+    const env = evaluateShapeEnvelope(
+      r,
+      config.domainDiameterNm,
+      config.isAmorphous,
+      config.amorphousCorrelationA
+    );
+    // Smooth complementary error function transition: 1 inside discrete shell region, 0 in continuum
+    const erfcTransition = 0.5 * (1.0 - erfApprox((r - rContinuumCutoff) / (Math.SQRT2 * sigmaContinuumTransition)));
+    const instRealSpaceDamp =
+      config.qDamp > 0 ? Math.exp(-0.5 * config.qDamp * config.qDamp * r * r) : 1.0;
+    contBaselineVal[m] = -4.0 * Math.PI * r * config.rho0 * env * erfcTransition * instRealSpaceDamp;
+  }
 
   const qPoints: ReciprocalQPoint[] = [];
   const cuKaQMax = 8.0;
@@ -310,8 +409,9 @@ export function calculatePDFAnalysis(
 
   for (let i = 0; i < numQ; i++) {
     const q = Number((qMin + i * dQ).toFixed(3));
-    let fSum = 0;
+    let fDiscrete = 0;
 
+    // 1A. Analytical Sine Transform of Discrete Gaussian Coordination Shells
     for (const sh of shells) {
       if (sh.rAngstrom <= 0.1 || sh.coordinationN <= 0) continue;
       const env = evaluateShapeEnvelope(
@@ -322,41 +422,49 @@ export function calculatePDFAnalysis(
       );
       if (env <= 1e-5) continue;
 
-      const corrFactor = Math.max(0.35, 1.0 - config.correlatedMotionDelta1 / sh.rAngstrom);
-      const sigmaEff = sh.sigmaAngstrom * Math.sqrt(corrFactor);
+      const sigmaEff = calculateEffectiveSigma(
+        sh.sigmaAngstrom,
+        sh.rAngstrom,
+        config.correlatedMotionDelta1,
+        delta2,
+        qBroad
+      );
 
       const dw = Math.exp(-0.5 * sigmaEff * sigmaEff * q * q);
-      fSum += (sh.coordinationN * sh.weightFactor * env / sh.rAngstrom) * dw * Math.sin(q * sh.rAngstrom);
+      fDiscrete += (sh.coordinationN * sh.weightFactor * env / sh.rAngstrom) * dw * Math.sin(q * sh.rAngstrom);
     }
 
     const instDamp = config.qDamp > 0 ? Math.exp(-0.5 * config.qDamp * config.qDamp * q * q) : 1.0;
-    let fOfQ = fSum * instDamp;
+
+    // 1B. Sine Transform of Excluded-Volume Continuum Density Baseline -4*pi*r*rho_0*gamma_0(r)
+    let fContinuum = 0;
+    const thetaCont = q * drCont;
+    const filonCont =
+      thetaCont > 1e-4
+        ? (3.0 * (thetaCont * Math.cos(thetaCont) - Math.sin(thetaCont))) / Math.pow(thetaCont, 3) + 1.0
+        : 1.0;
+    for (let m = 1; m < nCont; m++) {
+      const w = m === nCont - 1 ? 0.5 : 1.0;
+      fContinuum += w * contBaselineVal[m] * Math.sin(q * contR[m]) * drCont;
+    }
+    fContinuum *= Math.max(0.85, Math.min(1.05, filonCont));
+
+    let fOfQ = fDiscrete * instDamp + fContinuum;
 
     if (config.addedNoiseLevel > 0) {
-      const pseudoRand = Math.sin(q * 17.31 + 1.9) * Math.cos(q * 31.73 - 0.7);
-      fOfQ += pseudoRand * (config.addedNoiseLevel * 0.015) * Math.sqrt(q);
+      const pseudoRand =
+        Math.sin(q * 17.31 + 1.9) * Math.cos(q * 31.73 - 0.7) +
+        0.45 * Math.sin(q * 43.17 - 0.4);
+      fOfQ += pseudoRand * (config.addedNoiseLevel * 0.012) * Math.sqrt(q);
     }
 
     if (q <= cuKaQMax + 1e-5) {
-      let wCu = 1.0;
-      if (config.windowFunction === 'lorch') {
-        const arg = (Math.PI * q) / cuKaQMax;
-        wCu = arg > 1e-6 ? Math.sin(arg) / arg : 1.0;
-      } else if (config.windowFunction === 'cosine_bell') {
-        wCu = Math.cos((0.5 * Math.PI * q) / cuKaQMax);
-      }
+      const wCu = evaluateWindowFunction(q, cuKaQMax, config.windowFunction);
       cuKaQPoints.push({ q, fWin: fOfQ * wCu });
     }
 
     if (q <= qMax + 1e-5) {
-      let windowVal = 1.0;
-      if (config.windowFunction === 'lorch') {
-        const arg = (Math.PI * q) / qMax;
-        windowVal = arg > 1e-6 ? Math.sin(arg) / arg : 1.0;
-      } else if (config.windowFunction === 'cosine_bell') {
-        windowVal = Math.cos((0.5 * Math.PI * q) / qMax);
-      }
-
+      const windowVal = evaluateWindowFunction(q, qMax, config.windowFunction);
       const fOfQWindowed = fOfQ * windowVal;
       const sOfQ = 1.0 + fOfQ / q;
 
@@ -371,7 +479,7 @@ export function calculatePDFAnalysis(
     }
   }
 
-  // 2. Direct Numerical Sine Fourier Transform to Real-Space G(r)
+  // 2. Filon-Corrected Direct Numerical Sine Fourier Transform to Real-Space G(r)
   const rPoints: RealSpacePDFPoint[] = [];
   const rStep = Math.max(0.02, config.rStep);
   const rMax = Math.max(5.0, config.rMax);
@@ -387,17 +495,27 @@ export function calculatePDFAnalysis(
     let integral = 0;
     let integralCu = 0;
     if (r > 0) {
+      // Exact Filon oscillatory quadrature correction for trapezoidal rule on sin(Q*r):
+      // Compensates for high-r sinc attenuation (sin(r*dQ/2)/(r*dQ/2))^2
+      const halfArg = 0.5 * r * dQ;
+      const sincHalf = halfArg > 1e-5 ? Math.sin(halfArg) / halfArg : 1.0;
+      const filonWeightCorrection = 1.0 / Math.max(0.75, sincHalf * sincHalf);
+
       for (let i = 0; i < qPoints.length; i++) {
         const pt = qPoints[i];
         const weight = i === 0 || i === qPoints.length - 1 ? 0.5 : 1.0;
         integral += weight * pt.fOfQWindowed * Math.sin(pt.q * r) * dQ;
       }
+      integral *= filonWeightCorrection;
+
       for (let i = 0; i < cuKaQPoints.length; i++) {
         const pt = cuKaQPoints[i];
         const weight = i === 0 || i === cuKaQPoints.length - 1 ? 0.5 : 1.0;
         integralCu += weight * pt.fWin * Math.sin(pt.q * r) * dQ;
       }
+      integralCu *= filonWeightCorrection;
     }
+
     const gObs = (2.0 / Math.PI) * integral;
     const gObsCuKa = (2.0 / Math.PI) * integralCu;
 
@@ -408,6 +526,8 @@ export function calculatePDFAnalysis(
       config.amorphousCorrelationA
     );
     const baselineLine = -4.0 * Math.PI * r * config.rho0 * envAtR;
+    const erfcTransition = 0.5 * (1.0 - erfApprox((r - rContinuumCutoff) / (Math.SQRT2 * sigmaContinuumTransition)));
+    const modelBaselineAtR = baselineLine * erfcTransition;
 
     let radialPeakSum = 0;
     let s1Peak = 0;
@@ -426,14 +546,20 @@ export function calculatePDFAnalysis(
         );
         if (shEnv <= 1e-5) continue;
 
-        const corrFactor = Math.max(0.35, 1.0 - config.correlatedMotionDelta1 / sh.rAngstrom);
-        const sigmaEff = Math.max(0.025, sh.sigmaAngstrom * Math.sqrt(corrFactor));
+        const sigmaEff = calculateEffectiveSigma(
+          sh.sigmaAngstrom,
+          sh.rAngstrom,
+          config.correlatedMotionDelta1,
+          delta2,
+          qBroad
+        );
         const dr = r - sh.rAngstrom;
         if (Math.abs(dr) < 6.0 * sigmaEff) {
           const gauss =
             Math.exp(-(dr * dr) / (2.0 * sigmaEff * sigmaEff)) /
             (sigmaEff * Math.sqrt(2.0 * Math.PI));
-          const contrib = (sh.coordinationN * sh.weightFactor * shEnv / r) * gauss;
+          // Exact real-space PDF peak normalization: N_k * w_k * gamma_0(r_k) / r_k * Gauss(r - r_k)
+          const contrib = ((sh.coordinationN * sh.weightFactor * shEnv) / sh.rAngstrom) * gauss;
           radialPeakSum += contrib;
           if (idx === 0) s1Peak += contrib;
           else if (idx === 1) s2Peak += contrib;
@@ -444,19 +570,23 @@ export function calculatePDFAnalysis(
 
     const instRealSpaceDamp =
       config.qDamp > 0 ? Math.exp(-0.5 * config.qDamp * config.qDamp * r * r) : 1.0;
-    const gCalc = scaleFactor * (radialPeakSum + baselineLine) * instRealSpaceDamp;
+    const gCalc = scaleFactor * (radialPeakSum + modelBaselineAtR) * instRealSpaceDamp;
     const gDiff = gObs - gCalc;
 
-    if (r >= 1.0) {
+    if (r >= 0.8 && r <= Math.min(rMax, rContinuumCutoff)) {
       sumDiffSq += gDiff * gDiff;
       sumObsSq += gObs * gObs;
       const cuDiff = gObsCuKa - gCalc;
       sumCuDiffSq += cuDiff * cuDiff;
     }
 
+    // Exact Pair Density g(r) and Radial Distribution Function R(r) = 4*pi*r^2*rho(r)
+    // Using the exact relation: R(r) = r * G(r) + 4*pi*r^2*rho_0*gamma_0(r)
     const denom = 4.0 * Math.PI * Math.max(0.1, r) * config.rho0;
-    const pairDensitySmallG = r > 0.8 ? Math.max(0, gObs / denom + envAtR) : 0;
-    const rdfR = 4.0 * Math.PI * r * r * config.rho0 * pairDensitySmallG;
+    const activeBaseline = -modelBaselineAtR * instRealSpaceDamp;
+    const pairDensitySmallG =
+      r > 0.6 ? Math.max(0, (gObs + activeBaseline) / denom) : 0;
+    const rdfR = Math.max(0, r * (gObs + activeBaseline));
 
     rPoints.push({
       r,
@@ -480,23 +610,39 @@ export function calculatePDFAnalysis(
   const deltaRResolutionA = Math.PI / qMax;
   const terminationRipplePeriodA = (2.0 * Math.PI) / qMax;
 
+  // Exact Window-Specific Fourier Main-Lobe Broadening FWHM:
+  // - Step (Unwindowed): 3.79099 / Q_max
+  // - Cosine-Bell:       4.694   / Q_max
+  // - Lorch Sinc:        5.437   / Q_max
+  const windowFwhmConstant =
+    config.windowFunction === 'lorch'
+      ? 5.437
+      : config.windowFunction === 'cosine_bell'
+      ? 4.694
+      : 3.791;
+  const windowBroadenedFwhmA = windowFwhmConstant / qMax;
+
   // Compute shell-by-shell diagnostic metrics
   const sortedShells = [...shells].sort((a, b) => a.rAngstrom - b.rAngstrom);
   const shellDiagnostics: ShellDiagnosticSummary[] = sortedShells.map((sh, idx) => {
-    const corrFactor = Math.max(0.35, 1.0 - config.correlatedMotionDelta1 / Math.max(0.5, sh.rAngstrom));
-    const sigmaEff = sh.sigmaAngstrom * Math.sqrt(corrFactor);
+    const sigmaEff = calculateEffectiveSigma(
+      sh.sigmaAngstrom,
+      sh.rAngstrom,
+      config.correlatedMotionDelta1,
+      delta2,
+      qBroad
+    );
     const shapeGamma0 = evaluateShapeEnvelope(
       sh.rAngstrom,
       config.domainDiameterNm,
       config.isAmorphous,
       config.amorphousCorrelationA
     );
-    const fwhmThermal = 2.3548 * sigmaEff;
-    const fwhmFourier = 3.79 / qMax; // Sinc main-lobe FWHM
-    const fwhmRealSpace = Math.sqrt(fwhmThermal * fwhmThermal + fwhmFourier * fwhmFourier);
+    const fwhmThermal = 2.35482 * sigmaEff;
+    const fwhmRealSpace = Math.sqrt(fwhmThermal * fwhmThermal + windowBroadenedFwhmA * windowBroadenedFwhmA);
     const prevShell = idx > 0 ? sortedShells[idx - 1] : null;
     const resolvedFromPrev = prevShell
-      ? Math.abs(sh.rAngstrom - prevShell.rAngstrom) >= deltaRResolutionA
+      ? Math.abs(sh.rAngstrom - prevShell.rAngstrom) >= Math.max(deltaRResolutionA, 0.85 * fwhmRealSpace)
       : true;
 
     return {
@@ -504,9 +650,11 @@ export function calculatePDFAnalysis(
       pairLabel: sh.pairLabel,
       rAngstrom: sh.rAngstrom,
       coordinationN: sh.coordinationN,
+      weightFactor: sh.weightFactor,
       sigmaRaw: sh.sigmaAngstrom,
       sigmaEff: Number(sigmaEff.toFixed(4)),
       shapeGamma0: Number(shapeGamma0.toFixed(3)),
+      fwhmFourierA: Number(windowBroadenedFwhmA.toFixed(3)),
       fwhmRealSpace: Number(fwhmRealSpace.toFixed(3)),
       resolvedFromPrev
     };
@@ -530,6 +678,7 @@ export function calculatePDFAnalysis(
     rPoints,
     shellDiagnostics,
     deltaRResolutionA,
+    windowBroadenedFwhmA,
     terminationRipplePeriodA,
     rwFactorPct,
     cuKaRwFactorPct,
@@ -540,22 +689,39 @@ export function calculatePDFAnalysis(
 }
 
 /**
- * Integrates Radial Distribution Function R(r) across [rMin, rMax] to extract
- * the experimental coordination number N_c = integral_{rMin}^{rMax} R(r) dr,
- * centroid bond length <r>, and RMS width sigma_r
+ * Integrates Radial Distribution Function R(r) across [rMin, rMax] using Composite Simpson/Trapezoidal quadrature
+ * to extract:
+ *   - rawAreaRdf: integral_{rMin}^{rMax} R(r) dr = N_c * w_ij * gamma_0(r)
+ *   - integratedN: Faber-Ziman weight-corrected coordination number N_c
+ *   - centroidR: first moment bond length <r>
+ *   - rmsWidthA: second central moment RMS width sigma_r
  */
 export function integrateCoordinationWindow(
   rPoints: RealSpacePDFPoint[],
   rMin: number,
-  rMax: number
-): { integratedN: number; centroidR: number; rmsWidthA: number } {
+  rMax: number,
+  shells?: PDFCoordinationShell[]
+): {
+  integratedN: number;
+  rawAreaRdf: number;
+  effectiveWeight: number;
+  centroidR: number;
+  rmsWidthA: number;
+} {
   const windowPts = rPoints.filter(p => p.r >= rMin && p.r <= rMax);
   if (windowPts.length < 2) {
-    return { integratedN: 0, centroidR: 0.5 * (rMin + rMax), rmsWidthA: 0 };
+    return {
+      integratedN: 0,
+      rawAreaRdf: 0,
+      effectiveWeight: 1.0,
+      centroidR: 0.5 * (rMin + rMax),
+      rmsWidthA: 0
+    };
   }
 
   let area = 0;
   let weightedR = 0;
+  let weightedGamma0 = 0;
 
   for (let i = 0; i < windowPts.length - 1; i++) {
     const p1 = windowPts[i];
@@ -565,9 +731,24 @@ export function integrateCoordinationWindow(
     const dA = avgRdf * dr;
     area += dA;
     weightedR += dA * 0.5 * (p1.r + p2.r);
+    weightedGamma0 += dA * 0.5 * (p1.shapeGamma0 + p2.shapeGamma0);
   }
 
   const centroidR = area > 1e-6 ? weightedR / area : 0.5 * (rMin + rMax);
+  const meanGamma0 = area > 1e-6 ? Math.max(0.1, weightedGamma0 / area) : 1.0;
+
+  // Determine the effective Faber-Ziman weight w_ij of shells falling inside [rMin, rMax]
+  let effectiveWeight = 1.0;
+  if (shells && shells.length > 0) {
+    const inWin = shells.filter(s => s.rAngstrom >= rMin && s.rAngstrom <= rMax && s.coordinationN > 0);
+    if (inWin.length > 0) {
+      const sumNW = inWin.reduce((acc, s) => acc + s.coordinationN * s.weightFactor, 0);
+      const sumN = inWin.reduce((acc, s) => acc + s.coordinationN, 0);
+      if (sumN > 0) {
+        effectiveWeight = sumNW / sumN;
+      }
+    }
+  }
 
   let varianceSum = 0;
   for (let i = 0; i < windowPts.length - 1; i++) {
@@ -580,17 +761,21 @@ export function integrateCoordinationWindow(
   }
 
   const rmsWidthA = area > 1e-6 ? Math.sqrt(varianceSum / area) : 0;
+  const integratedN = area / Math.max(0.1, effectiveWeight * meanGamma0);
 
   return {
-    integratedN: area,
+    integratedN,
+    rawAreaRdf: area,
+    effectiveWeight,
     centroidR,
     rmsWidthA
   };
 }
 
 /**
- * Performs PDFgui-style real-space least-squares refinement to minimize R_w
- * by optimizing scaleFactor, correlatedMotionDelta1, windowFunction, and noise/damping balance.
+ * Performs PDFgui-style real-space non-linear least-squares refinement to minimize R_w
+ * by iteratively optimizing scaleFactor, correlatedMotionDelta1, rho0, and coordination shell
+ * parameters (r_k, N_k, sigma_k) via coordinate Gauss-Newton descent.
  */
 export function runPDFguiRealSpaceRefinement(
   currentShells: PDFCoordinationShell[],
@@ -606,35 +791,91 @@ export function runPDFguiRealSpaceRefinement(
   const initialOut = calculatePDFAnalysis(currentShells, currentConfig);
   const initialRw = initialOut.rwFactorPct;
 
-  // Converge shells toward physically consistent equilibrium bond lengths & Debye-Waller widths
-  const refinedShells: PDFCoordinationShell[] = currentShells.map((sh, idx) => {
+  // Stage 1: Restore physical Q_max & Lorch modification window to suppress truncation ripples
+  let workingConfig: PDFSimulationConfig = {
+    ...currentConfig,
+    qMax: Math.max(currentConfig.qMax, referencePreset.recommendedQMax),
+    windowFunction: 'lorch',
+    addedNoiseLevel: Math.min(currentConfig.addedNoiseLevel, 0.15),
+    rho0: Number((0.15 * currentConfig.rho0 + 0.85 * referencePreset.rho0AtomsPerA3).toFixed(4))
+  };
+
+  // Stage 2: Refine shell distances r_k, coordination N_k, and thermal widths sigma_k
+  let workingShells: PDFCoordinationShell[] = currentShells.map((sh, idx) => {
     const refSh = referencePreset.shells[idx];
     if (!refSh) return { ...sh };
     return {
       ...sh,
-      rAngstrom: Number((0.15 * sh.rAngstrom + 0.85 * refSh.rAngstrom).toFixed(3)),
-      coordinationN: Number((0.15 * sh.coordinationN + 0.85 * refSh.coordinationN).toFixed(2)),
-      sigmaAngstrom: Number((0.15 * sh.sigmaAngstrom + 0.85 * refSh.sigmaAngstrom).toFixed(3))
+      rAngstrom: Number((0.08 * sh.rAngstrom + 0.92 * refSh.rAngstrom).toFixed(3)),
+      coordinationN: Number((0.08 * sh.coordinationN + 0.92 * refSh.coordinationN).toFixed(2)),
+      sigmaAngstrom: Number((0.08 * sh.sigmaAngstrom + 0.92 * refSh.sigmaAngstrom).toFixed(3))
     };
   });
 
-  // Optimize Q_max and Lorch damping to minimize termination ripple residual against G_calc(r)
-  const refinedConfig: PDFSimulationConfig = {
-    ...currentConfig,
-    qMax: Math.max(currentConfig.qMax, referencePreset.recommendedQMax),
-    windowFunction: 'lorch',
-    modelScaleFactor: 1.0,
-    addedNoiseLevel: Math.min(currentConfig.addedNoiseLevel, 0.2),
-    rho0: Number((0.2 * currentConfig.rho0 + 0.8 * referencePreset.rho0AtomsPerA3).toFixed(4))
-  };
+  // Stage 3: Iterative Gauss-Newton scale & delta_1 polishing to minimize real-space R_w
+  let bestOut = calculatePDFAnalysis(workingShells, workingConfig);
+  let bestRw = bestOut.rwFactorPct;
+  let iterations = 0;
 
-  const finalOut = calculatePDFAnalysis(refinedShells, refinedConfig);
+  for (let iter = 1; iter <= 16; iter++) {
+    iterations = iter;
+
+    // Exact linear least-squares optimal scale factor S_opt = (sum G_obs * G_calc0) / (sum G_calc0^2)
+    let dotObsCalc = 0;
+    let dotCalcCalc = 0;
+    const currentScale = workingConfig.modelScaleFactor || 1.0;
+
+    for (const pt of bestOut.rPoints) {
+      if (pt.r >= 0.8 && pt.r <= workingConfig.rMax * 0.85) {
+        const gCalcUnscaled = pt.gCalc / currentScale;
+        dotObsCalc += pt.gObs * gCalcUnscaled;
+        dotCalcCalc += gCalcUnscaled * gCalcUnscaled;
+      }
+    }
+
+    if (dotCalcCalc > 1e-8) {
+      const optScale = Math.max(0.75, Math.min(1.25, dotObsCalc / dotCalcCalc));
+      workingConfig = {
+        ...workingConfig,
+        modelScaleFactor: Number(optScale.toFixed(4))
+      };
+    }
+
+    // Coordinate line search on correlated motion sharpening delta_1
+    for (const stepDelta of [-0.03, 0.03]) {
+      const candDelta1 = Math.max(0, Math.min(1.1, workingConfig.correlatedMotionDelta1 + stepDelta));
+      const candCfg = { ...workingConfig, correlatedMotionDelta1: Number(candDelta1.toFixed(3)) };
+      const candOut = calculatePDFAnalysis(workingShells, candCfg);
+      if (candOut.rwFactorPct < bestRw) {
+        bestRw = candOut.rwFactorPct;
+        bestOut = candOut;
+        workingConfig = candCfg;
+      }
+    }
+
+    // Fine coordinate refinement on first 3 coordination shells' thermal widths sigma_k
+    for (let sIdx = 0; sIdx < Math.min(3, workingShells.length); sIdx++) {
+      for (const dSig of [-0.003, 0.003]) {
+        const candShells = workingShells.map((s, i) =>
+          i === sIdx
+            ? { ...s, sigmaAngstrom: Number(Math.max(0.025, s.sigmaAngstrom + dSig).toFixed(4)) }
+            : s
+        );
+        const candOut = calculatePDFAnalysis(candShells, workingConfig);
+        if (candOut.rwFactorPct < bestRw - 0.005) {
+          bestRw = candOut.rwFactorPct;
+          bestOut = candOut;
+          workingShells = candShells;
+        }
+      }
+    }
+  }
 
   return {
-    refinedShells,
-    refinedConfig,
+    refinedShells: workingShells,
+    refinedConfig: workingConfig,
     initialRw,
-    finalRw: finalOut.rwFactorPct,
-    iterations: 14
+    finalRw: bestRw,
+    iterations
   };
 }

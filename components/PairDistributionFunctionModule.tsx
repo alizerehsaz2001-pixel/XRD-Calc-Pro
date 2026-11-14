@@ -49,6 +49,7 @@ export const PairDistributionFunctionModule: React.FC = () => {
     qMin: 0.5,
     qMax: PDF_MATERIAL_PRESETS[0].recommendedQMax,
     qDamp: 0.032,
+    qBroad: 0.008,
     rMax: 14.0,
     rStep: 0.04,
     rho0: PDF_MATERIAL_PRESETS[0].rho0AtomsPerA3,
@@ -121,8 +122,8 @@ export const PairDistributionFunctionModule: React.FC = () => {
 
   // Live Radial Distribution Function R(r) integration over [rIntMin, rIntMax]
   const integratedShellResult = useMemo(() => {
-    return integrateCoordinationWindow(pdfOutput.rPoints, rIntMin, rIntMax);
-  }, [pdfOutput.rPoints, rIntMin, rIntMax]);
+    return integrateCoordinationWindow(pdfOutput.rPoints, rIntMin, rIntMax, shells);
+  }, [pdfOutput.rPoints, rIntMin, rIntMax, shells]);
 
   // Prepare R(r) chart data with highlighted window
   const rdfChartData = useMemo(() => {
@@ -543,6 +544,23 @@ r_1 &= ${pdfOutput.firstShellPeakR.toFixed(3)}\\text{ \\AA}, \\quad N_c([${rIntM
                   value={config.qDamp}
                   onChange={(e) => handleUpdateConfig({ qDamp: parseFloat(e.target.value) })}
                   className="w-full accent-indigo-400 cursor-pointer h-1.5 bg-slate-800 rounded"
+                />
+              </div>
+
+              {/* Q_broad Instrumental Peak Broadening */}
+              <div>
+                <div className="flex justify-between items-center mb-1">
+                  <span className="text-slate-300">High-r Peak Broadening Q_broad:</span>
+                  <span className="text-purple-300 font-bold">{(config.qBroad ?? 0.008).toFixed(3)} Å⁻¹</span>
+                </div>
+                <input
+                  type="range"
+                  min="0.000"
+                  max="0.035"
+                  step="0.002"
+                  value={config.qBroad ?? 0.008}
+                  onChange={(e) => handleUpdateConfig({ qBroad: parseFloat(e.target.value) })}
+                  className="w-full accent-purple-400 cursor-pointer h-1.5 bg-slate-800 rounded"
                 />
               </div>
 
@@ -986,7 +1004,7 @@ r_1 &= ${pdfOutput.firstShellPeakR.toFixed(3)}\\text{ \\AA}, \\quad N_c([${rIntM
                   </p>
                 </div>
                 <div className="px-3 py-1.5 rounded bg-[#070A12] border border-emerald-500/40 text-xs font-mono tabular-nums">
-                  N_c = <strong className="text-emerald-400">{integratedShellResult.integratedN.toFixed(2)} atoms</strong> · ⟨r⟩ = {integratedShellResult.centroidR.toFixed(3)} Å · σ_r = {integratedShellResult.rmsWidthA.toFixed(3)} Å
+                  N_c = <strong className="text-emerald-400">{integratedShellResult.integratedN.toFixed(2)} atoms</strong> (∫R dr = {integratedShellResult.rawAreaRdf.toFixed(2)}, w_ij = {integratedShellResult.effectiveWeight.toFixed(2)}) · ⟨r⟩ = {integratedShellResult.centroidR.toFixed(3)} Å · σ_r = {integratedShellResult.rmsWidthA.toFixed(3)} Å
                 </div>
               </div>
 
@@ -1133,8 +1151,10 @@ r_1 &= ${pdfOutput.firstShellPeakR.toFixed(3)}\\text{ \\AA}, \\quad N_c([${rIntM
                       <th className="p-2.5">Shell</th>
                       <th className="p-2.5">Pair</th>
                       <th className="p-2.5">r_k (Å)</th>
+                      <th className="p-2.5">w_ij</th>
                       <th className="p-2.5">σ_eff (Å)</th>
-                      <th className="p-2.5">Real FWHM (Å)</th>
+                      <th className="p-2.5">Δr_FT (Å)</th>
+                      <th className="p-2.5">Total FWHM (Å)</th>
                       <th className="p-2.5">γ₀(r_k)</th>
                       <th className="p-2.5">Nyquist Status</th>
                     </tr>
@@ -1145,8 +1165,10 @@ r_1 &= ${pdfOutput.firstShellPeakR.toFixed(3)}\\text{ \\AA}, \\quad N_c([${rIntM
                         <td className="p-2.5 text-slate-400">S{i + 1}</td>
                         <td className="p-2.5 font-sans font-semibold text-cyan-300">{diag.pairLabel}</td>
                         <td className="p-2.5 font-bold text-white">{diag.rAngstrom.toFixed(3)}</td>
+                        <td className="p-2.5 text-slate-400">{diag.weightFactor.toFixed(2)}</td>
                         <td className="p-2.5 text-amber-300">{diag.sigmaEff.toFixed(4)}</td>
-                        <td className="p-2.5">{diag.fwhmRealSpace.toFixed(3)}</td>
+                        <td className="p-2.5 text-indigo-300">{diag.fwhmFourierA.toFixed(3)}</td>
+                        <td className="p-2.5 font-semibold text-white">{diag.fwhmRealSpace.toFixed(3)}</td>
                         <td className="p-2.5 text-emerald-300">{diag.shapeGamma0.toFixed(3)}</td>
                         <td className="p-2.5">
                           <span className={diag.resolvedFromPrev ? 'text-emerald-400' : 'text-amber-400'}>

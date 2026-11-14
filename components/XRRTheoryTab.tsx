@@ -8,16 +8,16 @@ export const XRRTheoryTab: React.FC = () => {
 
   const wavelengthA = 1.5406; // Cu Kα1
 
-  // Derived optical quantities
+  // Derived optical quantities (exact Snell's law & CODATA 2018 constants)
   const opticalTelemetry = useMemo(() => {
     const delta = deltaE6 * 1e-6;
-    const criticalThetaRad = Math.sqrt(2 * delta);
+    const criticalThetaRad = Math.acos(Math.max(-1, Math.min(1, 1 - delta)));
     const criticalThetaDeg = (criticalThetaRad * 180) / Math.PI;
     const criticalQz = (4 * Math.PI * Math.sin(criticalThetaRad)) / wavelengthA; // Å⁻¹
     const deltaQz = (2 * Math.PI) / (filmThicknessNm * 10); // Å⁻¹
     const deltaTwoThetaDeg =
       ((2 * Math.asin(Math.min(0.99, (deltaQz * wavelengthA) / (4 * Math.PI)))) * 180) / Math.PI;
-    const re = 2.81794e-5; // Å
+    const re = 2.8179403262e-5; // CODATA 2018 classical electron radius (Å)
     const electronDensity = (2 * Math.PI * delta) / (re * wavelengthA * wavelengthA); // e⁻ / Å³
     const sldE6 = electronDensity * re * 1e6; // 10^-6 Å^-2
 
@@ -31,35 +31,85 @@ export const XRRTheoryTab: React.FC = () => {
     };
   }, [deltaE6, filmThicknessNm]);
 
-  // Reflectivity Log R(qz) and Envelope curves
+  // Exact Complex 1-Layer Parratt Recursion Log10 R(qz) and Névot–Croce Fresnel Envelope
   const { curvePts, envPts, qcPx } = useMemo(() => {
     const cPts: string[] = [];
     const ePts: string[] = [];
     const qMax = 0.25;
-    const qc = Math.max(0.012, Math.min(0.12, opticalTelemetry.criticalQz));
-    const freq = (2 * Math.PI) / Math.max(0.004, opticalTelemetry.deltaQz);
-    const roughSq = Math.pow(roughnessAngstrom, 2);
+    const k0 = (2 * Math.PI) / wavelengthA;
+    const dA = filmThicknessNm * 10; // Å
+    const sigma = roughnessAngstrom;
+
+    // Film optical constants (1) and Si substrate optical constants (2)
+    const delta1 = deltaE6 * 1e-6;
+    const beta1 = delta1 * 0.022;
+    const deltaSub = 7.57e-6;
+    const betaSub = 1.73e-7;
+
+    const cSqrt = (re: number, im: number): [number, number] => {
+      const r = Math.hypot(re, im);
+      const u = Math.sqrt(0.5 * (r + re));
+      const v = (im >= 0 ? 1 : -1) * Math.sqrt(Math.max(0, 0.5 * (r - re)));
+      return [u, v];
+    };
+
+    const cMul = (a: [number, number], b: [number, number]): [number, number] => [
+      a[0] * b[0] - a[1] * b[1],
+      a[0] * b[1] + a[1] * b[0],
+    ];
+
+    const cDiv = (a: [number, number], b: [number, number]): [number, number] => {
+      const denom = b[0] * b[0] + b[1] * b[1] || 1e-30;
+      return [(a[0] * b[0] + a[1] * b[1]) / denom, (a[1] * b[0] - a[0] * b[1]) / denom];
+    };
 
     for (let i = 0; i <= 160; i++) {
       const q = (i / 160) * qMax;
-      let logR = 0;
-      let logEnv = 0;
+      const sinTheta = Math.min(0.999, Math.max(1e-5, q / (2 * k0)));
+      const cos2Theta = 1 - sinTheta * sinTheta;
 
-      if (q <= qc) {
-        logR = 0;
-        logEnv = 0;
-      } else {
-        const qNorm = q / qc;
-        // Fresnel R_F ~ (2 q_z / q_c)^-4 approximation above q_c
-        const fresnelDecay = -4 * Math.log10(Math.max(1.001, 1.35 * qNorm));
-        // Névot–Croce damping exp(-q^2 * sigma^2) converted to log10
-        const ncDamping = -0.43429 * (q * q - qc * qc) * roughSq;
-        const fringeAmp = 0.55 * Math.exp(-0.5 * (q - qc) * roughnessAngstrom * 1.4);
-        const kiessig = fringeAmp * Math.cos(freq * Math.sqrt(Math.max(0, q * q - qc * qc)));
+      // Exact wavevectors kz,0 (vacuum), kz,1 (film), kz,2 (Si substrate)
+      const kz0: [number, number] = [k0 * sinTheta, 0];
+      const kz1 = cSqrt(
+        k0 * k0 * ((1 - delta1) * (1 - delta1) - beta1 * beta1 - cos2Theta),
+        k0 * k0 * (2 * beta1 * (1 - delta1))
+      );
+      const kz2 = cSqrt(
+        k0 * k0 * ((1 - deltaSub) * (1 - deltaSub) - betaSub * betaSub - cos2Theta),
+        k0 * k0 * (2 * betaSub * (1 - deltaSub))
+      );
 
-        logEnv = Math.max(-7.8, fresnelDecay + ncDamping);
-        logR = Math.max(-8.0, Math.min(0, logEnv + kiessig - 0.25));
-      }
+      // Fresnel interface coefficients with exact Névot–Croce damping exp(-2 k_j k_{j+1} sigma^2)
+      const r01Raw = cDiv([kz0[0] - kz1[0], -kz1[1]], [kz0[0] + kz1[0], kz1[1]]);
+      const nc01 = Math.exp(Math.min(0, -2 * kz0[0] * kz1[0] * sigma * sigma));
+      const r01: [number, number] = [r01Raw[0] * nc01, r01Raw[1] * nc01];
+
+      const r12Raw = cDiv([kz1[0] - kz2[0], kz1[1] - kz2[1]], [kz1[0] + kz2[0], kz1[1] + kz2[1]]);
+      const nc12 = Math.exp(Math.min(0, -2 * (kz1[0] * kz2[0] - kz1[1] * kz2[1]) * Math.pow(sigma * 0.75, 2)));
+      const r12: [number, number] = [r12Raw[0] * nc12, r12Raw[1] * nc12];
+
+      // Phase factor exp(2 i kz1 d) = exp(-2 Im(kz1) d) * (cos(2 Re(kz1) d) + i sin(2 Re(kz1) d))
+      const atten = Math.exp(-2 * kz1[1] * dA);
+      const phase: [number, number] = [
+        atten * Math.cos(2 * kz1[0] * dA),
+        atten * Math.sin(2 * kz1[0] * dA),
+      ];
+      const r12Phase = cMul(r12, phase);
+
+      // Total Parratt amplitude X0 = (r01 + r12 * phase) / (1 + r01 * r12 * phase)
+      const num: [number, number] = [r01[0] + r12Phase[0], r01[1] + r12Phase[1]];
+      const prod = cMul(r01, r12Phase);
+      const den: [number, number] = [1 + prod[0], prod[1]];
+      const x0 = cDiv(num, den);
+
+      const rIntensity = Math.max(1e-8, Math.min(1, x0[0] * x0[0] + x0[1] * x0[1]));
+      const envIntensity = Math.max(
+        1e-8,
+        Math.min(1, (r01[0] * r01[0] + r01[1] * r01[1]) + (r12[0] * r12[0] + r12[1] * r12[1]))
+      );
+
+      const logR = Math.max(-8.0, Math.min(0, Math.log10(rIntensity)));
+      const logEnv = Math.max(-7.8, Math.min(0, Math.log10(envIntensity)));
 
       const px = 44 + (i / 160) * 400;
       const py = 26 + (-logR / 8.0) * 168;
@@ -68,12 +118,13 @@ export const XRRTheoryTab: React.FC = () => {
       ePts.push(`${px.toFixed(1)},${pyEnv.toFixed(1)}`);
     }
 
+    const qc = Math.max(0.012, Math.min(0.12, opticalTelemetry.criticalQz));
     return {
       curvePts: cPts.join(' '),
       envPts: ePts.join(' '),
       qcPx: 44 + (qc / qMax) * 400,
     };
-  }, [opticalTelemetry.criticalQz, opticalTelemetry.deltaQz, roughnessAngstrom]);
+  }, [deltaE6, filmThicknessNm, roughnessAngstrom, opticalTelemetry.criticalQz]);
 
   const OPTICAL_PRESETS = [
     { label: 'SiO₂ (δ=7.6)', delta: 7.6, d: 22, sigma: 3.0 },

@@ -26,7 +26,7 @@ import {
   Compass
 } from 'lucide-react';
 import { ScherrerInput } from '../../types';
-import { calculateWilliamsonHall, calculateMonshiScherrer } from '../../utils/physics';
+import { calculateWilliamsonHall, calculateMonshiScherrer, calculateDirectionalScherrerK } from '../../utils/physics';
 
 interface NanoCrystalliteSimulatorViewProps {
   wavelength: number;
@@ -142,16 +142,16 @@ export const NanoCrystalliteSimulatorView: React.FC<NanoCrystalliteSimulatorView
       const cosTheta = Math.cos(thetaRad);
       const tanTheta = Math.tan(thetaRad);
 
-      // Compute habit-dependent effective domain thickness D_hkl
+      // Compute habit-dependent effective domain thickness D_hkl using exact Langford & Wilson (1978) K_w(hkl)
       let dirFactor = 1.0;
       const norm = Math.sqrt(h2k2l2);
       const cosPhiZ = Math.abs(l) / norm;
       if (habitMode === 'cube_100') {
-        const sumAbs = (Math.abs(h) + Math.abs(k) + Math.abs(l)) / norm;
-        dirFactor = 1 / Math.max(0.65, 0.88 * sumAbs);
+        const kCubeHkl = calculateDirectionalScherrerK(kFactor, ref.hkl, 'Cube', 'fwhm');
+        dirFactor = kFactor / Math.max(0.5, kCubeHkl);
       } else if (habitMode === 'octahedron_111') {
-        const maxAbs = Math.max(Math.abs(h), Math.abs(k), Math.abs(l)) / norm;
-        dirFactor = 0.86 / Math.max(0.55, maxAbs);
+        const kOctHkl = calculateDirectionalScherrerK(kFactor, ref.hkl, 'Octahedron', 'fwhm');
+        dirFactor = kFactor / Math.max(0.5, kOctHkl);
       } else if (habitMode === 'nanorod_001') {
         // Elongated along [001]
         dirFactor = Math.sqrt(
@@ -168,7 +168,7 @@ export const NanoCrystalliteSimulatorView: React.FC<NanoCrystalliteSimulatorView
       const dHklNm = Math.max(1.2, trueDomainSizeNm * dirFactor);
       const dHklAngstrom = dHklNm * 10;
 
-      // Lorentzian size broadening + Gaussian strain broadening -> Voigt approximation
+      // Lorentzian size broadening + Gaussian strain broadening -> Thompson-Cox-Hastings (1987) Voigt convolution
       const betaSizeRad = (kFactor * wavelength) / (dHklAngstrom * cosTheta);
       const betaStrainRad = 4 * (trueMicrostrainPct / 100) * tanTheta;
 
@@ -176,10 +176,18 @@ export const NanoCrystalliteSimulatorView: React.FC<NanoCrystalliteSimulatorView
       const betaStrainDeg = (betaStrainRad * 180) / Math.PI;
       const betaInstDeg = Math.max(0.02, instFwhm);
 
-      // Olivero-Longbothum Voigt combination of Lorentzian (size) + Gaussian (strain + inst)
+      // Thompson-Cox-Hastings (1987) 5th-order polynomial Voigt combination of Lorentzian (size) + Gaussian (strain + inst)
       const fL = betaSizeDeg;
       const fG = Math.sqrt(betaStrainDeg * betaStrainDeg + betaInstDeg * betaInstDeg);
-      const fwhmObs = 0.5346 * fL + Math.sqrt(0.2166 * fL * fL + fG * fG);
+      const fwhmObs = Math.pow(
+        Math.pow(fG, 5) +
+          2.69269 * Math.pow(fG, 4) * fL +
+          2.42843 * Math.pow(fG, 3) * Math.pow(fL, 2) +
+          4.47163 * Math.pow(fG, 2) * Math.pow(fL, 3) +
+          0.07842 * fG * Math.pow(fL, 4) +
+          Math.pow(fL, 5),
+        0.2
+      );
 
       simulatedPeaks.push({
         twoTheta: Number(twoTheta.toFixed(3)),

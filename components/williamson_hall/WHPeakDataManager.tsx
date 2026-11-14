@@ -150,9 +150,10 @@ export const WHPeakDataManager: React.FC<WHPeakDataManagerProps> = ({
       if (broadeningModel === 'Lorentzian') {
         betaSampleDeg = Math.max(0.001, peak.fwhmObs - effInst);
       } else if (broadeningModel === 'Pseudo-Voigt') {
-        const ratio = Math.min(0.99, effInst / Math.max(effInst + 0.0001, peak.fwhmObs));
-        const val = peak.fwhmObs * (1 - 0.5 * ratio - 0.5 * ratio * ratio);
-        betaSampleDeg = Math.max(0.001, val);
+        const diffSq = Math.pow(peak.fwhmObs, 2) - Math.pow(effInst, 2);
+        const betaGauss = diffSq > 0 ? Math.sqrt(diffSq) : 0.001;
+        const betaLorentz = Math.max(0.001, peak.fwhmObs - effInst);
+        betaSampleDeg = Math.max(0.001, 0.5 * betaGauss + 0.5 * betaLorentz);
       } else {
         // Gaussian
         const diffSq = Math.pow(peak.fwhmObs, 2) - Math.pow(effInst, 2);

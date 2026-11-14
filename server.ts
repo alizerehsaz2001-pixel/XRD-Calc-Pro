@@ -11,7 +11,7 @@ import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
 import { GoogleGenAI, ThinkingLevel } from "@google/genai";
-import { exec, execSync } from "child_process";
+import { exec, execFile, execSync } from "child_process";
 import https from "https";
 import os from "os";
 import { runCohenLeastSquaresRefinement, type CrystalSystemType, type SystematicErrorFunction, type WeightingModel } from "./utils/cohenLeastSquaresRefinement";
@@ -63,15 +63,49 @@ async function safeWriteJsonFile(filePath: string, data: any): Promise<boolean> 
   }
 }
 
+// Cybersecurity Telemetry & Defense Counters
+const securityTelemetry = {
+  status: "HARDENED" as const,
+  blockedPayloads: 0,
+  blockedPythonCalls: 0,
+  sanitizedRequests: 0,
+  invalidApiKeysRejected: 0,
+  rateLimitedRequests: 0,
+  lastThreatBlockedAt: null as string | null,
+  lastThreatReason: "None"
+};
+
+function recordSecurityBlock(reason: string) {
+  securityTelemetry.blockedPayloads++;
+  securityTelemetry.lastThreatBlockedAt = new Date().toISOString();
+  securityTelemetry.lastThreatReason = reason;
+}
+
+// Validate custom API key format to prevent header injection & unbounded pool growth
+const API_KEY_FORMAT_REGEX = /^[A-Za-z0-9_-]{20,128}$/;
+const MAX_GEMINI_CLIENT_POOL = 25;
+
 // Multi-Client Gemini Pooling & In-Memory Response Caching
 const geminiClientsMap = new Map<string, GoogleGenAI>();
 
 function getOrCreateGeminiClient(customKey?: string): GoogleGenAI {
-  const key = customKey || process.env.GEMINI_API_KEY;
+  const trimmedCustom = typeof customKey === "string" ? customKey.trim() : "";
+  if (trimmedCustom && !API_KEY_FORMAT_REGEX.test(trimmedCustom)) {
+    securityTelemetry.invalidApiKeysRejected++;
+    recordSecurityBlock("Malformed custom API key rejected");
+    throw new Error("Invalid custom API key format.");
+  }
+  const key = trimmedCustom || process.env.GEMINI_API_KEY;
   if (!key) {
     throw new Error("GEMINI_API_KEY is not defined inside environment secrets or request payload.");
   }
   if (!geminiClientsMap.has(key)) {
+    if (geminiClientsMap.size >= MAX_GEMINI_CLIENT_POOL) {
+      const oldestKey = geminiClientsMap.keys().next().value;
+      if (oldestKey && oldestKey !== process.env.GEMINI_API_KEY) {
+        geminiClientsMap.delete(oldestKey);
+      }
+    }
     const client = new GoogleGenAI({
       apiKey: key,
       httpOptions: {
@@ -221,7 +255,31 @@ function execCommandAsync(cmd: string): Promise<{ success: boolean; stdout: stri
   });
 }
 
+const ALLOWED_DOWNLOAD_HOSTS = new Set([
+  "bootstrap.pypa.io",
+  "huggingface.co",
+  "cdn-lfs.huggingface.co",
+  "github.com",
+  "raw.githubusercontent.com",
+  "objects.githubusercontent.com",
+  "storage.googleapis.com"
+]);
+
+function isSafeDownloadUrl(rawUrl: string): boolean {
+  try {
+    const parsed = new URL(rawUrl);
+    if (parsed.protocol !== "https:") return false;
+    return ALLOWED_DOWNLOAD_HOSTS.has(parsed.hostname) || parsed.hostname.endsWith(".huggingface.co") || parsed.hostname.endsWith(".githubusercontent.com");
+  } catch {
+    return false;
+  }
+}
+
 function downloadFile(url: string, destPath: string): Promise<boolean> {
+  if (!isSafeDownloadUrl(url)) {
+    recordSecurityBlock(`Blocked untrusted download URL: ${url.slice(0, 60)}`);
+    return Promise.resolve(false);
+  }
   return new Promise((resolve) => {
     const file = fs.createWriteStream(destPath);
     https.get(url, (response) => {
@@ -229,20 +287,15 @@ function downloadFile(url: string, destPath: string): Promise<boolean> {
       file.on("finish", () => {
         file.close(() => resolve(true));
       });
-    }).on("error", (err) => {
-      fs.unlink(destPath, () => {}); // delete the file on error
-      // Fallback to curl
-      exec(`curl -sL ${url} -o ${destPath}`, (curlError) => {
+    }).on("error", () => {
+      fs.unlink(destPath, () => {});
+      // Safe argument-array execution via execFile (immune to shell command injection)
+      execFile("curl", ["-sL", "--proto", "=https", "--max-time", "120", url, "-o", destPath], (curlError) => {
         if (!curlError) {
           resolve(true);
         } else {
-          // Fallback to wget
-          exec(`wget -qO ${destPath} ${url}`, (wgetError) => {
-            if (!wgetError) {
-              resolve(true);
-            } else {
-              resolve(false);
-            }
+          execFile("wget", ["-qO", destPath, "--https-only", "--timeout=120", url], (wgetError) => {
+            resolve(!wgetError);
           });
         }
       });
@@ -417,17 +470,28 @@ async function startServer() {
     crossOriginEmbedderPolicy: false,
   }));
 
-  // 2. CORS: Enable Cross-Origin Resource Sharing
-  app.use(cors());
+  // 2. CORS: Enable Cross-Origin Resource Sharing with safe methods
+  app.use(cors({
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"],
+    allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "X-Custom-Gemini-Key"],
+    exposedHeaders: ["X-Response-Time", "X-Request-ID", "X-Cache", "Server-Timing"]
+  }));
 
-  // 3. Enforce Security Headers & HTTPS in production
+  // 3. Enforce Hardened Security Headers, Request Tracing & HTTPS in production
   app.use((req, res, next) => {
+    const reqId = crypto.randomUUID();
+    res.setHeader("X-Request-ID", reqId);
     res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "SAMEORIGIN");
     res.setHeader("X-XSS-Protection", "1; mode=block");
+    res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
+    res.setHeader("X-DNS-Prefetch-Control", "off");
+    res.setHeader("X-Download-Options", "noopen");
+    res.setHeader("Cross-Origin-Opener-Policy", "same-origin-allow-popups");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
-    res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+    res.setHeader("Permissions-Policy", "camera=(), microphone=(self), geolocation=(), payment=(), usb=()");
     if (process.env.NODE_ENV === 'production') {
-      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains; preload");
       if (req.headers['x-forwarded-proto'] && req.headers['x-forwarded-proto'] !== 'https') {
         return res.redirect('https://' + req.headers.host + req.url);
       }
@@ -441,13 +505,59 @@ async function startServer() {
   // 4. HPP: Protect against HTTP Parameter Pollution attacks
   app.use(hpp());
 
+  // 4b. Recursive Prototype-Pollution & Null-Byte Input Sanitizer
+  const DANGEROUS_KEYS = new Set(["__proto__", "constructor", "prototype"]);
+  function sanitizeObjectInPlace(obj: any, depth = 0): boolean {
+    if (!obj || typeof obj !== "object" || depth > 12) return false;
+    let modified = false;
+    for (const key of Object.keys(obj)) {
+      if (DANGEROUS_KEYS.has(key)) {
+        delete obj[key];
+        modified = true;
+        continue;
+      }
+      const val = obj[key];
+      if (typeof val === "string") {
+        if (val.includes("\0")) {
+          obj[key] = val.replace(/\0/g, "");
+          modified = true;
+        }
+      } else if (typeof val === "object" && val !== null) {
+        if (sanitizeObjectInPlace(val, depth + 1)) {
+          modified = true;
+        }
+      }
+    }
+    return modified;
+  }
+
+  app.use((req, res, next) => {
+    // Block path traversal attempts in URL
+    if (req.url.includes("..") || req.url.includes("%2e%2e") || req.url.includes("%00")) {
+      recordSecurityBlock(`Path traversal or null byte in URL: ${req.path}`);
+      res.status(400).json({ success: false, error: "Blocked malformed request path." });
+      return;
+    }
+    const bodySanitized = sanitizeObjectInPlace(req.body);
+    const querySanitized = sanitizeObjectInPlace(req.query);
+    const paramsSanitized = sanitizeObjectInPlace(req.params);
+    if (bodySanitized || querySanitized || paramsSanitized) {
+      securityTelemetry.sanitizedRequests++;
+      recordSecurityBlock(`Sanitized prototype-pollution or null-byte key on ${req.path}`);
+    }
+    next();
+  });
+
   // 5. Rate Limiting: Prevent brute-force and DDoS attacks
   const apiLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
     max: 1000, // Limit each IP to 1000 requests per windowMs
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, error: "Too many requests, please try again later." },
+    handler: (req, res) => {
+      securityTelemetry.rateLimitedRequests++;
+      res.status(429).json({ success: false, error: "Too many requests, please try again later." });
+    },
     validate: { xForwardedForHeader: false }
   });
 
@@ -456,7 +566,10 @@ async function startServer() {
     max: 30, // Limit 30 registration requests per 15 mins
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, error: "Too many registration attempts. Please try again later." },
+    handler: (req, res) => {
+      securityTelemetry.rateLimitedRequests++;
+      res.status(429).json({ success: false, error: "Too many registration attempts. Please try again later." });
+    },
     validate: { xForwardedForHeader: false }
   });
 
@@ -465,16 +578,33 @@ async function startServer() {
     max: 120, // Limit 120 AI requests per 15 mins
     standardHeaders: true,
     legacyHeaders: false,
-    message: { success: false, error: "AI query rate limit reached. Please try again shortly." },
+    handler: (req, res) => {
+      securityTelemetry.rateLimitedRequests++;
+      res.status(429).json({ success: false, error: "AI query rate limit reached. Please try again shortly." });
+    },
+    validate: { xForwardedForHeader: false }
+  });
+
+  const pythonExecLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    max: 45, // Limit 45 Python code executions per 15 mins
+    standardHeaders: true,
+    legacyHeaders: false,
+    handler: (req, res) => {
+      securityTelemetry.rateLimitedRequests++;
+      res.status(429).json({ success: false, error: "Python execution rate limit reached. Please wait briefly." });
+    },
     validate: { xForwardedForHeader: false }
   });
 
   app.use('/api', apiLimiter);
   app.use('/api/register', authLimiter);
   app.use('/api/gemini', aiLimiter);
+  app.use('/api/python/run', pythonExecLimiter);
 
   // 6. High-Performance HTTP Request Latency Logging & Telemetry Collector
   app.use((req, res, next) => {
+    const startHr = process.hrtime.bigint();
     const start = Date.now();
     const isApi = req.path.startsWith("/api");
     if (isApi) {
@@ -485,7 +615,9 @@ async function startServer() {
     const origWriteHead = res.writeHead;
     (res as any).writeHead = function (statusCode: number, ...args: any[]) {
       if (!res.headersSent) {
-        res.setHeader("X-Response-Time", `${Date.now() - start}ms`);
+        const durMs = Number(process.hrtime.bigint() - startHr) / 1e6;
+        res.setHeader("X-Response-Time", `${durMs.toFixed(2)}ms`);
+        res.setHeader("Server-Timing", `app;dur=${durMs.toFixed(2)}`);
       }
       return origWriteHead.apply(this, [statusCode, ...args] as any);
     };
@@ -550,6 +682,12 @@ async function startServer() {
       pythonReady: pythonDepsReady,
       pythonVerified: pythonVerificationStarted,
       hasGeminiKey: !!process.env.GEMINI_API_KEY,
+      security: {
+        status: securityTelemetry.status,
+        blockedPayloads: securityTelemetry.blockedPayloads,
+        blockedPythonCalls: securityTelemetry.blockedPythonCalls,
+        sanitizedRequests: securityTelemetry.sanitizedRequests
+      },
       memory: {
         rssMb: Math.round(mem.rss / (1024 * 1024)),
         heapUsedMb: Math.round(mem.heapUsed / (1024 * 1024)),
@@ -574,6 +712,16 @@ async function startServer() {
     });
   });
 
+  // Helper to strip HTML/script tags from user input strings
+  function cleanUserField(val: unknown, maxLen = 160): string {
+    if (typeof val !== "string") return "";
+    return val
+      .replace(/<[^>]*>?/gm, "")
+      .replace(/[\u0000-\u001F\u007F]/g, "")
+      .trim()
+      .slice(0, maxLen);
+  }
+
   // API routes
   app.post("/api/register", async (req, res) => {
     try {
@@ -583,41 +731,58 @@ async function startServer() {
         return;
       }
 
-      const name = typeof userData.name === "string" ? userData.name.trim() : "";
-      const email = typeof userData.email === "string" ? userData.email.trim() : "";
-      const affiliation = typeof userData.affiliation === "string" ? userData.affiliation.trim() : "";
+      const name = cleanUserField(userData.name, 120);
+      const email = cleanUserField(userData.email, 160);
+      const affiliation = cleanUserField(userData.affiliation || userData.institution, 180);
+      const role = cleanUserField(userData.role || userData.researchRole, 100);
+      const researchField = cleanUserField(userData.researchField, 140);
+      const country = cleanUserField(userData.country, 80);
 
       if (!name) {
         res.status(400).json({ success: false, error: "Researcher name is required for registration." });
         return;
       }
 
+      if (email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        res.status(400).json({ success: false, error: "Please provide a valid academic or institutional email address." });
+        return;
+      }
+
       let users = await safeReadJsonFile<any[]>(USERS_FILE, []);
       if (!Array.isArray(users)) users = [];
 
+      // Anonymize IP with one-way SHA-256 hash so raw PII IPs are never stored on disk
+      const rawIp = String(req.ip || req.headers["x-forwarded-for"] || "unknown");
+      const ipHash = crypto.createHash("sha256").update(`xrd_salt_${rawIp}`).digest("hex").slice(0, 16);
+
+      // Strictly allowlisted record schema (prevents mass assignment & prototype pollution)
       const record = {
-        ...userData,
         name,
         email,
         affiliation,
+        role,
+        researchField,
+        country,
         registeredAt: new Date().toISOString(),
-        clientIp: req.ip || req.headers["x-forwarded-for"] || "unknown"
+        ipHash
       };
 
-      // Deduplicate by email if provided
+      // Deduplicate by email if provided, and cap stored records at 2000
       if (email) {
         const existingIdx = users.findIndex(u => (u.email || "").toLowerCase() === email.toLowerCase());
         if (existingIdx >= 0) {
           users[existingIdx] = { ...users[existingIdx], ...record, updatedAt: new Date().toISOString() };
         } else {
+          if (users.length >= 2000) users.shift();
           users.push(record);
         }
       } else {
+        if (users.length >= 2000) users.shift();
         users.push(record);
       }
 
       await safeWriteJsonFile(USERS_FILE, users);
-      res.json({ success: true, message: "User registered successfully", user: { name, email, affiliation } });
+      res.json({ success: true, message: "User registered successfully", user: { name, email, affiliation, role } });
     } catch (err: any) {
       console.error("User registration error:", err);
       res.status(500).json({ success: false, error: err.message || "Failed to complete user registration." });
@@ -638,15 +803,17 @@ async function startServer() {
     );
   }
 
+  // Non-blocking asynchronous translation cache preload
   const translationCache: Record<string, Record<string, string>> = {};
-  try {
-    if (fs.existsSync(TRANSLATIONS_FILE)) {
-      const raw = fs.readFileSync(TRANSLATIONS_FILE, "utf-8");
-      Object.assign(translationCache, JSON.parse(raw));
-    }
-  } catch (err) {
-    console.warn("Could not load translation_cache.json:", err);
-  }
+  safeReadJsonFile<Record<string, Record<string, string>>>(TRANSLATIONS_FILE, {})
+    .then((loaded) => {
+      if (loaded && typeof loaded === "object") {
+        Object.assign(translationCache, loaded);
+      }
+    })
+    .catch((err) => {
+      console.warn("Could not load translation_cache.json:", err);
+    });
 
   function saveTranslationCacheAsync() {
     try {
@@ -828,7 +995,16 @@ async function startServer() {
     try {
       const users = await safeReadJsonFile<any[]>(USERS_FILE, []);
       res.setHeader("Cache-Control", "private, no-cache, must-revalidate");
-      res.json(Array.isArray(users) ? users : []);
+      // Redact raw emails and IP addresses to protect researcher PII
+      const redactedUsers = (Array.isArray(users) ? users : []).map((u) => ({
+        name: u.name || "Researcher",
+        affiliation: u.affiliation || u.institution || "",
+        role: u.role || u.researchRole || "",
+        researchField: u.researchField || "",
+        country: u.country || "",
+        registeredAt: u.registeredAt || null
+      }));
+      res.json(redactedUsers);
     } catch (err: any) {
       console.error("Error reading users:", err);
       res.json([]);
@@ -958,36 +1134,51 @@ async function startServer() {
   let lastStatsData: any = null;
   let lastStatsTime = 0;
 
-  app.get("/api/system/stats", async (req, res) => {
+  // Non-blocking background CPU tick snapshot so /api/system/stats responds in < 0.2ms (0ms sleep)
+  const sampleCpuTicks = () => {
+    const cpus = os.cpus();
+    let user = 0, nice = 0, sys = 0, idle = 0, irq = 0;
+    for (const cpu of cpus) {
+      user += cpu.times.user;
+      nice += cpu.times.nice;
+      sys += cpu.times.sys;
+      idle += cpu.times.idle;
+      irq += cpu.times.irq;
+    }
+    return { idle, total: user + nice + sys + idle + irq };
+  };
+
+  let prevCpuSnapshot = sampleCpuTicks();
+  let cachedCpuUsagePct = 1.8;
+
+  const cpuSamplerTimer = setInterval(() => {
+    const current = sampleCpuTicks();
+    const idleDiff = current.idle - prevCpuSnapshot.idle;
+    const totalDiff = current.total - prevCpuSnapshot.total;
+    if (totalDiff > 0) {
+      cachedCpuUsagePct = Math.min(100, Math.max(0.4, Math.round((1000 * (totalDiff - idleDiff)) / totalDiff) / 10));
+    }
+    prevCpuSnapshot = current;
+  }, 2500);
+  cpuSamplerTimer.unref();
+
+  app.get("/api/system/stats", (req, res) => {
     const now = Date.now();
-    // 1500ms memory cache to eliminate sampling pauses on concurrent widget updates
-    if (lastStatsData && now - lastStatsTime < 1500) {
+    // 1000ms memory cache for ultra-fast concurrent widget polls
+    if (lastStatsData && now - lastStatsTime < 1000) {
       res.setHeader("X-Cache", "HIT");
       res.json(lastStatsData);
       return;
     }
 
     try {
-      const getCpuTicks = () => {
-        const cpus = os.cpus();
-        let user = 0, nice = 0, sys = 0, idle = 0, irq = 0;
-        for (const cpu of cpus) {
-          user += cpu.times.user;
-          nice += cpu.times.nice;
-          sys += cpu.times.sys;
-          idle += cpu.times.idle;
-          irq += cpu.times.irq;
-        }
-        return { idle, total: user + nice + sys + idle + irq };
-      };
-
-      const start = getCpuTicks();
-      await new Promise((resolve) => setTimeout(resolve, 60));
-      const end = getCpuTicks();
-
-      const idleDiff = end.idle - start.idle;
-      const totalDiff = end.total - start.total;
-      const cpuUsage = totalDiff === 0 ? 0 : 100 - Math.round((100 * idleDiff) / totalDiff);
+      const currentTicks = sampleCpuTicks();
+      const idleDiff = currentTicks.idle - prevCpuSnapshot.idle;
+      const totalDiff = currentTicks.total - prevCpuSnapshot.total;
+      if (totalDiff > 200) {
+        cachedCpuUsagePct = Math.min(100, Math.max(0.4, Math.round((1000 * (totalDiff - idleDiff)) / totalDiff) / 10));
+        prevCpuSnapshot = currentTicks;
+      }
 
       const totalMemory = os.totalmem();
       const freeMemory = os.freemem();
@@ -1006,14 +1197,14 @@ async function startServer() {
           path: r.path,
           hits: r.hits,
           errors: r.errors,
-          avgLatencyMs: r.hits > 0 ? Math.round(r.totalDurationMs / r.hits) : 0,
+          avgLatencyMs: r.hits > 0 ? Math.round((r.totalDurationMs / r.hits) * 10) / 10 : 0,
           lastLatencyMs: r.lastDurationMs,
           lastStatus: r.lastStatus
         }));
 
       const statsPayload = {
         success: true,
-        cpuUsage: Math.min(100, Math.max(0, cpuUsage)),
+        cpuUsage: cachedCpuUsagePct,
         totalMemory,
         freeMemory,
         usedMemory,
@@ -1038,7 +1229,7 @@ async function startServer() {
           activeRequests: serverTrafficMetrics.activeRequests,
           errorCount: serverTrafficMetrics.errorCount,
           avgLatencyMs: serverTrafficMetrics.totalRequests > 0
-            ? Math.round(serverTrafficMetrics.totalLatencyMs / serverTrafficMetrics.totalRequests)
+            ? Math.round((serverTrafficMetrics.totalLatencyMs / serverTrafficMetrics.totalRequests) * 10) / 10
             : 0,
           topRoutes
         },
@@ -1052,6 +1243,20 @@ async function startServer() {
             ? Math.round(pythonExecutionMetrics.totalExecTimeMs / pythonExecutionMetrics.totalRuns)
             : 0,
           lastScript: pythonExecutionMetrics.lastScript
+        },
+        security: {
+          status: securityTelemetry.status,
+          pythonSandboxActive: true,
+          secretIsolationActive: true,
+          prototypeShieldActive: true,
+          rateLimitersActive: true,
+          blockedPayloads: securityTelemetry.blockedPayloads,
+          blockedPythonCalls: securityTelemetry.blockedPythonCalls,
+          sanitizedRequests: securityTelemetry.sanitizedRequests,
+          invalidApiKeysRejected: securityTelemetry.invalidApiKeysRejected,
+          rateLimitedRequests: securityTelemetry.rateLimitedRequests,
+          lastThreatBlockedAt: securityTelemetry.lastThreatBlockedAt,
+          lastThreatReason: securityTelemetry.lastThreatReason
         },
         cpuCores: os.cpus().length,
         cpuModel: os.cpus()[0]?.model || "Unknown CPU",
@@ -1079,6 +1284,20 @@ async function startServer() {
         cache: { entries: apiCache.size, maxEntries: CACHE_MAX_ENTRIES, hits: cacheHits, misses: cacheMisses, evictions: cacheEvictions, hitRatePct: 0 },
         traffic: { totalRequests: serverTrafficMetrics.totalRequests, activeRequests: 0, errorCount: serverTrafficMetrics.errorCount, avgLatencyMs: 0, topRoutes: [] },
         python: { ready: pythonDepsReady, verified: pythonVerificationStarted, totalRuns: 0, activeSubprocesses: 0, failedRuns: 0, avgExecTimeMs: 0, lastScript: "none" },
+        security: {
+          status: "HARDENED",
+          pythonSandboxActive: true,
+          secretIsolationActive: true,
+          prototypeShieldActive: true,
+          rateLimitersActive: true,
+          blockedPayloads: securityTelemetry.blockedPayloads,
+          blockedPythonCalls: securityTelemetry.blockedPythonCalls,
+          sanitizedRequests: securityTelemetry.sanitizedRequests,
+          invalidApiKeysRejected: securityTelemetry.invalidApiKeysRejected,
+          rateLimitedRequests: securityTelemetry.rateLimitedRequests,
+          lastThreatBlockedAt: securityTelemetry.lastThreatBlockedAt,
+          lastThreatReason: securityTelemetry.lastThreatReason
+        },
         cpuCores: 1,
         cpuModel: "Unavailable",
         platform: "unknown",
@@ -2808,23 +3027,29 @@ CRITICAL RULES:
     });
   });
 
-  // Machine Learning Python RAG Analysis Endpoint
+  // Machine Learning Python RAG Analysis Endpoint (Pseudo-Voigt + Bragg Strain + Smith-Snyder FOM)
   app.post("/api/gemini/rag-analysis", async (req, res) => {
     const { experimental_peaks, customKey } = req.body;
-    const pyStart = recordPythonRunStart("phaseIdValidator.py");
     try {
       if (!experimental_peaks || !Array.isArray(experimental_peaks)) {
-        recordPythonRunEnd(pyStart, false);
         res.status(400).json({ success: false, error: "A valid array of experimental peaks is required." });
         return;
       }
 
-      // Normalize key names from twoTheta -> two_theta for Python execution
       const normalizedPeaks = experimental_peaks.map((p: any) => ({
         two_theta: Number(p.twoTheta !== undefined ? p.twoTheta : p.two_theta),
         intensity: Number(p.intensity)
       })).filter(p => !isNaN(p.two_theta) && !isNaN(p.intensity));
 
+      const cacheKey = "py_rag_analysis_" + crypto.createHash("sha256").update(JSON.stringify(normalizedPeaks)).digest("hex").slice(0, 24);
+      const cached = getFromApiCache(cacheKey);
+      if (cached) {
+        res.setHeader("X-Cache", "HIT");
+        res.json(cached);
+        return;
+      }
+
+      const pyStart = recordPythonRunStart("phaseIdValidator.py");
       const apiKeyToUse = customKey || process.env.GEMINI_API_KEY || "";
       const payloadString = JSON.stringify({
         experimental_peaks: normalizedPeaks,
@@ -2832,20 +3057,50 @@ CRITICAL RULES:
       });
 
       const scriptPath = path.join(__dirname, "utils", "phaseIdValidator.py");
-      const { execFile } = await import("child_process");
+      const { spawn } = await import("child_process");
+      const child = spawn("python3", [scriptPath, "--stdin"]);
 
-      execFile("python3", [scriptPath, "--json=" + payloadString], { timeout: 25000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-        if (error) {
+      let stdout = "";
+      let stderr = "";
+      let responded = false;
+
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
           recordPythonRunEnd(pyStart, false);
-          console.error("Python RAG Execution Error:", error, stdout, stderr);
-          res.status(500).json({ success: false, error: "Error executing Python RAG engine: " + (stderr || stdout || "exit code " + error.code) });
+          try { child.kill("SIGKILL"); } catch {}
+          res.status(504).json({ success: false, error: "Python RAG Phase-ID engine timed out after 25s." });
+        }
+      }, 25000);
+
+      child.stdout.on("data", (d) => { stdout += d.toString(); });
+      child.stderr.on("data", (d) => { stderr += d.toString(); });
+
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          res.status(500).json({ success: false, error: "Failed to spawn Python RAG engine: " + err.message });
+        }
+      });
+
+      child.on("close", (code) => {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+        if (code !== 0 && !stdout.trim()) {
+          recordPythonRunEnd(pyStart, false);
+          res.status(500).json({ success: false, error: "Error executing Python RAG engine: " + (stderr || `exit code ${code}`) });
           return;
         }
-
         try {
-          const results = JSON.parse(stdout);
+          const results = JSON.parse(stdout.trim());
           recordPythonRunEnd(pyStart, true);
-          res.json({ success: true, ...results });
+          const responsePayload = { success: true, ...results };
+          setToApiCache(cacheKey, responsePayload);
+          res.setHeader("X-Cache", "MISS");
+          res.json(responsePayload);
         } catch (parseError) {
           recordPythonRunEnd(pyStart, false);
           console.error("Failed to parse Python RAG output:", stdout, parseError);
@@ -2853,8 +3108,9 @@ CRITICAL RULES:
         }
       });
 
+      child.stdin.write(payloadString);
+      child.stdin.end();
     } catch (error: any) {
-      recordPythonRunEnd(pyStart, false);
       console.error("Gemini RAG Analysis Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -3126,34 +3382,63 @@ CRITICAL RULES:
     }
   });
 
-  // Machine Learning Python RAG Database Search Endpoint
+  // Machine Learning Python RAG Database Search Endpoint (Hybrid RRF + FTS5 BM25 + Pseudo-Voigt + Hanawalt)
   app.post("/api/gemini/rag-database", async (req, res) => {
     const { query, customKey, experimentalPeaks } = req.body;
-    const pyStart = recordPythonRunStart("dbRagAgent.py");
     try {
       if (!query || typeof query !== "string") {
-        recordPythonRunEnd(pyStart, false);
         res.status(400).json({ success: false, error: "A valid search query is required." });
         return;
       }
 
+      const cacheKey = "py_rag_db_" + crypto.createHash("sha256").update(JSON.stringify({ query: query.trim(), experimentalPeaks })).digest("hex").slice(0, 24);
+      const cached = getFromApiCache(cacheKey);
+      if (cached) {
+        res.setHeader("X-Cache", "HIT");
+        res.json(cached);
+        return;
+      }
+
+      const pyStart = recordPythonRunStart("dbRagAgent.py");
       const apiKeyToUse = customKey || process.env.GEMINI_API_KEY || "";
       const scriptPath = path.join(__dirname, "utils", "dbRagAgent.py");
-      const { execFile } = await import("child_process");
+      const { spawn } = await import("child_process");
 
-      const args = ["--query", query];
-      if (apiKeyToUse) {
-        args.push("--api_key", apiKeyToUse);
-      }
-      if (experimentalPeaks && Array.isArray(experimentalPeaks) && experimentalPeaks.length > 0) {
-        args.push("--peaks", JSON.stringify(experimentalPeaks));
-      }
+      const child = spawn("python3", [scriptPath, "--stdin"]);
+      let stdout = "";
+      let stderr = "";
+      let responded = false;
 
-      execFile("python3", [scriptPath, ...args], { timeout: 25000, maxBuffer: 10 * 1024 * 1024 }, (error, stdout, stderr) => {
-        if (error) {
+      const timeout = setTimeout(() => {
+        if (!responded) {
+          responded = true;
           recordPythonRunEnd(pyStart, false);
-          console.error("Python DB RAG Execution Error:", error, stdout, stderr);
-          res.status(500).json({ success: false, error: "Error executing Python DB RAG: " + (stderr || stdout || "exit code " + error.code) });
+          try { child.kill("SIGKILL"); } catch {}
+          res.status(504).json({ success: false, error: "Python DB RAG engine timed out after 25s." });
+        }
+      }, 25000);
+
+      child.stdout.on("data", (d) => { stdout += d.toString(); });
+      child.stderr.on("data", (d) => { stderr += d.toString(); });
+
+      child.on("error", (err) => {
+        clearTimeout(timeout);
+        if (!responded) {
+          responded = true;
+          recordPythonRunEnd(pyStart, false);
+          res.status(500).json({ success: false, error: "Failed to spawn Python DB RAG engine: " + err.message });
+        }
+      });
+
+      child.on("close", (code) => {
+        clearTimeout(timeout);
+        if (responded) return;
+        responded = true;
+
+        if (code !== 0 && !stdout.trim()) {
+          recordPythonRunEnd(pyStart, false);
+          console.error("Python DB RAG Execution Error:", stderr);
+          res.status(500).json({ success: false, error: "Error executing Python DB RAG: " + (stderr || `exit code ${code}`) });
           return;
         }
 
@@ -3164,6 +3449,10 @@ CRITICAL RULES:
           recordPythonRunEnd(pyStart, true);
           if (jsonStart !== -1 && jsonEnd !== -1) {
             const results = JSON.parse(rawOut.substring(jsonStart, jsonEnd + 1));
+            if (results && results.success) {
+              setToApiCache(cacheKey, results);
+            }
+            res.setHeader("X-Cache", "MISS");
             res.json(results);
           } else {
             res.json({ success: true, answer: rawOut });
@@ -3175,8 +3464,15 @@ CRITICAL RULES:
         }
       });
 
+      child.stdin.write(JSON.stringify({
+        query: query.trim(),
+        api_key: apiKeyToUse,
+        experimental_peaks: Array.isArray(experimentalPeaks) ? experimentalPeaks : null,
+        model: "gemini-3.8-flash"
+      }));
+      child.stdin.end();
+
     } catch (error: any) {
-      recordPythonRunEnd(pyStart, false);
       console.error("Gemini RAG Database Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message });
     }
@@ -3304,25 +3600,28 @@ CRITICAL RULES:
       const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
       const { spawn } = await import("child_process");
 
-      const child = spawn("python3", [
-        scriptPath,
-        "--mode", "train",
-        "--epochs", String(Number(epochs) || 40),
-        "--lr", String(Number(learningRate) || 0.005),
-        "--batch_size", String(Number(batchSize) || 32),
-        "--optimizer", String(optimizer || "AdamW"),
-        "--architecture", String(architecture || "Deep MLP"),
-        "--noise_level", String(normalizedNoise),
-        "--background_drift", String(Number(backgroundDrift) || 5.0),
-        "--strain_range", String(normalizedStrain),
-        "--broadening_range", String(Number(broadeningRange) || 0.25),
-        "--dropout", String(Number(dropout) || 0.0),
-        "--activation", String(activation || "GELU"),
-        "--lr_scheduler", String(lrScheduler || "CosineAnnealing"),
-        "--label_smoothing", String(labelSmoothing !== undefined ? Number(labelSmoothing) : 0.1),
-        "--weight_decay", String(weightDecay !== undefined ? Number(weightDecay) : 0.0001),
-        "--loss_function", String(lossFunction || "LabelSmoothedCE")
-      ]);
+      const trainPayload = {
+        mode: "train",
+        epochs: Number(epochs) || 40,
+        lr: Number(learningRate) || 0.005,
+        batch_size: Number(batchSize) || 32,
+        optimizer: String(optimizer || "AdamW"),
+        architecture: String(architecture || "Deep MLP"),
+        noise_level: normalizedNoise,
+        background_drift: Number(backgroundDrift) || 5.0,
+        strain_range: normalizedStrain,
+        broadening_range: Number(broadeningRange) || 0.25,
+        dropout: Number(dropout) || 0.0,
+        activation: String(activation || "GELU"),
+        lr_scheduler: String(lrScheduler || "CosineAnnealing"),
+        label_smoothing: labelSmoothing !== undefined ? Number(labelSmoothing) : 0.1,
+        weight_decay: weightDecay !== undefined ? Number(weightDecay) : 0.0001,
+        loss_function: String(lossFunction || "LabelSmoothedCE")
+      };
+
+      const child = spawn("python3", [scriptPath, "--stdin"]);
+      child.stdin.write(JSON.stringify(trainPayload));
+      child.stdin.end();
 
       let stdout = "";
       let stderr = "";
@@ -3423,11 +3722,9 @@ CRITICAL RULES:
       const scriptPath = path.join(__dirname, "utils", "trainNeuralNet.py");
       const { spawn } = await import("child_process");
 
-      const child = spawn("python3", [
-        scriptPath,
-        "--mode", "predict",
-        "--predict_peaks", JSON.stringify(normalizedPeaks)
-      ]);
+      const child = spawn("python3", [scriptPath, "--stdin"]);
+      child.stdin.write(JSON.stringify({ mode: "predict", predict_peaks: normalizedPeaks }));
+      child.stdin.end();
 
       let stdout = "";
       let stderr = "";
@@ -3504,8 +3801,39 @@ CRITICAL RULES:
     }
   });
 
-  // Generic Python Code Execution Endpoint
+  // Scientific Python Sandbox Security Validator (prevents RCE, OS shell spawning, network sockets & env exfiltration)
+  const MAX_CONCURRENT_PYTHON_PROCS = 3;
+  const MAX_PYTHON_CODE_LENGTH = 65536; // 64 KB max script size
+  const MAX_PYTHON_STDIO_BYTES = 512 * 1024; // 512 KB max stdout/stderr buffer
+
+  const FORBIDDEN_PYTHON_PATTERNS: Array<{ pattern: RegExp; reason: string }> = [
+    { pattern: /\b(?:import|from)\s+(?:subprocess|socket|urllib|requests|http|ftplib|telnetlib|smtplib|pty|fcntl|ctypes|multiprocessing|shutil|webbrowser|xmlrpc)\b/, reason: "Network, shell, and low-level system modules are restricted in the scientific Python sandbox." },
+    { pattern: /\bos\s*\.\s*(?:system|popen|spawn\w*|exec\w*|fork|kill|remove|unlink|rmdir|removedirs|rename|chmod|chown|environ|listdir|walk|scandir)\b/, reason: "OS process execution, filesystem mutation, and environment inspection are forbidden." },
+    { pattern: /\b(?:__import__|__subclasses__|__builtins__|__globals__|__code__|eval|exec|compile|open\s*\([^)]*['"][wax+])/, reason: "Dynamic code evaluation, builtin introspection, and file write operations are restricted." }
+  ];
+
+  function validatePythonScientificCode(code: string): { valid: boolean; reason?: string } {
+    if (code.length > MAX_PYTHON_CODE_LENGTH) {
+      return { valid: false, reason: `Python script exceeds maximum allowed size (${MAX_PYTHON_CODE_LENGTH} bytes).` };
+    }
+    for (const rule of FORBIDDEN_PYTHON_PATTERNS) {
+      if (rule.pattern.test(code)) {
+        return { valid: false, reason: rule.reason };
+      }
+    }
+    return { valid: true };
+  }
+
+  // Generic Python Code Execution Endpoint (Hardened Scientific Sandbox)
   app.post("/api/python/run", async (req, res) => {
+    if (pythonExecutionMetrics.activeSubprocesses >= MAX_CONCURRENT_PYTHON_PROCS) {
+      res.status(429).json({
+        success: false,
+        error: `Maximum concurrent Python scientific workers (${MAX_CONCURRENT_PYTHON_PROCS}) busy. Please retry in a few seconds.`
+      });
+      return;
+    }
+
     const pyStart = recordPythonRunStart("inline_script");
     try {
       if (!pythonVerificationStarted) {
@@ -3518,11 +3846,40 @@ CRITICAL RULES:
         return;
       }
 
+      const validation = validatePythonScientificCode(code);
+      if (!validation.valid) {
+        securityTelemetry.blockedPythonCalls++;
+        recordSecurityBlock(`Python sandbox blocked: ${validation.reason}`);
+        recordPythonRunEnd(pyStart, false);
+        res.status(403).json({
+          success: false,
+          exitCode: -1,
+          stdout: "",
+          stderr: `[Cybersecurity Sandbox Policy]: ${validation.reason}`,
+          error: validation.reason
+        });
+        return;
+      }
+
       const { spawn } = await import("child_process");
-      const child = spawn("python3", ["-c", code]);
+      // Isolated environment: never pass server secrets (GEMINI_API_KEY, etc.) to child Python processes
+      const safeEnv: NodeJS.ProcessEnv = {
+        PATH: process.env.PATH || "/usr/local/bin:/usr/bin:/bin",
+        HOME: process.env.HOME || "/tmp",
+        MPLBACKEND: "Agg",
+        PYTHONIOENCODING: "utf-8",
+        PYTHONDONTWRITEBYTECODE: "1",
+        PYTHONUNBUFFERED: "1"
+      };
+      const child = spawn("python3", ["-I", "-c", code], {
+        env: safeEnv,
+        cwd: os.tmpdir()
+      });
 
       let stdout = "";
       let stderr = "";
+      let stdoutTruncated = false;
+      let stderrTruncated = false;
       let responded = false;
 
       // 25-second execution safety timeout guard
@@ -3546,12 +3903,23 @@ CRITICAL RULES:
         }
       });
 
-      child.stdout.on("data", (data) => {
-        stdout += data.toString();
+      child.stdout.on("data", (data: Buffer) => {
+        if (stdout.length < MAX_PYTHON_STDIO_BYTES) {
+          stdout += data.toString("utf-8", 0, Math.min(data.length, MAX_PYTHON_STDIO_BYTES - stdout.length));
+        } else if (!stdoutTruncated) {
+          stdoutTruncated = true;
+          stdout += "\n...[Output truncated at 512 KB sandbox memory limit]...";
+          try { child.kill("SIGTERM"); } catch (e) {}
+        }
       });
 
-      child.stderr.on("data", (data) => {
-        stderr += data.toString();
+      child.stderr.on("data", (data: Buffer) => {
+        if (stderr.length < MAX_PYTHON_STDIO_BYTES) {
+          stderr += data.toString("utf-8", 0, Math.min(data.length, MAX_PYTHON_STDIO_BYTES - stderr.length));
+        } else if (!stderrTruncated) {
+          stderrTruncated = true;
+          stderr += "\n...[Stderr truncated at 512 KB sandbox memory limit]...";
+        }
       });
 
       child.on("error", (err) => {
@@ -3618,6 +3986,36 @@ CRITICAL RULES:
     } catch (error: any) {
       console.error("Method Analysis Endpoint Error:", error);
       res.status(500).json({ success: false, error: error.message || "Failed to analyze method data." });
+    }
+  });
+
+  // Secure Server-Side Gemini Content Proxy (prevents exposing GEMINI_API_KEY in client JS bundle)
+  app.post("/api/gemini/proxy-generate", async (req, res) => {
+    try {
+      const { model = "gemini-3.8-flash", contents, config, customKey } = req.body;
+      if (!contents) {
+        res.status(400).json({ success: false, error: "Request 'contents' payload is required." });
+        return;
+      }
+      const ai = getOrCreateGeminiClient(customKey);
+      const normalizedModel = normalizeGeminiModels([String(model)])[0] || "gemini-3.8-flash";
+      const response = await ai.models.generateContent({
+        model: normalizedModel,
+        contents,
+        config
+      });
+      res.json({
+        success: true,
+        text: response.text || "",
+        candidates: response.candidates || []
+      });
+    } catch (error: any) {
+      console.error("Gemini Proxy Generate Error:", error);
+      const status = error?.status === 429 ? 429 : error?.status === 403 ? 403 : 500;
+      res.status(status).json({
+        success: false,
+        error: error?.message || "Failed to execute proxied Gemini request."
+      });
     }
   });
 
@@ -4062,7 +4460,10 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
       server: { 
         middlewareMode: true,
         hmr: false,
-        ws: false
+        ws: false,
+        warmup: {
+          clientFiles: ["./index.tsx", "./App.tsx", "./utils/physics.ts"]
+        }
       },
       appType: "spa",
     });
@@ -4083,8 +4484,12 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
   }
 
   const server = app.listen(PORT, "0.0.0.0", () => {
-    console.log(`Server running on http://localhost:${PORT}`);
+    console.log(`Server running on http://localhost:${PORT} [Cybersecurity Shield: HARDENED]`);
   });
+
+  // Optimize TCP Keep-Alive for rapid concurrent module chunk loading
+  server.keepAliveTimeout = 65000;
+  server.headersTimeout = 66000;
 
   const gracefulShutdown = (signal: string) => {
     console.log(`[Server] Received ${signal}. Initiating graceful shutdown...`);

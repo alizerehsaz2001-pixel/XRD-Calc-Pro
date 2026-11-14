@@ -199,11 +199,11 @@ export const MeanCrystalliteCalculationTrace: React.FC<MeanCrystalliteCalculatio
                   broadeningModel === 'Lorentzian'
                     ? `\\beta = \\beta_{obs} - \\beta_{inst} = ${peakTrace.fwhmObs.toFixed(4)}^\\circ - ${peakTrace.instFwhm.toFixed(4)}^\\circ = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
                     : broadeningModel === 'Pseudo-Voigt'
-                    ? `\\beta = \\beta_{obs}\\left(1 - \\left(\\frac{\\beta_{inst}}{\\beta_{obs}}\\right)^2\\right) = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
+                    ? `\\beta = (1 - \\eta)\\sqrt{\\beta_{obs}^2 - \\beta_{inst}^2} + \\eta(\\beta_{obs} - \\beta_{inst}) = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
                     : broadeningModel === 'Halder-Wagner'
-                    ? `\\beta = \\beta_{obs}\\sqrt{1 - \\left(\\frac{\\beta_{inst}}{\\beta_{obs}}\\right)^2} = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
+                    ? `\\beta = \\beta_{obs}\\left[1 - \\left(\\frac{\\beta_{inst}}{\\beta_{obs}}\\right)^2\\right] = \\beta_{obs} - \\frac{\\beta_{inst}^2}{\\beta_{obs}} = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
                     : broadeningModel === 'de Keijser'
-                    ? `\\beta_L^{sample} = \\beta_L^{obs} - \\beta_L^{inst}, \\quad \\beta_{eff} = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
+                    ? `\\beta_{C,s} = \\beta_C^{obs}(\\phi_{obs}) - \\beta_C^{inst}(\\phi_{inst}) = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`
                     : `\\beta = \\sqrt{\\beta_{obs}^2 - \\beta_{inst}^2} = \\sqrt{(${peakTrace.fwhmObs.toFixed(4)}^\\circ)^2 - (${peakTrace.instFwhm.toFixed(4)}^\\circ)^2} = ${peakTrace.betaCorrDeg.toFixed(4)}^\\circ = ${peakTrace.betaCorrRad.toFixed(6)}\\text{ rad}`,
                   true
                 )

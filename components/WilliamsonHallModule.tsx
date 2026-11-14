@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
-import { parseScherrerInput, calculateWilliamsonHall, XRAY_WAVELENGTHS } from '../utils/physics';
+import {
+  parseScherrerInput,
+  calculateWilliamsonHall,
+  optimizeWilliamsonHallAnisotropyQ,
+  getStudentTCritical95,
+  XRAY_WAVELENGTHS
+} from '../utils/physics';
 import { WHResult, WHPoint, WHModelComparisonItem } from '../types';
 import {
   ComposedChart,
@@ -97,7 +103,7 @@ const WH_PRESETS = [
     icon: 'TiO₂',
     youngsModulus: 230,
     density: 3.89,
-    material: 'Alumina (Al2O3)'
+    material: 'Anatase TiO2'
   },
   { 
     name: 'Strained Cu Thin Film', 
@@ -124,7 +130,9 @@ const WH_PRESETS = [
 ];
 
 const MODULUS_PRESETS = [
-  { name: 'Silicon (Si)', value: 130, desc: 'Cubic semiconductor crystal, [100] direction dynamic average' },
+  { name: 'Silicon (Si)', value: 130, desc: 'Cubic semiconductor crystal, Reuss-Voigt-Hill average' },
+  { name: 'Zinc Oxide (ZnO)', value: 140, desc: 'Wurtzite hexagonal semiconductor nanoparticle' },
+  { name: 'Anatase TiO2', value: 230, desc: 'Tetragonal photocatalyst oxide polymorph' },
   { name: 'Alumina (Al2O3)', value: 380, desc: 'Corundum sintered refractory ceramic' },
   { name: 'Copper (Cu)', value: 120, desc: 'High-ductility fcc coin metal' },
   { name: 'Iron / Ferritic Steel (Fe)', value: 200, desc: 'Mechanical baseline structural alloy' },
@@ -142,6 +150,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const [cagliotiV, setCagliotiV] = useState<number>(-0.002);
   const [cagliotiW, setCagliotiW] = useState<number>(0.015);
   const [youngsModulusGPa, setYoungsModulusGPa] = useState<number>(130);
+  const [selectedMaterial, setSelectedMaterial] = useState<string>('Silicon (Si)');
   const [isModulusEnabled, setIsModulusEnabled] = useState<boolean>(false);
   const [burgersVectorNm, setBurgersVectorNm] = useState<number>(0.25);
   const [isDensityEnabled, setIsDensityEnabled] = useState<boolean>(true);
@@ -152,12 +161,17 @@ export const WilliamsonHallModule: React.FC = () => {
   const [showDensityExplanation, setShowDensityExplanation] = useState<boolean>(false);
   const [showDecouplingExplanation, setShowDecouplingExplanation] = useState<boolean>(false);
   const [showMathModal, setShowMathModal] = useState<boolean>(false);
+  const [recomputeFeedback, setRecomputeFeedback] = useState<{
+    timestamp: string;
+    message: string;
+    warnings: string[];
+  } | null>(null);
   
   // Excluded peak indices for outlier filtration
   const [excludedIndices, setExcludedIndices] = useState<number[]>([]);
 
-  // Input Data: 2Theta, FWHM, h, k, l
-  const [inputData, setInputData] = useState<string>("28.44, 0.25, 4, 0, 0\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 2, 2, 2\n69.13, 0.38, 4, 4, 0\n76.38, 0.42, 6, 2, 0");
+  // Input Data: 2Theta, FWHM, h, k, l (Silicon Diamond-Cubic Allowed Reflections)
+  const [inputData, setInputData] = useState<string>("28.44, 0.25, 1, 1, 1\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 3, 1, 1\n69.13, 0.38, 4, 0, 0\n76.38, 0.42, 3, 3, 1");
   const [broadeningModel, setBroadeningModel] = useState<'Gaussian' | 'Lorentzian' | 'Pseudo-Voigt'>('Gaussian');
   const [strainModel, setStrainModel] = useState<'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens' | 'Monshi-Scherrer'>('UDM');
   
@@ -167,13 +181,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const [showZeroStrainLine, setShowZeroStrainLine] = useState<boolean>(true);
   const [schematicMode, setSchematicMode] = useState<'decoupling' | 'scaling' | 'lattice'>('decoupling');
 
-  const [result, setResult] = useState<WHResult | null>(() => {
-    try {
-      const saved = localStorage.getItem('xrd_wh_current');
-      if (saved) return JSON.parse(saved);
-    } catch (e) {}
-    return null;
-  });
+  const [result, setResult] = useState<WHResult | null>(null);
 
   const isFirstRender = useRef(true);
 
@@ -195,16 +203,18 @@ export const WilliamsonHallModule: React.FC = () => {
     setCagliotiV(-0.002);
     setCagliotiW(0.015);
     setYoungsModulusGPa(130);
+    setSelectedMaterial('Silicon (Si)');
     setIsModulusEnabled(false);
     setBurgersVectorNm(0.25);
     setMaterialDensityGcm3(2.33);
     setDislocationQParam(2.0);
     setCh00Param(0.285);
     setExcludedIndices([]);
-    setInputData("28.44, 0.25, 4, 0, 0\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 2, 2, 2\n69.13, 0.38, 4, 4, 0\n76.38, 0.42, 6, 2, 0");
+    setInputData("28.44, 0.25, 1, 1, 1\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 3, 1, 1\n69.13, 0.38, 4, 0, 0\n76.38, 0.42, 3, 3, 1");
     setStrainModel('UDM');
     setBroadeningModel('Gaussian');
     setAdvisorReport(null);
+    setRecomputeFeedback(null);
   };
 
   const handleSelectStrainModel = (newModel: typeof strainModel) => {
@@ -260,13 +270,17 @@ export const WilliamsonHallModule: React.FC = () => {
     setAdvisorReport(null);
   };
 
-  const [isSimulationRunning, setIsSimulationRunning] = useState(false);
-  const [simulationStep, setSimulationStep] = useState(0);
-
   // Calculation trigger
-  const executeCalculation = (currentExcluded: number[] = excludedIndices) => {
+  const executeCalculation = (
+    currentExcluded: number[] = excludedIndices,
+    overrideQ?: number,
+    overrideModel?: typeof strainModel
+  ) => {
     const peaks = parseScherrerInput(inputData);
-    const currentPreset = MODULUS_PRESETS.find(p => p.value === youngsModulusGPa);
+    const matchedPreset = MODULUS_PRESETS.find(p => Math.abs(p.value - youngsModulusGPa) < 0.5);
+    const effectiveMaterial = selectedMaterial || matchedPreset?.name || 'Silicon (Si)';
+    const activeModel = overrideModel ?? strainModel;
+    const activeQ = overrideQ ?? dislocationQParam;
     const computed = calculateWilliamsonHall(
       wavelength, 
       constantK, 
@@ -275,23 +289,159 @@ export const WilliamsonHallModule: React.FC = () => {
       broadeningModel,
       isDecouplingEnabled ? instrumentalMode : 'constant',
       { U: cagliotiU, V: cagliotiV, W: cagliotiW },
-      isModulusEnabled || strainModel === 'USDM' || strainModel === 'UDEDM' ? youngsModulusGPa : undefined,
-      strainModel,
-      currentPreset?.name,
+      isModulusEnabled || activeModel === 'USDM' || activeModel === 'UDEDM' ? youngsModulusGPa : undefined,
+      activeModel,
+      effectiveMaterial,
       currentExcluded,
       burgersVectorNm,
       isDensityEnabled ? materialDensityGcm3 : undefined,
-      dislocationQParam,
+      activeQ,
       ch00Param
     );
     setResult(computed);
     if (computed) {
       localStorage.setItem('xrd_wh_current', JSON.stringify(computed));
     }
+    return computed;
+  };
+
+  const handleRefineDislocationQ = () => {
+    const peaks = parseScherrerInput(inputData);
+    if (peaks.length < 3) return;
+    const target = strainModel === 'Stephens' ? 'Stephens' : 'mWH';
+    const opt = optimizeWilliamsonHallAnisotropyQ(
+      wavelength,
+      constantK,
+      isDecouplingEnabled ? instFwhm : 0,
+      peaks,
+      broadeningModel,
+      isDecouplingEnabled ? instrumentalMode : 'constant',
+      { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+      excludedIndices,
+      target,
+      ch00Param
+    );
+    setDislocationQParam(opt.optimalQ);
+    const updated = executeCalculation(excludedIndices, opt.optimalQ, strainModel);
+    if (updated) {
+      setRecomputeFeedback({
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        message: `Refined ${target} anisotropy q = ${opt.optimalQ.toFixed(2)} (${opt.dislocationCharacter}) → R² = ${updated.regression.rSquared.toFixed(4)}`,
+        warnings: []
+      });
+    }
   };
 
   const handleCalculateWithSimulation = () => {
-    executeCalculation();
+    const peaks = parseScherrerInput(inputData);
+    if (peaks.length < 2) {
+      setRecomputeFeedback({
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        message: 'Insufficient valid reflections.',
+        warnings: ['Please enter at least 2 valid Bragg reflections (2θ, FWHM, h, k, l) to compute the Williamson–Hall fit.']
+      });
+      return;
+    }
+
+    // Sort reflections in ascending 2theta if unsorted
+    const isSorted = peaks.every((p, i) => i === 0 || p.twoTheta >= peaks[i - 1].twoTheta);
+    if (!isSorted) {
+      const sorted = [...peaks].sort((a, b) => a.twoTheta - b.twoTheta);
+      const formatted = sorted
+        .map(p =>
+          p.hkl
+            ? `${p.twoTheta.toFixed(3)}, ${p.fwhmObs.toFixed(4)}, ${p.hkl[0]}, ${p.hkl[1]}, ${p.hkl[2]}`
+            : `${p.twoTheta.toFixed(3)}, ${p.fwhmObs.toFixed(4)}`
+        )
+        .join('\n');
+      setInputData(formatted);
+    }
+
+    let qToUse = dislocationQParam;
+    if ((strainModel === 'mWH' || strainModel === 'Stephens') && peaks.length >= 3) {
+      const opt = optimizeWilliamsonHallAnisotropyQ(
+        wavelength,
+        constantK,
+        isDecouplingEnabled ? instFwhm : 0,
+        peaks,
+        broadeningModel,
+        isDecouplingEnabled ? instrumentalMode : 'constant',
+        { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+        excludedIndices,
+        strainModel,
+        ch00Param
+      );
+      qToUse = opt.optimalQ;
+      setDislocationQParam(qToUse);
+    }
+
+    const computed = executeCalculation(excludedIndices, qToUse, strainModel);
+    if (!computed) return;
+
+    const warnings: string[] = [];
+    const activePeaks = (computed.pointsExtended || []).filter(p => !p.isExcluded);
+    const overCorrected = activePeaks.filter(p => isDecouplingEnabled && p.fwhmObs <= p.fwhmInst * 1.02);
+    if (overCorrected.length > 0) {
+      warnings.push(
+        `${overCorrected.length} peak(s) have FWHM_obs ≤ β_inst (${overCorrected.map(p => `${p.twoTheta.toFixed(1)}°`).join(', ')}). Reduce β_inst or disable deconvolution.`
+      );
+    }
+    if (computed.regression.slope < 0 && strainModel !== 'SSP' && strainModel !== 'Halder-Wagner') {
+      warnings.push(
+        `Negative slope (${computed.regression.slope.toExponential(2)}) detected under ${strainModel}. Consider switching to SSP, USDM, or mWH.`
+      );
+    }
+    const highOutliers = activePeaks.filter(p => Math.abs(p.studentizedResidual || 0) > 2.0);
+    if (highOutliers.length > 0 && activePeaks.length >= 4) {
+      warnings.push(
+        `${highOutliers.length} reflection(s) show high R-student residual |t_i| > 2.0σ (${highOutliers.map(p => `${p.twoTheta.toFixed(1)}°`).join(', ')}).`
+      );
+    }
+
+    setRecomputeFeedback({
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+      message: `${strainModel} Fit Converged (${computed.points.length} active peaks): D = ${
+        computed.sizeInterceptNm > 0 && computed.sizeInterceptNm < 500
+          ? `${computed.sizeInterceptNm.toFixed(2)} ± ${(computed.sizeErrorNm || 0).toFixed(2)} nm`
+          : 'Bulk (>250 nm)'
+      }, ε = ${computed.strainPercent.toFixed(4)} ± ${(computed.strainErrorPercent || 0).toFixed(4)}%, R² = ${computed.regression.rSquared.toFixed(4)}`,
+      warnings
+    });
+  };
+
+  const handleAutoOptimizeAll = () => {
+    const peaks = parseScherrerInput(inputData);
+    if (peaks.length < 2) return;
+    // Refine q for mWH first so mWH and Stephens compete at their optimal dislocation contrast
+    let optQ = dislocationQParam;
+    if (peaks.length >= 3) {
+      const opt = optimizeWilliamsonHallAnisotropyQ(
+        wavelength,
+        constantK,
+        isDecouplingEnabled ? instFwhm : 0,
+        peaks,
+        broadeningModel,
+        isDecouplingEnabled ? instrumentalMode : 'constant',
+        { U: cagliotiU, V: cagliotiV, W: cagliotiW },
+        excludedIndices,
+        'mWH',
+        ch00Param
+      );
+      optQ = opt.optimalQ;
+      setDislocationQParam(optQ);
+    }
+    const prelim = executeCalculation(excludedIndices, optQ, strainModel);
+    const best = prelim?.modelComparisons?.find(m => m.isBestFit);
+    const targetModel = (best?.modelName as typeof strainModel) || strainModel;
+    handleSelectStrainModel(targetModel);
+    const finalRes = executeCalculation(excludedIndices, optQ, targetModel);
+    if (finalRes) {
+      setRecomputeFeedback({
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+        message: `Auto-Optimized to ${targetModel} (q = ${optQ.toFixed(2)}): D = ${finalRes.sizeInterceptNm.toFixed(2)} nm, ε = ${finalRes.strainPercent.toFixed(4)}%, R² = ${finalRes.regression.rSquared.toFixed(4)}`,
+        warnings: []
+      });
+    }
   };
 
   // Memoized KaTeX formula HTML for zero-jitter rendering
@@ -300,18 +450,18 @@ export const WilliamsonHallModule: React.FC = () => {
       strainModel === 'UDM'
         ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)'
         : strainModel === 'USDM'
-        ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\frac{4\\sigma \\sin(\\theta)}{E_{hkl}}'
+        ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\sigma \\left(\\frac{4\\sin(\\theta)}{E_{hkl}}\\right)'
         : strainModel === 'UDEDM'
-        ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\sin(\\theta) \\sqrt{\\frac{2u}{E_{hkl}}}'
+        ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\sqrt{u}\\left(4\\sin(\\theta) \\sqrt{\\frac{2}{E_{hkl}}}\\right)'
         : strainModel === 'SSP'
         ? '(d \\cdot \\beta^*)^2 = \\frac{K}{D}(d^2 \\beta^*) + (2\\varepsilon)^2'
         : strainModel === 'Halder-Wagner'
-        ? '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{K}{D} \\frac{\\beta^*}{(d^*)^2} + (2\\varepsilon)^2'
+        ? '\\left(\\frac{\\beta_{\\text{HW}}}{\\tan\\theta}\\right)^2 = \\frac{K\\lambda}{D} \\left(\\frac{\\beta_{\\text{HW}}}{\\tan\\theta\\sin\\theta}\\right) + 16\\varepsilon^2'
         : strainModel === 'mWH'
         ? '\\Delta K = \\frac{K}{D} + \\alpha \\left(K \\bar{C}_{hkl}^{1/2}\\right)'
         : strainModel === 'Stephens'
-        ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)\\sqrt{1 + 2.5 H^2}'
-        : '\\ln(\\beta) = \\ln\\left(\\frac{K\\lambda}{D}\\right) + \\ln\\left(\\frac{1}{\\cos\\theta}\\right)';
+        ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon_{h00} \\sin(\\theta)\\sqrt{1 + \\eta_S H^2}'
+        : '\\ln(\\beta) = \\ln\\left(\\frac{K\\lambda}{D}\\right) + m\\ln\\left(\\frac{1}{\\cos\\theta}\\right)';
     return katex.renderToString(tex, { throwOnError: false });
   }, [strainModel]);
 
@@ -330,9 +480,7 @@ export const WilliamsonHallModule: React.FC = () => {
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
-      if (!result) {
-        executeCalculation();
-      }
+      executeCalculation();
       return;
     }
     executeCalculation();
@@ -349,6 +497,7 @@ export const WilliamsonHallModule: React.FC = () => {
     cagliotiV, 
     cagliotiW, 
     youngsModulusGPa, 
+    selectedMaterial,
     isModulusEnabled, 
     strainModel,
     excludedIndices,
@@ -497,13 +646,13 @@ Radiation Wavelength: ${wavelength} Å (K = ${constantK})
 Instrumental IRF: ${instrumentalMode === 'constant' ? `Constant (${instFwhm}°)` : `Caglioti (U=${cagliotiU}, V=${cagliotiV}, W=${cagliotiW})`}
 
 DECOUPLED STRUCTURAL RESULTS:
-- Volume-Weighted Crystallite Size (D): ${result.sizeInterceptNm > 0 ? `${result.sizeInterceptNm.toFixed(2)} nm` : 'Infinite / Bulk limit'}
-- Lattice Microstrain (ε): ${(result.strainPercent / 100).toExponential(4)} (${result.strainPercent.toFixed(4)}%)
-${result.stressMPa !== undefined ? `- Internal Lattice Stress (σ): ${result.stressMPa.toFixed(2)} MPa\n` : ''}${result.energyDensityKjM3 !== undefined ? `- Deformation Energy Density (u): ${result.energyDensityKjM3.toFixed(2)} kJ/m³\n` : ''}- Dislocation Density (ρ): ${result.dislocationDensity10_14 ? `${result.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²` : 'N/A'}
+- Volume-Weighted Crystallite Size (D): ${result.sizeInterceptNm > 0 ? `${result.sizeInterceptNm.toFixed(2)} ± ${(result.sizeErrorNm || 0).toFixed(2)} nm` : 'Infinite / Bulk limit'}
+- Lattice Microstrain (ε): ${(result.strainPercent / 100).toExponential(4)} (${result.strainPercent.toFixed(4)} ± ${(result.strainErrorPercent || 0).toFixed(4)}%)
+${result.stressMPa !== undefined ? `- Internal Lattice Stress (σ): ${result.stressMPa.toFixed(2)} ± ${(result.stressErrorMPa || 0).toFixed(2)} MPa\n` : ''}${result.energyDensityKjM3 !== undefined ? `- Deformation Energy Density (u): ${result.energyDensityKjM3.toFixed(2)} ± ${(result.energyDensityErrorKjM3 || 0).toFixed(2)} kJ/m³\n` : ''}- Dislocation Density (ρ_WS): ${result.dislocationDensity10_14 ? `${result.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²` : 'N/A'}
 - Specific Surface Area (SSA): ${result.specificSurfaceAreaM2g ? `${result.specificSurfaceAreaM2g.toFixed(2)} m²/g` : 'N/A'}
 
 REGRESSION STATISTICS:
-- Equation: Y = (${result.regression.slope.toFixed(6)}) · X + (${result.regression.intercept.toFixed(6)})
+- Equation: Y = (${result.regression.slope.toFixed(6)} ± ${(result.regression.stdErrorSlope || 0).toFixed(6)}) · X + (${result.regression.intercept.toFixed(6)} ± ${(result.regression.stdErrorIntercept || 0).toFixed(6)})
 - Coefficient of Determination (R²): ${result.regression.rSquared.toFixed(5)}
 - Adjusted R²: ${result.regression.adjustedRSquared ? result.regression.adjustedRSquared.toFixed(5) : 'N/A'}
 - Pearson Correlation (r): ${result.regression.pearsonR ? result.regression.pearsonR.toFixed(5) : 'N/A'}
@@ -527,9 +676,9 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
     const n = activePts.length;
     const meanX = n > 0 ? activePts.reduce((acc, p) => acc + p.x, 0) / n : 0;
     const sxx = activePts.reduce((acc, p) => acc + Math.pow(p.x - meanX, 2), 0);
-    // Student-t 95% critical value (two-tailed) for df = n - 2
+    // Exact Student-t 95% critical value (two-tailed) for df = n - 2
     const df = Math.max(1, n - 2);
-    const tCrit = df === 1 ? 4.303 : df === 2 ? 3.182 : df === 3 ? 2.776 : df === 4 ? 2.571 : df <= 6 ? 2.447 : df <= 10 ? 2.228 : 1.96;
+    const tCrit = getStudentTCritical95(df);
     const syx = result.regression.rmse ? result.regression.rmse * Math.sqrt(n / Math.max(1, n - 2)) : 0.0005;
 
     return result.pointsExtended.map(p => {
@@ -578,9 +727,25 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
         const dx = tt - p.twoTheta;
         const fwhmTotal = Math.max(0.08, p.fwhmObs);
         const thetaRad = (p.twoTheta / 2) * (Math.PI / 180);
-        // Theoretical strain-free FWHM from decoupled size D + instrumental
+        // Theoretical strain-free FWHM from decoupled size D + instrumental via Thompson-Cox-Hastings Voigt
         const betaSizeDeg = ((constantK * wavelength * 0.1) / (sizeD * Math.max(0.1, Math.cos(thetaRad)))) * (180 / Math.PI);
-        const fwhmSizeOnly = Math.max(0.06, Math.sqrt(Math.pow(betaSizeDeg, 2) + Math.pow(p.fwhmInst || 0.08, 2)));
+        const gInst = p.fwhmInst || 0.08;
+        const g2 = gInst * gInst;
+        const g3 = g2 * gInst;
+        const g4 = g2 * g2;
+        const g5 = g4 * gInst;
+        const l1 = betaSizeDeg;
+        const l2 = l1 * l1;
+        const l3 = l2 * l1;
+        const l4 = l2 * l2;
+        const l5 = l4 * l1;
+        const fwhmSizeOnly = Math.max(
+          0.06,
+          Math.pow(
+            g5 + 2.69269 * g4 * l1 + 2.42843 * g3 * l2 + 4.47163 * g2 * l3 + 0.07842 * gInst * l4 + l5,
+            0.2
+          )
+        );
 
         if (Math.abs(dx) < fwhmTotal * 5) {
           const amp = 850 / (1 + idx * 0.18);
@@ -611,11 +776,11 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
   const getXAxisLabel = () => {
     switch (strainModel) {
       case 'USDM': return '4 sin(θ) / E_hkl (GPa⁻¹)';
-      case 'UDEDM': return '4 sin(θ) / √E_hkl (GPa⁻⁰·⁵)';
+      case 'UDEDM': return '4 sin(θ) · √(2 / E_hkl) (GPa⁻⁰·⁵)';
       case 'SSP': return 'd² · β* (Å)';
-      case 'Halder-Wagner': return 'β* / (d*)² (Å)';
+      case 'Halder-Wagner': return 'β_HW / (tanθ · sinθ) (rad)';
       case 'mWH': return 'K · √C_hkl (Å⁻¹)';
-      case 'Stephens': return '4 sin(θ) · √(1 + 2.5 H²) (Anisotropic)';
+      case 'Stephens': return `4 sin(θ) · √(1 + ${dislocationQParam.toFixed(2)} H²) (Anisotropic)`;
       case 'Monshi-Scherrer': return 'ln(1 / cos θ)';
       default: return '4 sin(θ) (Dimensionless)';
     }
@@ -624,7 +789,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
   const getYAxisLabel = () => {
     switch (strainModel) {
       case 'SSP': return '(d · β*)² (Dimensionless)';
-      case 'Halder-Wagner': return '(β* / d*)² (Dimensionless)';
+      case 'Halder-Wagner': return '(β_HW / tanθ)² (rad²)';
       case 'mWH': return 'ΔK = β cos(θ) / λ (Å⁻¹)';
       case 'Monshi-Scherrer': return 'ln(β_sample rad)';
       default: return 'β_sample · cos(θ) (rad)';
@@ -751,11 +916,13 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-emerald-500" />
             <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase">
               <span>1. True Size D_WH</span>
-              <span className="text-emerald-400 font-bold">From Y-Intercept</span>
+              <span className="text-emerald-400 font-bold">
+                {strainModel === 'SSP' || strainModel === 'Halder-Wagner' ? 'From Slope' : 'From Y-Intercept'}
+              </span>
             </div>
             <div className="text-xl font-bold text-white mt-1">
               {result && result.sizeInterceptNm > 0 && result.sizeInterceptNm < 500
-                ? result.sizeInterceptNm.toFixed(2)
+                ? `${result.sizeInterceptNm.toFixed(2)}${result.sizeErrorNm ? ` ± ${result.sizeErrorNm.toFixed(2)}` : ''}`
                 : '> 250'}{' '}
               <span className="text-xs text-emerald-400">nm</span>
             </div>
@@ -769,14 +936,19 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             <div className="absolute top-0 left-0 right-0 h-0.5 bg-cyan-500" />
             <div className="flex items-center justify-between text-[10px] text-slate-400 uppercase">
               <span>2. Microstrain ε</span>
-              <span className="text-cyan-400 font-bold">From Slope ({strainModel})</span>
+              <span className="text-cyan-400 font-bold">
+                {strainModel === 'SSP' || strainModel === 'Halder-Wagner' ? `From Intercept (${strainModel})` : `From Slope (${strainModel})`}
+              </span>
             </div>
             <div className="text-xl font-bold text-white mt-1">
-              {result ? result.strainPercent.toFixed(4) : '—'} <span className="text-xs text-cyan-400">%</span>
+              {result
+                ? `${result.strainPercent.toFixed(4)}${result.strainErrorPercent ? ` ± ${result.strainErrorPercent.toFixed(4)}` : ''}`
+                : '—'}{' '}
+              <span className="text-xs text-cyan-400">%</span>
             </div>
             <div className="text-[10px] text-slate-500 mt-1">
               {result
-                ? result.regression.slope < 0
+                ? result.regression.slope < 0 && strainModel !== 'SSP' && strainModel !== 'Halder-Wagner'
                   ? 'Compressive / Anisotropic (-ε)'
                   : result.strainPercent < 0.05
                   ? 'Low Strain (<0.05%)'
@@ -940,6 +1112,14 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                 <div className="mt-3 pt-3 border-t border-emerald-500/20 space-y-2.5">
                   <div className="flex items-center justify-between text-[9px] font-mono">
                     <span className="text-emerald-300 font-bold uppercase">Dislocation Contrast C_hkl = C_h00(1 - q·H²)</span>
+                    <button
+                      type="button"
+                      onClick={handleRefineDislocationQ}
+                      className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold uppercase text-[8px] cursor-pointer transition-colors"
+                      title="Numerically optimize q across [-1.8, 2.75] to maximize linear correlation R²"
+                    >
+                      Auto-Refine q (Max R²)
+                    </button>
                   </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div>
@@ -1416,6 +1596,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                       setInputData(p.data);
                       setWavelength(p.wavelength);
                       setConstantK(p.k);
+                      if (p.material) setSelectedMaterial(p.material);
                       if (p.youngsModulus) {
                         setYoungsModulusGPa(p.youngsModulus);
                         setIsModulusEnabled(true);
@@ -1423,8 +1604,9 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                       if (p.density) setMaterialDensityGcm3(p.density);
                       setExcludedIndices([]);
                       setAdvisorReport(null);
+                      setRecomputeFeedback(null);
                     }}
-                    className="px-2 py-1 bg-black/40 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 rounded-lg text-[8px] font-mono text-slate-400 hover:text-cyan-300 transition-colors flex items-center gap-1"
+                    className="px-2 py-1 bg-black/40 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 rounded-lg text-[8px] font-mono text-slate-400 hover:text-cyan-300 transition-colors flex items-center gap-1 cursor-pointer"
                   >
                     <span>{p.icon}</span>
                     <span>{p.name.split(' ')[0]}</span>
@@ -1446,25 +1628,68 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
               onToggleExcludePeak={toggleExcludePeak}
               onSelectPreset={(data, name, ym, den) => {
                 setInputData(data);
+                if (name) setSelectedMaterial(name);
                 if (ym) {
                   setYoungsModulusGPa(ym);
                   setIsModulusEnabled(true);
                 }
                 if (den) setMaterialDensityGcm3(den);
                 setExcludedIndices([]);
+                setRecomputeFeedback(null);
               }}
             />
 
-            {/* Action Buttons */}
+            {/* Action Buttons & Live Recompute Verification Banner */}
             <div className="space-y-2">
-              <button
-                type="button"
-                onClick={handleCalculateWithSimulation}
-                className="w-full py-3.5 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold uppercase tracking-wider rounded border border-cyan-400 transition-colors flex items-center justify-center gap-2 cursor-pointer text-xs"
-              >
-                <TrendingUp className="w-4 h-4" />
-                <span>Recompute W–H Size–Strain Fit</span>
-              </button>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={handleCalculateWithSimulation}
+                  className="py-3 px-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold uppercase tracking-wider rounded border border-cyan-400 transition-colors flex items-center justify-center gap-1.5 cursor-pointer text-[11px]"
+                  title="Validate peaks, sort ascending 2θ, refine anisotropy contrast q (if mWH/Stephens), and recompute all 8 W-H models"
+                >
+                  <TrendingUp className="w-4 h-4 shrink-0" />
+                  <span>Recompute W–H Size–Strain Fit</span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={handleAutoOptimizeAll}
+                  className="py-3 px-3 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-mono font-bold uppercase tracking-wider rounded border border-emerald-500/40 transition-colors flex items-center justify-center gap-1.5 cursor-pointer text-[11px]"
+                  title="Automatically optimize dislocation contrast q and select the highest-R² physically valid Size-Strain model"
+                >
+                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <span>Auto-Optimize Model &amp; q</span>
+                </button>
+              </div>
+
+              {recomputeFeedback && (
+                <div className="p-3 rounded bg-[#070A12] border border-cyan-500/40 font-mono text-[10px] space-y-1.5">
+                  <div className="flex items-center justify-between text-cyan-300 font-bold">
+                    <span className="flex items-center gap-1.5">
+                      <Check className="w-3.5 h-3.5 text-emerald-400" />
+                      <span>SOLVER RECOMPUTED [{recomputeFeedback.timestamp}]</span>
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setRecomputeFeedback(null)}
+                      className="text-slate-500 hover:text-white cursor-pointer"
+                    >
+                      ✕
+                    </button>
+                  </div>
+                  <p className="text-slate-200 leading-relaxed tabular-nums">
+                    {recomputeFeedback.message}
+                  </p>
+                  {recomputeFeedback.warnings.length > 0 && (
+                    <div className="pt-1 border-t border-slate-800 space-y-1 text-amber-300 text-[9.5px]">
+                      {recomputeFeedback.warnings.map((w, idx) => (
+                        <p key={idx}>⚠ {w}</p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
 
               <button
                 type="button"
@@ -1487,19 +1712,19 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
           <ScientificMathControl
             title={`Williamson-Hall ${strainModel} Verification`}
             formula={
-              strainModel === 'USDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\frac{4\\sigma \\sin(\\theta)}{E_{hkl}}' :
-              strainModel === 'UDEDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\sin(\\theta) \\sqrt{\\frac{2u}{E_{hkl}}}' :
+              strainModel === 'USDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\sigma \\left(\\frac{4\\sin(\\theta)}{E_{hkl}}\\right)' :
+              strainModel === 'UDEDM' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + \\sqrt{u}\\left(4\\sin(\\theta) \\sqrt{\\frac{2}{E_{hkl}}}\\right)' :
               strainModel === 'SSP' ? '(d\\beta^*)^2 = \\frac{K}{D}(d^2 \\beta^*) + (2\\varepsilon)^2' :
-              strainModel === 'Halder-Wagner' ? '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{K}{D} \\frac{\\beta^*}{(d^*)^2} + (2\\varepsilon)^2' :
+              strainModel === 'Halder-Wagner' ? '\\left(\\frac{\\beta_{\\text{HW}}}{\\tan\\theta}\\right)^2 = \\frac{K\\lambda}{D} \\left(\\frac{\\beta_{\\text{HW}}}{\\tan\\theta\\sin\\theta}\\right) + 16\\varepsilon^2' :
               strainModel === 'mWH' ? '\\Delta K = \\frac{K}{D} + \\alpha \\left(K \\bar{C}_{hkl}^{1/2}\\right)' :
-              strainModel === 'Stephens' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)\\sqrt{1 + 2.5 H^2}' :
-              strainModel === 'Monshi-Scherrer' ? '\\ln(\\beta) = \\ln\\left(\\frac{K\\lambda}{D}\\right) + \\ln\\left(\\frac{1}{\\cos\\theta}\\right)' :
+              strainModel === 'Stephens' ? '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon_{h00} \\sin(\\theta)\\sqrt{1 + \\eta_S H^2}' :
+              strainModel === 'Monshi-Scherrer' ? '\\ln(\\beta) = \\ln\\left(\\frac{K\\lambda}{D}\\right) + m\\ln\\left(\\frac{1}{\\cos\\theta}\\right)' :
               '\\beta \\cos(\\theta) = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin(\\theta)'
             }
             description={`Decoupled regression result for ${strainModel} (SE_slope = ±${(result.regression.stdErrorSlope || 0).toExponential(2)}, SE_int = ±${(result.regression.stdErrorIntercept || 0).toExponential(2)}).`}
             variables={[
-              { symbol: 'Slope', name: 'Regression Gradient', value: result.regression.slope, unit: strainModel === 'USDM' ? 'MPa' : strainModel === 'UDEDM' ? '√(GPa)' : strainModel === 'SSP' || strainModel === 'Halder-Wagner' ? 'Å⁻¹' : '' },
-              { symbol: 'Intercept', name: 'Y-Intercept', value: result.regression.intercept, unit: strainModel === 'mWH' ? 'Å⁻¹' : strainModel === 'SSP' || strainModel === 'Halder-Wagner' || strainModel === 'Monshi-Scherrer' ? '' : 'rad' },
+              { symbol: 'Slope', name: 'Regression Gradient', value: result.regression.slope, unit: strainModel === 'USDM' ? 'GPa' : strainModel === 'UDEDM' ? '√(GPa)' : strainModel === 'SSP' ? 'Å⁻¹' : strainModel === 'Halder-Wagner' ? 'rad' : '' },
+              { symbol: 'Intercept', name: 'Y-Intercept', value: result.regression.intercept, unit: strainModel === 'mWH' ? 'Å⁻¹' : strainModel === 'Halder-Wagner' ? 'rad²' : strainModel === 'SSP' || strainModel === 'Monshi-Scherrer' ? '' : 'rad' },
               { symbol: 'K', name: 'Shape Factor', value: constantK, unit: '' },
               { symbol: 'λ', name: 'Wavelength', value: wavelength, unit: 'Å' }
             ]}
@@ -1597,7 +1822,9 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                           : 'bg-black/40 text-slate-500 border-white/10'
                       }`}
                     >
-                      ε=0 Floor (Kλ/D)
+                      {strainModel === 'SSP' || strainModel === 'Halder-Wagner'
+                        ? 'Intercept Floor (ε)'
+                        : 'ε=0 Floor (Kλ/D)'}
                     </button>
                   </div>
                 </div>
@@ -1623,6 +1850,9 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                         dataKey="x" 
                         type="number"
                         domain={['auto', 'auto']}
+                        tickFormatter={(v: number) =>
+                          Math.abs(v) > 0 && Math.abs(v) < 0.001 ? v.toExponential(1) : Number(v.toFixed(4)).toString()
+                        }
                         label={{ 
                           value: getXAxisLabel(), 
                           position: 'bottom', 
@@ -1638,6 +1868,9 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                       />
                       <YAxis 
                         domain={['auto', 'auto']}
+                        tickFormatter={(v: number) =>
+                          Math.abs(v) > 0 && Math.abs(v) < 0.001 ? v.toExponential(1) : Number(v.toFixed(4)).toString()
+                        }
                         label={{ 
                           value: getYAxisLabel(), 
                           angle: -90, 
@@ -1661,7 +1894,10 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                           strokeWidth={1.5}
                           strokeDasharray="3 3"
                           label={{
-                            value: `Size Floor Kλ/D (${result.sizeInterceptNm.toFixed(1)} nm)`,
+                            value:
+                              strainModel === 'SSP' || strainModel === 'Halder-Wagner'
+                                ? `Strain Intercept (ε = ${result.strainPercent.toFixed(3)}%)`
+                                : `Size Floor Kλ/D (${result.sizeInterceptNm.toFixed(1)} nm)`,
                             fill: '#10b981',
                             fontSize: 9,
                             position: 'insideBottomRight'
@@ -1678,7 +1914,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                         />
                       )}
                       <Line 
-                        type="monotone" 
+                        type="linear" 
                         dataKey="fit" 
                         stroke="#f43f5e" 
                         strokeWidth={2} 
@@ -1825,13 +2061,15 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             <div className="h-[420px] w-full overflow-y-auto custom-scrollbar p-2 space-y-4 font-mono tabular-nums">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="bg-[#070D18] p-4 rounded-xl border border-white/5">
-                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dislocation Density (ρ)</span>
+                  <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Dislocation Density (ρ_WS)</span>
                   <p className="text-xl font-mono tabular-nums font-black text-rose-400">
                     {result?.dislocationDensity10_14 ? `${result.dislocationDensity10_14.toFixed(3)} × 10¹⁴` : 'N/A'}
                     <span className="text-[9px] text-slate-400 ml-1">m⁻²</span>
                   </p>
                   <p className="text-[8px] text-slate-500 mt-2 font-mono">
-                    ρ = 2√3 · |ε| / (D · b), b = {burgersVectorNm} nm
+                    {result?.wilkensDislocationDensity10_14 !== undefined
+                      ? `Ungár–Wilkens ρ_mWH = ${result.wilkensDislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²`
+                      : `ρ_WS = 2√3 · |ε| / (D · b), b = ${burgersVectorNm} nm`}
                   </p>
                 </div>
 
@@ -1853,7 +2091,9 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                     <span className="text-[9px] text-slate-400 ml-1">kJ/m³</span>
                   </p>
                   <p className="text-[8px] text-slate-500 mt-2 font-mono">
-                    Internal Stress σ = {result?.stressMPa !== undefined ? `${result.stressMPa.toFixed(1)} MPa` : 'Enable E_hkl'}
+                    {result?.stephensParams
+                      ? `Stephens S₄₀₀=${result.stephensParams.S400.toFixed(3)}, S₂₂₀=${result.stephensParams.S220.toFixed(3)} (×10⁻⁴)`
+                      : `Internal Stress σ = ${result?.stressMPa !== undefined ? `${result.stressMPa.toFixed(1)} MPa` : 'Enable E_hkl'}`}
                   </p>
                 </div>
               </div>
@@ -1918,8 +2158,8 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                   <thead>
                     <tr className="border-b border-white/10 text-slate-400 text-[8px] uppercase tracking-wider bg-black/60 font-black">
                       <th className="py-2.5 px-3">Model</th>
-                      <th className="py-2.5 px-2">Size D (nm)</th>
-                      <th className="py-2.5 px-2">Strain ε (%)</th>
+                      <th className="py-2.5 px-2">Size D ± σ_D (nm)</th>
+                      <th className="py-2.5 px-2">Strain ε ± σ_ε (%)</th>
                       <th className="py-2.5 px-2">Stress σ (MPa)</th>
                       <th className="py-2.5 px-2">Energy u (kJ/m³)</th>
                       <th className="py-2.5 px-2">Fit R²</th>
@@ -1943,10 +2183,13 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                           )}
                         </td>
                         <td className="py-2.5 px-2 text-emerald-300 font-bold">
-                          {m.sizeNm > 0 ? `${m.sizeNm.toFixed(2)} nm` : '∞ (Bulk)'}
+                          {m.sizeNm > 0
+                            ? `${m.sizeNm.toFixed(2)}${m.sizeErrorNm ? ` ± ${m.sizeErrorNm.toFixed(2)}` : ''} nm`
+                            : '∞ (Bulk)'}
                         </td>
                         <td className="py-2.5 px-2 text-cyan-300">
-                          {m.strainPercent.toFixed(4)}%
+                          {m.strainPercent.toFixed(4)}
+                          {m.strainErrorPercent ? ` ± ${m.strainErrorPercent.toFixed(4)}` : ''}%
                         </td>
                         <td className="py-2.5 px-2 text-rose-300">
                           {m.stressMPa !== undefined ? `${m.stressMPa.toFixed(1)}` : '-'}
@@ -1979,7 +2222,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                 </table>
               </div>
               <p className="text-[8px] text-slate-500 mt-2 font-mono leading-relaxed">
-                * Note: Models differ in their handling of anisotropic elastic constants (USDM/UDEDM), high-angle reflection weighting (SSP), or dislocation contrast factors (mWH).
+                * Note: Uncertainties (±σ_D, ±σ_ε) are propagated via first-order Delta-method covariance from the regression slope and intercept standard errors.
               </p>
             </div>
           )}
@@ -2194,11 +2437,17 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             parameters={{
               wavelength: Number(wavelength),
               twoTheta: result.points.map(p => p.twoTheta),
-              beta: result.pointsExtended ? result.pointsExtended.map(p => p.fwhmObs) : [],
+              beta: result.pointsExtended
+                ? result.pointsExtended.filter(p => !p.isExcluded).map(p => p.fwhmObs)
+                : [],
+              fwhmInst: isDecouplingEnabled ? instFwhm : 0,
               shapeFactor: Number(constantK || 0.9),
               strainModel: strainModel,
+              youngsModulusGPa: Number(youngsModulusGPa || 130),
               x: result.points.map(p => p.x),
-              y: result.points.map(p => p.y)
+              y: result.points.map(p => p.y),
+              sizeInterceptNm: result.sizeInterceptNm,
+              strainPercent: result.strainPercent
             }}
           />
         )}

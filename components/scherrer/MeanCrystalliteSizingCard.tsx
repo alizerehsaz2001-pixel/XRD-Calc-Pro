@@ -139,10 +139,12 @@ export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps>
     const sumInv = sizes.reduce((acc, d) => acc + (1 / Math.max(0.01, d)), 0);
     const harmonic = sumInv > 0 ? count / sumInv : arithmetic;
 
-    // Geometric Mean & Log-Normal Std Dev
+    // Geometric Mean & Log-Normal Sample Std Dev (Bessel N-1 corrected)
     const logSum = sizes.reduce((acc, d) => acc + Math.log(Math.max(0.1, d)), 0);
     const geometricMean = Math.exp(logSum / count);
-    const logVar = sizes.reduce((acc, d) => acc + Math.pow(Math.log(Math.max(0.1, d)) - Math.log(geometricMean), 2), 0) / count;
+    const logVar = count > 1
+      ? sizes.reduce((acc, d) => acc + Math.pow(Math.log(Math.max(0.1, d)) - Math.log(geometricMean), 2), 0) / (count - 1)
+      : 0;
     const geometricStdDev = Math.exp(Math.sqrt(logVar));
 
     // Median & Quartiles

@@ -3,8 +3,6 @@ import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'rea
 import { useTranslation } from 'react-i18next';
 import { useI18n } from './components/I18nProvider';
 import { motion, AnimatePresence } from 'motion/react';
-import { InteractiveBraggWorkbench } from './components/bragg/InteractiveBraggWorkbench';
-
 // Resilient helper for lazy dynamic component imports with auto-retry and flexible default/named export resolution
 function safeLazy<T extends React.ComponentType<any>>(
   importFn: () => Promise<any>,
@@ -33,6 +31,7 @@ function safeLazy<T extends React.ComponentType<any>>(
 }
 
 // Lazy-loaded core Bragg components to prevent initial bundle bloat
+const InteractiveBraggWorkbench = safeLazy(() => import('./components/bragg/InteractiveBraggWorkbench'), 'InteractiveBraggWorkbench');
 const BraggInput = safeLazy(() => import('./components/BraggInput'), 'BraggInput');
 const ResultsTable = safeLazy(() => import('./components/ResultsTable'), 'ResultsTable');
 const DiffractionChart = safeLazy(() => import('./components/DiffractionChart'), 'DiffractionChart');
@@ -760,10 +759,17 @@ const App: React.FC = () => {
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
 
-    // Initial check & auto-sync trigger
+    // Defer initial IndexedDB/Firestore auto-sync & high-priority chunk warmup to idle time so first paint is instant
     const initialQuality = getNetworkQualityInfo(null, autoSyncConfig);
     setNetworkQuality(initialQuality);
-    triggerAutoSyncIfEligible(initialQuality);
+
+    const idleTimer = setTimeout(() => {
+      triggerAutoSyncIfEligible(initialQuality);
+      // Warm up frequently accessed scientific modules in background during browser idle time
+      import('./components/WilliamsonHallModule').catch(() => {});
+      import('./components/ScherrerModule').catch(() => {});
+      import('./components/PairDistributionFunctionModule').catch(() => {});
+    }, 1800);
 
     // Subscribe to network connection speed/type changes (W3C Network Information API)
     const unsubscribeNetwork = subscribeToNetworkChanges(() => {
@@ -803,6 +809,7 @@ const App: React.FC = () => {
     }
 
     return () => {
+      clearTimeout(idleTimer);
       window.removeEventListener('online', handleOnline);
       window.removeEventListener('offline', handleOffline);
       unsubscribeNetwork();
@@ -2558,31 +2565,33 @@ const App: React.FC = () => {
                       {/* STEP 1: Interactive Bragg Workbench + Optional Collapsible Batch/Raw Input */}
                       {(braggWorkspaceStep === '1_input' || braggWorkspaceStep === 'all') && (
                         <div id="stage-inputs" className="space-y-4">
-                          <InteractiveBraggWorkbench
-                            sampleId={sampleId}
-                            setSampleId={setSampleId}
-                            materialName={materialName}
-                            setMaterialName={setMaterialName}
-                            wavelength={wavelength}
-                            setWavelength={setWavelength}
-                            rawPeaks={rawPeaks}
-                            setRawPeaks={setRawPeaks}
-                            rawHKL={rawHKL}
-                            setRawHKL={setRawHKL}
-                            crystalSystem={crystalSystem}
-                            setCrystalSystem={setCrystalSystem}
-                            zeroShift={zeroShift}
-                            setZeroShift={setZeroShift}
-                            sampleDisplacement={sampleDisplacement}
-                            setSampleDisplacement={setSampleDisplacement}
-                            goniometerRadius={goniometerRadius}
-                            setGoniometerRadius={setGoniometerRadius}
-                            results={results}
-                            activePeakIndex={activeBraggPeakIndex}
-                            setActivePeakIndex={setActiveBraggPeakIndex}
-                            onSaveSnapshot={() => handleCalculate(true)}
-                            onJumpToModule={(mod) => setActiveModule(mod as Module)}
-                          />
+                          <Suspense fallback={<ModuleLoadingFallback />}>
+                            <InteractiveBraggWorkbench
+                              sampleId={sampleId}
+                              setSampleId={setSampleId}
+                              materialName={materialName}
+                              setMaterialName={setMaterialName}
+                              wavelength={wavelength}
+                              setWavelength={setWavelength}
+                              rawPeaks={rawPeaks}
+                              setRawPeaks={setRawPeaks}
+                              rawHKL={rawHKL}
+                              setRawHKL={setRawHKL}
+                              crystalSystem={crystalSystem}
+                              setCrystalSystem={setCrystalSystem}
+                              zeroShift={zeroShift}
+                              setZeroShift={setZeroShift}
+                              sampleDisplacement={sampleDisplacement}
+                              setSampleDisplacement={setSampleDisplacement}
+                              goniometerRadius={goniometerRadius}
+                              setGoniometerRadius={setGoniometerRadius}
+                              results={results}
+                              activePeakIndex={activeBraggPeakIndex}
+                              setActivePeakIndex={setActiveBraggPeakIndex}
+                              onSaveSnapshot={() => handleCalculate(true)}
+                              onJumpToModule={(mod) => setActiveModule(mod as Module)}
+                            />
+                          </Suspense>
 
                           {/* Progressive Disclosure: Optional Raw Text / Batch CSV Input & Instrument Calibration */}
                           <div className="rounded-sm bg-[#0B0F19] border border-slate-800 overflow-hidden">

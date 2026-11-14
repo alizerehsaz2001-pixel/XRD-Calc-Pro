@@ -34,7 +34,7 @@ interface XRRReflectivityTabProps {
   hasExpData: boolean;
 }
 
-type ScaleMode = 'log' | 'fresnel_compensated' | 'linear';
+type ScaleMode = 'log' | 'fresnel_compensated' | 'normalized' | 'linear';
 type XAxisUnit = 'theta' | 'qz';
 type OpticalWindow = 'full' | 'critical' | 'kiessig' | 'porod';
 
@@ -171,6 +171,11 @@ export const XRRReflectivityTab: React.FC<XRRReflectivityTabProps> = ({
           rCalcVal = pt.rCalc * qz4;
           rExpVal = pt.rExp ? pt.rExp * qz4 : null;
           fresnelVal = pt.fresnelR ? pt.fresnelR * qz4 : null;
+        } else if (scaleMode === 'normalized') {
+          const denom = Math.max(1e-10, pt.fresnelR ?? 1);
+          rCalcVal = pt.rCalc / denom;
+          rExpVal = pt.rExp ? pt.rExp / denom : null;
+          fresnelVal = 1.0;
         }
 
         const logResidual =
@@ -284,6 +289,8 @@ export const XRRReflectivityTab: React.FC<XRRReflectivityTabProps> = ({
       ? 'Reflectivity R (log₁₀)'
       : scaleMode === 'fresnel_compensated'
       ? 'Porod R · qz⁴ (Å⁻⁴)'
+      : scaleMode === 'normalized'
+      ? 'Normalized R(θ) / R_F(θ)'
       : 'Specular Reflectivity R';
 
   const handleChartMouseMove = useCallback((state: any) => {
@@ -325,6 +332,7 @@ export const XRRReflectivityTab: React.FC<XRRReflectivityTabProps> = ({
               {[
                 { id: 'log' as ScaleMode, label: 'Log₁₀(R)' },
                 { id: 'fresnel_compensated' as ScaleMode, label: 'Porod R·qz⁴' },
+                { id: 'normalized' as ScaleMode, label: 'R / R_F' },
                 { id: 'linear' as ScaleMode, label: 'Linear R' }
               ].map((m) => (
                 <button
@@ -924,7 +932,7 @@ export const XRRReflectivityTab: React.FC<XRRReflectivityTabProps> = ({
             </div>
             <div className="text-[11px] font-mono text-slate-400 tabular-nums">
               {kiessigResult && kiessigResult.estimatedThickness > 0
-                ? `d_est = ${(kiessigResult.estimatedThickness / 10).toFixed(2)} nm (${kiessigResult.estimatedThickness.toFixed(1)} Å)`
+                ? `d_Bragg = ${(kiessigResult.refractionFit?.dBragg || kiessigResult.estimatedThickness).toFixed(1)} Å · d_Δq = ${kiessigResult.estimatedThickness.toFixed(1)} Å`
                 : 'No discrete fringes resolved'}
             </div>
           </div>

@@ -57,6 +57,20 @@ interface SystemSettingsTabProps {
       avgExecTimeMs: number;
       lastScript: string;
     };
+    security?: {
+      status: string;
+      pythonSandboxActive: boolean;
+      secretIsolationActive: boolean;
+      prototypeShieldActive: boolean;
+      rateLimitersActive: boolean;
+      blockedPayloads: number;
+      blockedPythonCalls: number;
+      sanitizedRequests: number;
+      invalidApiKeysRejected: number;
+      rateLimitedRequests: number;
+      lastThreatBlockedAt: string | null;
+      lastThreatReason: string;
+    };
   } | null;
   telemetryLoading: boolean;
   fetchSystemTelemetry: () => void;
@@ -426,6 +440,48 @@ export const SystemSettingsTab: React.FC<SystemSettingsTabProps> = ({
             </div>
           </div>
         )}
+
+        {/* Cybersecurity & Server Defense Posture Panel */}
+        <div className="p-4 sm:p-5 bg-emerald-50/40 dark:bg-emerald-950/20 rounded-2xl border border-emerald-200/80 dark:border-emerald-800/40 space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+              <span className="text-xs font-bold uppercase tracking-wider text-emerald-900 dark:text-emerald-200">
+                Cybersecurity &amp; Runtime Defense Shield
+              </span>
+            </div>
+            <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono font-bold bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/30">
+              STATUS: {systemTelemetry?.security?.status || 'HARDENED'}
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-[11px] font-mono">
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-emerald-200/60 dark:border-emerald-800/40">
+              <span className="text-[9px] uppercase text-slate-400 block">Python AST Sandbox</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                {systemTelemetry?.security?.pythonSandboxActive !== false ? 'ACTIVE (Isolated -I)' : 'STANDBY'}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-emerald-200/60 dark:border-emerald-800/40">
+              <span className="text-[9px] uppercase text-slate-400 block">API Key Isolation</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                {systemTelemetry?.security?.secretIsolationActive !== false ? 'SERVER-ONLY PROXY' : 'STANDARD'}
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-emerald-200/60 dark:border-emerald-800/40">
+              <span className="text-[9px] uppercase text-slate-400 block">Prototype &amp; XSS Shield</span>
+              <span className="font-bold text-emerald-600 dark:text-emerald-400">
+                {systemTelemetry?.security?.sanitizedRequests ?? 0} Sanitized
+              </span>
+            </div>
+            <div className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-900/70 border border-emerald-200/60 dark:border-emerald-800/40">
+              <span className="text-[9px] uppercase text-slate-400 block">Threats Blocked</span>
+              <span className="font-bold text-indigo-600 dark:text-indigo-400">
+                {(systemTelemetry?.security?.blockedPayloads ?? 0) + (systemTelemetry?.security?.blockedPythonCalls ?? 0)} Blocked
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Storage & Autosave Card */}

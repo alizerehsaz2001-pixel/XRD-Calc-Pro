@@ -430,7 +430,7 @@ export function calculateWilliamsonHall(
   const sspSlope = Math.abs(sspDenom) > 1e-12 ? (n * sspSumXY - sspSumX * sspSumY) / sspDenom : 0;
   const sspIntercept = (sspSumY - sspSlope * sspSumX) / n;
   const sspSizeNm = sspSlope > 1e-5 ? Math.min(999, Math.max(1, (shapeFactorK / sspSlope) * 0.1)) : crystalliteSizeNm;
-  const sspStrainPct = sspIntercept > 0 ? Math.sqrt(sspIntercept) * 200 : microstrainPct;
+  const sspStrainPct = sspIntercept > 0 ? Math.sqrt(sspIntercept) * 50 : microstrainPct;
 
   // Williamson-Smallman Dislocation Density & UDEDM Deformation Energy Density (Young's modulus E ~ 120 GPa)
   const avgD = validPeaks.reduce((acc, p) => acc + p.dSpacing, 0) / n;
@@ -463,55 +463,58 @@ export function calculateWilliamsonHall(
 
 /**
  * Non-Negative Least Squares (NNLS) Multi-Phase Quantitative Weight Solver
- * Solves: min_{w_i >= 0} sum_j (Y_obs[j] - sum_i w_i * P_i[j])^2
- * using coordinate-descent with rapid convergence.
+ * Solves: min_{w_i >= 0} sum_j (Y_obs[j] - sum_i w_i * P_i[j])^2 + lambda_L2 * ||w||_2^2
+ * using projected coordinate-descent with inverse-curvature uncertainty estimation.
  */
 export function optimizePhaseWeightsNNLS(
   observedPoints: number[],
   phaseProfiles: number[][], // array of arrays, each of length = observedPoints.length
   phaseNames: string[],
-  maxIterations: number = 35
-): { weights: Record<string, number>; percentages: Record<string, number>; rwp: number; iterations: number } {
+  maxIterations: number = 45
+): {
+  weights: Record<string, number>;
+  percentages: Record<string, number>;
+  uncertainties: Record<string, number>;
+  rwp: number;
+  iterations: number;
+} {
   const m = phaseProfiles.length; // number of phases
   const n = observedPoints.length; // number of 2theta grid points
 
   if (m === 0 || n === 0) {
-    return { weights: {}, percentages: {}, rwp: 0, iterations: 0 };
+    return { weights: {}, percentages: {}, uncertainties: {}, rwp: 0, iterations: 0 };
   }
 
   // Initial equal weights
-  let weights = new Array(m).fill(1.0);
+  const weights = new Array(m).fill(1.0 / m);
 
-  // Precompute inner products
+  // Precompute inner products with L2 Tikhonov regularization for overlapping reflections
   const P_dot_P: number[] = [];
   for (let i = 0; i < m; i++) {
     let dot = 0;
     for (let j = 0; j < n; j++) {
       dot += phaseProfiles[i][j] * phaseProfiles[i][j];
     }
-    P_dot_P.push(Math.max(1e-6, dot));
+    const l2Reg = Math.max(1e-6, dot * 1e-4);
+    P_dot_P.push(Math.max(1e-6, dot + l2Reg));
   }
 
   let iter = 0;
   let prevLoss = Infinity;
 
   for (iter = 0; iter < maxIterations; iter++) {
-    // Coordinate descent over each phase weight
     for (let i = 0; i < m; i++) {
       let numerator = 0;
       for (let j = 0; j < n; j++) {
-        // partial residual without phase i
         let otherPhases = 0;
         for (let k = 0; k < m; k++) {
           if (k !== i) otherPhases += weights[k] * phaseProfiles[k][j];
         }
         numerator += phaseProfiles[i][j] * (observedPoints[j] - otherPhases);
       }
-      // Non-negative projection with zero lower bound
       weights[i] = Math.max(0, numerator / P_dot_P[i]);
     }
 
-    // Evaluate residual loss
     let currentLoss = 0;
     for (let j = 0; j < n; j++) {
       let calc = 0;
@@ -522,41 +525,51 @@ export function optimizePhaseWeightsNNLS(
       currentLoss += diff * diff;
     }
 
-    if (Math.abs(prevLoss - currentLoss) < 1e-5) {
+    if (Math.abs(prevLoss - currentLoss) < 1e-6) {
       break;
     }
     prevLoss = currentLoss;
   }
 
-  // Calculate R_wp
+  // Calculate R_wp & Residual Variance for Inverse-Curvature Uncertainty
   let sumDiffSq = 0;
   let sumObsSq = 0;
+  let unweightedRss = 0;
   for (let j = 0; j < n; j++) {
     let calc = 0;
     for (let i = 0; i < m; i++) {
       calc += weights[i] * phaseProfiles[i][j];
     }
     const diff = observedPoints[j] - calc;
+    unweightedRss += diff * diff;
     const w = 1 / Math.max(1, observedPoints[j]);
     sumDiffSq += w * diff * diff;
     sumObsSq += w * observedPoints[j] * observedPoints[j];
   }
   const rwp = sumObsSq > 0 ? Math.sqrt(sumDiffSq / sumObsSq) * 100 : 0;
+  const dof = Math.max(1, n - m);
+  const sigmaSq = unweightedRss / dof;
 
-  // Normalize percentages
   const sumWeights = weights.reduce((acc, w) => acc + w, 0);
   const weightsMap: Record<string, number> = {};
   const percentagesMap: Record<string, number> = {};
+  const uncertaintiesMap: Record<string, number> = {};
 
   phaseNames.forEach((name, idx) => {
     weightsMap[name] = Number(weights[idx].toFixed(4));
-    percentagesMap[name] = sumWeights > 0 ? Number(((weights[idx] / sumWeights) * 100).toFixed(1)) : 0;
+    const pct = sumWeights > 0 ? (weights[idx] / sumWeights) * 100 : 0;
+    percentagesMap[name] = Number(pct.toFixed(1));
+    const weightStd = Math.sqrt(sigmaSq / P_dot_P[idx]);
+    const pctStd = sumWeights > 0 ? Math.min(8.5, Math.max(0.15, (weightStd / sumWeights) * 100)) : 0.5;
+    uncertaintiesMap[name] = Number(pctStd.toFixed(2));
   });
 
   return {
     weights: weightsMap,
     percentages: percentagesMap,
+    uncertainties: uncertaintiesMap,
     rwp: Number(rwp.toFixed(2)),
     iterations: iter + 1,
   };
 }
+

@@ -48,7 +48,9 @@ export const ScherrerModelComparison: React.FC<ScherrerModelComparisonProps> = (
       const avg = vals.reduce((a, b) => a + b, 0) / vals.length;
       averages[m] = avg;
 
-      const variance = vals.reduce((acc, v) => acc + Math.pow(v - avg, 2), 0) / vals.length;
+      const variance = vals.length > 1
+        ? vals.reduce((acc, v) => acc + Math.pow(v - avg, 2), 0) / (vals.length - 1)
+        : 0;
       stdDevs[m] = Math.sqrt(variance);
     });
 

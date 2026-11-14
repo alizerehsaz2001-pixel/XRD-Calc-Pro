@@ -119,14 +119,15 @@ plt.show()
 `;
     }
 
-    // 2. Williamson-Hall Size-Strain Deconvolution (UDM, USDM, UDEDM)
+    // 2. Williamson-Hall Size-Strain Deconvolution (UDM, USDM, UDEDM, SSP, Halder-Wagner, mWH, Stephens)
     if (lowerMethod.includes('williamson') || lowerMethod.includes('wh') || lowerMethod.includes('size-strain')) {
       const hasPrecomputed = xArray && yArray;
+      const strainModel = parameters.strainModel || 'UDM';
+      const youngsModulusGPa = parameters.youngsModulusGPa || 130.0;
 
       return `#!/usr/bin/env python3
 # ==============================================================================
-# XRD Analysis: Williamson-Hall Uniform Deformation Models
-# Size & Microstrain Deconvolution: β·cos(θ) = (K·λ / D) + 4·ε·sin(θ)
+# XRD Analysis: Williamson-Hall (${strainModel}) Size-Strain Deconvolution
 # ==============================================================================
 
 import numpy as np
@@ -135,10 +136,12 @@ import matplotlib.pyplot as plt
 # 1. Experimental Parameters
 wavelength = ${wavelength}  # X-ray wavelength in Å
 shape_factor_K = ${shapeFactor}
+strain_model = "${strainModel}"
+E_GPa = ${youngsModulusGPa}
 
-${hasPrecomputed ? `# Precomputed Williamson-Hall coordinates from App Engine
-x = np.array(${JSON.stringify(xArray)})  # x = 4 · sin θ
-y = np.array(${JSON.stringify(yArray)})  # y = β_sample · cos θ [rad]
+${hasPrecomputed ? `# Precomputed ${strainModel} coordinates from App Engine
+x = np.array(${JSON.stringify(xArray)})
+y = np.array(${JSON.stringify(yArray)})
 ` : `# Peak positions 2θ (deg) and observed FWHM β_obs (deg)
 two_theta_deg = np.array(${JSON.stringify(twoTheta)})
 fwhm_obs_deg = np.array(${JSON.stringify(beta)})
@@ -162,17 +165,41 @@ slope, intercept = np.polyfit(x, y, 1)
 r_matrix = np.corrcoef(x, y)
 r_squared = r_matrix[0, 1] ** 2
 
-# 3. Microstrain & Crystallite Size Extraction
-microstrain = slope
-strain_percent = slope * 100.0
-D_nm = (shape_factor_K * wavelength) / max(1e-9, intercept) / 10.0 if intercept > 0 else float('nan')
+# 3. Model-Specific Microstrain & Crystallite Size Extraction
+if strain_model == "SSP":
+    # (d * beta*)^2 = (K / D) * (d^2 * beta*) + (2 * eps)^2
+    D_nm = (shape_factor_K / max(1e-9, slope)) / 10.0 if slope > 0 else float('nan')
+    microstrain = 0.5 * np.sqrt(max(0.0, intercept))
+elif strain_model == "Halder-Wagner":
+    # (beta_HW / tan(theta))^2 = (K * lambda / D) * (beta_HW / (tan(theta)*sin(theta))) + 16 * eps^2
+    D_nm = (shape_factor_K * wavelength) / max(1e-9, slope) / 10.0 if slope > 0 else float('nan')
+    microstrain = 0.25 * np.sqrt(max(0.0, intercept))
+elif strain_model == "mWH":
+    # DeltaK = K / D + m * K_diff * sqrt(C_hkl)
+    D_nm = (shape_factor_K / max(1e-9, intercept)) / 10.0 if intercept > 0 else float('nan')
+    microstrain = 0.5 * max(0.0, slope) * np.sqrt(0.285)
+elif strain_model == "USDM":
+    # X = 4*sin(theta)/E_hkl => slope = sigma (GPa)
+    D_nm = (shape_factor_K * wavelength) / max(1e-9, intercept) / 10.0 if intercept > 0 else float('nan')
+    microstrain = max(0.0, slope) / E_GPa
+elif strain_model == "UDEDM":
+    # X = 4*sin(theta)*sqrt(2/E_hkl) => slope = sqrt(u) (GPa^0.5)
+    D_nm = (shape_factor_K * wavelength) / max(1e-9, intercept) / 10.0 if intercept > 0 else float('nan')
+    microstrain = np.sqrt(2.0 / E_GPa) * abs(slope)
+else:
+    # UDM / Stephens
+    D_nm = (shape_factor_K * wavelength) / max(1e-9, intercept) / 10.0 if intercept > 0 else float('nan')
+    microstrain = slope
+
+strain_percent = microstrain * 100.0
 
 print("=" * 60)
-print("         WILLIAMSON-HALL (UDM) ANALYSIS RESULTS")
+print(f"    WILLIAMSON-HALL ({strain_model}) ANALYSIS RESULTS")
 print("=" * 60)
 print(f"Lattice Microstrain (ε)        : {microstrain:.6e} ({strain_percent:.4f}%)")
 print(f"Crystallite Size (D)           : {D_nm:.2f} nm ({D_nm * 10.0:.2f} Å)")
-print(f"Linear Intercept (K·λ/D)       : {intercept:.6f}")
+print(f"Regression Slope (m)           : {slope:.6e}")
+print(f"Regression Intercept (c)       : {intercept:.6e}")
 print(f"Goodness of Fit (R²)           : {r_squared:.6f}")
 print("=" * 60)
 
@@ -181,11 +208,11 @@ plt.figure(figsize=(8, 5))
 plt.scatter(x, y, color='#10b981', edgecolor='#047857', s=80, label='Peak Reflections', zorder=5)
 x_fit = np.linspace(min(x) * 0.95, max(x) * 1.05, 100)
 plt.plot(x_fit, slope * x_fit + intercept, color='#ef4444', linestyle='--', linewidth=2,
-         label=f'UDM Fit: ε = {microstrain:.2e}, R² = {r_squared:.4f}')
+         label=f'{strain_model} Fit: D = {D_nm:.1f} nm, ε = {strain_percent:.3f}%, R² = {r_squared:.4f}')
 
-plt.xlabel('4 · sin(θ)', fontsize=11)
-plt.ylabel('β_sample · cos(θ) [radians]', fontsize=11)
-plt.title('Williamson-Hall Plot: Size & Strain Separation', fontsize=12, fontweight='bold')
+plt.xlabel(f'{strain_model} X-Coordinate', fontsize=11)
+plt.ylabel(f'{strain_model} Y-Coordinate', fontsize=11)
+plt.title(f'Williamson-Hall ({strain_model}): Size & Strain Separation', fontsize=12, fontweight='bold')
 plt.grid(True, linestyle=':', alpha=0.6)
 plt.legend(frameon=True, facecolor='white', framealpha=0.9)
 plt.tight_layout()

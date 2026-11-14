@@ -67,34 +67,47 @@ export const ScherrerCadSchematic: React.FC<ScherrerCadSchematicProps> = ({
     const thetaRad = (activePeak.twoTheta / 2) * (Math.PI / 180);
     const cosTheta = Math.max(0.05, Math.cos(thetaRad));
     const kEff = activePeak.effectiveK || constantK;
-    const wObs = Math.max(0.01, activePeak.fwhmObs - (kAlpha2Correction ? (activePeak.kAlpha2BroadeningDeg || 0) : 0));
+    const ka2Deg = kAlpha2Correction ? (activePeak.kAlpha2BroadeningDeg || 0) : 0;
+    const wObs = ka2Deg > 0 && activePeak.fwhmObs > ka2Deg * 1.05
+      ? Math.sqrt(Math.max(1e-6, Math.pow(activePeak.fwhmObs, 2) - Math.pow(ka2Deg, 2)))
+      : activePeak.fwhmObs;
     const wInst = Math.max(0.001, activeInstFwhm);
 
-    const models: { id: BroadeningModelType; formula: string; color: string }[] = [
-      { id: 'Gaussian', formula: '√(β_obs² − β_inst²)', color: '#38bdf8' },
-      { id: 'Lorentzian', formula: 'β_obs − β_inst', color: '#fbbf24' },
-      { id: 'Pseudo-Voigt', formula: '0.5·β_L + 0.5·β_G', color: '#a855f7' },
-      { id: 'de Keijser', formula: 'β_obs − β_inst²/β_obs', color: '#34d399' },
-      { id: 'Halder-Wagner', formula: '½[β_o − √(β_o(4β_i−3β_o))]', color: '#f43f5e' }
+    const models: {
+      id: BroadeningModelType;
+      key: 'gaussian' | 'lorentzian' | 'pseudoVoigt' | 'deKeijser' | 'halderWagner';
+      formula: string;
+      color: string;
+    }[] = [
+      { id: 'Gaussian', key: 'gaussian', formula: '√(β_obs² − β_inst²)', color: '#38bdf8' },
+      { id: 'Lorentzian', key: 'lorentzian', formula: 'β_obs − β_inst', color: '#fbbf24' },
+      { id: 'Pseudo-Voigt', key: 'pseudoVoigt', formula: '(1−η)β_G + η·β_L', color: '#a855f7' },
+      { id: 'de Keijser', key: 'deKeijser', formula: 'Voigt β_C(φ) → D_v', color: '#34d399' },
+      { id: 'Halder-Wagner', key: 'halderWagner', formula: 'β_obs − β_inst²/β_obs', color: '#f43f5e' }
     ];
 
     return models.map(m => {
       if (wObs <= wInst) {
         return { ...m, betaDeg: 0, sizeNm: 0 };
       }
+      if (activePeak.modelComparison && activePeak.modelComparison[m.key] > 0) {
+        const sizeNm = activePeak.modelComparison[m.key];
+        const betaRad = (kEff * (wavelength / 10)) / (sizeNm * cosTheta);
+        const betaDeg = betaRad * (180 / Math.PI);
+        return { ...m, betaDeg, sizeNm };
+      }
       let betaDeg = 0;
+      const bG = Math.sqrt(Math.pow(wObs, 2) - Math.pow(wInst, 2));
+      const bL = wObs - wInst;
       if (m.id === 'Gaussian') {
-        betaDeg = Math.sqrt(Math.pow(wObs, 2) - Math.pow(wInst, 2));
+        betaDeg = bG;
       } else if (m.id === 'Lorentzian') {
-        betaDeg = wObs - wInst;
-      } else if (m.id === 'de Keijser') {
-        betaDeg = wObs - Math.pow(wInst, 2) / wObs;
+        betaDeg = bL;
       } else if (m.id === 'Halder-Wagner') {
-        const disc = Math.max(0, wObs * (4 * wInst - 3 * wObs));
-        betaDeg = 0.5 * (wObs - Math.sqrt(disc));
+        betaDeg = wObs - Math.pow(wInst, 2) / wObs;
+      } else if (m.id === 'de Keijser') {
+        betaDeg = Math.max(1e-4, 0.62 * wObs - 0.34 * wInst);
       } else {
-        const bG = Math.sqrt(Math.pow(wObs, 2) - Math.pow(wInst, 2));
-        const bL = wObs - wInst;
         betaDeg = 0.5 * bG + 0.5 * bL;
       }
       const betaRad = betaDeg * (Math.PI / 180);
@@ -642,10 +655,10 @@ export const ScherrerCadSchematic: React.FC<ScherrerCadSchematicProps> = ({
                   {(
                     [
                       { id: 'Isotropic', label: 'Isotropic Sphere', ref: 'K = const (0.89–0.94)' },
-                      { id: 'Cube', label: 'Cubic {100} Habit', ref: 'K₁₀₀=0.890, K₁₁₁=0.855' },
-                      { id: 'Octahedron', label: 'Octahedral {111} Habit', ref: 'K₁₀₀=1.101, K₁₁₁=0.855' },
-                      { id: 'Tetrahedron', label: 'Tetrahedral {111} Habit', ref: 'K₁₀₀=1.386, K₁₁₁=1.028' },
-                      { id: 'HexagonalRod', label: 'Hexagonal c-Axis Rod', ref: 'K₀₀l=0.89, K_hk0=0.94' }
+                      { id: 'Cube', label: 'Cubic {100} Habit', ref: 'K₁₀₀=0.886, K₁₁₁=0.855' },
+                      { id: 'Octahedron', label: 'Octahedral {111} Habit', ref: 'K₁₀₀=0.809, K₁₁₁=0.860' },
+                      { id: 'Tetrahedron', label: 'Tetrahedral {111} Habit', ref: 'K₁₀₀=1.020, K₁₁₁=0.785' },
+                      { id: 'HexagonalRod', label: 'Hexagonal c-Axis Rod', ref: 'K₀₀l=1.04, K_hk0=0.88' }
                     ] as { id: MorphologyKMode; label: string; ref: string }[]
                   ).map(h => {
                     const active = morphologyKMode === h.id;

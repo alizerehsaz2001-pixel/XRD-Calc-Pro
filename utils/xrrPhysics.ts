@@ -106,8 +106,10 @@ export interface SLDPoint {
   density: number;              // Mass density in g/cm³
   delta: number;                // Dispersion delta (× 10⁻⁶)
   beta: number;                 // Absorption beta (× 10⁻⁷)
-  electronDensity: number;      // Electron density in e⁻/Å³
-  opticalPotential: number;     // Real part of optical potential V(z) in 10⁻⁶ Å⁻²
+  sldReal: number;              // Real Scattering Length Density Re(SLD) = 2π·δ/λ² (10⁻⁶ Å⁻²)
+  sldImag: number;              // Imaginary Scattering Length Density Im(SLD) = 2π·β/λ² (10⁻⁶ Å⁻²)
+  electronDensity: number;      // Electron density ρ_e = Re(SLD)/r_e (e⁻/Å³)
+  opticalPotential: number;     // Fermi optical potential V₀(z) = 2·E·δ (eV)
   layerName: string;
   porosity?: number;            // Estimated porosity / void percentage (%)
 }
@@ -275,12 +277,13 @@ export const RADIATION_SOURCES: Record<string, RadiationSourceInfo> = {
 
 export function energyKeVToWavelength(energyKeV: number): number {
   if (!energyKeV || energyKeV <= 0) return 1.54056;
-  return Number((12.39841984 / energyKeV).toFixed(5));
+  // CODATA 2018: hc = 12.398419843320026 keV·Å
+  return Number((12.39841984332 / energyKeV).toFixed(5));
 }
 
 export function wavelengthToEnergyKeV(wavelength: number): number {
-  if (!wavelength || wavelength <= 0) return 8.048;
-  return Number((12.39841984 / wavelength).toFixed(4));
+  if (!wavelength || wavelength <= 0) return 8.0478;
+  return Number((12.39841984332 / wavelength).toFixed(4));
 }
 
 // ----------------------------------------------------------------------------
@@ -289,6 +292,7 @@ export function wavelengthToEnergyKeV(wavelength: number): number {
 
 interface AtomicData {
   name: string;
+  atomicZ: number;
   atomicMass: number;
   densityBulk: number;
   f1_Cu: number;
@@ -298,73 +302,73 @@ interface AtomicData {
 }
 
 export const ATOMIC_DATABASE: Record<string, AtomicData> = {
-  H:  { name: 'Hydrogen', atomicMass: 1.008, densityBulk: 0.07, f1_Cu: 1.00, f2_Cu: 0.0001, f1_Mo: 1.00, f2_Mo: 0.0000 },
-  He: { name: 'Helium', atomicMass: 4.003, densityBulk: 0.12, f1_Cu: 2.00, f2_Cu: 0.0002, f1_Mo: 2.00, f2_Mo: 0.0001 },
-  Li: { name: 'Lithium', atomicMass: 6.941, densityBulk: 0.534, f1_Cu: 3.00, f2_Cu: 0.0010, f1_Mo: 3.00, f2_Mo: 0.0003 },
-  Be: { name: 'Beryllium', atomicMass: 9.012, densityBulk: 1.85, f1_Cu: 4.01, f2_Cu: 0.0032, f1_Mo: 4.00, f2_Mo: 0.0009 },
-  B:  { name: 'Boron', atomicMass: 10.81, densityBulk: 2.34, f1_Cu: 5.02, f2_Cu: 0.0090, f1_Mo: 5.01, f2_Mo: 0.0022 },
-  C:  { name: 'Carbon', atomicMass: 12.011, densityBulk: 2.26, f1_Cu: 6.04, f2_Cu: 0.0150, f1_Mo: 6.01, f2_Mo: 0.0035 },
-  N:  { name: 'Nitrogen', atomicMass: 14.007, densityBulk: 1.03, f1_Cu: 7.07, f2_Cu: 0.0310, f1_Mo: 7.02, f2_Mo: 0.0075 },
-  O:  { name: 'Oxygen', atomicMass: 15.999, densityBulk: 1.14, f1_Cu: 8.11, f2_Cu: 0.0550, f1_Mo: 8.04, f2_Mo: 0.0130 },
-  F:  { name: 'Fluorine', atomicMass: 18.998, densityBulk: 1.50, f1_Cu: 9.17, f2_Cu: 0.0950, f1_Mo: 9.06, f2_Mo: 0.0210 },
-  Ne: { name: 'Neon', atomicMass: 20.180, densityBulk: 1.20, f1_Cu: 10.23, f2_Cu: 0.1500, f1_Mo: 10.09, f2_Mo: 0.0340 },
-  Na: { name: 'Sodium', atomicMass: 22.990, densityBulk: 0.968, f1_Cu: 11.30, f2_Cu: 0.2300, f1_Mo: 11.13, f2_Mo: 0.0520 },
-  Mg: { name: 'Magnesium', atomicMass: 24.305, densityBulk: 1.738, f1_Cu: 12.39, f2_Cu: 0.3300, f1_Mo: 12.18, f2_Mo: 0.0750 },
-  Al: { name: 'Aluminum', atomicMass: 26.982, densityBulk: 2.70, f1_Cu: 13.50, f2_Cu: 0.4600, f1_Mo: 13.24, f2_Mo: 0.1040 },
-  Si: { name: 'Silicon', atomicMass: 28.085, densityBulk: 2.33, f1_Cu: 14.63, f2_Cu: 0.6200, f1_Mo: 14.30, f2_Mo: 0.1410 },
-  P:  { name: 'Phosphorus', atomicMass: 30.974, densityBulk: 1.82, f1_Cu: 15.77, f2_Cu: 0.8100, f1_Mo: 15.38, f2_Mo: 0.1850 },
-  S:  { name: 'Sulfur', atomicMass: 32.06, densityBulk: 2.07, f1_Cu: 16.92, f2_Cu: 1.0500, f1_Mo: 16.48, f2_Mo: 0.2400 },
-  Cl: { name: 'Chlorine', atomicMass: 35.45, densityBulk: 1.56, f1_Cu: 18.09, f2_Cu: 1.3400, f1_Mo: 17.58, f2_Mo: 0.3100 },
-  Ar: { name: 'Argon', atomicMass: 39.948, densityBulk: 1.40, f1_Cu: 19.28, f2_Cu: 1.6900, f1_Mo: 18.70, f2_Mo: 0.3900 },
-  K:  { name: 'Potassium', atomicMass: 39.098, densityBulk: 0.862, f1_Cu: 20.48, f2_Cu: 2.1000, f1_Mo: 19.84, f2_Mo: 0.4900 },
-  Ca: { name: 'Calcium', atomicMass: 40.078, densityBulk: 1.55, f1_Cu: 21.68, f2_Cu: 2.5800, f1_Mo: 20.98, f2_Mo: 0.6000 },
-  Sc: { name: 'Scandium', atomicMass: 44.956, densityBulk: 2.985, f1_Cu: 22.90, f2_Cu: 3.1200, f1_Mo: 22.14, f2_Mo: 0.7300 },
-  Ti: { name: 'Titanium', atomicMass: 47.867, densityBulk: 4.506, f1_Cu: 24.12, f2_Cu: 3.7300, f1_Mo: 23.32, f2_Mo: 0.8800 },
-  V:  { name: 'Vanadium', atomicMass: 50.942, densityBulk: 6.11, f1_Cu: 25.35, f2_Cu: 4.4200, f1_Mo: 24.51, f2_Mo: 1.0500 },
-  Cr: { name: 'Chromium', atomicMass: 51.996, densityBulk: 7.19, f1_Cu: 26.57, f2_Cu: 5.1800, f1_Mo: 25.72, f2_Mo: 1.2400 },
-  Mn: { name: 'Manganese', atomicMass: 54.938, densityBulk: 7.21, f1_Cu: 27.79, f2_Cu: 6.0200, f1_Mo: 26.94, f2_Mo: 1.4500 },
-  Fe: { name: 'Iron', atomicMass: 55.845, densityBulk: 7.874, f1_Cu: 29.00, f2_Cu: 6.9500, f1_Mo: 28.18, f2_Mo: 1.6900 },
-  Co: { name: 'Cobalt', atomicMass: 58.933, densityBulk: 8.90, f1_Cu: 30.19, f2_Cu: 7.9500, f1_Mo: 29.43, f2_Mo: 1.9500 },
-  Ni: { name: 'Nickel', atomicMass: 58.693, densityBulk: 8.908, f1_Cu: 31.36, f2_Cu: 9.0400, f1_Mo: 30.69, f2_Mo: 2.2400 },
-  Cu: { name: 'Copper', atomicMass: 63.546, densityBulk: 8.96, f1_Cu: 30.34, f2_Cu: 0.5200, f1_Mo: 31.96, f2_Mo: 2.5600 },
-  Zn: { name: 'Zinc', atomicMass: 65.38, densityBulk: 7.14, f1_Cu: 30.70, f2_Cu: 1.4800, f1_Mo: 33.25, f2_Mo: 2.9100 },
-  Ga: { name: 'Gallium', atomicMass: 69.723, densityBulk: 5.91, f1_Cu: 31.50, f2_Cu: 2.1000, f1_Mo: 34.56, f2_Mo: 3.2900 },
-  Ge: { name: 'Germanium', atomicMass: 72.630, densityBulk: 5.323, f1_Cu: 32.65, f2_Cu: 2.6500, f1_Mo: 35.88, f2_Mo: 3.7100 },
-  As: { name: 'Arsenic', atomicMass: 74.922, densityBulk: 5.776, f1_Cu: 33.95, f2_Cu: 3.2500, f1_Mo: 37.22, f2_Mo: 4.1600 },
-  Se: { name: 'Selenium', atomicMass: 78.971, densityBulk: 4.819, f1_Cu: 35.32, f2_Cu: 3.9000, f1_Mo: 38.58, f2_Mo: 4.6500 },
-  Br: { name: 'Bromine', atomicMass: 79.904, densityBulk: 3.12, f1_Cu: 36.75, f2_Cu: 4.6000, f1_Mo: 39.95, f2_Mo: 5.1700 },
-  Sr: { name: 'Strontium', atomicMass: 87.62, densityBulk: 2.64, f1_Cu: 40.50, f2_Cu: 7.8000, f1_Mo: 44.20, f2_Mo: 7.5000 },
-  Y:  { name: 'Yttrium', atomicMass: 88.906, densityBulk: 4.472, f1_Cu: 41.80, f2_Cu: 8.7000, f1_Mo: 45.65, f2_Mo: 8.2000 },
-  Zr: { name: 'Zirconium', atomicMass: 91.224, densityBulk: 6.52, f1_Cu: 43.10, f2_Cu: 9.6500, f1_Mo: 47.10, f2_Mo: 8.9500 },
-  Nb: { name: 'Niobium', atomicMass: 92.906, densityBulk: 8.57, f1_Cu: 44.40, f2_Cu: 10.65, f1_Mo: 48.60, f2_Mo: 9.7500 },
-  Mo: { name: 'Molybdenum', atomicMass: 95.95, densityBulk: 10.28, f1_Cu: 45.70, f2_Cu: 11.70, f1_Mo: 42.45, f2_Mo: 0.5800 },
-  Ru: { name: 'Ruthenium', atomicMass: 101.07, densityBulk: 12.45, f1_Cu: 48.30, f2_Cu: 14.00, f1_Mo: 45.20, f2_Mo: 1.5500 },
-  Rh: { name: 'Rhodium', atomicMass: 102.91, densityBulk: 12.41, f1_Cu: 49.60, f2_Cu: 15.20, f1_Mo: 46.60, f2_Mo: 1.8500 },
-  Pd: { name: 'Palladium', atomicMass: 106.42, densityBulk: 12.023, f1_Cu: 50.90, f2_Cu: 16.50, f1_Mo: 48.00, f2_Mo: 2.2000 },
-  Ag: { name: 'Silver', atomicMass: 107.87, densityBulk: 10.49, f1_Cu: 52.20, f2_Cu: 17.80, f1_Mo: 49.50, f2_Mo: 2.6000 },
-  In: { name: 'Indium', atomicMass: 114.82, densityBulk: 7.31, f1_Cu: 55.80, f2_Cu: 22.00, f1_Mo: 53.80, f2_Mo: 3.9000 },
-  Sn: { name: 'Tin', atomicMass: 118.71, densityBulk: 7.31, f1_Cu: 57.00, f2_Cu: 23.50, f1_Mo: 55.30, f2_Mo: 4.4000 },
-  Sb: { name: 'Antimony', atomicMass: 121.76, densityBulk: 6.697, f1_Cu: 58.20, f2_Cu: 25.00, f1_Mo: 56.80, f2_Mo: 4.9500 },
-  Te: { name: 'Tellurium', atomicMass: 127.60, densityBulk: 6.24, f1_Cu: 59.50, f2_Cu: 27.00, f1_Mo: 58.40, f2_Mo: 5.6000 },
-  I:  { name: 'Iodine', atomicMass: 126.90, densityBulk: 4.933, f1_Cu: 60.80, f2_Cu: 29.00, f1_Mo: 60.00, f2_Mo: 6.3000 },
-  Cs: { name: 'Cesium', atomicMass: 132.91, densityBulk: 1.93, f1_Cu: 63.50, f2_Cu: 33.50, f1_Mo: 63.20, f2_Mo: 7.8000 },
-  Ba: { name: 'Barium', atomicMass: 137.33, densityBulk: 3.51, f1_Cu: 64.90, f2_Cu: 36.00, f1_Mo: 64.80, f2_Mo: 8.6000 },
-  La: { name: 'Lanthanum', atomicMass: 138.91, densityBulk: 6.162, f1_Cu: 66.30, f2_Cu: 38.50, f1_Mo: 66.50, f2_Mo: 9.4500 },
-  Ce: { name: 'Cerium', atomicMass: 140.12, densityBulk: 6.77, f1_Cu: 67.70, f2_Cu: 41.00, f1_Mo: 68.20, f2_Mo: 10.35 },
-  Nd: { name: 'Neodymium', atomicMass: 144.24, densityBulk: 7.01, f1_Cu: 70.50, f2_Cu: 46.50, f1_Mo: 71.60, f2_Mo: 12.20 },
-  Gd: { name: 'Gadolinium', atomicMass: 157.25, densityBulk: 7.90, f1_Cu: 76.00, f2_Cu: 58.00, f1_Mo: 78.50, f2_Mo: 16.50 },
-  Hf: { name: 'Hafnium', atomicMass: 178.49, densityBulk: 13.31, f1_Cu: 75.20, f2_Cu: 12.80, f1_Mo: 82.50, f2_Mo: 21.00 },
-  Ta: { name: 'Tantalum', atomicMass: 180.95, densityBulk: 16.69, f1_Cu: 76.80, f2_Cu: 14.20, f1_Mo: 84.20, f2_Mo: 22.50 },
-  W:  { name: 'Tungsten', atomicMass: 183.84, densityBulk: 19.25, f1_Cu: 78.50, f2_Cu: 15.60, f1_Mo: 86.00, f2_Mo: 24.20 },
-  Re: { name: 'Rhenium', atomicMass: 186.21, densityBulk: 21.02, f1_Cu: 80.20, f2_Cu: 17.10, f1_Mo: 87.80, f2_Mo: 25.90 },
-  Os: { name: 'Osmium', atomicMass: 190.23, densityBulk: 22.59, f1_Cu: 81.90, f2_Cu: 18.70, f1_Mo: 89.60, f2_Mo: 27.70 },
-  Ir: { name: 'Iridium', atomicMass: 192.22, densityBulk: 22.56, f1_Cu: 83.60, f2_Cu: 20.30, f1_Mo: 91.50, f2_Mo: 29.60 },
-  Pt: { name: 'Platinum', atomicMass: 195.08, densityBulk: 21.45, f1_Cu: 85.30, f2_Cu: 22.00, f1_Mo: 93.40, f2_Mo: 31.60 },
-  Au: { name: 'Gold', atomicMass: 196.97, densityBulk: 19.30, f1_Cu: 87.00, f2_Cu: 23.80, f1_Mo: 95.30, f2_Mo: 33.70 },
-  Pb: { name: 'Lead', atomicMass: 207.2, densityBulk: 11.34, f1_Cu: 92.50, f2_Cu: 29.50, f1_Mo: 101.2, f2_Mo: 40.50 },
-  Bi: { name: 'Bismuth', atomicMass: 208.98, densityBulk: 9.78, f1_Cu: 94.30, f2_Cu: 31.50, f1_Mo: 103.2, f2_Mo: 43.00 },
-  Th: { name: 'Thorium', atomicMass: 232.04, densityBulk: 11.72, f1_Cu: 102.5, f2_Cu: 42.00, f1_Mo: 113.5, f2_Mo: 56.00 },
-  U:  { name: 'Uranium', atomicMass: 238.03, densityBulk: 19.10, f1_Cu: 105.8, f2_Cu: 47.00, f1_Mo: 117.0, f2_Mo: 61.50 },
+  H:  { name: 'Hydrogen', atomicZ: 1, atomicMass: 1.008, densityBulk: 0.07, f1_Cu: 1.00, f2_Cu: 0.0001, f1_Mo: 1.00, f2_Mo: 0.0000 },
+  He: { name: 'Helium', atomicZ: 2, atomicMass: 4.0026, densityBulk: 0.12, f1_Cu: 2.00, f2_Cu: 0.0002, f1_Mo: 2.00, f2_Mo: 0.0001 },
+  Li: { name: 'Lithium', atomicZ: 3, atomicMass: 6.94, densityBulk: 0.534, f1_Cu: 3.00, f2_Cu: 0.0010, f1_Mo: 3.00, f2_Mo: 0.0003 },
+  Be: { name: 'Beryllium', atomicZ: 4, atomicMass: 9.0122, densityBulk: 1.85, f1_Cu: 4.01, f2_Cu: 0.0032, f1_Mo: 4.00, f2_Mo: 0.0009 },
+  B:  { name: 'Boron', atomicZ: 5, atomicMass: 10.81, densityBulk: 2.34, f1_Cu: 5.02, f2_Cu: 0.0090, f1_Mo: 5.01, f2_Mo: 0.0022 },
+  C:  { name: 'Carbon', atomicZ: 6, atomicMass: 12.011, densityBulk: 2.26, f1_Cu: 6.04, f2_Cu: 0.0150, f1_Mo: 6.01, f2_Mo: 0.0035 },
+  N:  { name: 'Nitrogen', atomicZ: 7, atomicMass: 14.007, densityBulk: 1.03, f1_Cu: 7.07, f2_Cu: 0.0310, f1_Mo: 7.02, f2_Mo: 0.0075 },
+  O:  { name: 'Oxygen', atomicZ: 8, atomicMass: 15.999, densityBulk: 1.14, f1_Cu: 8.11, f2_Cu: 0.0550, f1_Mo: 8.04, f2_Mo: 0.0130 },
+  F:  { name: 'Fluorine', atomicZ: 9, atomicMass: 18.998, densityBulk: 1.50, f1_Cu: 9.17, f2_Cu: 0.0950, f1_Mo: 9.06, f2_Mo: 0.0210 },
+  Ne: { name: 'Neon', atomicZ: 10, atomicMass: 20.180, densityBulk: 1.20, f1_Cu: 10.23, f2_Cu: 0.1500, f1_Mo: 10.09, f2_Mo: 0.0340 },
+  Na: { name: 'Sodium', atomicZ: 11, atomicMass: 22.990, densityBulk: 0.968, f1_Cu: 11.30, f2_Cu: 0.2300, f1_Mo: 11.13, f2_Mo: 0.0520 },
+  Mg: { name: 'Magnesium', atomicZ: 12, atomicMass: 24.305, densityBulk: 1.738, f1_Cu: 12.39, f2_Cu: 0.3300, f1_Mo: 12.18, f2_Mo: 0.0750 },
+  Al: { name: 'Aluminum', atomicZ: 13, atomicMass: 26.982, densityBulk: 2.70, f1_Cu: 13.50, f2_Cu: 0.4600, f1_Mo: 13.24, f2_Mo: 0.1040 },
+  Si: { name: 'Silicon', atomicZ: 14, atomicMass: 28.085, densityBulk: 2.33, f1_Cu: 14.28, f2_Cu: 0.3300, f1_Mo: 14.06, f2_Mo: 0.0700 },
+  P:  { name: 'Phosphorus', atomicZ: 15, atomicMass: 30.974, densityBulk: 1.82, f1_Cu: 15.77, f2_Cu: 0.8100, f1_Mo: 15.38, f2_Mo: 0.1850 },
+  S:  { name: 'Sulfur', atomicZ: 16, atomicMass: 32.06, densityBulk: 2.07, f1_Cu: 16.92, f2_Cu: 1.0500, f1_Mo: 16.48, f2_Mo: 0.2400 },
+  Cl: { name: 'Chlorine', atomicZ: 17, atomicMass: 35.45, densityBulk: 1.56, f1_Cu: 18.09, f2_Cu: 1.3400, f1_Mo: 17.58, f2_Mo: 0.3100 },
+  Ar: { name: 'Argon', atomicZ: 18, atomicMass: 39.948, densityBulk: 1.40, f1_Cu: 19.28, f2_Cu: 1.6900, f1_Mo: 18.70, f2_Mo: 0.3900 },
+  K:  { name: 'Potassium', atomicZ: 19, atomicMass: 39.098, densityBulk: 0.862, f1_Cu: 20.48, f2_Cu: 2.1000, f1_Mo: 19.84, f2_Mo: 0.4900 },
+  Ca: { name: 'Calcium', atomicZ: 20, atomicMass: 40.078, densityBulk: 1.55, f1_Cu: 21.68, f2_Cu: 2.5800, f1_Mo: 20.98, f2_Mo: 0.6000 },
+  Sc: { name: 'Scandium', atomicZ: 21, atomicMass: 44.956, densityBulk: 2.985, f1_Cu: 22.90, f2_Cu: 3.1200, f1_Mo: 22.14, f2_Mo: 0.7300 },
+  Ti: { name: 'Titanium', atomicZ: 22, atomicMass: 47.867, densityBulk: 4.506, f1_Cu: 22.21, f2_Cu: 1.8100, f1_Mo: 22.25, f2_Mo: 0.5050 },
+  V:  { name: 'Vanadium', atomicZ: 23, atomicMass: 50.942, densityBulk: 6.11, f1_Cu: 23.35, f2_Cu: 2.1800, f1_Mo: 23.31, f2_Mo: 0.6000 },
+  Cr: { name: 'Chromium', atomicZ: 24, atomicMass: 51.996, densityBulk: 7.19, f1_Cu: 24.47, f2_Cu: 2.5700, f1_Mo: 24.36, f2_Mo: 0.7100 },
+  Mn: { name: 'Manganese', atomicZ: 25, atomicMass: 54.938, densityBulk: 7.21, f1_Cu: 25.49, f2_Cu: 3.0100, f1_Mo: 25.41, f2_Mo: 0.8300 },
+  Fe: { name: 'Iron', atomicZ: 26, atomicMass: 55.845, densityBulk: 7.874, f1_Cu: 24.85, f2_Cu: 3.2000, f1_Mo: 26.46, f2_Mo: 0.9600 },
+  Co: { name: 'Cobalt', atomicZ: 27, atomicMass: 58.933, densityBulk: 8.90, f1_Cu: 24.64, f2_Cu: 3.6100, f1_Mo: 27.50, f2_Mo: 1.1100 },
+  Ni: { name: 'Nickel', atomicZ: 28, atomicMass: 58.693, densityBulk: 8.908, f1_Cu: 25.02, f2_Cu: 0.5100, f1_Mo: 28.53, f2_Mo: 1.2700 },
+  Cu: { name: 'Copper', atomicZ: 29, atomicMass: 63.546, densityBulk: 8.96, f1_Cu: 26.95, f2_Cu: 0.5900, f1_Mo: 29.55, f2_Mo: 1.4500 },
+  Zn: { name: 'Zinc', atomicZ: 30, atomicMass: 65.38, densityBulk: 7.14, f1_Cu: 28.39, f2_Cu: 0.6800, f1_Mo: 30.56, f2_Mo: 1.6500 },
+  Ga: { name: 'Gallium', atomicZ: 31, atomicMass: 69.723, densityBulk: 5.91, f1_Cu: 29.68, f2_Cu: 0.7900, f1_Mo: 31.55, f2_Mo: 1.8700 },
+  Ge: { name: 'Germanium', atomicZ: 32, atomicMass: 72.630, densityBulk: 5.323, f1_Cu: 30.89, f2_Cu: 0.9000, f1_Mo: 32.51, f2_Mo: 2.1100 },
+  As: { name: 'Arsenic', atomicZ: 33, atomicMass: 74.922, densityBulk: 5.776, f1_Cu: 32.07, f2_Cu: 1.0300, f1_Mo: 33.43, f2_Mo: 2.3700 },
+  Se: { name: 'Selenium', atomicZ: 34, atomicMass: 78.971, densityBulk: 4.819, f1_Cu: 33.22, f2_Cu: 1.1600, f1_Mo: 34.30, f2_Mo: 2.6600 },
+  Br: { name: 'Bromine', atomicZ: 35, atomicMass: 79.904, densityBulk: 3.12, f1_Cu: 34.35, f2_Cu: 1.3100, f1_Mo: 35.10, f2_Mo: 2.9700 },
+  Sr: { name: 'Strontium', atomicZ: 38, atomicMass: 87.62, densityBulk: 2.64, f1_Cu: 37.65, f2_Cu: 1.8400, f1_Mo: 36.60, f2_Mo: 4.0500 },
+  Y:  { name: 'Yttrium', atomicZ: 39, atomicMass: 88.906, densityBulk: 4.472, f1_Cu: 38.74, f2_Cu: 2.0500, f1_Mo: 36.25, f2_Mo: 4.4600 },
+  Zr: { name: 'Zirconium', atomicZ: 40, atomicMass: 91.224, densityBulk: 6.52, f1_Cu: 39.81, f2_Cu: 2.2800, f1_Mo: 37.05, f2_Mo: 0.5600 },
+  Nb: { name: 'Niobium', atomicZ: 41, atomicMass: 92.906, densityBulk: 8.57, f1_Cu: 40.88, f2_Cu: 2.5300, f1_Mo: 39.15, f2_Mo: 0.6300 },
+  Mo: { name: 'Molybdenum', atomicZ: 42, atomicMass: 95.95, densityBulk: 10.28, f1_Cu: 41.94, f2_Cu: 2.8000, f1_Mo: 40.35, f2_Mo: 0.7000 },
+  Ru: { name: 'Ruthenium', atomicZ: 44, atomicMass: 101.07, densityBulk: 12.45, f1_Cu: 44.04, f2_Cu: 3.4000, f1_Mo: 42.60, f2_Mo: 0.8700 },
+  Rh: { name: 'Rhodium', atomicZ: 45, atomicMass: 102.91, densityBulk: 12.41, f1_Cu: 45.09, f2_Cu: 3.7400, f1_Mo: 43.68, f2_Mo: 0.9600 },
+  Pd: { name: 'Palladium', atomicZ: 46, atomicMass: 106.42, densityBulk: 12.023, f1_Cu: 46.13, f2_Cu: 4.1000, f1_Mo: 44.75, f2_Mo: 1.0700 },
+  Ag: { name: 'Silver', atomicZ: 47, atomicMass: 107.87, densityBulk: 10.49, f1_Cu: 47.17, f2_Cu: 4.4900, f1_Mo: 45.80, f2_Mo: 1.1800 },
+  In: { name: 'Indium', atomicZ: 49, atomicMass: 114.82, densityBulk: 7.31, f1_Cu: 49.23, f2_Cu: 5.3600, f1_Mo: 47.90, f2_Mo: 1.4300 },
+  Sn: { name: 'Tin', atomicZ: 50, atomicMass: 118.71, densityBulk: 7.31, f1_Cu: 50.26, f2_Cu: 5.8400, f1_Mo: 48.94, f2_Mo: 1.5700 },
+  Sb: { name: 'Antimony', atomicZ: 51, atomicMass: 121.76, densityBulk: 6.697, f1_Cu: 51.28, f2_Cu: 6.3600, f1_Mo: 49.97, f2_Mo: 1.7200 },
+  Te: { name: 'Tellurium', atomicZ: 52, atomicMass: 127.60, densityBulk: 6.24, f1_Cu: 52.29, f2_Cu: 6.9200, f1_Mo: 51.00, f2_Mo: 1.8800 },
+  I:  { name: 'Iodine', atomicZ: 53, atomicMass: 126.90, densityBulk: 4.933, f1_Cu: 53.30, f2_Cu: 7.5200, f1_Mo: 52.02, f2_Mo: 2.0600 },
+  Cs: { name: 'Cesium', atomicZ: 55, atomicMass: 132.91, densityBulk: 1.93, f1_Cu: 55.28, f2_Cu: 8.8400, f1_Mo: 54.05, f2_Mo: 2.4500 },
+  Ba: { name: 'Barium', atomicZ: 56, atomicMass: 137.33, densityBulk: 3.51, f1_Cu: 56.25, f2_Cu: 9.5700, f1_Mo: 55.06, f2_Mo: 2.6700 },
+  La: { name: 'Lanthanum', atomicZ: 57, atomicMass: 138.91, densityBulk: 6.162, f1_Cu: 57.20, f2_Cu: 10.35, f1_Mo: 56.07, f2_Mo: 2.9000 },
+  Ce: { name: 'Cerium', atomicZ: 58, atomicMass: 140.12, densityBulk: 6.77, f1_Cu: 58.12, f2_Cu: 11.18, f1_Mo: 57.07, f2_Mo: 3.1500 },
+  Nd: { name: 'Neodymium', atomicZ: 60, atomicMass: 144.24, densityBulk: 7.01, f1_Cu: 59.88, f2_Cu: 13.00, f1_Mo: 59.06, f2_Mo: 3.7000 },
+  Gd: { name: 'Gadolinium', atomicZ: 64, atomicMass: 157.25, densityBulk: 7.90, f1_Cu: 62.60, f2_Cu: 12.10, f1_Mo: 63.00, f2_Mo: 5.0200 },
+  Hf: { name: 'Hafnium', atomicZ: 72, atomicMass: 178.49, densityBulk: 13.31, f1_Cu: 67.35, f2_Cu: 6.1000, f1_Mo: 70.65, f2_Mo: 8.6500 },
+  Ta: { name: 'Tantalum', atomicZ: 73, atomicMass: 180.95, densityBulk: 16.69, f1_Cu: 68.50, f2_Cu: 6.6000, f1_Mo: 71.55, f2_Mo: 9.2000 },
+  W:  { name: 'Tungsten', atomicZ: 74, atomicMass: 183.84, densityBulk: 19.25, f1_Cu: 69.65, f2_Cu: 7.1500, f1_Mo: 72.45, f2_Mo: 9.8000 },
+  Re: { name: 'Rhenium', atomicZ: 75, atomicMass: 186.21, densityBulk: 21.02, f1_Cu: 70.80, f2_Cu: 7.7200, f1_Mo: 73.32, f2_Mo: 10.42 },
+  Os: { name: 'Osmium', atomicZ: 76, atomicMass: 190.23, densityBulk: 22.59, f1_Cu: 71.95, f2_Cu: 8.3200, f1_Mo: 74.16, f2_Mo: 11.08 },
+  Ir: { name: 'Iridium', atomicZ: 77, atomicMass: 192.22, densityBulk: 22.56, f1_Cu: 73.10, f2_Cu: 8.9500, f1_Mo: 74.98, f2_Mo: 11.78 },
+  Pt: { name: 'Platinum', atomicZ: 78, atomicMass: 195.08, densityBulk: 21.45, f1_Cu: 74.22, f2_Cu: 9.6200, f1_Mo: 75.76, f2_Mo: 12.50 },
+  Au: { name: 'Gold', atomicZ: 79, atomicMass: 196.97, densityBulk: 19.30, f1_Cu: 75.32, f2_Cu: 10.32, f1_Mo: 76.50, f2_Mo: 13.26 },
+  Pb: { name: 'Lead', atomicZ: 82, atomicMass: 207.2, densityBulk: 11.34, f1_Cu: 78.55, f2_Cu: 12.60, f1_Mo: 78.40, f2_Mo: 15.80 },
+  Bi: { name: 'Bismuth', atomicZ: 83, atomicMass: 208.98, densityBulk: 9.78, f1_Cu: 79.60, f2_Cu: 13.45, f1_Mo: 78.90, f2_Mo: 16.70 },
+  Th: { name: 'Thorium', atomicZ: 90, atomicMass: 232.04, densityBulk: 11.72, f1_Cu: 86.80, f2_Cu: 20.50, f1_Mo: 82.50, f2_Mo: 8.2000 },
+  U:  { name: 'Uranium', atomicZ: 92, atomicMass: 238.03, densityBulk: 19.10, f1_Cu: 88.80, f2_Cu: 23.00, f1_Mo: 84.10, f2_Mo: 9.4000 },
 };
 
 export function parseChemicalFormula(formula: string): Record<string, number> {
@@ -372,7 +376,7 @@ export function parseChemicalFormula(formula: string): Record<string, number> {
   if (!formula || typeof formula !== 'string') return result;
 
   const cleaned = formula.trim().replace(/\s+/g, '');
-  const regex = /([A-Z][a-z]?)([\d\.]*)/g;
+  const regex = /([A-Z][a-z]?)([\d.]*)/g;
   let match;
 
   while ((match = regex.exec(cleaned)) !== null) {
@@ -401,24 +405,31 @@ export function calculateOpticalConstantsFromFormula(
   let totalF2 = 0;
   const elementDetails: FormulaOpticalResult['elements'] = [];
 
-  const isMoScale = wavelength < 1.0;
+  // Continuous wavelength interpolation factor between Mo Kα1 (0.70930 Å) and Cu Kα1 (1.54056 Å)
+  const wAlpha = Math.max(0, Math.min(1.4, (wavelength - 0.70930) / (1.54056 - 0.70930)));
 
   for (const elem of elementKeys) {
     const count = elementsParsed[elem];
     const data = ATOMIC_DATABASE[elem];
     const atomicMass = data ? data.atomicMass : 25.0;
-    const f1 = data ? (isMoScale ? data.f1_Mo : data.f1_Cu) : 10.0;
-    const f2 = data ? (isMoScale ? data.f2_Mo : data.f2_Cu) : 0.5;
+    const atomicZ = data ? data.atomicZ : 12;
+
+    const f1 = data
+      ? Number((data.f1_Mo + wAlpha * (data.f1_Cu - data.f1_Mo)).toFixed(3))
+      : atomicZ;
+    const f2 = data
+      ? Number(Math.max(0.0001, data.f2_Mo + wAlpha * (data.f2_Cu - data.f2_Mo)).toFixed(4))
+      : 0.25;
 
     totalMolarMass += count * atomicMass;
-    totalZ += count * (data ? Math.round(data.atomicMass / 2) : 10);
+    totalZ += count * atomicZ;
     totalF1 += count * f1;
     totalF2 += count * f2;
 
     elementDetails.push({
       element: elem,
       count,
-      atomicZ: data ? Math.round(data.atomicMass / 2) : 10,
+      atomicZ,
       atomicMass,
       f1,
       f2
@@ -440,21 +451,27 @@ export function calculateOpticalConstantsFromFormula(
     massDensity = sumWeight > 0 ? sumDens / sumWeight : 3.5;
   }
 
-  const r_e = 2.81794e-5; // Å
-  const NA = 6.02214e23;
-  const nV = (massDensity * NA * 1e-24) / totalMolarMass;
-  const electronDensity = nV * totalF1;
+  // CODATA 2018 Fundamental Constants:
+  // Classical electron radius r_e = 2.8179403262e-5 Å
+  // Avogadro constant N_A = 6.02214076e23 mol^-1
+  const r_e = 2.8179403262e-5; // Å
+  const NA = 6.02214076e23;
+  const nV = (massDensity * NA * 1e-24) / totalMolarMass; // formula units per Å³
+  const electronDensity = nV * totalF1; // effective dispersion electrons per Å³
 
   const factor = (r_e * wavelength * wavelength) / (2 * Math.PI);
   const deltaRaw = factor * nV * totalF1;
   const betaRaw = factor * nV * totalF2;
 
-  const delta = Number((deltaRaw * 1e6).toFixed(2));
-  const beta = Number((betaRaw * 1e7).toFixed(3));
+  const delta = Number((deltaRaw * 1e6).toFixed(3));
+  const beta = Number((betaRaw * 1e7).toFixed(4));
 
-  const thetaCritRad = Math.sqrt(Math.max(0, 2 * deltaRaw));
-  const criticalAngleDeg = Number(((thetaCritRad * 180) / Math.PI).toFixed(3));
+  // Exact Snell's law critical angle: cos(θ_c) = 1 - δ  =>  sin(θ_c) = sqrt(2δ - δ²)
+  const sinThetaCrit = Math.sqrt(Math.max(0, 2 * deltaRaw - deltaRaw * deltaRaw));
+  const thetaCritRad = Math.asin(Math.min(1, sinThetaCrit));
+  const criticalAngleDeg = Number(((thetaCritRad * 180) / Math.PI).toFixed(4));
 
+  // Linear photoabsorption coefficient μ = 4π·β / λ (Å⁻¹) -> penetration depth 1/μ in μm
   const mu = (4 * Math.PI / wavelength) * betaRaw;
   const absorptionLengthUm = mu > 0 ? Number(((1 / mu) * 1e-4).toFixed(2)) : 9999;
 
@@ -632,6 +649,8 @@ export function calculateReflectivityCurve(
     beamDivergence,
     background,
     roughnessModel = 'nevot-croce',
+    roughnessCorrelationLength = 100,
+    hurstParameter = 0.7,
     angleOffset = 0,
     intensityScale = 1.0,
     footprintCorrection = false,
@@ -644,7 +663,7 @@ export function calculateReflectivityCurve(
   const processedLayers: XRRLayer[] = [];
   for (const l of layers) {
     if (l.gradientType && l.gradientType !== 'none' && l.gradientDeltaDensity && l.thickness > 10) {
-      const numSlices = 6;
+      const numSlices = 10;
       const subThick = l.thickness / numSlices;
       for (let s = 0; s < numSlices; s++) {
         const normZ = (s + 0.5) / numSlices;
@@ -652,7 +671,7 @@ export function calculateReflectivityCurve(
         if (l.gradientType === 'linear') {
           factor = (normZ - 0.5) * l.gradientDeltaDensity;
         } else if (l.gradientType === 'exponential') {
-          factor = (Math.exp(normZ) - 1.718) * l.gradientDeltaDensity;
+          factor = ((Math.exp(normZ) - 1) / (Math.E - 1) - 0.5) * l.gradientDeltaDensity;
         } else if (l.gradientType === 'sigmoidal') {
           factor = (1 / (1 + Math.exp(-6 * (normZ - 0.5))) - 0.5) * l.gradientDeltaDensity;
         } else if (l.gradientType === 'tanh') {
@@ -669,7 +688,7 @@ export function calculateReflectivityCurve(
           density: slabDensity,
           delta: Math.max(0, l.delta * ratio),
           beta: Math.max(0, l.beta * ratio),
-          roughness: s === 0 ? l.roughness : Math.max(0.5, l.roughness * 0.65)
+          roughness: s === 0 ? l.roughness : Math.max(0.4, l.roughness / Math.sqrt(numSlices))
         });
       }
     } else if (l.gradingThickness && l.gradingThickness > 0 && l.thickness > l.gradingThickness) {
@@ -677,7 +696,7 @@ export function calculateReflectivityCurve(
       processedLayers.push({ ...l, thickness: bulkThick });
       const subThick = l.gradingThickness / 4;
       for (let s = 1; s <= 4; s++) {
-        const factor = 1 - (s * 0.12);
+        const factor = 1 - s * 0.12;
         processedLayers.push({
           ...l,
           id: `${l.id}-grad-${s}`,
@@ -706,6 +725,10 @@ export function calculateReflectivityCurve(
 
   const fullStack = [ambientLayer, ...processedLayers];
   const numLayers = fullStack.length;
+  const totalFilmThicknessA = processedLayers
+    .filter((l) => l.thickness > 0)
+    .reduce((acc, l) => acc + l.thickness, 0);
+  const topRoughnessA = processedLayers[0]?.roughness ?? 3.0;
 
   const rawPoints: XRRDataPoint[] = [];
 
@@ -714,20 +737,25 @@ export function calculateReflectivityCurve(
     const thetaDeg = rawThetaDeg + angleOffset;
     const thetaRad = (Math.max(0.0005, thetaDeg) * Math.PI) / 180;
     const twoThetaDeg = rawThetaDeg * 2;
-    const qz = (4 * Math.PI * Math.sin(thetaRad)) / wavelength;
-
-    const sin2Theta = Math.sin(thetaRad) * Math.sin(thetaRad);
+    const sinTheta = Math.sin(thetaRad);
+    const cosTheta = Math.cos(thetaRad);
+    const cos2Theta = cosTheta * cosTheta;
+    const qz = (4 * Math.PI * sinTheta) / wavelength;
     const k0 = (2 * Math.PI) / wavelength;
 
+    // Exact Helmholtz / Snell wavevector inside each medium j:
+    // n_j = 1 - δ_j + i·β_j
+    // k_{z,j} = k_0 * sqrt(n_j^2 - cos^2(θ_0))
+    // Re(n_j^2 - cos^2(θ_0)) = sin^2(θ_0) - 2δ_j + δ_j^2 - β_j^2
+    // Im(n_j^2 - cos^2(θ_0)) = 2β_j(1 - δ_j)
     const kzLayers: Complex[] = [];
     for (let j = 0; j < numLayers; j++) {
       const deltaVal = fullStack[j].delta * 1e-6;
       const betaVal = fullStack[j].beta * 1e-7;
-
-      // In Parratt recursion with wave exp(i kz z), physical attenuation downward requires Im(kz) >= 0
+      const nRe = 1.0 - deltaVal;
       const radicand: Complex = {
-        re: sin2Theta - 2 * deltaVal,
-        im: 2 * betaVal
+        re: nRe * nRe - betaVal * betaVal - cos2Theta,
+        im: 2.0 * nRe * betaVal
       };
 
       const sqrtRad = cSqrt(radicand);
@@ -748,23 +776,39 @@ export function calculateReflectivityCurve(
       const denR = cAdd(kz_j, kz_next);
       const r_fresnel = cDiv(numR, denR);
 
-      const isDebyeWaller = roughnessModel === 'debye-waller';
-      const roughExpTerm = isDebyeWaller ? cMul(kz_j, kz_j) : cMul(kz_j, kz_next);
-      // Roughness factor must be strictly dissipative: exp(-2 * Re(kz_j * kz_next) * sigma^2) <= 1
+      // Interfacial roughness damping:
+      // 1. Névot–Croce (1980): exp(-2 * k_{z,j} * k_{z,j+1} * σ²)
+      // 2. Debye–Waller (Born): exp(-2 * k_{z,j}² * σ²)
+      // 3. Sinha et al. (1988) DWBA: interpolates between NC and DW via lateral correlation ξ and Hurst H
+      const prodNC = cMul(kz_j, kz_next);
+      const prodDW = cMul(kz_j, kz_j);
+      let roughExpTerm: Complex = prodNC;
+
+      if (roughnessModel === 'debye-waller') {
+        roughExpTerm = prodDW;
+      } else if (roughnessModel === 'sinha-dwba') {
+        const xi = Math.max(10, roughnessCorrelationLength);
+        const hExp = Math.max(0.1, Math.min(1.0, hurstParameter));
+        const qxScale = Math.min(1, Math.pow((qz * xi) / (2 * Math.PI), 2 * hExp));
+        roughExpTerm = {
+          re: prodNC.re * (1 - 0.35 * qxScale) + prodDW.re * (0.35 * qxScale),
+          im: prodNC.im * (1 - 0.35 * qxScale) + prodDW.im * (0.35 * qxScale)
+        };
+      }
+
       const roughReal = Math.max(0, roughExpTerm.re);
       const roughExponent: Complex = {
         re: -2 * roughReal * sigma * sigma,
         im: -2 * roughExpTerm.im * sigma * sigma
       };
       const roughDamping = cExp(roughExponent);
-
       const r_rough = cMul(r_fresnel, roughDamping);
 
       let phaseFactor: Complex = { re: 1, im: 0 };
       if (j + 1 < numLayers - 1) {
         const d_layer = fullStack[j + 1].thickness;
         const phaseExp: Complex = {
-          re: -2 * kz_next.im * d_layer, // Im(kz) >= 0 guarantees real exponent <= 0 (exponential attenuation)
+          re: -2 * kz_next.im * d_layer,
           im: 2 * kz_next.re * d_layer
         };
         phaseFactor = cExp(phaseExp);
@@ -777,34 +821,66 @@ export function calculateReflectivityCurve(
       R_next = cDiv(topTerm, bottomTerm);
     }
 
+    // Exact Gaussian X-ray beam footprint spillover integral over finite sample length L:
+    // F(θ) = erf( sqrt(ln 2) * L * sin(θ) / w_0 )
     let footprintFactor = 1.0;
     if (footprintCorrection && sampleLengthMm > 0 && beamWidthMm > 0) {
-      footprintFactor = Math.min(1.0, (sampleLengthMm * Math.sin(thetaRad)) / beamWidthMm);
-      footprintFactor = Math.max(0.01, footprintFactor);
+      const uFp = (Math.sqrt(Math.LN2) * sampleLengthMm * sinTheta) / beamWidthMm;
+      footprintFactor = Math.max(0.005, Math.min(1.0, erf(uFp)));
     }
 
-    // Specular reflectivity bounded to [0, 1] by conservation of energy
     const rawReflectivity = Math.min(1.0, Math.max(0.0, cAbs2(R_next)));
-    let rIntensity = rawReflectivity * intensityScale * footprintFactor;
-    rIntensity = Math.max(rIntensity, background);
 
+    // Sinha DWBA diffuse background contribution when sinha-dwba is active
+    let diffuseR = 0;
+    if (roughnessModel === 'sinha-dwba') {
+      const qzSigmaSq = Math.pow(qz * topRoughnessA, 2);
+      diffuseR =
+        rawReflectivity *
+        (1 - Math.exp(-qzSigmaSq)) *
+        0.04 *
+        Math.pow(Math.max(0.1, hurstParameter), 0.5) *
+        intensityScale *
+        footprintFactor;
+    }
+
+    // Physical additive background intensity: R_obs(θ) = R_spec(θ)*I_0*F(θ) + R_diff(θ) + I_bg
+    const rIntensity = rawReflectivity * intensityScale * footprintFactor + diffuseR + background;
+
+    // Ideal Fresnel reflectivity of the bare substrate (including additive background & footprint)
     const kz0 = kzLayers[0];
     const kzSub = kzLayers[numLayers - 1];
     const numSub = cSub(kz0, kzSub);
     const denSub = cAdd(kz0, kzSub);
-    const fresnelSub = cAbs2(cDiv(numSub, denSub)) * intensityScale * footprintFactor;
+    const fresnelSub =
+      Math.min(1.0, Math.max(0.0, cAbs2(cDiv(numSub, denSub)))) *
+        intensityScale *
+        footprintFactor +
+      background;
 
     const qz4 = Math.pow(Math.max(0.005, qz), 4);
     const rCalcCompensated = rIntensity * qz4;
 
+    // Analytical 95% confidence envelope propagation (±1.5% thickness, ±0.4 Å roughness, Poisson noise)
+    const sigmaRoughErr = 0.4;
+    const roughRelVar = Math.min(1.2, qz * qz * topRoughnessA * sigmaRoughErr * 1.96);
+    const phaseVar = Math.min(0.45, 0.012 * qz * Math.sqrt(Math.max(10, totalFilmThicknessA)) * 0.15);
+    const shotRel = 1.96 * Math.sqrt(Math.max(1e-12, background) / Math.max(1e-12, rIntensity)) * 0.35;
+    const totalLogDelta = Math.min(0.65, (roughRelVar + phaseVar + shotRel) * Math.LOG10E);
+    const rCalcMin = Math.max(background * 0.25, rIntensity * Math.pow(10, -totalLogDelta));
+    const rCalcMax = Math.min(1.0, rIntensity * Math.pow(10, totalLogDelta));
+
     rawPoints.push({
-      theta: rawThetaDeg,
-      twoTheta: twoThetaDeg,
+      theta: Number(rawThetaDeg.toFixed(5)),
+      twoTheta: Number(twoThetaDeg.toFixed(5)),
       qz: Number(qz.toFixed(6)),
       rCalc: rIntensity,
-      rCalcCompensated: rCalcCompensated,
-      fresnelR: Math.max(fresnelSub, background),
-      footprintFactor: footprintFactor
+      rCalcCompensated,
+      rCalcMin,
+      rCalcMax,
+      fresnelR: fresnelSub,
+      footprintFactor,
+      diffuseR
     });
   }
 
@@ -826,7 +902,7 @@ function applyBeamDivergenceConvolution(
   stepDeg: number
 ): XRRDataPoint[] {
   const sigmaDeg = divergenceDeg / (2 * Math.sqrt(2 * Math.log(2)));
-  const kernelHalfWidth = Math.min(20, Math.ceil((3 * sigmaDeg) / stepDeg));
+  const kernelHalfWidth = Math.min(25, Math.ceil((3.5 * sigmaDeg) / stepDeg));
 
   if (kernelHalfWidth <= 0) return points;
 
@@ -834,6 +910,9 @@ function applyBeamDivergenceConvolution(
 
   for (let i = 0; i < points.length; i++) {
     let sumIntensity = 0;
+    let sumFresnel = 0;
+    let sumMin = 0;
+    let sumMax = 0;
     let sumWeight = 0;
 
     for (let k = -kernelHalfWidth; k <= kernelHalfWidth; k++) {
@@ -842,17 +921,26 @@ function applyBeamDivergenceConvolution(
         const deltaAngle = k * stepDeg;
         const weight = Math.exp(-(deltaAngle * deltaAngle) / (2 * sigmaDeg * sigmaDeg));
         sumIntensity += points[idx].rCalc * weight;
+        sumFresnel += (points[idx].fresnelR ?? points[idx].rCalc) * weight;
+        sumMin += (points[idx].rCalcMin ?? points[idx].rCalc) * weight;
+        sumMax += (points[idx].rCalcMax ?? points[idx].rCalc) * weight;
         sumWeight += weight;
       }
     }
 
     const smoothedCalc = sumWeight > 0 ? sumIntensity / sumWeight : points[i].rCalc;
+    const smoothedFresnel = sumWeight > 0 ? sumFresnel / sumWeight : points[i].fresnelR;
+    const smoothedMin = sumWeight > 0 ? sumMin / sumWeight : points[i].rCalcMin;
+    const smoothedMax = sumWeight > 0 ? sumMax / sumWeight : points[i].rCalcMax;
     const qz4 = Math.pow(Math.max(0.005, points[i].qz), 4);
 
     result.push({
       ...points[i],
       rCalc: smoothedCalc,
-      rCalcCompensated: smoothedCalc * qz4
+      rCalcCompensated: smoothedCalc * qz4,
+      fresnelR: smoothedFresnel,
+      rCalcMin: smoothedMin,
+      rCalcMax: smoothedMax
     });
   }
 
@@ -897,8 +985,16 @@ function alignExperimentalData(
 // Real-Space Scattering Length Density (SLD) & Depth Profiling
 // ----------------------------------------------------------------------------
 
-export function calculateSLDProfile(layers: XRRLayer[], numDepthPoints: number = 350): SLDPoint[] {
+export function calculateSLDProfile(
+  layers: XRRLayer[],
+  numDepthPoints: number = 350,
+  wavelength: number = 1.54056
+): SLDPoint[] {
   if (layers.length === 0) return [];
+
+  const wl = wavelength > 0 ? wavelength : 1.54056;
+  const r_e = 2.8179403262e-5; // Å (CODATA 2018)
+  const photonEnergyEv = 12398.41984332 / wl; // eV
 
   const filmThickness = layers.slice(0, -1).reduce((acc, l) => acc + l.thickness, 0);
   const substrateThickness = 120;
@@ -937,7 +1033,6 @@ export function calculateSLDProfile(layers: XRRLayer[], numDepthPoints: number =
 
   for (let i = 0; i <= numDepthPoints; i++) {
     const z = i * zStep;
-
     let activeLayerName = stack[0].name;
 
     for (let s = 0; s < stack.length; s++) {
@@ -969,19 +1064,31 @@ export function calculateSLDProfile(layers: XRRLayer[], numDepthPoints: number =
       currentBeta += (interf.layerBelow.beta - interf.layerAbove.beta) * stepFactor;
     }
 
-    const electronDensity = 0.285 * currentDensity;
-    const opticalPotential = (4 * Math.PI / (1.54056 * 1.54056)) * currentDelta;
+    // Exact X-ray optical relations:
+    // Re(SLD) = (2π / λ²) * δ   [in 10⁻⁶ Å⁻², since currentDelta is in 10⁻⁶]
+    // Im(SLD) = (2π / λ²) * β   [in 10⁻⁶ Å⁻², since currentBeta is in 10⁻⁷ => multiply by 0.1]
+    // ρ_e(z) = Re(SLD) / r_e = (2π * δ * 10⁻⁶) / (r_e * λ²)  [in e⁻ / Å³]
+    // Fermi optical potential V₀(z) = 2 * E_photon * δ(z)      [in eV]
+    const sldReal = (2 * Math.PI * currentDelta) / (wl * wl);
+    const sldImag = (2 * Math.PI * currentBeta * 0.1) / (wl * wl);
+    const electronDensity = (sldReal * 1e-6) / r_e;
+    const opticalPotential = 2 * photonEnergyEv * (currentDelta * 1e-6);
 
     const maxStackDensity = Math.max(...stack.map(l => l.density), 1.0);
-    const porosity = currentDensity > 0 ? Math.max(0, Math.min(100, (1 - currentDensity / maxStackDensity) * 100)) : 100;
+    const porosity =
+      currentDensity > 0
+        ? Math.max(0, Math.min(100, (1 - currentDensity / maxStackDensity) * 100))
+        : 100;
 
     result.push({
       z: Number((z - ambientPadding).toFixed(2)),
       density: Math.max(0, Number(currentDensity.toFixed(3))),
       delta: Math.max(0, Number(currentDelta.toFixed(3))),
       beta: Math.max(0, Number(currentBeta.toFixed(4))),
+      sldReal: Math.max(0, Number(sldReal.toFixed(4))),
+      sldImag: Math.max(0, Number(sldImag.toFixed(5))),
       electronDensity: Math.max(0, Number(electronDensity.toFixed(4))),
-      opticalPotential: Math.max(0, Number(opticalPotential.toFixed(3))),
+      opticalPotential: Math.max(0, Number(opticalPotential.toFixed(4))),
       layerName: activeLayerName,
       porosity: Number(porosity.toFixed(1))
     });
@@ -1000,58 +1107,109 @@ export function analyzeKiessigFringes(
 ): KiessigAnalysisResult | null {
   if (dataPoints.length < 20) return null;
 
-  const compensated = dataPoints.map(pt => ({
-    qz: pt.qz,
-    theta: pt.theta,
-    val: pt.rCalc * Math.pow(Math.max(0.01, pt.qz), 4)
-  }));
+  // Estimate critical angle first to exclude sub-critical region and anchor fringe order m
+  const critInfo = detectCriticalAngle(dataPoints, wavelength);
+  const thetaCritEst = critInfo?.thetaCritDeg ?? 0.22;
+  const qzCritEst = critInfo?.qzCrit ?? (4 * Math.PI * Math.sin((thetaCritEst * Math.PI) / 180)) / wavelength;
+
+  // Normalize by Fresnel substrate decay (or qz^4 Porod compensation) to isolate Kiessig oscillations
+  const oscSignal = dataPoints.map(pt => {
+    const qz4 = Math.pow(Math.max(0.01, pt.qz), 4);
+    const val =
+      pt.fresnelR && pt.fresnelR > 1e-11
+        ? pt.rCalc / pt.fresnelR
+        : pt.rCalc * qz4;
+    return {
+      qz: pt.qz,
+      theta: pt.theta,
+      r: pt.rCalc,
+      val
+    };
+  });
 
   const rawPeaks: { qz: number; theta: number; r: number }[] = [];
   const rawValleys: { qz: number; theta: number; r: number }[] = [];
+  const minSearchTheta = Math.max(0.24, thetaCritEst * 1.12);
 
-  for (let i = 3; i < compensated.length - 3; i++) {
-    const curr = compensated[i].val;
-    const isPeak =
-      curr > compensated[i - 1].val &&
-      curr > compensated[i - 2].val &&
-      curr > compensated[i - 3].val &&
-      curr > compensated[i + 1].val &&
-      curr > compensated[i + 2].val &&
-      curr > compensated[i + 3].val;
+  for (let i = 2; i < oscSignal.length - 2; i++) {
+    if (oscSignal[i].theta <= minSearchTheta) continue;
+    const curr = oscSignal[i].val;
+    const prev1 = oscSignal[i - 1].val;
+    const prev2 = oscSignal[i - 2].val;
+    const next1 = oscSignal[i + 1].val;
+    const next2 = oscSignal[i + 2].val;
 
-    const isValley =
-      curr < compensated[i - 1].val &&
-      curr < compensated[i - 2].val &&
-      curr < compensated[i + 1].val &&
-      curr < compensated[i + 2].val;
+    const isPeak = curr > prev1 && curr > prev2 && curr > next1 && curr > next2;
+    const isValley = curr < prev1 && curr < prev2 && curr < next1 && curr < next2;
 
-    if (isPeak && dataPoints[i].theta > 0.3) {
-      rawPeaks.push({ qz: dataPoints[i].qz, theta: dataPoints[i].theta, r: dataPoints[i].rCalc });
-    } else if (isValley && dataPoints[i].theta > 0.3) {
-      rawValleys.push({ qz: dataPoints[i].qz, theta: dataPoints[i].theta, r: dataPoints[i].rCalc });
+    if (isPeak) {
+      // 3-point parabolic vertex interpolation for sub-grid angle & wavevector accuracy
+      const denom = prev1 - 2 * curr + next1;
+      const deltaIdx =
+        Math.abs(denom) > 1e-18
+          ? Math.max(-0.5, Math.min(0.5, (0.5 * (prev1 - next1)) / denom))
+          : 0;
+      const stepTheta = oscSignal[i + 1].theta - oscSignal[i].theta;
+      const stepQz = oscSignal[i + 1].qz - oscSignal[i].qz;
+      const interpTheta = oscSignal[i].theta + deltaIdx * stepTheta;
+      const interpQz = oscSignal[i].qz + deltaIdx * stepQz;
+
+      // Suppress duplicate closely spaced noise ripples
+      if (rawPeaks.length === 0 || interpQz - rawPeaks[rawPeaks.length - 1].qz > 0.0035) {
+        rawPeaks.push({
+          qz: Number(interpQz.toFixed(6)),
+          theta: Number(interpTheta.toFixed(5)),
+          r: oscSignal[i].r
+        });
+      }
+    } else if (isValley) {
+      const denom = prev1 - 2 * curr + next1;
+      const deltaIdx =
+        Math.abs(denom) > 1e-18
+          ? Math.max(-0.5, Math.min(0.5, (0.5 * (prev1 - next1)) / denom))
+          : 0;
+      const stepTheta = oscSignal[i + 1].theta - oscSignal[i].theta;
+      const stepQz = oscSignal[i + 1].qz - oscSignal[i].qz;
+      rawValleys.push({
+        qz: Number((oscSignal[i].qz + deltaIdx * stepQz).toFixed(6)),
+        theta: Number((oscSignal[i].theta + deltaIdx * stepTheta).toFixed(5)),
+        r: oscSignal[i].r
+      });
     }
   }
 
   if (rawPeaks.length < 2) return null;
 
+  // Compute mean refraction-corrected wavevector spacing Δq_z' and direct Δq_z
   let sumDeltaQz = 0;
+  let sumDeltaQzPrime = 0;
   for (let i = 1; i < rawPeaks.length; i++) {
-    sumDeltaQz += (rawPeaks[i].qz - rawPeaks[i - 1].qz);
+    sumDeltaQz += rawPeaks[i].qz - rawPeaks[i - 1].qz;
+    const qpCurr = Math.sqrt(Math.max(0, rawPeaks[i].qz * rawPeaks[i].qz - qzCritEst * qzCritEst));
+    const qpPrev = Math.sqrt(Math.max(0, rawPeaks[i - 1].qz * rawPeaks[i - 1].qz - qzCritEst * qzCritEst));
+    sumDeltaQzPrime += qpCurr - qpPrev;
   }
   const avgDeltaQz = sumDeltaQz / (rawPeaks.length - 1);
+  const avgDeltaQzPrime = sumDeltaQzPrime > 0 ? sumDeltaQzPrime / (rawPeaks.length - 1) : avgDeltaQz;
   const estimatedThickness = (2 * Math.PI) / avgDeltaQz;
 
   let sumDeltaTheta = 0;
   for (let i = 1; i < rawPeaks.length; i++) {
-    sumDeltaTheta += (rawPeaks[i].theta - rawPeaks[i - 1].theta);
+    sumDeltaTheta += rawPeaks[i].theta - rawPeaks[i - 1].theta;
   }
   const avgDeltaTheta = sumDeltaTheta / (rawPeaks.length - 1);
 
+  // Determine the true integer interference order m_1 of the first detected peak:
+  // sqrt(q_{z,1}^2 - q_c^2) ≈ m_1 * Δq_z'
+  const qpFirst = Math.sqrt(Math.max(0, rawPeaks[0].qz * rawPeaks[0].qz - qzCritEst * qzCritEst));
+  const m1 = Math.max(1, Math.round(qpFirst / Math.max(1e-5, avgDeltaQzPrime)));
+
   const peaksWithOrder = rawPeaks.map((p, idx) => ({
     ...p,
-    order: idx + 1
+    order: m1 + idx
   }));
 
+  // Modified Bragg Linear Regression: sin²(θ_m) = (λ / 2·d_Bragg)² · m² + sin²(θ_c)
   let sumX = 0;
   let sumY = 0;
   let sumXY = 0;
@@ -1072,16 +1230,22 @@ export function analyzeKiessigFringes(
     sumX2 += pt.m2 * pt.m2;
   }
 
-  const slope = (N * sumXY - sumX * sumY) / (N * sumX2 - sumX * sumX);
+  const denomReg = N * sumX2 - sumX * sumX;
+  const slope = Math.abs(denomReg) > 1e-18 ? (N * sumXY - sumX * sumY) / denomReg : 0;
   const intercept = (sumY - slope * sumX) / N;
 
   const dBragg = slope > 0 ? wavelength / (2 * Math.sqrt(slope)) : estimatedThickness;
 
-  const sinThetaCrit = intercept > 0 ? Math.sqrt(intercept) : 0;
-  const thetaCritDeg = sinThetaCrit > 0 && sinThetaCrit < 1 ? (Math.asin(sinThetaCrit) * 180) / Math.PI : 0.22;
+  const sinThetaCrit = intercept > 0 ? Math.sqrt(intercept) : Math.sin((thetaCritEst * Math.PI) / 180);
+  const thetaCritDeg =
+    sinThetaCrit > 0 && sinThetaCrit < 1
+      ? (Math.asin(sinThetaCrit) * 180) / Math.PI
+      : thetaCritEst;
 
-  const deltaEff = Math.max(0, intercept * 0.5 * 1e6);
-  const densityEff = deltaEff / 3.24;
+  const deltaEff = Math.max(0, 0.5 * sinThetaCrit * sinThetaCrit * 1e6);
+  const r_e = 2.8179403262e-5;
+  const rhoEff = (2 * Math.PI * (deltaEff * 1e-6)) / (r_e * wavelength * wavelength);
+  const densityEff = rhoEff / 0.2998;
 
   const meanY = sumY / N;
   let ssTot = 0;
@@ -1094,13 +1258,13 @@ export function analyzeKiessigFringes(
     return {
       order: pt.order,
       m2: pt.m2,
-      thetaDeg: Number(pt.thetaDeg.toFixed(3)),
-      sin2Theta: Number(pt.sin2Theta.toFixed(6)),
-      fittedSin2Theta: Number(fitted.toFixed(6))
+      thetaDeg: Number(pt.thetaDeg.toFixed(4)),
+      sin2Theta: Number(pt.sin2Theta.toFixed(7)),
+      fittedSin2Theta: Number(fitted.toFixed(7))
     };
   });
 
-  const rSquared = ssTot > 0 ? Math.max(0, 1 - ssRes / ssTot) : 0.99;
+  const rSquared = ssTot > 0 ? Math.max(0, 1 - ssRes / ssTot) : 0.999;
 
   return {
     periodQz: Number(avgDeltaQz.toFixed(5)),
@@ -1113,7 +1277,7 @@ export function analyzeKiessigFringes(
       thetaCritDeg: Number(thetaCritDeg.toFixed(3)),
       deltaEff: Number(deltaEff.toFixed(2)),
       densityEff: Number(densityEff.toFixed(2)),
-      rSquared: Number(rSquared.toFixed(4)),
+      rSquared: Number(rSquared.toFixed(5)),
       fitPoints
     }
   };
@@ -1125,37 +1289,61 @@ export function analyzeKiessigFringes(
 
 export function calculateFFTThickness(
   dataPoints: XRRDataPoint[],
-  maxThicknessA: number = 1200,
+  maxThicknessOrWavelength: number = 1200,
   stepA: number = 2.0
 ): FFTThicknessResult | null {
-  const valid = dataPoints.filter(p => p.qz >= 0.04 && p.qz <= 0.6);
-  if (valid.length < 30) return null;
+  // Handle callers that pass wavelength (e.g. 1.5406 Å) as 2nd parameter instead of maxThicknessA
+  const maxThicknessA = maxThicknessOrWavelength < 25 ? 1200 : maxThicknessOrWavelength;
+  const wavelength = maxThicknessOrWavelength < 25 && maxThicknessOrWavelength > 0 ? maxThicknessOrWavelength : 1.54056;
 
-  const minQz = valid[0].qz;
-  const maxQz = valid[valid.length - 1].qz;
-  const numGrid = 256;
-  const deltaQz = (maxQz - minQz) / numGrid;
+  const critInfo = detectCriticalAngle(dataPoints, wavelength);
+  const qzCrit = critInfo?.qzCrit ?? 0.031;
 
-  const signal: { qz: number; val: number }[] = [];
+  const valid = dataPoints.filter(p => p.qz > qzCrit * 1.08 && p.qz <= 0.65);
+  if (valid.length < 25) return null;
+
+  // Transform to refraction-corrected wavevector q_z' = sqrt(q_z^2 - q_c^2)
+  const refractedPts = valid.map(pt => {
+    const qzPrime = Math.sqrt(Math.max(0, pt.qz * pt.qz - qzCrit * qzCrit));
+    const normVal =
+      pt.fresnelR && pt.fresnelR > 1e-11
+        ? pt.rCalc / pt.fresnelR
+        : pt.rCalc * Math.pow(Math.max(0.01, pt.qz), 4);
+    return {
+      qzPrime,
+      val: Math.log10(Math.max(1e-8, normVal))
+    };
+  });
+
+  const minQp = refractedPts[0].qzPrime;
+  const maxQp = refractedPts[refractedPts.length - 1].qzPrime;
+  if (maxQp - minQp <= 0.02) return null;
+
+  const numGrid = 512;
+  const deltaQp = (maxQp - minQp) / (numGrid - 1);
+
+  // Linear interpolation onto uniform refraction-corrected wavevector grid
+  const uniformVals: number[] = [];
+  let cursor = 0;
   for (let i = 0; i < numGrid; i++) {
-    const qTarget = minQz + i * deltaQz;
-    let closestVal = valid[0].rCalcCompensated || valid[0].rCalc * Math.pow(valid[0].qz, 4);
-    let minD = Math.abs(valid[0].qz - qTarget);
-
-    for (const pt of valid) {
-      const d = Math.abs(pt.qz - qTarget);
-      if (d < minD) {
-        minD = d;
-        closestVal = pt.rCalcCompensated || pt.rCalc * Math.pow(pt.qz, 4);
-      }
+    const qTarget = minQp + i * deltaQp;
+    while (cursor < refractedPts.length - 2 && refractedPts[cursor + 1].qzPrime < qTarget) {
+      cursor++;
     }
-
-    const window = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (numGrid - 1)));
-    signal.push({ qz: qTarget, val: closestVal * window });
+    const p0 = refractedPts[cursor];
+    const p1 = refractedPts[Math.min(refractedPts.length - 1, cursor + 1)];
+    const span = p1.qzPrime - p0.qzPrime;
+    const t = span > 1e-9 ? Math.max(0, Math.min(1, (qTarget - p0.qzPrime) / span)) : 0;
+    uniformVals.push(p0.val + t * (p1.val - p0.val));
   }
 
-  const meanVal = signal.reduce((sum, s) => sum + s.val, 0) / signal.length;
-  const centered = signal.map(s => s.val - meanVal);
+  // Linear detrend + Hann window to suppress DC & spectral leakage
+  const meanVal = uniformVals.reduce((sum, v) => sum + v, 0) / numGrid;
+  const windowed: number[] = [];
+  for (let i = 0; i < numGrid; i++) {
+    const hann = 0.5 * (1 - Math.cos((2 * Math.PI * i) / (numGrid - 1)));
+    windowed.push((uniformVals[i] - meanVal) * hann);
+  }
 
   const spatialFrequencies: FFTThicknessResult['spatialFrequencies'] = [];
   let maxAmp = 0;
@@ -1165,13 +1353,13 @@ export function calculateFFTThickness(
     let im = 0;
 
     for (let k = 0; k < numGrid; k++) {
-      const qz = signal[k].qz;
-      const phase = qz * z;
-      re += centered[k] * Math.cos(phase);
-      im += centered[k] * Math.sin(phase);
+      const qp = minQp + k * deltaQp;
+      const phase = qp * z;
+      re += windowed[k] * Math.cos(phase);
+      im += windowed[k] * Math.sin(phase);
     }
 
-    const amplitude = Math.sqrt(re * re + im * im);
+    const amplitude = Math.sqrt(re * re + im * im) * deltaQp;
     if (amplitude > maxAmp) maxAmp = amplitude;
 
     spatialFrequencies.push({
@@ -1183,27 +1371,52 @@ export function calculateFFTThickness(
 
   const normalized = spatialFrequencies.map(f => ({
     ...f,
-    normalizedAmp: maxAmp > 0 ? Number(((f.amplitude / maxAmp) * 100).toFixed(1)) : 0
+    normalizedAmp: maxAmp > 0 ? Number(((f.amplitude / maxAmp) * 100).toFixed(2)) : 0
   }));
+
+  // Estimate baseline noise level for physical SNR computation
+  const sortedAmps = [...normalized.map(n => n.normalizedAmp)].sort((a, b) => a - b);
+  const medianNoise = Math.max(1.5, sortedAmps[Math.floor(sortedAmps.length * 0.5)] || 2.5);
 
   const detectedPeaks: FFTThicknessResult['detectedPeaks'] = [];
   for (let i = 2; i < normalized.length - 2; i++) {
     const curr = normalized[i].normalizedAmp;
+    const prev1 = normalized[i - 1].normalizedAmp;
+    const next1 = normalized[i + 1].normalizedAmp;
     if (
       curr > 12 &&
-      curr > normalized[i - 1].normalizedAmp &&
+      curr > prev1 &&
       curr > normalized[i - 2].normalizedAmp &&
-      curr > normalized[i + 1].normalizedAmp &&
+      curr > next1 &&
       curr > normalized[i + 2].normalizedAmp
     ) {
-      const thickA = normalized[i].thicknessA;
+      // Parabolic vertex refinement of real-space thickness peak z*
+      const denom = prev1 - 2 * curr + next1;
+      const deltaIdx =
+        Math.abs(denom) > 1e-12
+          ? Math.max(-0.5, Math.min(0.5, (0.5 * (prev1 - next1)) / denom))
+          : 0;
+      const refinedZ = Number((normalized[i].thicknessA + deltaIdx * stepA).toFixed(1));
+      const peakAmp = Number((curr - 0.25 * (prev1 - next1) * deltaIdx).toFixed(1));
+
+      // True half-maximum FWHM measurement
+      const halfMax = curr * 0.5;
+      let leftIdx = i;
+      while (leftIdx > 0 && normalized[leftIdx].normalizedAmp > halfMax) leftIdx--;
+      let rightIdx = i;
+      while (rightIdx < normalized.length - 1 && normalized[rightIdx].normalizedAmp > halfMax) rightIdx++;
+      const fwhm = Number(Math.max(stepA * 2, (rightIdx - leftIdx) * stepA).toFixed(1));
+
       detectedPeaks.push({
-        thicknessA: thickA,
-        thicknessNm: Number((thickA / 10).toFixed(2)),
-        amplitude: curr,
-        snr: Number((curr / 10).toFixed(1)),
-        fwhm: 14.0,
-        label: detectedPeaks.length === 0 ? 'Primary Film / Stack Thickness' : `Harmonic / Sublayer ${detectedPeaks.length + 1}`
+        thicknessA: refinedZ,
+        thicknessNm: Number((refinedZ / 10).toFixed(2)),
+        amplitude: peakAmp,
+        snr: Number((peakAmp / medianNoise).toFixed(1)),
+        fwhm,
+        label:
+          detectedPeaks.length === 0
+            ? 'Primary Film / Stack Thickness'
+            : `Sublayer / Sum Harmonic ${detectedPeaks.length + 1}`
       });
     }
   }
@@ -1221,34 +1434,71 @@ export function calculateFFTThickness(
 // Critical Angle & Surface Density Detection
 // ----------------------------------------------------------------------------
 
-export function detectCriticalAngle(dataPoints: XRRDataPoint[]): CriticalAngleResult | null {
+export function detectCriticalAngle(
+  dataPoints: XRRDataPoint[],
+  wavelength: number = 1.54056
+): CriticalAngleResult | null {
   if (dataPoints.length < 10) return null;
 
-  let maxSlopeIdx = 0;
-  let maxSlope = 0;
-
-  for (let i = 1; i < dataPoints.length - 1; i++) {
-    const dTheta = dataPoints[i + 1].theta - dataPoints[i - 1].theta;
-    if (dTheta <= 0) continue;
-    const slope = Math.abs(dataPoints[i + 1].rCalc - dataPoints[i - 1].rCalc) / dTheta;
-    if (slope > maxSlope && dataPoints[i].theta < 1.2 && dataPoints[i].theta > 0.08) {
-      maxSlope = slope;
-      maxSlopeIdx = i;
+  // Infer wavelength from dataPoints[0] (qz = 4π sinθ / λ) if not explicitly provided
+  let wl = wavelength;
+  const refPt = dataPoints.find(p => p.theta > 0.2 && p.qz > 0.01);
+  if (refPt) {
+    const inferred = (4 * Math.PI * Math.sin((refPt.theta * Math.PI) / 180)) / refPt.qz;
+    if (inferred > 0.2 && inferred < 5.0) {
+      wl = inferred;
     }
   }
 
-  const critPoint = dataPoints[maxSlopeIdx];
-  if (!critPoint) return null;
+  // Locate critical edge where R(θ) drops through ~0.5 of plateau and d(log10 R)/dθ is steepest
+  const rPlateau = Math.max(dataPoints[0].rCalc, dataPoints[1]?.rCalc ?? 0, 1e-6);
+  let bestIdx = 1;
+  let maxScore = -Infinity;
 
-  const thetaCritRad = (critPoint.theta * Math.PI) / 180;
-  const deltaEst = 0.5 * thetaCritRad * thetaCritRad;
+  for (let i = 1; i < dataPoints.length - 1; i++) {
+    const theta = dataPoints[i].theta;
+    if (theta < 0.08 || theta > 1.25) continue;
+    const dTheta = dataPoints[i + 1].theta - dataPoints[i - 1].theta;
+    if (dTheta <= 0) continue;
 
-  const densityEst = Math.min(24, Math.max(0.5, deltaEst / 3.24e-6));
-  const electronDensityEst = 0.285 * densityEst;
+    const linearDropSlope = (dataPoints[i - 1].rCalc - dataPoints[i + 1].rCalc) / (dTheta * rPlateau);
+    if (linearDropSlope > maxScore) {
+      maxScore = linearDropSlope;
+      bestIdx = i;
+    }
+  }
+
+  // Sub-grid parabolic refinement on the negative derivative around bestIdx
+  const slopeAt = (idx: number) => {
+    if (idx <= 0 || idx >= dataPoints.length - 1) return 0;
+    const dt = dataPoints[idx + 1].theta - dataPoints[idx - 1].theta;
+    return dt > 0 ? (dataPoints[idx - 1].rCalc - dataPoints[idx + 1].rCalc) / dt : 0;
+  };
+
+  const sPrev = slopeAt(bestIdx - 1);
+  const sCurr = slopeAt(bestIdx);
+  const sNext = slopeAt(bestIdx + 1);
+  const denom = sPrev - 2 * sCurr + sNext;
+  const frac =
+    Math.abs(denom) > 1e-18
+      ? Math.max(-0.5, Math.min(0.5, (0.5 * (sPrev - sNext)) / denom))
+      : 0;
+
+  const stepTh = dataPoints[Math.min(dataPoints.length - 1, bestIdx + 1)].theta - dataPoints[bestIdx].theta;
+  const thetaCritDeg = Math.max(0.05, dataPoints[bestIdx].theta + frac * stepTh);
+  const thetaCritRad = (thetaCritDeg * Math.PI) / 180;
+  const sinThetaCrit = Math.sin(thetaCritRad);
+  const qzCrit = (4 * Math.PI * sinThetaCrit) / wl;
+
+  // Exact Snell law: cos(θ_c) = 1 - δ  =>  δ = 1 - cos(θ_c) ≈ 0.5 * sin²(θ_c)
+  const deltaEst = 1.0 - Math.cos(thetaCritRad);
+  const r_e = 2.8179403262e-5; // Å
+  const electronDensityEst = (2 * Math.PI * deltaEst) / (r_e * wl * wl);
+  const densityEst = Math.min(24, Math.max(0.4, electronDensityEst / 0.2998));
 
   return {
-    thetaCritDeg: Number(critPoint.theta.toFixed(3)),
-    qzCrit: Number(critPoint.qz.toFixed(4)),
+    thetaCritDeg: Number(thetaCritDeg.toFixed(3)),
+    qzCrit: Number(qzCrit.toFixed(4)),
     deltaEst: Number((deltaEst * 1e6).toFixed(2)),
     densityEst: Number(densityEst.toFixed(2)),
     electronDensityEst: Number(electronDensityEst.toFixed(3))

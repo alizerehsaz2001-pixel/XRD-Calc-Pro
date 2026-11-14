@@ -132,6 +132,20 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
       avgExecTimeMs: number;
       lastScript: string;
     };
+    security?: {
+      status: string;
+      pythonSandboxActive: boolean;
+      secretIsolationActive: boolean;
+      prototypeShieldActive: boolean;
+      rateLimitersActive: boolean;
+      blockedPayloads: number;
+      blockedPythonCalls: number;
+      sanitizedRequests: number;
+      invalidApiKeysRejected: number;
+      rateLimitedRequests: number;
+      lastThreatBlockedAt: string | null;
+      lastThreatReason: string;
+    };
   } | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState(false);
 
@@ -193,6 +207,7 @@ export const SettingsModule: React.FC<SettingsModuleProps> = ({
             cache: data.cache,
             traffic: data.traffic,
             python: data.python,
+            security: data.security,
           });
         }
       } else {

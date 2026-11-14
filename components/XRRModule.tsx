@@ -94,14 +94,27 @@ export const XRRModule: React.FC = () => {
     }
   };
 
-  // Handle Radiation Source Change
+  // Handle Radiation Source Change (scales optical dispersion δ ∝ λ² and absorption β ∝ λ³)
   const handleSourceChange = (sourceKey: any) => {
     const src = RADIATION_SOURCES[sourceKey];
     if (src) {
+      const oldWl = config.wavelength || 1.5406;
+      const newWl = src.wavelength;
+      const wlRatioSq = (newWl * newWl) / (oldWl * oldWl);
+      const wlRatioCubed = wlRatioSq * (newWl / oldWl);
+
+      setLayers(prevLayers =>
+        prevLayers.map(layer => ({
+          ...layer,
+          delta: Number((layer.delta * wlRatioSq).toFixed(3)),
+          beta: Number((layer.beta * wlRatioCubed).toFixed(4))
+        }))
+      );
+
       setConfig(prev => ({
         ...prev,
         radiationSource: sourceKey,
-        wavelength: src.wavelength
+        wavelength: newWl
       }));
     }
   };
@@ -122,20 +135,20 @@ export const XRRModule: React.FC = () => {
     });
   }, [simCurve, expData, config.angleStep]);
 
-  // Calculate SLD Real-Space Profile
+  // Calculate SLD Real-Space Profile (using active X-ray wavelength)
   const sldProfile = useMemo<SLDProfilePoint[]>(() => {
-    return calculateSLDProfile(layers);
-  }, [layers]);
+    return calculateSLDProfile(layers, 350, config.wavelength);
+  }, [layers, config.wavelength]);
 
   // Calculate Kiessig Fringe Analysis
   const kiessigResult = useMemo<KiessigAnalysisResult | null>(() => {
     return calculateKiessigFringes(mergedDataPoints, config.wavelength);
   }, [mergedDataPoints, config.wavelength]);
 
-  // Calculate Critical Angle Detection
+  // Calculate Critical Angle Detection (using active X-ray wavelength)
   const critAngleResult = useMemo<CriticalAngleResult | null>(() => {
-    return calculateCriticalAngle(mergedDataPoints);
-  }, [mergedDataPoints]);
+    return calculateCriticalAngle(mergedDataPoints, config.wavelength);
+  }, [mergedDataPoints, config.wavelength]);
 
   // Calculate Fit Quality Metrics
   const fitQuality = useMemo<FitQualityResult>(() => {

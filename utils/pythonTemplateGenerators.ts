@@ -355,8 +355,8 @@ export function generateHalderWagnerScript(opts: PythonGeneratorOptions = {}): s
   return `#!/usr/bin/env python3
 # ==============================================================================
 # XRD-Calc Pro: Halder-Wagner & Size-Strain Plot (SSP) Parabolic Analysis
-# Parabolic Model: (β* / d* )² = (1 / D) · (β* / d*²) + (2·ε)²
-# Size-Strain Plot: (d* · β* )² = (K / D) · (d*² · β*) + 4·ε²
+# Halder-Wagner (1966): (β_HW / tan θ)² = (K·λ / D) · (β_HW / (tan θ · sin θ)) + 16·ε²
+# Size-Strain Plot (SSP): (d_hkl · β*)² = (K / D) · (d_hkl² · β*) + (2·ε)²
 # ==============================================================================
 
 import numpy as np
@@ -373,33 +373,31 @@ beta_obs = np.array([0.28, 0.35, 0.42, 0.48, 0.52, 0.58])
 beta_inst = 0.05
 
 theta = np.radians(two_theta / 2.0)
-beta_sample_rad = np.sqrt(np.maximum(1e-12, np.radians(beta_obs)**2 - np.radians(beta_inst)**2))
+beta_obs_rad = np.radians(beta_obs)
+beta_inst_rad = np.radians(beta_inst)
 
-# Reduced Coordinates in Reciprocal Space:
-# d* = 2 · sin θ / λ (Å⁻¹)
-# β* = β_sample · cos θ / λ (Å⁻¹)
-d_star = (2.0 * np.sin(theta)) / WAVELENGTH
-beta_star = (beta_sample_rad * np.cos(theta)) / WAVELENGTH
-
-# 1. Halder-Wagner Coordinates:
-# X = beta_star / (d_star ** 2)
-# Y = (beta_star / d_star) ** 2
-x_hw = beta_star / (d_star ** 2)
-y_hw = (beta_star / d_star) ** 2
+# 1. Halder-Wagner (1966) Parabolic Voigt Deconvolution & Angular Coordinates:
+# β_HW = β_obs * (1 - (β_inst / β_obs)²)
+beta_hw_rad = beta_obs_rad * np.maximum(1e-4, 1.0 - (beta_inst_rad / beta_obs_rad) ** 2)
+b_over_tan = beta_hw_rad / np.tan(theta)
+x_hw = b_over_tan / np.sin(theta)
+y_hw = b_over_tan ** 2
 
 slope_hw, intercept_hw = np.polyfit(x_hw, y_hw, 1)
-D_hw_nm = (1.0 / max(1e-6, slope_hw)) / 10.0 if slope_hw > 0 else float('nan')
-microstrain_hw = np.sqrt(max(0, intercept_hw)) / 2.0
+D_hw_nm = (K_SHAPE * WAVELENGTH / max(1e-9, slope_hw)) / 10.0 if slope_hw > 0 else float('nan')
+microstrain_hw = 0.25 * np.sqrt(max(0.0, intercept_hw))
 
-# 2. Size-Strain Plot (SSP) Coordinates:
-# X = (d_star ** 2) * beta_star
-# Y = (d_star * beta_star) ** 2
-x_ssp = (d_star ** 2) * beta_star
-y_ssp = (d_star * beta_star) ** 2
+# 2. Size-Strain Plot (SSP) Interplanar Reciprocal Coordinates:
+# d_hkl = λ / (2 · sin θ) (Å), β* = β_sample · cos θ / λ (Å⁻¹)
+beta_sample_rad = np.sqrt(np.maximum(1e-12, beta_obs_rad**2 - beta_inst_rad**2))
+d_hkl = WAVELENGTH / (2.0 * np.sin(theta))
+beta_star = (beta_sample_rad * np.cos(theta)) / WAVELENGTH
+x_ssp = (d_hkl ** 2) * beta_star
+y_ssp = (d_hkl * beta_star) ** 2
 
 slope_ssp, intercept_ssp = np.polyfit(x_ssp, y_ssp, 1)
-D_ssp_nm = (K_SHAPE / max(1e-6, slope_ssp)) / 10.0 if slope_ssp > 0 else float('nan')
-microstrain_ssp = np.sqrt(max(0, intercept_ssp)) / 2.0
+D_ssp_nm = (K_SHAPE / max(1e-9, slope_ssp)) / 10.0 if slope_ssp > 0 else float('nan')
+microstrain_ssp = 0.5 * np.sqrt(max(0.0, intercept_ssp))
 
 print("=" * 68)
 print("          HALDER-WAGNER & SIZE-STRAIN PLOT (SSP) RESULTS")
@@ -419,8 +417,8 @@ x_l1 = np.linspace(min(x_hw)*0.9, max(x_hw)*1.1, 100)
 ax1.plot(x_l1, slope_hw * x_l1 + intercept_hw, color="#ec4899", ls="--", lw=2,
          label=f"HW: D = {D_hw_nm:.1f} nm, ε = {microstrain_hw:.2e}")
 ax1.set_title("Halder-Wagner Model", fontweight="bold")
-ax1.set_xlabel("β* / d*² (Å)", fontweight="bold")
-ax1.set_ylabel("(β* / d*)²", fontweight="bold")
+ax1.set_xlabel("β_HW / (tan θ · sin θ) (rad)", fontweight="bold")
+ax1.set_ylabel("(β_HW / tan θ)² (rad²)", fontweight="bold")
 ax1.legend(frameon=True, facecolor="white")
 ax1.grid(True, linestyle=":", alpha=0.5)
 
@@ -430,8 +428,8 @@ x_l2 = np.linspace(min(x_ssp)*0.9, max(x_ssp)*1.1, 100)
 ax2.plot(x_l2, slope_ssp * x_l2 + intercept_ssp, color="#f59e0b", ls="--", lw=2,
          label=f"SSP: D = {D_ssp_nm:.1f} nm, ε = {microstrain_ssp:.2e}")
 ax2.set_title("Size-Strain Plot (SSP)", fontweight="bold")
-ax2.set_xlabel("(d*)² · β* (Å⁻³)", fontweight="bold")
-ax2.set_ylabel("(d* · β*)² (Å⁻⁴)", fontweight="bold")
+ax2.set_xlabel("d² · β* (Å)", fontweight="bold")
+ax2.set_ylabel("(d · β*)² (Dimensionless)", fontweight="bold")
 ax2.legend(frameon=True, facecolor="white")
 ax2.grid(True, linestyle=":", alpha=0.5)
 

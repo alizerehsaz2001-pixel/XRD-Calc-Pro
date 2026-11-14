@@ -44,13 +44,23 @@ export const ScherrerDeconvolutionVisualizer: React.FC<DeconvolutionVisualizerPr
     const betaSampleDeg = betaSampleRad * (180 / Math.PI);
     const betaInstDeg = simInstFwhm;
 
-    // Convolved total observed broadening (Pseudo-Voigt combination):
-    // Approx: beta_obs = (beta_inst^2 + beta_sample^2)^0.5 for Gaussian component
-    // + linear for Lorentzian
+    // Convolved total observed broadening via Thompson-Cox-Hastings (1987, J. Appl. Cryst. 20, 79-83)
+    // 5th-order polynomial Voigt convolution between Gaussian and Lorentzian components:
     const effEta = Math.max(0, Math.min(1, simEta));
-    const betaGauss = Math.sqrt(Math.pow(betaInstDeg, 2) + Math.pow(betaSampleDeg, 2));
-    const betaLorentz = betaInstDeg + betaSampleDeg;
-    const betaObsDeg = (1 - effEta) * betaGauss + effEta * betaLorentz;
+    const instEta = 0.25;
+    const wG = Math.sqrt(
+      Math.pow(betaInstDeg * (1 - instEta), 2) + Math.pow(betaSampleDeg * (1 - effEta), 2)
+    );
+    const wL = betaInstDeg * instEta + betaSampleDeg * effEta;
+    const betaObsDeg = Math.pow(
+      Math.pow(wG, 5) +
+        2.69269 * Math.pow(wG, 4) * wL +
+        2.42843 * Math.pow(wG, 3) * Math.pow(wL, 2) +
+        4.47163 * Math.pow(wG, 2) * Math.pow(wL, 3) +
+        0.07842 * wG * Math.pow(wL, 4) +
+        Math.pow(wL, 5),
+      0.2
+    );
 
     // Generate synthesized profile curve across a window of +/- 3 * betaObsDeg
     const span = Math.max(0.6, betaObsDeg * 3.5);

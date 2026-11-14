@@ -80,10 +80,10 @@ const MODEL_GUIDE: {
     code: '05',
     shortName: 'Halder–Wagner',
     fullName: 'Halder–Wagner Voigt Parabolic Method',
-    xLabel: 'β* / (d*)²',
-    yLabel: '(β* / d*)²',
+    xLabel: 'β_HW / (tan θ · sin θ)',
+    yLabel: '(β_HW / tan θ)²',
     whenToUse: 'Ideal for symmetric Voigt line profiles in nanocrystalline oxides and alloys.',
-    physicsPlainEnglish: 'Uses symmetric Voigt integral breadth approximation to decouple D (slope) and ε (intercept).'
+    physicsPlainEnglish: 'Uses parabolic Voigt deconvolution β_HW = β_obs(1 − β_inst²/β_obs²) to decouple D (slope Kλ/D) and ε (intercept 16ε²).'
   },
   {
     id: 'mWH',
@@ -100,10 +100,10 @@ const MODEL_GUIDE: {
     code: '07',
     shortName: 'Stephens Tensor',
     fullName: 'Stephens Anisotropic Microstrain',
-    xLabel: '4sinθ·√(1+2.5H²)',
+    xLabel: '4sinθ·√(1+η·H²)',
     yLabel: 'β·cos(θ)',
     whenToUse: 'Use for cubic/tetragonal crystals showing strong (hkl)-dependent broadening.',
-    physicsPlainEnglish: 'Models directional microstrain variance across Miller indices using invariant H².'
+    physicsPlainEnglish: 'Models 4th-rank directional microstrain tensor (S_400, S_220) across Miller indices using invariant H².'
   },
   {
     id: 'Monshi-Scherrer',
@@ -287,16 +287,18 @@ export const WHCadSchematic: React.FC<WHCadSchematicProps> = ({
                 </div>
                 <div className="space-y-2 text-xs font-mono tabular-nums">
                   <div className="flex items-center justify-between bg-slate-950 px-2.5 py-1.5 rounded-xs border border-slate-800">
-                    <span className="text-slate-400">1. Y-Intercept (X=0) → Size D:</span>
+                    <span className="text-slate-400">1. Size D (±1σ):</span>
                     <strong className="text-emerald-400">
                       {result && result.sizeInterceptNm > 0 && result.sizeInterceptNm < 500
-                        ? `${result.sizeInterceptNm.toFixed(2)} nm`
+                        ? `${result.sizeInterceptNm.toFixed(2)}${result.sizeErrorNm ? ` ± ${result.sizeErrorNm.toFixed(2)}` : ''} nm`
                         : '> 250 nm (Bulk)'}
                     </strong>
                   </div>
                   <div className="flex items-center justify-between bg-slate-950 px-2.5 py-1.5 rounded-xs border border-slate-800">
-                    <span className="text-slate-400">2. Line Slope (m) → Strain ε:</span>
-                    <strong className="text-cyan-300">{result ? `${result.strainPercent.toFixed(4)}%` : '—'}</strong>
+                    <span className="text-slate-400">2. Microstrain ε (±1σ):</span>
+                    <strong className="text-cyan-300">
+                      {result ? `${result.strainPercent.toFixed(4)}${result.strainErrorPercent ? ` ± ${result.strainErrorPercent.toFixed(4)}` : ''}%` : '—'}
+                    </strong>
                   </div>
                   <div className="flex items-center justify-between bg-slate-950 px-2.5 py-1.5 rounded-xs border border-slate-800">
                     <span className="text-slate-400">3. Scherrer Bias Corrected:</span>
