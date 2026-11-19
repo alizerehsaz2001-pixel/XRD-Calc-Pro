@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
   XRRLayer,
   XRRSimulationConfig,
@@ -93,6 +94,44 @@ export const XRRModule: React.FC = () => {
       setExpData([]);
     }
   };
+
+  useCustomMaterialApply('xrr', (mat) => {
+    const wl = mat.wavelength || 1.5406;
+    const sld = mat.sldXray || 32.0; // 10^-6 Å^-2
+    // δ [×10⁻⁶] = (λ² / 2π) * SLD [×10⁻⁶ Å⁻²]
+    const delta = Number((((wl * wl) / (2 * Math.PI)) * sld).toFixed(3));
+    // β [×10⁻⁷] = λ * μ / (4π * 10) where μ [cm⁻¹] = massAttenuation * density
+    const muCm = (mat.massAttenuation || 60) * (mat.density || 5.0);
+    const beta = Number(Math.max(0.05, (wl * muCm) / (4 * Math.PI * 10)).toFixed(3));
+    const customFilm: XRRLayer = {
+      id: `custom-film-${mat.id}`,
+      name: `${mat.name} (${mat.formula})`,
+      formula: mat.formula,
+      material: mat.formula,
+      thickness: Number(((mat.filmThicknessNm || 40) * 10).toFixed(1)), // nm -> Å
+      roughness: Number(((mat.roughnessNm || 0.6) * 10).toFixed(1)), // nm -> Å
+      density: mat.density || 5.0,
+      delta,
+      beta,
+      color: '#0891b2',
+    };
+    const siSubstrate: XRRLayer = {
+      id: 'substrate-si',
+      name: 'Si (100) Substrate',
+      formula: 'Si',
+      material: 'Si',
+      thickness: 0,
+      roughness: 3.5,
+      density: 2.33,
+      delta: 7.58,
+      beta: 1.73,
+      color: '#475569',
+    };
+    setSelectedPreset('custom_material');
+    setConfig(prev => ({ ...prev, wavelength: wl }));
+    setLayers([customFilm, siSubstrate]);
+    setExpData([]);
+  });
 
   // Handle Radiation Source Change (scales optical dispersion δ ∝ λ² and absorption β ∝ λ³)
   const handleSourceChange = (sourceKey: any) => {

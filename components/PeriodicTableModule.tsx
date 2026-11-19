@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
@@ -2492,6 +2493,27 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
   const [loadedBanner, setLoadedBanner] = useState<string | null>(null);
+
+  useCustomMaterialApply('periodic_table', (mat) => {
+    const symbols = Array.from(new Set(mat.formula.match(/[A-Z][a-z]?/g) || []));
+    const matchedEls = symbols
+      .map((sym) => COMPLETE_PERIODIC_TABLE.find((el) => el.symbol === sym))
+      .filter((el): el is NonNullable<typeof el> => Boolean(el));
+    if (matchedEls.length > 0) {
+      setSelectedElement(matchedEls[0].number);
+      setNeutronSelectedZ(matchedEls[0].number);
+      if (matchedEls.length >= 2) {
+        setAlloySolventZ(matchedEls[0].number);
+        setAlloySoluteZ(matchedEls[1].number);
+      }
+      setSearchQuery('');
+      setLoadedBanner(
+        `Custom Material "${mat.name}" (${mat.formula}): inspecting ${matchedEls.map((e) => e.symbol).join(', ')}`
+      );
+      setTimeout(() => setLoadedBanner(null), 4000);
+      playSynthTone('tick');
+    }
+  });
 
   // Comparison Module states
   const [activeTab, setActiveTab] = useState<'grid' | 'crystal_atlas' | 'compare' | 'alloy' | 'neutron_deck'>('grid');

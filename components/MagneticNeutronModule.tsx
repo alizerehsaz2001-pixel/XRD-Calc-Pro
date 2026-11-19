@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { LatticeParameters } from '../types';
 import {
   MagneticAtom,
@@ -96,6 +97,74 @@ export const MagneticNeutronModule: React.FC = () => {
     setExponentModel(p.exponentModel);
     setAtoms([...p.atoms]);
   };
+
+  useCustomMaterialApply('magnetic', (mat) => {
+    setSelectedPresetId(`custom_${mat.id}`);
+    setLattice({
+      a: mat.lattice.a,
+      b: mat.lattice.b,
+      c: mat.lattice.c,
+      alpha: mat.lattice.alpha,
+      beta: mat.lattice.beta,
+      gamma: mat.lattice.gamma,
+    });
+    const kv = mat.propagationVector || { x: 0, y: 0, z: 0.5 };
+    setKVector({ x: kv.x, y: kv.y, z: kv.z });
+    const tc = Math.max(20, mat.neelTempK || 300);
+    setCriticalTemp(tc);
+    setTemperature(Math.min(10, Math.round(tc * 0.1)));
+    const elems = Array.from(new Set(mat.formula.match(/[A-Z][a-z]?/g) || ['Mn', 'O']));
+    const magElem = elems.find((e) => ['Mn', 'Fe', 'Co', 'Ni', 'Cr', 'Gd', 'Eu', 'Cu', 'V'].includes(e)) || elems[0] || 'Mn';
+    const ligandElem = elems.find((e) => e !== magElem);
+    const mu = mat.magneticMomentMuB ?? 3.2;
+    const isAFM = kv.x !== 0 || kv.y !== 0 || kv.z !== 0;
+    const nextAtoms: MagneticAtom[] = [
+      {
+        id: 'cmag-1',
+        element: magElem,
+        label: `${magElem}1`,
+        b: NEUTRON_SCATTERING_LENGTHS[magElem] ?? mat.scatteringLengthFm ?? 5.0,
+        x: 0,
+        y: 0,
+        z: 0,
+        B_iso: 0.4,
+        mx: 0,
+        my: 0,
+        mz: mu,
+        ion: `${magElem}3+`,
+      },
+      {
+        id: 'cmag-2',
+        element: magElem,
+        label: `${magElem}2`,
+        b: NEUTRON_SCATTERING_LENGTHS[magElem] ?? mat.scatteringLengthFm ?? 5.0,
+        x: 0.5,
+        y: 0.5,
+        z: 0.5,
+        B_iso: 0.4,
+        mx: 0,
+        my: 0,
+        mz: isAFM ? -mu : mu,
+        ion: `${magElem}3+`,
+      },
+    ];
+    if (ligandElem) {
+      nextAtoms.push({
+        id: 'cmag-3',
+        element: ligandElem,
+        label: `${ligandElem}1`,
+        b: NEUTRON_SCATTERING_LENGTHS[ligandElem] ?? 5.8,
+        x: 0.5,
+        y: 0.5,
+        z: 0,
+        B_iso: 0.5,
+        mx: 0,
+        my: 0,
+        mz: 0,
+      });
+    }
+    setAtoms(nextAtoms);
+  });
 
   // Atom List Operations
   const updateAtom = (id: string, field: keyof MagneticAtom, value: any) => {

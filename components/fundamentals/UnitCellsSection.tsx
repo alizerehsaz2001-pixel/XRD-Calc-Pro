@@ -40,6 +40,7 @@ import {
   BravaisCenteringSchematic,
   UnitCellHeroSchematic
 } from './UnitCellGraphics';
+import { computeUnitCellVolume, useCustomMaterialApply } from '../CustomMaterialContext';
 
 export type CrystalSystemId = 
   | 'cubic' 
@@ -695,6 +696,73 @@ export const UnitCellsSection: React.FC = () => {
   const [cmGamma, setCmGamma] = useState<number>(90);
   const [cmMolarMass, setCmMolarMass] = useState<number>(233.19);
   const [cmZ, setCmZ] = useState<number>(1);
+
+  useCustomMaterialApply('unit_cells', (mat) => {
+    const sysMap: Record<string, CrystalSystemId> = {
+      Cubic: 'cubic',
+      Hexagonal: 'hexagonal',
+      Trigonal: 'trigonal',
+      Tetragonal: 'tetragonal',
+      Orthorhombic: 'orthorhombic',
+      Monoclinic: 'monoclinic',
+      Triclinic: 'triclinic',
+    };
+    const mappedSys = sysMap[mat.crystalSystem] || 'cubic';
+    setSelectedSystemId(mappedSys);
+    setActiveCentering(mat.centering);
+    setMtA(mat.lattice.a);
+    setMtB(mat.lattice.b);
+    setMtC(mat.lattice.c);
+    setMtAlpha(mat.lattice.alpha);
+    setMtBeta(mat.lattice.beta);
+    setMtGamma(mat.lattice.gamma);
+    setCmName(mat.name);
+    setCmFormula(mat.formula);
+    setCmSystemId(mappedSys);
+    setCmCentering(mat.centering);
+    setCmSpaceGroup(`${mat.spaceGroup} (#${mat.spaceGroupNumber})`);
+    setCmA(mat.lattice.a);
+    setCmB(mat.lattice.b);
+    setCmC(mat.lattice.c);
+    setCmAlpha(mat.lattice.alpha);
+    setCmBeta(mat.lattice.beta);
+    setCmGamma(mat.lattice.gamma);
+    setCmMolarMass(mat.molecularWeight || 100);
+    setCmZ(mat.zValue || 1);
+    const vol = computeUnitCellVolume(mat.lattice);
+    const entry: CustomMaterialEntry = {
+      name: mat.name,
+      formula: mat.formula,
+      systemId: mappedSys,
+      systemName: mat.crystalSystem,
+      centering: mat.centering,
+      latticeType: `${mat.crystalSystem} (${mat.centering})`,
+      spaceGroup: `${mat.spaceGroup} (#${mat.spaceGroupNumber})`,
+      category: 'Ceramic',
+      description: mat.description || 'User custom material',
+      a: mat.lattice.a,
+      b: mat.lattice.b,
+      c: mat.lattice.c,
+      alpha: mat.lattice.alpha,
+      beta: mat.lattice.beta,
+      gamma: mat.lattice.gamma,
+      molarMass: mat.molecularWeight || 100,
+      zUnits: mat.zValue || 1,
+      volumeA3: Number(vol.toFixed(2)),
+      densityGcm3: Number(mat.density.toFixed(3)),
+      computedPeaks: mat.peaks.slice(0, 8).map((p, idx) => ({
+        x: p.twoTheta,
+        h: p.intensity,
+        label: `(${p.h}${p.k}${p.l})`,
+        twoTheta: p.twoTheta,
+        dA: p.dSpacing ?? Number((mat.wavelength / (2 * Math.sin(((p.twoTheta / 2) * Math.PI) / 180))).toFixed(4)),
+        color: idx === 0 ? '#06b6d4' : '#6366f1',
+      })),
+      isCustom: true,
+    };
+    setCustomMaterials((prev) => [entry, ...prev.filter((e) => e.name !== entry.name)]);
+    playSynthTone('chime');
+  });
 
   // Quiz state
   const [quizAnswers, setQuizAnswers] = useState<Record<number, number>>({});

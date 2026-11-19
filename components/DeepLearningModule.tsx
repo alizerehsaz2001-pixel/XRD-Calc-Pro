@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
+import { useCustomMaterialApply } from "./CustomMaterialContext";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "motion/react";
 import ReactMarkdown from 'react-markdown';
@@ -566,6 +567,32 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
   const [selectedCandidate, setSelectedCandidate] =
     useState<DLPhaseCandidate | null>(null);
+
+  useCustomMaterialApply('dl', (mat) => {
+    if (!mat.peaks || mat.peaks.length === 0) return;
+    // Synthesize a clean 2-column (2theta, Intensity) diffractogram from the custom material's peaks
+    const minTT = Math.max(5, Math.floor(Math.min(...mat.peaks.map((p) => p.twoTheta)) - 5));
+    const maxTT = Math.min(120, Math.ceil(Math.max(...mat.peaks.map((p) => p.twoTheta)) + 6));
+    const step = 0.08;
+    const lines: string[] = [`# Custom Material: ${mat.name} (${mat.formula}) | ${mat.crystalSystem} ${mat.spaceGroup}`];
+    for (let tt = minTT; tt <= maxTT + 1e-6; tt += step) {
+      let y = 18 + 6 * Math.exp(-tt / 25); // realistic low-angle background
+      for (const p of mat.peaks) {
+        const w = Math.max(0.12, p.fwhm || 0.28);
+        const halfW = w / 2;
+        const dx = tt - p.twoTheta;
+        if (Math.abs(dx) < w * 8) {
+          const gauss = Math.exp(-Math.LN2 * (dx / halfW) * (dx / halfW));
+          const lorentz = 1 / (1 + (dx / halfW) * (dx / halfW));
+          y += p.intensity * 10 * (0.55 * gauss + 0.45 * lorentz);
+        }
+      }
+      lines.push(`${tt.toFixed(2)}\t${y.toFixed(1)}`);
+    }
+    setSelectedFormat('2col');
+    setInputData(lines.join('\n'));
+    playSynthTone('tick');
+  });
   
   // Interactive visualization state
   const [showResidual, setShowResidual] = useState(true);

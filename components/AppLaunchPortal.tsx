@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { Cpu, ArrowRight, CheckCircle2, Sparkles, Activity, Terminal } from 'lucide-react';
 
 interface AppLaunchPortalProps {

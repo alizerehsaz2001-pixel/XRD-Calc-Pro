@@ -5,7 +5,8 @@ import {
   X
 } from 'lucide-react';
 import { BraggResult } from '../types';
-import { MATERIAL_DB } from '../utils/materialDB';
+import { getActiveMaterials } from '../utils/materialsHelper';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { 
   CompareViewMode, 
   DiffTheme, 
@@ -42,8 +43,8 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
 }) => {
   const { t } = useTranslation();
 
-  // Materials database list
-  const materialsDb = MATERIAL_DB;
+  // Materials database list (includes user custom materials)
+  const materialsDb = getActiveMaterials();
 
   // Toast Feedback State
   const [toastMessage, setToastMessage] = useState<{ text: string; type: 'success' | 'info' } | null>(null);
@@ -73,6 +74,17 @@ export const DiffractionCompareModule: React.FC<DiffractionCompareModuleProps> =
   const [customPatternB, setCustomPatternB] = useState(
     '25.87(30), 31.77(100), 32.19(70), 32.90(60), 34.04(25), 39.81(20), 46.71(35), 49.46(30)'
   );
+
+  useCustomMaterialApply('compare', (mat) => {
+    const patternCompact = mat.peaks
+      .map((p) => `${p.twoTheta.toFixed(2)}(${Math.round(p.intensity)})`)
+      .join(', ');
+    setSampleBInputMode('custom');
+    setCustomNameB(mat.name);
+    setCustomFormulaB(mat.formula);
+    setCustomPatternB(patternCompact);
+    showToast(`Loaded custom material "${mat.name}" into Reference Pattern B`, 'success');
+  });
 
   // Secondary Phase C State (Multi-phase mixture)
   const [hasPhaseC, setHasPhaseC] = useState(false);

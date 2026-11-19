@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
   ArrowRight,
   Award,
@@ -76,6 +77,13 @@ export const LearnModule: React.FC = () => {
   const [dispHeight, setDispHeight] = useState(0.08);
   const [gonioRadius, setGonioRadius] = useState(240);
   const [dispThetaTrue, setDispThetaTrue] = useState(28.443);
+
+  useCustomMaterialApply('learn', (mat) => {
+    const strongest = [...mat.peaks].sort((a, b) => b.intensity - a.intensity)[0] || mat.peaks[0];
+    if (strongest) {
+      setDispThetaTrue(Number(strongest.twoTheta.toFixed(3)));
+    }
+  });
 
   const toggleChecklist = (idx: number) => {
     setChecklist((prev) => {

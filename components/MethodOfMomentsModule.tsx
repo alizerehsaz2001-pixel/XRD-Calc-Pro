@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { playSynthTone } from '../utils/sound';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseMomentInput, calculateMethodOfMoments, integrateRawPeakMoments, RawPeakMomentsResult } from '../utils/physics';
@@ -171,6 +172,32 @@ export const MethodOfMomentsModule: React.FC = () => {
   const [synthFwhm, setSynthFwhm] = useState<number>(0.35);
   const [synthMixingEta, setSynthMixingEta] = useState<number>(0.5); // 0=Gaussian, 1=Lorentzian
   const [synthMicrostrain, setSynthMicrostrain] = useState<number>(0.002);
+
+  useCustomMaterialApply('method_of_moments', (mat) => {
+    const wl = mat.wavelength || 1.54056;
+    const strongest = [...mat.peaks].sort((a, b) => b.intensity - a.intensity)[0] || mat.peaks[0];
+    const tt0 = strongest?.twoTheta || 32.5;
+    const fwhm0 = Math.max(0.1, strongest?.fwhm || 0.32);
+    const D = Math.max(5, mat.crystalliteSizeNm || 28);
+    const eps = Math.max(0.0002, mat.microstrain || 0.0015);
+    setWavelength(wl);
+    setTwoTheta0(Number(tt0.toFixed(2)));
+    setSelectedPresetName(`${mat.name} (${mat.formula})`);
+    setSynthCentroid(Number(tt0.toFixed(2)));
+    setSynthFwhm(Number(fwhm0.toFixed(3)));
+    setSynthMicrostrain(eps);
+    // Synthesize Wilson variance progression W(sigma) = k1*sigma + k2*sigma^2
+    const thetaRad = ((tt0 / 2) * Math.PI) / 180;
+    const k1 = (wl * 0.1) / (2 * Math.PI * Math.PI * D * Math.cos(thetaRad)) * (180 / Math.PI) * 1.4;
+    const k2 = Math.pow(2 * eps * Math.tan(thetaRad) * (180 / Math.PI), 2) * 0.35;
+    const sigmas = [0.20, 0.35, 0.50, 0.65, 0.80, 0.95, 1.10, 1.25];
+    const rows = sigmas.map((s) => {
+      const w = Math.max(0.0005, k1 * s + k2 * s * s + 0.004 * s);
+      const m4 = Math.max(0.000004, (w * s * s) / 3.2);
+      return `${s.toFixed(2)}, ${w.toFixed(5)}, ${m4.toFixed(6)}`;
+    });
+    setInputData(rows.join('\n'));
+  });
 
   const [result, setResult] = useState<MethodOfMomentsResult | null>(() => {
     try {

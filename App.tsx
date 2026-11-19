@@ -3,6 +3,9 @@ import React, { useState, useEffect, useRef, useMemo, Suspense, lazy } from 'rea
 import { useTranslation } from 'react-i18next';
 import { useI18n } from './components/I18nProvider';
 import { motion, AnimatePresence } from 'motion/react';
+import { useCustomMaterialApply } from './components/CustomMaterialContext';
+import { CustomMaterialSectionBar } from './components/CustomMaterialSectionBar';
+import { CustomMaterialStudioModal } from './components/CustomMaterialStudioModal';
 // Resilient helper for lazy dynamic component imports with auto-retry and flexible default/named export resolution
 function safeLazy<T extends React.ComponentType<any>>(
   importFn: () => Promise<any>,
@@ -927,6 +930,34 @@ const App: React.FC = () => {
     window.dispatchEvent(new CustomEvent('xrd-load-preset', { detail: preset }));
     playSynthTone('chime');
   };
+
+  // Apply user-customized material directly into Bragg Basics analysis
+  useCustomMaterialApply('bragg', (mat) => {
+    setSampleId(mat.name);
+    setMaterialName(`${mat.name} (${mat.formula})`);
+    const mappedSys =
+      mat.crystalSystem === 'Cubic'
+        ? (mat.centering === 'F' ? 'FCC' : mat.centering === 'I' ? 'BCC' : 'SC')
+        : mat.crystalSystem === 'Hexagonal' || mat.crystalSystem === 'Trigonal'
+        ? 'Hexagonal'
+        : mat.crystalSystem === 'Tetragonal'
+        ? 'Tetragonal'
+        : mat.crystalSystem === 'Orthorhombic'
+        ? 'Orthorhombic'
+        : mat.crystalSystem === 'Monoclinic'
+        ? 'Monoclinic'
+        : mat.crystalSystem === 'Triclinic'
+        ? 'Triclinic'
+        : 'SC';
+    setCrystalSystem(mappedSys);
+    setWavelength(mat.wavelength || 1.54056);
+    setRawPeaks(mat.peaks.map((p) => p.twoTheta.toFixed(3)).join(', '));
+    setRawHKL(mat.peaks.map((p) => `${p.h} ${p.k} ${p.l}`).join(', '));
+    setTimeout(() => {
+      handleCalculate(true);
+    }, 80);
+    playSynthTone('chime');
+  });
 
   // Keep state variables synchronized cleanly in localStorage
   useEffect(() => {
@@ -2484,6 +2515,7 @@ const App: React.FC = () => {
                     }}
                     className="w-full origin-center"
                   >
+                    <CustomMaterialSectionBar activeModule={activeModule} />
                     <ErrorBoundary key={activeModule}>
                   {activeModule === 'bragg' && (
                     <div className="space-y-5 animate-in fade-in duration-300">
@@ -3655,6 +3687,9 @@ const App: React.FC = () => {
               theme={theme}
             />
           </Suspense>
+
+          {/* Global User Custom Material Studio Modal */}
+          <CustomMaterialStudioModal />
         </div>
       </div>
     </div>

@@ -33,7 +33,7 @@ import {
   BarChart3,
   TrendingUp,
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'motion/react';
 import { useTranslation } from 'react-i18next';
 import LanguageSelector from './LanguageSelector';
 import { MATERIAL_DB } from '../utils/materialDB';

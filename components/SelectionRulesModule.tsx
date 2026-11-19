@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { CrystalSystem, SelectionRuleResult } from "../types";
 import { parseHKLString, validateSelectionRule } from "../utils/physics";
+import { useCustomMaterialApply } from "./CustomMaterialContext";
 import { ScientificMathControl } from "./ScientificMathControl";
 import { StructureFactorPhasorDiagram } from "./StructureFactorPhasorDiagram";
 import { DiffractionRingVisualizer } from "./DiffractionRingVisualizer";
@@ -1172,6 +1173,34 @@ export const SelectionRulesModule: React.FC = () => {
   const [manualProbe, setManualProbe] = useState<[number, number, number]>([1, 1, 1]);
   const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka1 wavelength in Angstroms
   const [latticeParameter, setLatticeParameter] = useState<number>(4.05); // Lattice constant 'a' in Angstroms
+
+  useCustomMaterialApply('selection', (mat) => {
+    const mapped: CrystalSystem =
+      mat.crystalSystem === 'Cubic'
+        ? (mat.centering === 'F' ? 'FCC' : mat.centering === 'I' ? 'BCC' : 'SC')
+        : mat.crystalSystem === 'Hexagonal' || mat.crystalSystem === 'Trigonal'
+        ? 'Hexagonal'
+        : mat.crystalSystem === 'Tetragonal'
+        ? (mat.centering === 'I' ? 'Tetragonal_I' : 'Tetragonal')
+        : mat.crystalSystem === 'Orthorhombic'
+        ? (mat.centering === 'F' ? 'Orthorhombic_F' : mat.centering === 'C' ? 'Orthorhombic_C' : 'Orthorhombic')
+        : mat.crystalSystem === 'Monoclinic'
+        ? 'Monoclinic'
+        : mat.crystalSystem === 'Triclinic'
+        ? 'Triclinic'
+        : 'SC';
+    setSystem(mapped);
+    setLatticeParameter(mat.lattice.a);
+    setWavelength(mat.wavelength || 1.54056);
+    if (mat.peaks.length > 0) {
+      setHklInput(mat.peaks.map((p) => `${p.h} ${p.k} ${p.l}`).join(', '));
+      const first = mat.peaks[0];
+      setVisualizerH(first.h);
+      setVisualizerK(first.k);
+      setVisualizerL(first.l);
+      setManualProbe([first.h, first.k, first.l]);
+    }
+  });
 
   // Quick addition indices state
   const [quickH, setQuickH] = useState(1);

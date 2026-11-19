@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { LatticeParameters, CrystalSystem, StandardWavelength } from '../types';
 import {
@@ -171,6 +172,44 @@ export const NeutronModule: React.FC = () => {
     setWavelength(preset.wavelength);
     setAtoms(preset.atoms);
   };
+
+  useCustomMaterialApply('neutron', (mat) => {
+    const allowedSys: CrystalSystem[] = ['Cubic', 'Tetragonal', 'Orthorhombic', 'Hexagonal', 'Monoclinic', 'Triclinic'];
+    const sys: CrystalSystem = allowedSys.includes(mat.crystalSystem as CrystalSystem)
+      ? (mat.crystalSystem as CrystalSystem)
+      : 'Cubic';
+    setActivePresetId(`custom_${mat.id}`);
+    setCrystalSystem(sys);
+    setLattice({
+      a: mat.lattice.a,
+      b: mat.lattice.b,
+      c: mat.lattice.c,
+      alpha: mat.lattice.alpha,
+      beta: mat.lattice.beta,
+      gamma: mat.lattice.gamma,
+    });
+    const elems = Array.from(new Set(mat.formula.match(/[A-Z][a-z]?/g) || ['Fe', 'O'])).slice(0, 4);
+    const coords: [number, number, number][] = [
+      [0, 0, 0],
+      [0.5, 0.5, 0.5],
+      [0.5, 0.5, 0],
+      [0.5, 0, 0.5],
+    ];
+    const nextAtoms: NeutronAtomExtended[] = elems.map((el, idx) => {
+      const nist = NIST_ISOTOPE_DB[el];
+      return {
+        id: `custom-n-${idx}`,
+        element: el,
+        label: `${el}${idx + 1}`,
+        b: idx === 0 && mat.scatteringLengthFm !== undefined ? mat.scatteringLengthFm : (nist?.b_c ?? mat.scatteringLengthFm ?? 5.5),
+        x: coords[idx][0],
+        y: coords[idx][1],
+        z: coords[idx][2],
+        B_iso: 0.45,
+      };
+    });
+    setAtoms(nextAtoms);
+  });
 
   // Synchronize Wavelengths
   const handleSync = async () => {

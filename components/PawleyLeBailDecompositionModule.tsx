@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
   Activity,
   Sliders,
@@ -163,6 +164,46 @@ export const PawleyLeBailDecompositionModule: React.FC<{ pythonFeaturesEnabled?:
 
   // Algorithm Hyperparameters & Joint Refinement Toggles
   const [leBailRelaxation, setLeBailRelaxation] = useState<number>(0.85);
+
+  useCustomMaterialApply('pawley_lebail', (mat) => {
+    const validSystems: CrystalSystem[] = ['Cubic', 'Tetragonal', 'Hexagonal', 'Trigonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'];
+    const mappedSys: CrystalSystem = validSystems.includes(mat.crystalSystem as CrystalSystem)
+      ? (mat.crystalSystem as CrystalSystem)
+      : 'Cubic';
+    const matchedSg = SPACE_GROUPS_DATABASE.find(
+      (sg) =>
+        sg.number === mat.spaceGroupNumber ||
+        sg.symbol.replace(/\s+/g, '').toLowerCase() === (mat.spaceGroup || '').replace(/\s+/g, '').toLowerCase()
+    );
+    const sgSymbol = matchedSg?.symbol || mat.spaceGroup || 'Pm-3m';
+    const sgNum = matchedSg?.number || mat.spaceGroupNumber || 221;
+    const wl = mat.wavelength || 1.54056;
+
+    setSelectedPresetId(`custom_${mat.id}`);
+    setUploadedData(null);
+    setSystem(mappedSys);
+    setSpaceGroupSymbol(sgSymbol);
+    setSpaceGroupNumber(sgNum);
+    setA(mat.lattice.a);
+    setB(mat.lattice.b);
+    setC(mat.lattice.c);
+    setAlpha(mat.lattice.alpha);
+    setBeta(mat.lattice.beta);
+    setGamma(mat.lattice.gamma);
+    setWavelength(wl);
+    setTruthConfig((prev) => ({
+      ...prev,
+      system: mappedSys,
+      spaceGroup: sgSymbol,
+      spaceGroupNumber: sgNum,
+      lattice: { ...mat.lattice },
+      wavelength: wl,
+    }));
+    setIteration(0);
+    setIsAutoIterating(false);
+    setConvergenceHistory([]);
+    playSynthTone('tick');
+  });
   const [pawleyDamping, setPawleyDamping] = useState<number>(0.005);
   const [allowNegativePawley, setAllowNegativePawley] = useState<boolean>(false);
   const [refineBackground, setRefineBackground] = useState<boolean>(false);

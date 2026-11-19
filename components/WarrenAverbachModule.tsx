@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { parseWAInput, calculateWarrenAverbach, synthesizeWAHarmonicsFromPeaks } from '../utils/physics';
 import { WAResult, WAMetrics } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
@@ -333,6 +334,47 @@ export const WarrenAverbachModule: React.FC = () => {
   const [calcLatticeA, setCalcLatticeA] = useState(4.078);
   const [calcHKL1, setCalcHKL1] = useState('1 1 1');
   const [calcHKL2, setCalcHKL2] = useState('2 2 2');
+
+  useCustomMaterialApply('wa', (mat) => {
+    const p1 = mat.peaks[0];
+    const wl = mat.wavelength || 1.5406;
+    const baseD1 = p1?.dSpacing || (p1 ? wl / (2 * Math.sin(((p1.twoTheta / 2) * Math.PI) / 180)) : mat.lattice.a / Math.sqrt(3));
+    const baseD2 = baseD1 / 2;
+    const baseD3 = baseD1 / 3;
+    setSelectedMaterial(`${mat.name} (${mat.formula})`);
+    setD1(Number(baseD1.toFixed(4)));
+    setD2(Number(baseD2.toFixed(4)));
+    setD3(Number(baseD3.toFixed(4)));
+    setShowOrder3(true);
+    setShowOrder4(false);
+    setYoungsModulus(mat.youngsModulusGPa || 150);
+    setCalcLambda(wl);
+    setCalcLatticeA(mat.lattice.a);
+    if (p1) {
+      setDirectPeak1Pos(Number(p1.twoTheta.toFixed(2)));
+      setDirectPeak1Fwhm(Number(Math.max(0.12, p1.fwhm || 0.3).toFixed(3)));
+      const sinT2 = Math.min(0.98, wl / (2 * baseD2));
+      const tt2 = (2 * Math.asin(sinT2) * 180) / Math.PI;
+      setDirectPeak2Pos(Number(tt2.toFixed(2)));
+      setDirectPeak2Fwhm(Number(Math.max(0.18, (p1.fwhm || 0.3) * 1.85).toFixed(3)));
+    }
+    // Synthesize Warren-Averbach Fourier cosine coefficients A(L, d_n) = exp(-L/D) * exp(-2*pi^2*eps^2*L^2/d_n^2)
+    const D = Math.max(4, mat.crystalliteSizeNm || 25);
+    const eps = Math.max(0.0002, mat.microstrain || 0.0015);
+    const LValues = [1, 2, 3, 4, 5, 6, 8, 10, 12, 15, 20, 25];
+    const d1Nm = baseD1 / 10;
+    const d2Nm = baseD2 / 10;
+    const d3Nm = baseD3 / 10;
+    const lines = ['# L[nm], A(d1), A(d2), A(d3)'];
+    for (const L of LValues) {
+      const aSize = Math.exp(-L / D);
+      const a1 = Math.max(0.001, aSize * Math.exp((-2 * Math.PI * Math.PI * eps * eps * L * L) / (d1Nm * d1Nm)));
+      const a2 = Math.max(0.001, aSize * Math.exp((-2 * Math.PI * Math.PI * eps * eps * L * L) / (d2Nm * d2Nm)));
+      const a3 = Math.max(0.001, aSize * Math.exp((-2 * Math.PI * Math.PI * eps * eps * L * L) / (d3Nm * d3Nm)));
+      lines.push(`${L}, ${a1.toFixed(3)}, ${a2.toFixed(3)}, ${a3.toFixed(3)}`);
+    }
+    setInputData(lines.join('\n'));
+  });
 
   const handleReset = () => {
     const defaultPreset = MATERIAL_PRESETS[0];

@@ -5,6 +5,7 @@ import './i18n';
 import { AuthProvider } from './services/firebase';
 import { I18nProvider } from './components/I18nProvider';
 import { DisplayModeProvider } from './components/DisplayModeContext';
+import { CustomMaterialProvider } from './components/CustomMaterialContext';
 
 const rootElement = document.getElementById('root');
 if (!rootElement) {
@@ -16,7 +17,9 @@ root.render(
   <I18nProvider>
     <AuthProvider>
       <DisplayModeProvider>
-        <App />
+        <CustomMaterialProvider>
+          <App />
+        </CustomMaterialProvider>
       </DisplayModeProvider>
     </AuthProvider>
   </I18nProvider>

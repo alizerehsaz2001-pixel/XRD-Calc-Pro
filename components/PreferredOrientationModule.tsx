@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useSettings } from './SettingsContext';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { 
   Rotate3d,
   Activity, 
@@ -98,6 +99,33 @@ export const PreferredOrientationModule: React.FC = () => {
 
   // Quantitative Metric Settings
   const [lotgeringTargetFamily, setLotgeringTargetFamily] = useState<string>('00l');
+
+  useCustomMaterialApply('preferred_orientation', (mat) => {
+    const validSys: CrystalSystemType =
+      mat.crystalSystem === 'Cubic' ||
+      mat.crystalSystem === 'Tetragonal' ||
+      mat.crystalSystem === 'Hexagonal' ||
+      mat.crystalSystem === 'Orthorhombic'
+        ? mat.crystalSystem
+        : 'Cubic';
+    setCrystalSystem(validSys);
+    setLatticeA(mat.lattice.a);
+    setLatticeB(mat.lattice.b);
+    setLatticeC(mat.lattice.c);
+    setWavelength(mat.wavelength || 1.54056);
+    setRValue(mat.preferredR || 0.75);
+    setPrimaryAxis(mat.preferredAxis || '0, 0, 1');
+    setHabitModel(mat.preferredR < 0.85 ? 'Platelet' : mat.preferredR > 1.15 ? 'Needle' : 'Equiaxed');
+    if (mat.peaks.length > 0) {
+      const r = Math.max(0.25, mat.preferredR || 0.75);
+      const lines = mat.peaks.slice(0, 8).map((p, idx) => {
+        const mod = idx === 0 ? Math.pow(r, -2) : Math.pow(r, 0.5);
+        const iMeas = Math.max(5, Math.round(p.intensity * mod));
+        return `${p.h}, ${p.k}, ${p.l}, ${Math.round(p.intensity)}, ${iMeas}`;
+      });
+      setInputData(lines.join('\n'));
+    }
+  });
 
   // Process Reflections
   const reflections = useMemo(() => {

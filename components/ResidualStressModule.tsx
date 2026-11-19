@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
   Activity,
   Calculator,
@@ -250,6 +251,50 @@ export const ResidualStressModule: React.FC = () => {
 
   const [appState, setAppState] = useState<'setup' | 'computing' | 'results'>('setup');
   const [computingStep, setComputingStep] = useState<number>(-1);
+
+  useCustomMaterialApply('residual_stress', (mat) => {
+    const E = Math.max(10, mat.youngsModulusGPa || 180);
+    const nu = Math.min(0.49, Math.max(0.05, mat.poissonRatio || 0.28));
+    const wl = mat.wavelength || 1.54056;
+    // Choose highest-angle peak for optimal sin²ψ sensitivity
+    const sorted = [...mat.peaks].sort((a, b) => b.twoTheta - a.twoTheta);
+    const refPeak = sorted[0];
+    const tt0 = refPeak ? Math.max(45, refPeak.twoTheta) : 138.5;
+    const planeLabel = refPeak ? `(${refPeak.h}${refPeak.k}${refPeak.l})` : '(311)';
+    setYoungsModulus(E);
+    setPoissonsRatio(nu);
+    setUnstressedTwoTheta(Number(tt0.toFixed(2)));
+    setWavelength(wl);
+    setActivePlane(`${mat.formula} ${planeLabel}`);
+    setLinearMuCm(Math.round((mat.massAttenuation || 65) * (mat.density || 5.0)));
+    setS1Override(null);
+    setHalfS2Override(null);
+
+    // Use user's customized residual stress (MPa) or derive from microstrain
+    const sigmaMPa =
+      typeof mat.residualStressMPa === 'number' && mat.residualStressMPa !== 0
+        ? mat.residualStressMPa
+        : -Math.max(120, Math.min(750, Math.round(E * (mat.microstrain || 0.0015) * 1000)));
+    const theta0Rad = ((tt0 / 2) * Math.PI) / 180;
+    const psiAngles = [-60, -45, -30, -15, 0, 15, 30, 45, 60];
+    const halfS2 = (1 + nu) / (E * 1000); // MPa^-1
+    const synthPoints: ResidualStressPoint[] = psiAngles.map((psi, idx) => {
+      const sin2Psi = Math.pow(Math.sin((psi * Math.PI) / 180), 2);
+      const delta2ThetaDeg = -2 * Math.tan(theta0Rad) * halfS2 * sigmaMPa * sin2Psi * (180 / Math.PI);
+      return {
+        id: String(idx + 1),
+        psi,
+        phi: 0,
+        twoTheta: Number((tt0 + delta2ThetaDeg).toFixed(3)),
+        intensity: Math.round(1200 * Math.cos((psi * Math.PI) / 260)),
+        fwhm: Number((Math.max(0.2, refPeak?.fwhm || 0.35) + Math.abs(psi) * 0.0015).toFixed(3)),
+        error2Theta: 0.01,
+        enabled: true,
+      };
+    });
+    setDataPoints(synthPoints);
+    setAppState('results');
+  });
 
   const startComputation = () => {
     setAppState('computing');

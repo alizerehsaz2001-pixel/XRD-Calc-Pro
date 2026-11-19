@@ -158,18 +158,16 @@ Whenever I generate Python code, you can click **"Load into Editor"** or run it 
   };
 
   const handleClearHistory = () => {
-    if (window.confirm("Are you sure you want to clear this Gemini Flash conversation history?")) {
-      const initial: ChatMessage[] = [
-        {
-          id: "msg-init-reset",
-          role: "assistant",
-          content: "Conversation history cleared. Ready for your next XRD Python analysis query!",
-          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-        }
-      ];
-      setMessages(initial);
-      localStorage.setItem("xrd_gemini_coder_chat_history", JSON.stringify(initial));
-    }
+    const initial: ChatMessage[] = [
+      {
+        id: "msg-init-reset",
+        role: "assistant",
+        content: "Conversation history cleared. Ready for your next XRD Python analysis query!",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      }
+    ];
+    setMessages(initial);
+    localStorage.setItem("xrd_gemini_coder_chat_history", JSON.stringify(initial));
   };
 
   const handleCopyCode = (code: string, id: string) => {

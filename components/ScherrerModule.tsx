@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { ScherrerInput, ScherrerResult } from '../types';
 import { parseScherrerInput, calculateScherrer, XRAY_WAVELENGTHS, ScherrerMorphologyKMode } from '../utils/physics';
 import { 
@@ -148,6 +149,23 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
   // Derivation interactive simulator parameters
   const [simPlaneCount, setSimPlaneCount] = useState<number>(25);
   const [simDSpacing, setSimDSpacing] = useState<number>(3.135); // Si (111) in Å
+
+  useCustomMaterialApply(['scherrer', 'monshi_scherrer', 'xrd_nano'], (mat) => {
+    setWavelength(mat.wavelength || 1.5406);
+    setSelectedMaterial(`${mat.name} (${mat.formula})`);
+    setMaterialDensity(mat.density || 4.0);
+    if (mat.peaks.length > 0) {
+      const formatted = mat.peaks
+        .map((p) => {
+          return `${p.twoTheta.toFixed(3)}, ${Math.max(0.06, p.fwhm || 0.25).toFixed(3)}, ${Math.round(p.intensity)}, ${p.h}, ${p.k}, ${p.l}`;
+        })
+        .join('\n');
+      setInputData(formatted);
+      if (mat.peaks[0].dSpacing) {
+        setSimDSpacing(Number(mat.peaks[0].dSpacing.toFixed(4)));
+      }
+    }
+  });
 
   const [results, setResults] = useState<ScherrerResult[]>(() => {
     try {

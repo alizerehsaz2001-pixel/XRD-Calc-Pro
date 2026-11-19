@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
   PDFCoordinationShell,
   PDFSimulationConfig,
@@ -110,6 +111,34 @@ export const PairDistributionFunctionModule: React.FC = () => {
       setRIntMax(Number((r1 + hw).toFixed(2)));
     }
   };
+
+  useCustomMaterialApply('pdf_analysis', (mat) => {
+    const r1 = Math.max(1.2, mat.nearestNeighborA || mat.lattice.a * 0.5);
+    const aLen = Math.max(2.2, mat.lattice.a);
+    const elems = Array.from(new Set(mat.formula.match(/[A-Z][a-z]?/g) || ['M', 'X']));
+    const pair1 = elems.length >= 2 ? `${elems[0]}–${elems[1]}` : `${elems[0]}–${elems[0]}`;
+    const pair2 = `${elems[0]}–${elems[0]}`;
+    const customShells: PDFCoordinationShell[] = [
+      { id: 'cs-1', pairLabel: `${pair1} (1st NN)`, rAngstrom: Number(r1.toFixed(3)), coordinationN: 6.0, sigmaAngstrom: 0.068, weightFactor: 1.0 },
+      { id: 'cs-2', pairLabel: `${pair2} (2nd NN)`, rAngstrom: Number((r1 * Math.SQRT2).toFixed(3)), coordinationN: 12.0, sigmaAngstrom: 0.085, weightFactor: 1.15 },
+      { id: 'cs-3', pairLabel: `${pair2} (Unit Cell a)`, rAngstrom: Number(aLen.toFixed(3)), coordinationN: 6.0, sigmaAngstrom: 0.095, weightFactor: 1.1 },
+      { id: 'cs-4', pairLabel: `${pair1} (Body Diag)`, rAngstrom: Number((aLen * Math.sqrt(1.5)).toFixed(3)), coordinationN: 12.0, sigmaAngstrom: 0.112, weightFactor: 0.95 },
+      { id: 'cs-5', pairLabel: `${pair2} (Next Cell)`, rAngstrom: Number((aLen * Math.SQRT2).toFixed(3)), coordinationN: 12.0, sigmaAngstrom: 0.125, weightFactor: 0.9 },
+    ];
+    setSelectedPresetId(`custom_${mat.id}`);
+    setShells(customShells);
+    setConfig((prev) => ({
+      ...prev,
+      domainDiameterNm: Math.max(1.5, mat.crystalliteSizeNm || 25),
+      isAmorphous: mat.crystalSystem === 'Amorphous',
+      amorphousCorrelationA: mat.crystalSystem === 'Amorphous' ? 6.5 : prev.amorphousCorrelationA,
+      modelScaleFactor: 1.0,
+    }));
+    setRIntMin(Number(Math.max(0.6, r1 - 0.35).toFixed(2)));
+    setRIntMax(Number((r1 + 0.35).toFixed(2)));
+    setRefinementBanner(`Loaded custom material "${mat.name}" (${mat.formula}) — 1st NN = ${r1.toFixed(2)} Å, Domain = ${mat.crystalliteSizeNm} nm.`);
+    playSynthTone('tick');
+  });
 
   const handleUpdateConfig = (partial: Partial<PDFSimulationConfig>) => {
     setConfig(prev => ({ ...prev, ...partial }));

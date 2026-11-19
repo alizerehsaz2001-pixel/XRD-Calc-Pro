@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
   Play,
   RotateCcw,
@@ -124,6 +125,75 @@ export const RietveldRefinementModule: React.FC = () => {
     },
     []
   );
+
+  useCustomMaterialApply('rietveld', (mat) => {
+    const allowedSystems = ['Cubic', 'Tetragonal', 'Orthorhombic', 'Hexagonal', 'Trigonal', 'Rhombohedral', 'Monoclinic', 'Triclinic'] as const;
+    const sys = allowedSystems.includes(mat.crystalSystem as any) ? (mat.crystalSystem as any) : 'Cubic';
+    const allowedCenterings = ['P', 'I', 'F', 'C', 'R'] as const;
+    const centering = allowedCenterings.includes(mat.centering as any) ? (mat.centering as any) : 'P';
+    const elemMatches = mat.formula.match(/[A-Z][a-z]?/g) || ['Fe'];
+    const uniqueElems = Array.from(new Set(elemMatches)).slice(0, 4);
+    const wyckoffCoords: [number, number, number][] = [
+      [0, 0, 0],
+      [0.5, 0.5, 0.5],
+      [0.5, 0.5, 0],
+      [0.25, 0.25, 0.25],
+    ];
+    const customPhase: RietveldPhaseModel = {
+      ...(phases[0] || RIETVELD_PRESET_SCENARIOS[0].initialPhases[0]),
+      id: `custom-${mat.id}`,
+      name: mat.name,
+      formula: mat.formula,
+      spaceGroup: mat.spaceGroup || 'Pm-3m',
+      crystalSystem: sys,
+      centering,
+      Z: Math.max(1, Math.round(mat.zValue || 4)),
+      scaleFactor: 0.0012,
+      a: mat.lattice.a,
+      b: mat.lattice.b,
+      c: mat.lattice.c,
+      alpha: mat.lattice.alpha,
+      beta: mat.lattice.beta,
+      gamma: mat.lattice.gamma,
+      marchDollaseR: mat.preferredR || 1.0,
+      atoms: uniqueElems.map((el, idx) => ({
+        id: `custom-atom-${idx}`,
+        label: `${el}${idx + 1}`,
+        element: el,
+        wyckoff: idx === 0 ? '1a' : idx === 1 ? '1b' : '3c',
+        x: wyckoffCoords[idx][0],
+        y: wyckoffCoords[idx][1],
+        z: wyckoffCoords[idx][2],
+        occupancy: 1.0,
+        bIso: 0.5,
+        refineXYZ: false,
+        refineOcc: false,
+        refineBIso: true,
+      })),
+      color: '#0891b2',
+    };
+    const nextInst: InstrumentalResolutionConfig = {
+      ...instConfig,
+      wavelength: mat.wavelength || 1.540598,
+    };
+    // Synthesize observed scan from true custom phase and perturb initial phase slightly for refinement
+    const perturbedPhase: RietveldPhaseModel = {
+      ...customPhase,
+      a: Number((customPhase.a * 1.004).toFixed(4)),
+      b: Number((customPhase.b * 1.004).toFixed(4)),
+      c: Number((customPhase.c * 1.004).toFixed(4)),
+      scaleFactor: customPhase.scaleFactor * 0.85,
+    };
+    setSelectedPresetId(`custom_${mat.id}`);
+    setInstConfig(nextInst);
+    setPhases([perturbedPhase]);
+    setExperimentalScan(synthesizeExperimentalDiffractogram([customPhase], nextInst, globalParams, 42));
+    setSelectedPhaseIdx(0);
+    setSelectedReflectionIdx(0);
+    setConvergenceHistory([]);
+    setZoomWindow(null);
+    playSynthTone('switch');
+  });
 
   // Live Rietveld forward model calculation
   const rietveldOutput = useMemo(

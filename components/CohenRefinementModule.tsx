@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { motion } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
 import {
@@ -104,6 +105,29 @@ export const CohenRefinementModule: React.FC<CohenRefinementModuleProps> = ({
     setPeaks(preset.peaks.map(p => ({ ...p, enabled: true })));
     playSynthTone('tick');
   };
+
+  useCustomMaterialApply('cohen', (mat) => {
+    const validSystems: CrystalSystem[] = ['Cubic', 'Tetragonal', 'Hexagonal', 'Trigonal', 'Orthorhombic', 'Monoclinic', 'Triclinic'];
+    const mappedSys: CrystalSystem = validSystems.includes(mat.crystalSystem as CrystalSystem)
+      ? (mat.crystalSystem as CrystalSystem)
+      : 'Cubic';
+    setCrystalSystem(mappedSys);
+    setWavelength(mat.wavelength || 1.54056);
+    if (mat.peaks.length > 0) {
+      const mappedPeaks: PeakInput[] = mat.peaks.map((p, idx) => ({
+        id: `custom-${mat.id}-${idx}`,
+        twoTheta: Number(p.twoTheta.toFixed(4)),
+        h: p.h,
+        k: p.k,
+        l: p.l,
+        intensity: Math.round(p.intensity),
+        enabled: true,
+      }));
+      setPeaks(mappedPeaks);
+      notifyStatus(`Applied custom material: ${mat.name} (${mappedPeaks.length} peaks)`);
+      playSynthTone('tick');
+    }
+  });
 
   // Peak Management Handlers
   const handleUpdatePeak = (id: string, field: keyof PeakInput, value: any) => {

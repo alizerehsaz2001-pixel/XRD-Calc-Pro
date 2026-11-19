@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { playSynthTone } from '../utils/sound';
 import {
   Layers,
@@ -311,6 +312,39 @@ export const SupercellTransformationModule: React.FC<{ pythonFeaturesEnabled?: b
   const [newAtomX, setNewAtomX] = useState<number>(0.5);
   const [newAtomY, setNewAtomY] = useState<number>(0.5);
   const [newAtomZ, setNewAtomZ] = useState<number>(0.5);
+
+  useCustomMaterialApply('supercell_transform', (mat) => {
+    setA(mat.lattice.a);
+    setB(mat.lattice.b);
+    setC(mat.lattice.c);
+    setAlpha(mat.lattice.alpha);
+    setBeta(mat.lattice.beta);
+    setGamma(mat.lattice.gamma);
+    setSelectedTemplateId('custom');
+    const elemMatches = mat.formula.match(/[A-Z][a-z]?/g) || ['M'];
+    const uniqueElems = Array.from(new Set(elemMatches)).slice(0, 4);
+    const basisCoords: [number, number, number][] = [
+      [0, 0, 0],
+      [0.5, 0.5, 0.5],
+      [0.5, 0.5, 0],
+      [0.5, 0, 0.5],
+    ];
+    const generatedSites: AtomSite[] = uniqueElems.map((el, idx) => ({
+      id: `custom-site-${idx}`,
+      element: el,
+      x: basisCoords[idx][0],
+      y: basisCoords[idx][1],
+      z: basisCoords[idx][2],
+      label: `${el}${idx + 1} (${mat.formula})`,
+    }));
+    setAtomSites(generatedSites);
+    if (mat.peaks[0]) {
+      setH(mat.peaks[0].h);
+      setK(mat.peaks[0].k);
+      setL(mat.peaks[0].l);
+    }
+    playSynthTone('tick');
+  });
 
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 

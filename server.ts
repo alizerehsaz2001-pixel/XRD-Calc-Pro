@@ -466,8 +466,9 @@ async function startServer() {
   // Cybersecurity & Best Practices Setup
   // 1. Helmet: Sets various HTTP headers to secure the app
   app.use(helmet({
-    contentSecurityPolicy: false, // Disabled for Vite HMR and dynamic inline styles/scripts
+    contentSecurityPolicy: false, // Disabled for Vite dev and dynamic inline styles/scripts
     crossOriginEmbedderPolicy: false,
+    frameguard: false, // Allow rendering inside cross-origin preview iframes
   }));
 
   // 2. CORS: Enable Cross-Origin Resource Sharing with safe methods
@@ -482,7 +483,6 @@ async function startServer() {
     const reqId = crypto.randomUUID();
     res.setHeader("X-Request-ID", reqId);
     res.setHeader("X-Content-Type-Options", "nosniff");
-    res.setHeader("X-Frame-Options", "SAMEORIGIN");
     res.setHeader("X-XSS-Protection", "1; mode=block");
     res.setHeader("X-Permitted-Cross-Domain-Policies", "none");
     res.setHeader("X-DNS-Prefetch-Control", "off");
@@ -4446,11 +4446,9 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {
-    // Accelerate dev reloads with immutable caching on pre-bundled deps and media
+    // Allow static public assets to cache briefly while letting Vite manage /node_modules/.vite/deps/ headers cleanly
     app.use((req, res, next) => {
-      if (req.url.includes('/node_modules/.vite/deps/') || req.url.includes('/@vite/') || req.url.includes('/@fs/')) {
-        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
-      } else if (req.url.startsWith('/assets/') || req.url.startsWith('/public/')) {
+      if (req.url.startsWith('/assets/') || req.url.startsWith('/public/')) {
         res.setHeader('Cache-Control', 'public, max-age=86400');
       }
       next();

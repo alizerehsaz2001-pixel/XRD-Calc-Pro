@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseIBAdvancedInput, calculateIBAdvanced, calculateIntegralBreadth, synthesizeIBPeakProfile, XRAY_WAVELENGTHS } from '../utils/physics';
 import { IBAdvancedResult } from '../types';
@@ -172,6 +173,25 @@ export const IntegralBreadthAdvancedModule: React.FC<IntegralBreadthAdvancedModu
   const [result, setResult] = useState<IBAdvancedResult | null>(null);
   
   const [selectedMaterial, setSelectedMaterial] = useState<string>(MATERIAL_PRESETS[0].label);
+
+  useCustomMaterialApply(['integral', 'integral_adv'], (mat) => {
+    setWavelength(mat.wavelength || 1.5406);
+    setSelectedMaterial(`${mat.name} (${mat.formula})`);
+    setYoungsModulusGPa(mat.youngsModulusGPa || 150);
+    setMaterialDensityGcm3(mat.density || 4.5);
+    setExcludedIndices([]);
+    if (mat.peaks.length > 0) {
+      const formatted = mat.peaks
+        .map((p) => {
+          const height = Math.max(100, Math.round(p.intensity * 12));
+          const fwhm = Math.max(0.08, p.fwhm || 0.28);
+          const area = Number((height * fwhm * 1.18).toFixed(1));
+          return `${p.twoTheta.toFixed(2)}, ${area}, ${height}, ${p.h} ${p.k} ${p.l}`;
+        })
+        .join('\n');
+      setInputData(formatted);
+    }
+  });
   const [isMaterialMenuOpen, setIsMaterialMenuOpen] = useState(false);
   const [selectedKType, setSelectedKType] = useState<string>('Integral Breadth');
   const [isKTypeMenuOpen, setIsKTypeMenuOpen] = useState(false);

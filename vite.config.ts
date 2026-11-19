@@ -22,18 +22,32 @@ export default defineConfig(({ mode }) => {
       resolve: {
         alias: {
           '@': path.resolve(__dirname, '.'),
-        }
+        },
+        dedupe: ['react', 'react-dom'],
       },
       optimizeDeps: {
+        holdUntilCrawlEnd: true,
         include: [
           'react',
           'react-dom',
           'react-dom/client',
+          'react/jsx-runtime',
+          'react/jsx-dev-runtime',
           'react-i18next',
           'i18next',
+          'i18next-browser-languagedetector',
           'motion/react',
           'lucide-react',
           'recharts',
+          'katex',
+          'react-markdown',
+          'rehype-katex',
+          'remark-math',
+          'jspdf',
+          '@google/genai',
+          'firebase/app',
+          'firebase/auth',
+          'firebase/firestore',
         ],
       },
       build: {

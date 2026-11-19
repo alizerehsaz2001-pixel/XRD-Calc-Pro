@@ -1,4 +1,5 @@
 import React, { useState, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
   Layers,
   Compass,
@@ -101,6 +102,36 @@ export const CrystallographicMetricTensorModule: React.FC<CrystallographicMetric
       setParams({ ...mat.params });
     }
   };
+
+  useCustomMaterialApply('metric_tensor', (mat) => {
+    const validSystems: CrystalSystem[] = ['Cubic', 'Tetragonal', 'Hexagonal', 'Rhombohedral', 'Orthorhombic', 'Monoclinic', 'Triclinic'];
+    const mappedSys: CrystalSystem =
+      mat.crystalSystem === 'Trigonal'
+        ? 'Rhombohedral'
+        : validSystems.includes(mat.crystalSystem as CrystalSystem)
+        ? (mat.crystalSystem as CrystalSystem)
+        : 'Cubic';
+    setSystem(mappedSys);
+    setSelectedMaterialId('');
+    setParams({
+      a: mat.lattice.a,
+      b: mat.lattice.b,
+      c: mat.lattice.c,
+      alpha: mat.lattice.alpha,
+      beta: mat.lattice.beta,
+      gamma: mat.lattice.gamma,
+    });
+    if (mat.peaks[0]) {
+      setH1(mat.peaks[0].h);
+      setK1(mat.peaks[0].k);
+      setL1(mat.peaks[0].l);
+    }
+    if (mat.peaks[1]) {
+      setH2(mat.peaks[1].h);
+      setK2(mat.peaks[1].k);
+      setL2(mat.peaks[1].l);
+    }
+  });
 
   const updateLatticeParam = (key: keyof LatticeParams, val: number) => {
     const safeVal = Math.max(0.1, val);

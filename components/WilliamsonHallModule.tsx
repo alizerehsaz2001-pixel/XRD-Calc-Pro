@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
 import {
@@ -182,6 +183,22 @@ export const WilliamsonHallModule: React.FC = () => {
   const [schematicMode, setSchematicMode] = useState<'decoupling' | 'scaling' | 'lattice'>('decoupling');
 
   const [result, setResult] = useState<WHResult | null>(null);
+
+  useCustomMaterialApply('wh', (mat) => {
+    setWavelength(mat.wavelength || 1.5406);
+    setSelectedMaterial(`${mat.name} (${mat.formula})`);
+    setYoungsModulusGPa(mat.youngsModulusGPa || 150);
+    setMaterialDensityGcm3(mat.density || 4.5);
+    setExcludedIndices([]);
+    if (mat.peaks.length > 0) {
+      const formatted = mat.peaks
+        .map((p) => {
+          return `${p.twoTheta.toFixed(2)}, ${Math.max(0.08, p.fwhm || 0.28).toFixed(3)}, ${p.h}, ${p.k}, ${p.l}`;
+        })
+        .join('\n');
+      setInputData(formatted);
+    }
+  });
 
   const isFirstRender = useRef(true);
 

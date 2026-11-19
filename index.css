@@ -514,7 +514,7 @@ html[dir="rtl"] .mr-2 {
   margin-left: 0.5rem !important;
 }
 
-@plugin "@tailwindcss/typography";
+/* Typography & GPU compositing enhancements */
 
 /* 120 FPS High-Refresh-Rate Performance & GPU Compositing Engine */
 @media screen {

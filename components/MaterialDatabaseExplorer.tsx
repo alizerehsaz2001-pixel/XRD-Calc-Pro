@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef, useDeferredValue } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import Markdown from 'react-markdown';
@@ -836,6 +837,37 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   // Gemini 3.6 Flash Intelligent Search & Learning state
   const [showGeminiFlashSearch, setShowGeminiFlashSearch] = useState<boolean>(false);
   const [geminiFlashInitialQuery, setGeminiFlashInitialQuery] = useState<string>('');
+
+  // Keep MaterialDatabaseExplorer live-synced when users create/edit custom materials
+  useEffect(() => {
+    const syncCustomMaterials = () => {
+      try {
+        const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
+        if (!saved) return;
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const uniqueMap = new Map<string, any>();
+          parsed.forEach((m) => {
+            if (m && m.name && !uniqueMap.has(m.name)) uniqueMap.set(m.name, m);
+          });
+          MATERIAL_DB.forEach((m) => {
+            if (m && m.name && !uniqueMap.has(m.name)) uniqueMap.set(m.name, m);
+          });
+          setMaterials(Array.from(uniqueMap.values()));
+        }
+      } catch {
+        // Ignore storage read errors
+      }
+    };
+    window.addEventListener('xrd-custom-materials-updated', syncCustomMaterials);
+    return () => window.removeEventListener('xrd-custom-materials-updated', syncCustomMaterials);
+  }, []);
+
+  useCustomMaterialApply('database', (mat) => {
+    setSelectedCategory('All');
+    setSelectedCrystalSystem('All');
+    setSearchQuery(mat.name);
+  });
 
   // Load any server-side learned materials & listen for real-time learned broadcasts
   useEffect(() => {

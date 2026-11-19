@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo, useDeferredValue } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { 
   RotateCcw, Activity, Zap, Box, Layers, Scan, CheckCircle, Download, BookOpen, HelpCircle,
   Sliders, Eye, ZoomIn, ZoomOut, Crosshair, TrendingUp, BarChart2, Split, Maximize2, Sparkles, SlidersHorizontal,
@@ -500,6 +501,33 @@ export const FWHMModule: React.FC = () => {
       asymmetry: 1.0
     }
   ]);
+
+  useCustomMaterialApply('fwhm', (mat) => {
+    const primary = mat.peaks.slice().sort((a, b) => b.intensity - a.intensity)[0] || mat.peaks[0];
+    if (primary) {
+      setCenter(Number(primary.twoTheta.toFixed(3)));
+      setFwhmManual(Number(Math.max(0.05, primary.fwhm || 0.28).toFixed(3)));
+      setAmplitude(Math.max(20, Math.round(primary.intensity)));
+    }
+    setEta(mat.etaMix ?? 0.45);
+    const colors = ['#06b6d4', '#6366f1', '#10b981', '#f59e0b', '#ec4899', '#8b5cf6'];
+    if (mat.peaks.length > 0) {
+      setCustomPeaks(
+        mat.peaks.slice(0, 6).map((pk, idx) => ({
+          id: `custom-peak-${idx + 1}`,
+          name: `${mat.formula} (${pk.h}${pk.k}${pk.l})`,
+          color: colors[idx % colors.length],
+          enabled: true,
+          center: Number(pk.twoTheta.toFixed(3)),
+          fwhm: Number(Math.max(0.05, pk.fwhm || 0.25).toFixed(3)),
+          amplitude: Math.max(10, Math.round(pk.intensity)),
+          shape: 'Pseudo-Voigt',
+          eta: mat.etaMix ?? 0.45,
+          asymmetry: 1.0,
+        }))
+      );
+    }
+  });
 
   // Experimental Raw Data Upload / Paste & Multi-Peak Extraction State
   const [rawDatasetText, setRawDatasetText] = useState<string>('');

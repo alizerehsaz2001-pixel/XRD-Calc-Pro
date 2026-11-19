@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from "react";
+import { useCustomMaterialApply } from "./CustomMaterialContext";
 import { useTranslation } from "react-i18next";
 import {
   Code,
@@ -93,6 +94,50 @@ export const PythonExportModule: React.FC = () => {
     exitCode: number;
     duration?: number;
   } | null>(null);
+
+  useCustomMaterialApply('python_export', (mat) => {
+    const peaksPy = mat.peaks
+      .map((p) => `    (${p.twoTheta.toFixed(3)}, ${p.intensity.toFixed(1)}, ${(p.fwhm || 0.25).toFixed(3)}, [${p.h}, ${p.k}, ${p.l}]),`)
+      .join('\n');
+    const code = `#!/usr/bin/env python3
+"""
+Custom Material XRD Quantitative Analysis Script
+Material : ${mat.name} (${mat.formula})
+Symmetry : ${mat.crystalSystem} (${mat.spaceGroup}, Centering: ${mat.centering}, Z=${mat.zValue})
+Lattice  : a=${mat.lattice.a} Å, b=${mat.lattice.b} Å, c=${mat.lattice.c} Å, α=${mat.lattice.alpha}°, β=${mat.lattice.beta}°, γ=${mat.lattice.gamma}°
+"""
+import numpy as np
+
+MATERIAL_NAME = ${JSON.stringify(mat.name)}
+FORMULA = ${JSON.stringify(mat.formula)}
+WAVELENGTH_A = ${mat.wavelength || 1.5406}
+DENSITY_G_CM3 = ${mat.density}
+YOUNGS_MODULUS_GPA = ${mat.youngsModulusGPa}
+POISSON_RATIO = ${mat.poissonRatio}
+RIR_CORUNDUM = ${mat.rir}
+MAC_CM2_G = ${mat.massAttenuation}
+CRYSTALLITE_SIZE_NM = ${mat.crystalliteSizeNm}
+MICROSTRAIN = ${mat.microstrain}
+
+# (two_theta_deg, rel_intensity, fwhm_deg, [h, k, l])
+PEAKS = [
+${peaksPy}
+]
+
+print(f"=== {MATERIAL_NAME} ({FORMULA}) ===")
+print(f"λ = {WAVELENGTH_A:.4f} Å | ρ = {DENSITY_G_CM3:.2f} g/cm³ | E = {YOUNGS_MODULUS_GPA:.1f} GPa | RIR = {RIR_CORUNDUM:.2f}")
+print(f"{'2θ (deg)':>10} {'d (Å)':>10} {'I_rel':>8} {'FWHM':>8} {'D_Scherrer (nm)':>16} {'(hkl)':>10}")
+for tt, inten, fwhm, hkl in PEAKS:
+    theta = np.radians(tt / 2.0)
+    d = WAVELENGTH_A / (2.0 * np.sin(theta))
+    beta = np.radians(max(fwhm, 0.01))
+    d_nm = (0.9 * WAVELENGTH_A / (beta * np.cos(theta))) / 10.0
+    print(f"{tt:10.3f} {d:10.4f} {inten:8.1f} {fwhm:8.3f} {d_nm:16.2f} {str(tuple(hkl)):>10}")
+`;
+    setUserEdited(true);
+    setScriptContent(code);
+    setActiveTab('forge');
+  });
 
   const templates = [
     {

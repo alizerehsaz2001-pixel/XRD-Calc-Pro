@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useRef } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
   Layers,
   FlaskConical,
@@ -157,6 +158,40 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
   const [actionNotification, setActionNotification] = useState<string | null>(null);
   const [copiedReport, setCopiedReport] = useState(false);
   const [expandedMultiPeakPhases, setExpandedMultiPeakPhases] = useState<Record<string, boolean>>({});
+
+  useCustomMaterialApply('rir', (mat) => {
+    const strongest = [...mat.peaks].sort((a, b) => b.intensity - a.intensity)[0] || mat.peaks[0];
+    const hklStr = strongest ? `(${strongest.h}${strongest.k}${strongest.l})` : '(111)';
+    const customPhase: RIRPhase = {
+      id: `custom-rir-${mat.id}`,
+      name: `${mat.name} (${mat.formula})`,
+      hkl: hklStr,
+      twoTheta: Number((strongest?.twoTheta || 32.0).toFixed(2)),
+      intensity: Math.round((strongest?.intensity || 100) * 80),
+      rir: Number((mat.rir || 2.5).toFixed(2)),
+      density: Number((mat.density || 5.0).toFixed(2)),
+      mac: Number((mat.massAttenuation || 65.0).toFixed(1)),
+      notes: `Custom Material (${mat.crystalSystem} • ${mat.spaceGroup})`,
+      color: '#0891b2',
+      peaks: mat.peaks.slice(0, 5).map((p, idx) => ({
+        id: `cpk-${idx}`,
+        hkl: `(${p.h}${p.k}${p.l})`,
+        twoTheta: Number(p.twoTheta.toFixed(2)),
+        intensity: Math.round(p.intensity * 80),
+        relIntensity: Math.max(1, Math.round(p.intensity)),
+      })),
+    };
+    setPhases((prev) => {
+      const existsIdx = prev.findIndex((p) => p.id === customPhase.id);
+      if (existsIdx >= 0) {
+        return prev.map((p, i) => (i === existsIdx ? customPhase : p));
+      }
+      return [customPhase, ...prev];
+    });
+    setActionNotification(`Added / updated custom phase "${mat.name}" (RIR = ${customPhase.rir}, μ/ρ = ${customPhase.mac} cm²/g)`);
+    setTimeout(() => setActionNotification(null), 3500);
+    playSynthTone('tick');
+  });
 
   // Add Phase
   const addPhase = () => {

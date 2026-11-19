@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
 import { parseDoubleVoigtInput, calculateDoubleVoigt, DoubleVoigtPeakInput } from '../utils/physics';
 import { DoubleVoigtResult } from '../types';
@@ -177,6 +178,23 @@ export const DoubleVoigtModule: React.FC = () => {
     setStatusBanner(msg);
     setTimeout(() => setStatusBanner(null), 3200);
   };
+
+  useCustomMaterialApply('double_voigt', (mat) => {
+    setWavelength(mat.wavelength || 1.54056);
+    setActivePresetName(`${mat.name} (${mat.formula})`);
+    setExcludedIndices([]);
+    if (mat.peaks.length > 0) {
+      const formatted = mat.peaks
+        .map((p, idx) => {
+          const baseEta = mat.etaMix ?? 0.55;
+          const eta = Math.max(0.2, Math.min(0.9, baseEta - idx * 0.03));
+          return `${p.twoTheta.toFixed(2)}, ${Math.max(0.09, p.fwhm || 0.3).toFixed(3)}, ${p.h}, ${p.k}, ${p.l}, ${eta.toFixed(2)}`;
+        })
+        .join('\n');
+      setInputData(formatted);
+      showTransientStatus(`Applied custom material: ${mat.name} (${mat.peaks.length} peaks)`);
+    }
+  });
 
   const parsedPeaks = useMemo(() => {
     return parseDoubleVoigtInput(inputData);

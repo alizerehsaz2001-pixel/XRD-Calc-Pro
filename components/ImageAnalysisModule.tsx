@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useCustomMaterialApply } from './CustomMaterialContext';
 import { analyzeDiffractionImage, analyzeImageOCR, isQuotaError, isPermissionError, OCRAnalysisResult } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 import { 
@@ -164,6 +165,49 @@ export const ImageAnalysisModule: React.FC<{
     spot_threshold_p: 93,
     canny_low: 40,
     canny_high: 120
+  });
+
+  useCustomMaterialApply('image_analysis', (mat) => {
+    const wl = mat.wavelength || 1.5406;
+    setCvParams((prev) => ({ ...prev, wavelength: wl }));
+    const peakSummary = mat.peaks
+      .slice(0, 6)
+      .map((p) => `${p.twoTheta.toFixed(2)}° (${p.h}${p.k}${p.l})`)
+      .join(', ');
+    setContext(
+      `Custom Material: ${mat.name} (${mat.formula}) | ${mat.crystalSystem} ${mat.spaceGroup} | a=${mat.lattice.a} Å | λ=${wl} Å | Peaks: ${peakSummary}`
+    );
+    try {
+      const size = 512;
+      const canvas = document.createElement('canvas');
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.fillStyle = '#090d16';
+        ctx.fillRect(0, 0, size, size);
+        const cx = size / 2;
+        const cy = size / 2;
+        mat.peaks.slice(0, 10).forEach((p) => {
+          const r = Math.min(size * 0.46, (p.twoTheta / 95) * (size * 0.44));
+          const alpha = Math.max(0.18, Math.min(0.95, p.intensity / 100));
+          ctx.beginPath();
+          ctx.arc(cx, cy, r, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(226, 244, 255, ${alpha.toFixed(2)})`;
+          ctx.lineWidth = Math.max(1.5, (p.fwhm || 0.25) * 6);
+          ctx.stroke();
+        });
+        ctx.beginPath();
+        ctx.arc(cx, cy, 14, 0, Math.PI * 2);
+        ctx.fillStyle = '#020617';
+        ctx.fill();
+        setImage(canvas.toDataURL('image/png'));
+      }
+    } catch {
+      // Canvas unavailable
+    }
+    setExportToast(`Loaded custom material "${mat.name}" into 2D detector & OCR context`);
+    setTimeout(() => setExportToast(null), 3200);
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
