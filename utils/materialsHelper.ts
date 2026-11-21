@@ -8,6 +8,9 @@ let cachedMergedList: any[] | null = null;
 // so older localStorage caches never resurrect them.
 export const DEPRECATED_MATERIAL_NAMES = new Set<string>([
   'Corundum Standard (Al2O3)',
+  'Alpha Titanium (α-Ti)',
+  'Chromium Standard (Cr)',
+  'Cobalt Nanoparticles (Hexagonal)',
 ]);
 
 const BUILTIN_MATERIAL_MAP = new Map<string, any>(
