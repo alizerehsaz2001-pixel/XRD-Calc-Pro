@@ -6,10 +6,13 @@ import ReactMarkdown from 'react-markdown';
 import deepLearningAnalysisBg from '../src/assets/images/deep_learning_analysis_bg_1785615121328.jpg';
 import convolutionalEngineBg from '../src/assets/images/convolutional_engine_bg_1785614983427.jpg';
 
-import { DLPhaseResult, DLPhaseCandidate } from "../types";
+import { DLPhaseResult, DLPhaseCandidate, DLAiDiagnosticReview, DLExplainabilityReport } from "../types";
 import { identifyPhasesDL, parseXYData, applySavitzkyGolay } from "../utils/physics";
+import { computeDLExplainabilityReport } from "../utils/dlPhysicsNeuralEngine";
 import { playSynthTone } from "../utils/sound";
 import { analyzePhaseID } from "../services/geminiService";
+import { PhaseIDCoreControlStrip } from "./deeplearning/PhaseIDCoreControlStrip";
+import { ExecutivePhaseScorecard } from "./deeplearning/ExecutivePhaseScorecard";
 import {
   ComposedChart,
   Bar,
@@ -96,6 +99,9 @@ import { ScientificFormatMenuBar } from './deeplearning/ScientificFormatMenuBar'
 import { ScientificDataIngestionConsole } from './deeplearning/ScientificDataIngestionConsole';
 import { NeuralNetworkWorkbench } from './deeplearning/NeuralNetworkWorkbench';
 import { PDF2DatabaseWorkbench } from './deeplearning/PDF2DatabaseWorkbench';
+import { ExplainabilityUncertaintyStudio } from './deeplearning/ExplainabilityUncertaintyStudio';
+import { HybridAiDiagnosticPanel } from './deeplearning/HybridAiDiagnosticPanel';
+import { DeepLearningExportStudio } from './deeplearning/DeepLearningExportStudio';
 const MATERIAL_DB = getActiveMaterials();
 
 const MATERIAL_ELEMENTS: Record<
@@ -567,6 +573,33 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
   const [progressStep, setProgressStep] = useState(0); // 0: Idle, 1: Preproc, 2: CNN, 3: DB, 4: Done
   const [selectedCandidate, setSelectedCandidate] =
     useState<DLPhaseCandidate | null>(null);
+  const [activeWorkbenchTab, setActiveWorkbenchTab] = useState<
+    'ingest' | 'phase_id' | 'train' | 'explain' | 'export'
+  >('phase_id');
+  const [aiDiagnosticReview, setAiDiagnosticReview] =
+    useState<DLAiDiagnosticReview | null>(null);
+  const [isAiReviewLoading, setIsAiReviewLoading] = useState(false);
+  const [aiReviewError, setAiReviewError] = useState<string | null>(null);
+
+  const [radiationWavelength, setRadiationWavelength] = useState<number>(1.54056);
+  const [crystalSystemFilter, setCrystalSystemFilter] = useState<string>("All");
+  const [requiredElements, setRequiredElements] = useState<string[]>([]);
+  const [excludedElements, setExcludedElements] = useState<string[]>([]);
+  const [onlyAllowedElements, setOnlyAllowedElements] = useState<boolean>(false);
+
+  const scanTimersRef = useRef<{
+    interval?: ReturnType<typeof setInterval>;
+    timeouts: ReturnType<typeof setTimeout>[];
+  }>({ timeouts: [] });
+
+  useEffect(() => {
+    return () => {
+      if (scanTimersRef.current.interval) {
+        clearInterval(scanTimersRef.current.interval);
+      }
+      scanTimersRef.current.timeouts.forEach((tid) => clearTimeout(tid));
+    };
+  }, []);
 
   useCustomMaterialApply('dl', (mat) => {
     if (!mat.peaks || mat.peaks.length === 0) return;
@@ -589,9 +622,27 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
       }
       lines.push(`${tt.toFixed(2)}\t${y.toFixed(1)}`);
     }
+    const synthesizedPattern = lines.join('\n');
     setSelectedFormat('2col');
-    setInputData(lines.join('\n'));
+    setInputData(synthesizedPattern);
+    setSearchTerm(mat.name);
+    setCrystalSystemFilter('All');
+    setRequiredElements([]);
+    setExcludedElements([]);
+    setOnlyAllowedElements(false);
+    setRadiationWavelength(1.54056);
+    setIsMixMode(false);
+    setActiveWorkbenchTab('phase_id');
     playSynthTone('tick');
+    setTimeout(() => {
+      runAnalysis(synthesizedPattern, false, {
+        wavelength: 1.54056,
+        crystalSystemFilter: 'All',
+        requiredElements: [],
+        excludedElements: [],
+        onlyAllowedElements: false,
+      });
+    }, 60);
   });
   
   // Interactive visualization state
@@ -615,7 +666,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
 
   // ML Validation detailed tab view states
   const [selectedValidationTab, setSelectedValidationTab] = useState<'audit' | 'robustness' | 'confusion' | 'training'>('training');
-  const [resultsSubTab, setResultsSubTab] = useState<'alignment' | 'ml_techniques'>('ml_techniques');
+  const [resultsSubTab, setResultsSubTab] = useState<'alignment' | 'ml_techniques'>('alignment');
   const [showGradCam, setShowGradCam] = useState<boolean>(false);
   const [noiseLevel, setNoiseLevel] = useState<number>(10); // Gaussian noise perturbation %
   const [backgroundDrift, setBackgroundDrift] = useState<number>(5); // Background curve shift %
@@ -2084,98 +2135,117 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
     runAnalysis(inputData, isActuallyMixMode);
   };
 
-  const runAnalysis = (dataToAnalyze: string, mixMode: boolean = false) => {
+  const runAnalysis = (
+    dataToAnalyze: string,
+    mixMode: boolean = false,
+    overrides?: {
+      wavelength?: number;
+      crystalSystemFilter?: string;
+      requiredElements?: string[];
+      excludedElements?: string[];
+      onlyAllowedElements?: boolean;
+    }
+  ) => {
     if (!dataToAnalyze.trim()) return;
 
+    // Cancel any in-flight scan timers to prevent race conditions
+    if (scanTimersRef.current.interval) {
+      clearInterval(scanTimersRef.current.interval);
+      scanTimersRef.current.interval = undefined;
+    }
+    scanTimersRef.current.timeouts.forEach((tid) => clearTimeout(tid));
+    scanTimersRef.current.timeouts = [];
+
+    const effLambda = overrides?.wavelength ?? radiationWavelength;
+    const effSysFilter = overrides?.crystalSystemFilter ?? crystalSystemFilter;
+    const effReqEls = overrides?.requiredElements ?? requiredElements;
+    const effExcEls = overrides?.excludedElements ?? excludedElements;
+    const effOnlyAllowed = overrides?.onlyAllowedElements ?? onlyAllowedElements;
+
     setIsSimulating(true);
-    setResult(null);
-    setSelectedCandidate(null);
     setProgressStep(1);
 
-    // Start Scan Animation
+    // Snappy Scan Animation
     let currentX = 0;
     const scanInterval = setInterval(() => {
-      currentX += 2;
+      currentX += 8;
       setScanPos(currentX > 100 ? 0 : currentX);
-    }, 50);
+    }, 35);
+    scanTimersRef.current.interval = scanInterval;
 
     // Load active materials from local storage merges if present
     let activeMaterialsList = getActiveMaterials();
     setActiveMaterialDb(activeMaterialsList);
 
-    // Check if input matches a known material to override/enhance results
-    const matchedMaterial = activeMaterialsList.find(
-      (m) => m.pattern === dataToAnalyze || m.name === searchTerm,
-    );
+    const hasChemistryOrSymFilter =
+      effReqEls.length > 0 ||
+      effExcEls.length > 0 ||
+      effSysFilter !== "All" ||
+      Math.abs(effLambda - 1.54056) > 1e-3;
 
-    // Simulation Sequence
-    setTimeout(() => setProgressStep(2), 500);
-    setTimeout(() => setProgressStep(3), 1200);
-    setTimeout(() => setProgressStep(4), 2000);
-    setTimeout(() => {
+    // Only check exact pattern match for metadata enrichment when no screening overrides are active
+    const matchedMaterial = !hasChemistryOrSymFilter
+      ? activeMaterialsList.find((m) => m.pattern === dataToAnalyze)
+      : undefined;
+
+    // Fast deterministic inference sweep (~360ms)
+    const t1 = setTimeout(() => setProgressStep(2), 90);
+    const t2 = setTimeout(() => setProgressStep(3), 180);
+    const t3 = setTimeout(() => setProgressStep(4), 270);
+    const t4 = setTimeout(() => {
       const points = parseXYData(dataToAnalyze);
-      let computed = identifyPhasesDL(points, mixMode, engineConfig);
+      let computed = identifyPhasesDL(points, mixMode, {
+        ...engineConfig,
+        wavelength: effLambda,
+        crystalSystemFilter: effSysFilter,
+        requiredElements: effReqEls,
+        excludedElements: effExcEls,
+        onlyAllowedElements: effOnlyAllowed,
+      });
 
-      // Enhance result with known material data if matched
+      // Enrich metadata for an exact standard pattern without discarding computed physics diagnostics
       if (matchedMaterial) {
-        const enhancedCandidate: DLPhaseCandidate = {
-          phase_name: matchedMaterial.name,
-          confidence_score: 98.5,
-          card_id: "DB-MATCH-001",
-          formula: matchedMaterial.formula,
-          elements: (matchedMaterial as any).elements,
-          matched_peaks: parseXYData(matchedMaterial.pattern).map((p) => ({
-            refT: p.twoTheta,
-            obsT: p.twoTheta,
-            refI: p.intensity,
-            h: p.h,
-            k: p.k,
-            l: p.l,
-          })),
-          description: matchedMaterial.description,
-          crystalSystem: matchedMaterial.crystalSystem,
-          spaceGroup: matchedMaterial.spaceGroup,
-          density: matchedMaterial.density,
-          applications: matchedMaterial.applications,
-          materialType: matchedMaterial.type,
-          molecularWeight: (matchedMaterial as any).molecularWeight,
-          bandGap: (matchedMaterial as any).bandGap,
-          elasticModulus: (matchedMaterial as any).elasticModulus,
-          magneticProperties: (matchedMaterial as any).magneticProperties,
-          opticalProperties: (matchedMaterial as any).opticalProperties,
-          hazards: (matchedMaterial as any).hazards,
-          thermalConductivity: (matchedMaterial as any).thermalConductivity,
-          meltingPoint: (matchedMaterial as any).meltingPoint,
-          vickersHardness: (matchedMaterial as any).vickersHardness,
-          poissonsRatio: (matchedMaterial as any).poissonsRatio,
-          electricalResistivity: (matchedMaterial as any).electricalResistivity,
-          dielectricConstant: (matchedMaterial as any).dielectricConstant,
-          thermalExpansion: (matchedMaterial as any).thermalExpansion,
-
-          // Custom manual metadata fields
-          standardState: (matchedMaterial as any).standardState,
-          standardEntropy: (matchedMaterial as any).standardEntropy,
-          formationEnergy: (matchedMaterial as any).formationEnergy,
-          heatCapacity: (matchedMaterial as any).heatCapacity,
-          debyeTemperature: (matchedMaterial as any).debyeTemperature,
-          energyAboveHull: (matchedMaterial as any).energyAboveHull,
-          stabilityStatus: (matchedMaterial as any).stabilityStatus,
-          decompositionTemp: (matchedMaterial as any).decompositionTemp,
-          formationEnthalpy: (matchedMaterial as any).formationEnthalpy,
-          zValue: (matchedMaterial as any).zValue,
-          latticeParams: (matchedMaterial as any).latticeParams
-        };
-
-        // Put the matched one first
-        computed = {
-          ...computed,
-          candidates: [
-            enhancedCandidate,
-            ...computed.candidates.filter(
-              (c) => c.phase_name !== matchedMaterial.name,
-            ),
-          ],
-        };
+        const existingIdx = computed.candidates.findIndex(
+          (c) => c.phase_name === matchedMaterial.name,
+        );
+        if (existingIdx >= 0) {
+          const existing = computed.candidates[existingIdx];
+          const enriched: DLPhaseCandidate = {
+            ...existing,
+            description: existing.description || matchedMaterial.description,
+            applications: existing.applications || matchedMaterial.applications,
+            materialType: existing.materialType || matchedMaterial.type,
+            molecularWeight: existing.molecularWeight ?? (matchedMaterial as any).molecularWeight,
+            bandGap: existing.bandGap ?? (matchedMaterial as any).bandGap,
+            elasticModulus: existing.elasticModulus ?? (matchedMaterial as any).elasticModulus,
+            magneticProperties: existing.magneticProperties ?? (matchedMaterial as any).magneticProperties,
+            opticalProperties: existing.opticalProperties ?? (matchedMaterial as any).opticalProperties,
+            hazards: existing.hazards ?? (matchedMaterial as any).hazards,
+            thermalConductivity: existing.thermalConductivity ?? (matchedMaterial as any).thermalConductivity,
+            meltingPoint: existing.meltingPoint ?? (matchedMaterial as any).meltingPoint,
+            vickersHardness: existing.vickersHardness ?? (matchedMaterial as any).vickersHardness,
+            poissonsRatio: existing.poissonsRatio ?? (matchedMaterial as any).poissonsRatio,
+            electricalResistivity: existing.electricalResistivity ?? (matchedMaterial as any).electricalResistivity,
+            dielectricConstant: existing.dielectricConstant ?? (matchedMaterial as any).dielectricConstant,
+            thermalExpansion: existing.thermalExpansion ?? (matchedMaterial as any).thermalExpansion,
+            standardState: existing.standardState ?? (matchedMaterial as any).standardState,
+            standardEntropy: existing.standardEntropy ?? (matchedMaterial as any).standardEntropy,
+            formationEnergy: existing.formationEnergy ?? (matchedMaterial as any).formationEnergy,
+            heatCapacity: existing.heatCapacity ?? (matchedMaterial as any).heatCapacity,
+            debyeTemperature: existing.debyeTemperature ?? (matchedMaterial as any).debyeTemperature,
+            energyAboveHull: existing.energyAboveHull ?? (matchedMaterial as any).energyAboveHull,
+            stabilityStatus: existing.stabilityStatus ?? (matchedMaterial as any).stabilityStatus,
+            decompositionTemp: existing.decompositionTemp ?? (matchedMaterial as any).decompositionTemp,
+            formationEnthalpy: existing.formationEnthalpy ?? (matchedMaterial as any).formationEnthalpy,
+            zValue: existing.zValue ?? (matchedMaterial as any).zValue,
+            latticeParams: existing.latticeParams ?? (matchedMaterial as any).latticeParams,
+          };
+          const reordered = [
+            enriched,
+            ...computed.candidates.filter((_, i) => i !== existingIdx),
+          ];
+          computed = { ...computed, candidates: reordered };
+        }
       }
 
       if (usePythonRAG) {
@@ -2329,9 +2399,16 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
 
       setProgressStep(5);
       setIsSimulating(false);
+      setAiDiagnosticReview(null);
+      setAiReviewError(null);
+      setActiveWorkbenchTab((prev) => (prev === 'ingest' ? 'phase_id' : prev));
       clearInterval(scanInterval);
+      if (scanTimersRef.current.interval === scanInterval) {
+        scanTimersRef.current.interval = undefined;
+      }
       setScanPos(null);
-    }, 3000);
+    }, 360);
+    scanTimersRef.current.timeouts = [t1, t2, t3, t4];
   };
 
   const handleGenerateReport = () => {
@@ -2419,6 +2496,53 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
   };
 
   const parsedPoints = React.useMemo(() => parseXYData(inputData), [inputData]);
+
+  const explainabilityReport = React.useMemo<DLExplainabilityReport | null>(() => {
+    if (!selectedCandidate || parsedPoints.length === 0) return null;
+    return computeDLExplainabilityReport(
+      parsedPoints,
+      selectedCandidate,
+      result?.candidates || [],
+      engineConfig,
+      radiationWavelength
+    );
+  }, [selectedCandidate, parsedPoints, result?.candidates, engineConfig, radiationWavelength]);
+
+  useEffect(() => {
+    setAiDiagnosticReview(null);
+    setAiReviewError(null);
+  }, [selectedCandidate?.phase_name, result]);
+
+  const handleRunAiDiagnosticReview = async () => {
+    if (!selectedCandidate || !explainabilityReport) return;
+    setIsAiReviewLoading(true);
+    setAiReviewError(null);
+    try {
+      const customSessionKey = localStorage.getItem("gemini_custom_api_key") || "";
+      const response = await fetch("/api/gemini/dl-review", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          wavelengthA: radiationWavelength,
+          isMixMode,
+          selectedCandidate,
+          topCandidates: (result?.candidates || []).slice(0, 5),
+          explainability: explainabilityReport,
+          customKey: customSessionKey,
+        }),
+      });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        throw new Error(data?.error || `Diagnostic review failed (HTTP ${response.status})`);
+      }
+      setAiDiagnosticReview(data.review as DLAiDiagnosticReview);
+      playSynthTone('success');
+    } catch (err: any) {
+      setAiReviewError(err?.message || "Failed to generate Gemini diagnostic review.");
+    } finally {
+      setIsAiReviewLoading(false);
+    }
+  };
 
   const dlExperimentalPeaks = React.useMemo(() => {
     if (selectedCandidate?.matched_peaks && selectedCandidate.matched_peaks.length > 0) {
@@ -2942,73 +3066,60 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 animate-in fade-in duration-500 items-start">
-      {/* Top Header & Mode Switcher Bar — Crisp 1px Scientific Workstation */}
-      <div className="lg:col-span-12 bg-[#070A12] p-4 sm:p-5 rounded-sm border border-slate-800 relative overflow-hidden">
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 relative z-10">
+      {/* 5-Tab Scientific Workbench Header & Navigation */}
+      <div className="lg:col-span-12 bg-white dark:bg-[#070A12] p-4 sm:p-5 rounded-sm border border-slate-200 dark:border-slate-800 relative">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div className="space-y-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="text-[11px] font-mono uppercase tracking-widest text-indigo-400 font-bold">
-                DL-XRD · NEURAL NETWORK CRYSTALLOGRAPHY & PHASE IDENTIFICATION ENGINE
+            <div className="flex items-center gap-2 flex-wrap text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+              <span className="font-bold uppercase tracking-wider text-indigo-600 dark:text-indigo-400">
+                DL-XRD Workstation
               </span>
-              <span className="text-xs font-mono font-bold text-emerald-400 uppercase tracking-wider">
-                ● AI CORE READY ({engineConfig.activation} · {engineConfig.filters} Filters)
-              </span>
+              <span>·</span>
+              <span>λ = {radiationWavelength.toFixed(5)} Å</span>
+              <span>·</span>
+              <span>{engineConfig.activation} · {engineConfig.filters}f · k={engineConfig.kernelSize}</span>
+              <span>·</span>
+              <span>{activeMaterialDb.length} standards</span>
             </div>
-            <h1 className="text-lg sm:text-xl font-black text-white tracking-tight">
-              Deep Learning XRD Phase Identification & Neural Crystallography Workstation
+            <h1 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
+              Deep Learning XRD Phase Identification &amp; Explainable Neural Crystallography
             </h1>
-            <p className="text-xs text-slate-400">
-              Physics-informed neural phase retrieval, 230 space-group extinction gating, Dirichlet simplex QPA unmixing, and automated Rietveld quantification
+            <p className="text-xs text-slate-600 dark:text-slate-400 max-w-3xl">
+              Multi-scale 1D-CNN &amp; derivative spectral matching, physics-informed Bragg zero-shift/strain optimization, MC-Dropout uncertainty, 1D Grad-CAM attribution, and hybrid Gemini diagnostic review.
             </p>
           </div>
 
-          {/* Quick Guide & Mode Toggle */}
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
             <button
+              type="button"
               onClick={() => setShowQuickGuide(!showQuickGuide)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm text-xs font-mono font-bold transition-all border cursor-pointer ${
-                showQuickGuide 
-                  ? "bg-indigo-600/25 border-indigo-500 text-indigo-200" 
-                  : "bg-[#0B0F19] border-slate-800 text-slate-300 hover:text-white hover:border-slate-700"
+              className={`inline-flex items-center gap-1.5 px-3 py-2 rounded-sm text-xs font-mono font-bold transition-colors border cursor-pointer whitespace-nowrap shrink-0 ${
+                showQuickGuide
+                  ? "bg-indigo-600/15 border-indigo-500 text-indigo-700 dark:text-indigo-200"
+                  : "bg-slate-50 dark:bg-[#0B0F19] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-600"
               }`}
             >
-              <HelpCircle className="w-3.5 h-3.5 text-indigo-400" />
-              <span>{showQuickGuide ? "Hide Guide" : "Quick Guide"}</span>
+              <HelpCircle className="w-3.5 h-3.5 text-indigo-500 dark:text-indigo-400" />
+              <span>{showQuickGuide ? "Hide Guide" : "Guide"}</span>
             </button>
 
-            {/* Mode Switcher */}
-            <div className="bg-[#0B0F19] p-0.5 rounded-sm border border-slate-800 flex items-center">
-              <button
-                onClick={() => {
-                  setViewMode('standard');
-                  setShowAdvancedHyperparameters(false);
-                  setShowArchitectureDiagnostics(false);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-mono font-bold transition-all cursor-pointer ${
-                  viewMode === 'standard'
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                <Sparkles className="w-3.5 h-3.5 text-amber-300" />
-                <span>Standard</span>
-              </button>
-              <button
-                onClick={() => {
-                  setViewMode('expert');
-                  setShowAdvancedHyperparameters(true);
-                  setShowArchitectureDiagnostics(true);
-                }}
-                className={`flex items-center gap-1.5 px-3 py-1 rounded-sm text-xs font-mono font-bold transition-all cursor-pointer ${
-                  viewMode === 'expert'
-                    ? "bg-indigo-600 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                <Sliders className="w-3.5 h-3.5 text-cyan-300" />
-                <span>Expert Tuning</span>
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={() => {
+                playSynthTone('switch');
+                setActiveWorkbenchTab('phase_id');
+                handleRunAI();
+              }}
+              disabled={isSimulating || !inputData.trim()}
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-sm bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white text-xs font-mono font-bold uppercase tracking-wider transition-colors cursor-pointer whitespace-nowrap shrink-0"
+            >
+              {isSimulating ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <Brain className="w-3.5 h-3.5" />
+              )}
+              <span>{isSimulating ? "Running Inference..." : "Run Phase ID"}</span>
+            </button>
           </div>
         </div>
 
@@ -3018,132 +3129,234 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-4 pt-4 border-t border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-3"
+            className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-800 grid grid-cols-1 md:grid-cols-3 gap-3"
           >
-            <div className="bg-[#0B0F19] p-3.5 rounded-sm border border-slate-800">
-              <div className="flex items-center gap-2 mb-1 text-indigo-400 text-xs font-mono font-bold uppercase tracking-wider">
-                <span>01. Select Benchmark or Upload Scan</span>
+            <div className="bg-slate-50 dark:bg-[#0B0F19] p-3.5 rounded-sm border border-slate-200 dark:border-slate-800">
+              <div className="text-indigo-600 dark:text-indigo-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+                01. Ingest Pattern or Custom Phase
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Click any of the <strong className="text-white">Benchmark Scans</strong> (α-SiO₂ + TiO₂, LiCoO₂ Cathode, Fe-BCC + Spinel, or BaTiO₃) or upload a 2θ–Intensity XRD pattern.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Upload XRDML/XY/CIF data, pick a benchmark scan, browse the PDF-2 library, or apply a Custom Material directly into the neural core.
               </p>
             </div>
-            <div className="bg-[#0B0F19] p-3.5 rounded-sm border border-slate-800">
-              <div className="flex items-center gap-2 mb-1 text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider">
-                <span>02. Probe Neural Layers & CAD Schematic</span>
+            <div className="bg-slate-50 dark:bg-[#0B0F19] p-3.5 rounded-sm border border-slate-200 dark:border-slate-800">
+              <div className="text-cyan-600 dark:text-cyan-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+                02. Verify Fit &amp; Explainability
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Inspect 1D dilated convolutions, long-range harmonic self-attention, Bravais systematic absence gates, and 1D Grad-CAM attribution in real time.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Review ranked phase hits, residual alignment, and Gemini diagnostic audit in Phase ID, then inspect 1D Grad-CAM saliency, MC-Dropout uncertainty, and live noise perturbation in Explain.
               </p>
             </div>
-            <div className="bg-[#0B0F19] p-3.5 rounded-sm border border-slate-800">
-              <div className="flex items-center gap-2 mb-1 text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider">
-                <span>03. Execute Phase ID & Quantify</span>
+            <div className="bg-slate-50 dark:bg-[#0B0F19] p-3.5 rounded-sm border border-slate-200 dark:border-slate-800">
+              <div className="text-emerald-600 dark:text-emerald-400 text-xs font-mono font-bold uppercase tracking-wider mb-1">
+                03. Tune Architecture &amp; Export
               </div>
-              <p className="text-xs text-slate-400 leading-relaxed">
-                Run <strong className="text-white">Execute Neural Phase ID</strong> to compute ICDD PDF-2 cosine matches, Dirichlet simplex wt% unmixing, and PyTorch model exports.
+              <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                Adjust 1D-CNN hyperparameters and benchmark classifiers in Train, then export synced PyTorch models, CSV peak attribution tables, and Markdown/JSON diagnostic reports in Export.
               </p>
             </div>
           </motion.div>
         )}
 
-        {/* 6-Stage Deep Learning Pipeline Quick-Jump Navigation Ribbon */}
-        <div className="mt-3.5 pt-3 border-t border-slate-800 flex flex-wrap items-center justify-between gap-2 relative z-10">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 mr-1">
-              Stages:
-            </span>
-            {[
-              {
-                label: '01. Neural Workbench & CAD',
-                anchor: 'dl-workbench-anchor',
-                badge: 'PINN / Grad-CAM'
-              },
-              {
-                label: '02. Data Ingestion & PDF-2 DB',
-                anchor: 'dl-ingestion-anchor',
-                badge: `${parsedPoints.length} pks`
-              },
-              {
-                label: '03. Executive Phase ID & RIR',
-                anchor: 'dl-executive-scorecard-anchor',
-                badge: `${result?.candidates?.length || 0} hits`
-              },
-              {
-                label: '04. Spectral Alignment',
-                anchor: 'ml-techniques-studio-anchor',
-                onClick: () => setResultsSubTab('alignment')
-              },
-              {
-                label: '05. ML Architecture Studio',
-                anchor: 'ml-techniques-studio-anchor',
-                onClick: () => setResultsSubTab('ml_techniques')
-              },
-              {
-                label: '06. Synthesis Intelligence',
-                anchor: 'synthesis-intelligence-studio',
-                badge: 'Wulff / JMAK'
-              }
-            ].map((item) => (
-              <button
-                key={item.label}
-                type="button"
-                onClick={() => {
-                  if (item.onClick) item.onClick();
-                  document.getElementById(item.anchor)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                  playSynthTone('tick');
-                }}
-                className="px-2.5 py-1 rounded-sm bg-[#0B0F19] hover:bg-indigo-950/50 border border-slate-800 hover:border-indigo-500/50 text-xs font-mono font-bold text-slate-300 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer"
-              >
-                <span>{item.label}</span>
-                {item.badge && (
-                  <span className="text-[10px] font-mono tabular-nums text-indigo-400">
-                    [{item.badge}]
+        {/* 5-Tab Segmented Workbench Bar */}
+        <div className="mt-4 pt-3 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div
+            role="tablist"
+            aria-label="Deep Learning Workbench Views"
+            className="flex items-center gap-1.5 overflow-x-auto pb-0.5"
+          >
+            {(
+              [
+                {
+                  id: 'ingest',
+                  num: '01',
+                  label: 'Ingest',
+                  meta: `${parsedPoints.length} pts`,
+                  icon: Upload,
+                },
+                {
+                  id: 'phase_id',
+                  num: '02',
+                  label: 'Phase ID',
+                  meta: `${result?.candidates?.length || 0} hits`,
+                  icon: Target,
+                },
+                {
+                  id: 'train',
+                  num: '03',
+                  label: 'Train',
+                  meta: `1D-CNN · ${engineConfig.filters}f`,
+                  icon: Sliders,
+                },
+                {
+                  id: 'explain',
+                  num: '04',
+                  label: 'Explain',
+                  meta: explainabilityReport
+                    ? `±${explainabilityReport.confidenceStdPct.toFixed(1)}%`
+                    : 'Grad-CAM',
+                  icon: Eye,
+                },
+                {
+                  id: 'export',
+                  num: '05',
+                  label: 'Export',
+                  meta: 'PyTorch · Report',
+                  icon: Download,
+                },
+              ] as const
+            ).map((tab) => {
+              const Icon = tab.icon;
+              const isActive = activeWorkbenchTab === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => {
+                    setActiveWorkbenchTab(tab.id);
+                    if (tab.id === 'train') {
+                      setViewMode('expert');
+                      setShowAdvancedHyperparameters(true);
+                      setShowArchitectureDiagnostics(true);
+                    }
+                    playSynthTone('tick');
+                  }}
+                  className={`inline-flex items-center gap-2 px-3.5 py-2 rounded-sm text-xs font-mono font-bold transition-colors border cursor-pointer whitespace-nowrap shrink-0 ${
+                    isActive
+                      ? 'bg-indigo-600 text-white border-indigo-500'
+                      : 'bg-slate-50 dark:bg-[#0B0F19] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600'
+                  }`}
+                >
+                  <Icon className="w-3.5 h-3.5 shrink-0" />
+                  <span>{tab.num}. {tab.label}</span>
+                  <span
+                    className={`text-[10px] font-mono tabular-nums ${
+                      isActive ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'
+                    }`}
+                  >
+                    {tab.meta}
                   </span>
-                )}
-              </button>
-            ))}
+                </button>
+              );
+            })}
           </div>
 
           {selectedCandidate && (
-            <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-emerald-400">
-              <span>● Primary Match: <strong>{selectedCandidate.phase_name}</strong> ({selectedCandidate.confidence_score.toFixed(1)}%)</span>
+            <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-emerald-700 dark:text-emerald-400 whitespace-nowrap shrink-0">
+              <span>● {selectedCandidate.phase_name}</span>
+              <span className="text-slate-400 dark:text-slate-600">·</span>
+              <span className="font-bold">
+                {selectedCandidate.confidence_score.toFixed(1)}%
+              </span>
+              {explainabilityReport && (
+                <>
+                  <span className="text-slate-400 dark:text-slate-600">·</span>
+                  <span className="text-slate-500 dark:text-slate-400">
+                    Δ2θ₀ {explainabilityReport.zeroShiftDeg >= 0 ? '+' : ''}
+                    {explainabilityReport.zeroShiftDeg.toFixed(3)}°
+                  </span>
+                </>
+              )}
             </div>
           )}
         </div>
       </div>
 
-      {/* Interactive Neural Network Architecture, Layer Activation Probe & Multi-Task Prediction Workbench */}
-      <div id="dl-workbench-anchor" className="lg:col-span-12">
-        <NeuralNetworkWorkbench
-          parsedPoints={parsedPoints}
-          selectedCandidate={selectedCandidate}
-          candidates={result?.candidates || []}
-          engineConfig={engineConfig}
-          onUpdateEngineConfig={(newCfg) => setEngineConfig(newCfg)}
-          onTriggerPhaseID={handleRunAI}
-          onLoadPatternData={(pat, label) => {
-            setInputData(pat);
-            if (label) setSearchTerm(label);
-            setActiveInputTool("preview");
-            runAnalysis(pat, false);
-          }}
-          onOpenMLStudioTab={() => {
-            setResultsSubTab('ml_techniques');
-            document.getElementById('ml-techniques-studio-anchor')?.scrollIntoView({ behavior: 'smooth' });
-          }}
-          onOpenPDF2Database={() => {
-            setShowPDF2DatabasePanel(true);
-            document.getElementById('pdf2-database-studio-anchor')?.scrollIntoView({ behavior: 'smooth' });
-          }}
-          isSimulating={isSimulating}
-        />
-      </div>
+      {/* PhaseID Neural Core Screening Bar: Visible on Ingest & Phase ID tabs */}
+      {(activeWorkbenchTab === 'ingest' || activeWorkbenchTab === 'phase_id') && (
+        <div className="lg:col-span-12">
+          <PhaseIDCoreControlStrip
+            wavelength={radiationWavelength}
+            onChangeWavelength={(lam) => {
+              setRadiationWavelength(lam);
+              playSynthTone('tick');
+              if (inputData.trim()) {
+                runAnalysis(inputData, isMixMode, { wavelength: lam });
+              }
+            }}
+            isMixMode={isMixMode}
+            onChangeMixMode={(mix) => {
+              setIsMixMode(mix);
+              playSynthTone('tick');
+              if (inputData.trim()) {
+                runAnalysis(inputData, mix);
+              }
+            }}
+            crystalSystemFilter={crystalSystemFilter}
+            onChangeCrystalSystemFilter={(sys) => {
+              setCrystalSystemFilter(sys);
+              playSynthTone('tick');
+              if (inputData.trim()) {
+                runAnalysis(inputData, isMixMode, { crystalSystemFilter: sys });
+              }
+            }}
+            requiredElements={requiredElements}
+            excludedElements={excludedElements}
+            onlyAllowedElements={onlyAllowedElements}
+            onUpdateChemistry={(next) => {
+              setRequiredElements(next.requiredElements);
+              setExcludedElements(next.excludedElements);
+              setOnlyAllowedElements(next.onlyAllowedElements);
+              playSynthTone('tick');
+            }}
+            totalStandards={activeMaterialDb.length}
+            screenedStandards={result?.diagnostics?.filteredDatabaseSize}
+            onApplyAndRun={() => {
+              playSynthTone('switch');
+              if (inputData.trim()) {
+                runAnalysis(inputData, isMixMode);
+              }
+            }}
+            isSimulating={isSimulating}
+          />
+        </div>
+      )}
 
-      {/* Input Configuration & Top Panels */}
+      {/* Interactive Neural Network Architecture, Layer Activation Probe & Multi-Task Prediction Workbench (Train Tab) */}
+      {activeWorkbenchTab === 'train' && (
+        <div id="dl-workbench-anchor" className="lg:col-span-12">
+          <NeuralNetworkWorkbench
+            parsedPoints={parsedPoints}
+            selectedCandidate={selectedCandidate}
+            candidates={result?.candidates || []}
+            engineConfig={engineConfig}
+            onUpdateEngineConfig={(newCfg) => setEngineConfig(newCfg)}
+            onTriggerPhaseID={() => {
+              setActiveWorkbenchTab('phase_id');
+              handleRunAI();
+            }}
+            onLoadPatternData={(pat, label) => {
+              setInputData(pat);
+              if (label) setSearchTerm(label);
+              setActiveInputTool("preview");
+              setActiveWorkbenchTab('phase_id');
+              runAnalysis(pat, false);
+            }}
+            onOpenMLStudioTab={() => {
+              setActiveWorkbenchTab('train');
+              setTimeout(() => {
+                document.getElementById('ml-techniques-studio-anchor')?.scrollIntoView({ behavior: 'smooth' });
+              }, 50);
+            }}
+            onOpenPDF2Database={() => {
+              setActiveWorkbenchTab('ingest');
+              setShowPDF2DatabasePanel(true);
+              setTimeout(() => {
+                document.getElementById('pdf2-database-studio-anchor')?.scrollIntoView({ behavior: 'smooth' });
+              }, 80);
+            }}
+            isSimulating={isSimulating}
+          />
+        </div>
+      )}
+
+      {/* Input Configuration & Tab Panels */}
       <div id="dl-ingestion-anchor" className="lg:col-span-12 flex flex-col gap-6">
-        {/* Advanced Engine Configuration (Collapsible for cleaner friendly view) */}
-        {!showAdvancedHyperparameters && viewMode === 'standard' ? (
+        {/* Advanced Engine Configuration (Train Tab) */}
+        {activeWorkbenchTab === 'train' && (
+          !showAdvancedHyperparameters && viewMode === 'standard' ? (
           <div className="bg-[#070A12] p-4 rounded-sm border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="w-9 h-9 rounded-sm bg-[#0B0F19] border border-slate-800 flex items-center justify-center text-indigo-400 flex-shrink-0">
@@ -4255,50 +4468,43 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
              </div>
           </div>
         </div>
-        )}
+        ))}
 
-        <div className="bg-[#050A14] p-8 rounded-3xl shadow-2xl border border-slate-800/80 transition-all duration-500 group/phaseid relative overflow-hidden">
-          <div className="absolute top-0 right-0 -mt-20 -mr-20 w-64 h-64 bg-violet-500/5 rounded-full blur-3xl group-hover/phaseid:bg-violet-500/10 transition-all duration-1000" />
-          <div className="flex justify-between items-center mb-8 relative z-10">
-            <h2 className="text-2xl font-black text-white flex flex-col md:flex-row items-start md:items-center gap-3 tracking-tight">
-              <div className="bg-violet-500/20 p-2.5 rounded-2xl border border-violet-500/30 shadow-[0_0_15px_rgba(139,92,246,0.2)]">
-                <Brain className="w-7 h-7 text-violet-400 drop-shadow flex-shrink-0" />
+        {activeWorkbenchTab === 'ingest' && (
+        <div className="bg-[#070A12] p-6 rounded-sm border border-slate-800 relative">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-5 pb-4 border-b border-slate-800">
+            <div className="flex items-center gap-3">
+              <div className="bg-violet-500/10 p-2 rounded-sm border border-violet-500/30">
+                <Brain className="w-5 h-5 text-violet-400 flex-shrink-0" />
               </div>
-              <span className="bg-clip-text text-transparent bg-gradient-to-r from-white to-slate-400">PhaseID Neural Net</span>
-              <span className="text-xs font-semibold bg-indigo-500/10 text-indigo-300 px-3 py-1.5 rounded-full border border-indigo-500/30 flex items-center gap-1.5 shadow-sm mt-1 md:mt-0 uppercase tracking-wider font-mono tabular-nums">
-                <Database className="w-3.5 h-3.5" />
-                {activeMaterialDb.length} PDF-2 / Crystal Standards Synced
-              </span>
-            </h2>
+              <div>
+                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight uppercase font-mono">
+                  PhaseID Neural Core
+                </h2>
+                <p className="text-[11px] font-mono tabular-nums text-slate-400 flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-indigo-400" />
+                  {activeMaterialDb.length} PDF-2 / COD / Custom Crystal Standards Indexed
+                </p>
+              </div>
+            </div>
             {isSimulating && (
-              <span className="text-xs uppercase tracking-widest font-black text-violet-300 animate-pulse bg-violet-500/20 px-3 py-1.5 rounded-full border border-violet-500/30 shadow-sm flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-violet-400 rounded-full"></div>
-                Running...
+              <span className="text-[11px] uppercase tracking-wider font-mono font-bold text-violet-300 bg-violet-500/10 px-2.5 py-1 rounded-sm border border-violet-500/30 flex items-center gap-1.5 whitespace-nowrap">
+                <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                Indexing...
               </span>
             )}
           </div>
 
-          <div className="space-y-6 relative z-10">
+          <div className="space-y-5">
             {/* Material Search */}
             <div className="relative" ref={searchRef}>
-              <div className="flex flex-col gap-2 mb-3">
-                <label className="block text-sm font-black text-slate-300 tracking-tight">
-                  Unified DB Search Engine{" "}
-                  <span className="text-emerald-400 ml-2 font-mono text-xs bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 uppercase tracking-tighter">
-                    COD + MP SYNCED
-                  </span>
+              <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
+                <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+                  Unified Crystal Standard Search
                 </label>
-                <div className="flex items-center gap-2 text-slate-400">
-                  <span className="text-xs font-bold uppercase tracking-wider">
-                    Global Verification:
-                  </span>
-                  <div className="w-8 h-4 bg-emerald-500 rounded-full relative cursor-help shadow-inner border border-emerald-600" title="All database materials are strictly cross-verified with Crystallography Open Database (COD) and Materials Project.">
-                    <div className="absolute left-4 top-0.5 w-3 h-3 bg-white rounded-full shadow-sm"></div>
-                  </div>
-                  <span className="text-xs font-mono font-bold text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded shadow-[0_0_10px_rgba(52,211,153,0.1)]">
-                    COD/MP VERIFIED
-                  </span>
-                </div>
+                <span className="text-[11px] font-mono text-emerald-400">
+                  COD · Materials Project · User Custom Library
+                </span>
               </div>
               <div className="relative">
                 <input
@@ -6254,9 +6460,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
               </button>
             </div>
           </div>
+        </div>
+        )}
 
-        {/* Deep Learning Architecture Status */}
-        {viewMode === 'standard' && !showArchitectureDiagnostics ? (
+        {/* Deep Learning Architecture Status (Train Tab) */}
+        {activeWorkbenchTab === 'train' && (
+        viewMode === 'standard' && !showArchitectureDiagnostics ? (
           <div className="bg-[#050A14] p-5 rounded-3xl border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
             <div className="flex items-center gap-3.5">
               <div className="w-10 h-10 rounded-2xl bg-violet-500/10 border border-violet-500/30 flex items-center justify-center text-violet-300 flex-shrink-0">
@@ -6296,7 +6505,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             </div>
           </div>
         ) : (
-          <div className="bg-[#050A14] p-8 rounded-[2.5rem] shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative overflow-hidden group/engine flex flex-col gap-6 transition-all duration-500 border border-slate-800/80/80 hover:border-slate-700">
+          <div className="bg-[#070A12] p-6 rounded-sm relative overflow-hidden group/engine flex flex-col gap-5 transition-colors border border-slate-800 hover:border-slate-700">
           {/* Custom Background Graphic */}
           <div className="absolute inset-0 z-0 pointer-events-none opacity-[0.04] group-hover/engine:opacity-[0.08] transition-opacity duration-1000 mix-blend-screen">
             <img src={convolutionalEngineBg} alt="Convolutional Engine" className="w-full h-full object-cover" referrerPolicy="no-referrer" />
@@ -6903,265 +7112,110 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           </div>
         </div>
       </div>
-    )}
-      </div>
+    ))}
 
-      {/* Results Section */}
+      {/* Tabbed Main Results & Studio Container */}
       <div id="ml-techniques-studio-anchor" className="lg:col-span-12 space-y-6">
-        {/* Executive Neural Phase ID & Quantitative Chung RIR Scorecard */}
-        {result?.candidates && result.candidates.length > 0 && (() => {
-          const topCands = result.candidates.slice(0, 4);
-          // Compute Chung Reference Intensity Ratio (RIR) quantitative weight fractions W_alpha
-          const rirRatios = topCands.map((c, idx) => {
-            const densityVal = parseFloat(String(c.density || '3.2')) || 3.2;
-            const estRIR = Math.max(0.6, Math.min(8.5, densityVal * 0.68));
-            const maxMatchedI = c.matched_peaks && c.matched_peaks.length > 0
-              ? Math.max(...c.matched_peaks.map((mp: any) => mp.obsI || 50))
-              : Math.max(15, 100 - idx * 25);
-            const weightedFlux = (maxMatchedI * Math.pow(c.confidence_score / 100, 1.6)) / estRIR;
-            return { cand: c, estRIR, weightedFlux };
-          });
-          const sumFlux = rirRatios.reduce((acc, r) => acc + r.weightedFlux, 0) || 1;
-          const qpaItems = rirRatios.map(r => ({
-            ...r,
-            wtPct: Number(((r.weightedFlux / sumFlux) * 100).toFixed(1))
-          }));
-
-          const phaseColors = ['#10b981', '#06b6d4', '#6366f1', '#f59e0b'];
-
-          return (
-            <div
-              id="dl-executive-scorecard-anchor"
-              className="bg-[#070A12] p-5 rounded-sm border border-slate-800 space-y-4"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-sm bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400">
-                    <CheckCircle2 className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <h2 className="text-sm sm:text-base font-bold text-white uppercase tracking-wider font-mono">
-                        Executive Neural Phase ID & Chung RIR Quantitative Scorecard
-                      </h2>
-                      <span className="text-xs font-mono font-bold text-indigo-400">
-                        · {isMixMode ? 'MULTI-PHASE DECONVOLUTION' : 'SINGLE / PRIMARY PHASE MODE'}
-                      </span>
-                    </div>
-                    <p className="text-xs text-slate-400">
-                      Select any candidate card below to inspect its reciprocal lattice alignment, crystal symmetry, and microstructure parameters
-                    </p>
-                  </div>
-                </div>
-
-                {/* 1-Click Cross-Module Export Bridges */}
-                <div className="flex flex-wrap items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'bragg' }));
-                      playSynthTone('switch');
-                    }}
-                    className="px-3 py-1.5 rounded-sm bg-cyan-500/10 hover:bg-cyan-500/20 border border-cyan-500/40 text-cyan-300 text-xs font-mono font-bold transition-colors cursor-pointer"
-                  >
-                    → Bragg Engine
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'scherrer' }));
-                      playSynthTone('switch');
-                    }}
-                    className="px-3 py-1.5 rounded-sm bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/40 text-indigo-300 text-xs font-mono font-bold transition-colors cursor-pointer"
-                  >
-                    → Scherrer
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: 'wh' }));
-                      playSynthTone('switch');
-                    }}
-                    className="px-3 py-1.5 rounded-sm bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-bold transition-colors cursor-pointer"
-                  >
-                    → Williamson-Hall
-                  </button>
-                </div>
-              </div>
-
-              {/* Integrated Chung RIR Multi-Phase Weight Fraction (wt%) Stacked Bar Graphic */}
-              <div className="p-3 rounded-sm bg-[#0B0F19] border border-slate-800 space-y-2">
-                <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] font-mono tabular-nums">
-                  <span className="text-slate-300 font-bold uppercase tracking-wider">
-                    Chung Adiabatic Matrix-Flushing QPA Partition: w_α = (I_α / RIR_α) / ∑(I_k / RIR_k)
-                  </span>
-                  <span className="text-emerald-400 font-bold">
-                    ∑ w_p = 100.0 wt% ({qpaItems.length} Candidate Phases)
-                  </span>
-                </div>
-                <div className="h-3.5 w-full rounded-sm bg-[#050811] border border-slate-800 overflow-hidden flex">
-                  {qpaItems.map(({ cand, wtPct }, idx) => (
-                    <div
-                      key={cand.card_id || cand.phase_name}
-                      style={{
-                        width: `${Math.max(4, Number(wtPct))}%`,
-                        backgroundColor: phaseColors[idx % phaseColors.length],
-                      }}
-                      className="h-full border-r border-slate-950 last:border-r-0 transition-all duration-300"
-                      title={`${cand.phase_name} (${cand.formula}): ${wtPct}% wt`}
-                    />
-                  ))}
-                </div>
-                <div className="flex flex-wrap items-center gap-4 text-[11px] font-mono tabular-nums text-slate-400">
-                  {qpaItems.map(({ cand, estRIR, wtPct }, idx) => (
-                    <span key={cand.card_id || idx} className="flex items-center gap-1.5">
-                      <span
-                        className="w-2.5 h-2.5 inline-block rounded-none"
-                        style={{ backgroundColor: phaseColors[idx % phaseColors.length] }}
-                      />
-                      <strong className="text-slate-200">{cand.phase_name}</strong>: {wtPct}% wt (I/I_c=
-                      {estRIR.toFixed(2)})
-                    </span>
-                  ))}
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                {qpaItems.map(({ cand, estRIR, wtPct }, idx) => {
-                  const isSelected = selectedCandidate?.phase_name === cand.phase_name;
-                  const barColor = phaseColors[idx % phaseColors.length];
-                  return (
-                    <button
-                      key={cand.card_id || cand.phase_name}
-                      type="button"
-                      onClick={() => {
-                        setSelectedCandidate(cand);
-                        playSynthTone('tick');
-                      }}
-                      className={`p-3.5 rounded-sm border text-left transition-all cursor-pointer flex flex-col justify-between ${
-                        isSelected
-                          ? 'bg-indigo-950/45 border-indigo-400'
-                          : 'bg-[#0B0F19] border-slate-800 hover:border-slate-700'
-                      }`}
-                    >
-                      <div className="space-y-1.5">
-                        <div className="flex items-center justify-between gap-2 font-mono text-[11px] tabular-nums">
-                          <span className="text-slate-400 font-bold">
-                            #{idx + 1} · {cand.card_id}
-                          </span>
-                          <span
-                            className={`font-bold ${
-                              cand.confidence_score >= 85
-                                ? 'text-emerald-400'
-                                : cand.confidence_score >= 65
-                                ? 'text-cyan-400'
-                                : 'text-amber-400'
-                            }`}
-                          >
-                            {cand.confidence_score.toFixed(1)}% Match
-                          </span>
-                        </div>
-                        <div className="text-sm font-bold text-white truncate">
-                          {cand.phase_name}
-                        </div>
-                        <div className="text-xs font-mono text-indigo-300 truncate">
-                          {cand.formula} · {cand.crystalSystem || 'Crystalline'} ({cand.spaceGroup || 'P1'})
-                        </div>
-                        {/* Confidence & Weight Bar */}
-                        <div className="w-full h-1.5 bg-[#050811] border border-slate-800 overflow-hidden mt-1">
-                          <div
-                            className="h-full"
-                            style={{
-                              width: `${Math.min(100, Math.max(8, cand.confidence_score))}%`,
-                              backgroundColor: barColor,
-                            }}
-                          />
-                        </div>
-                      </div>
-
-                      <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono tabular-nums">
-                        <span className="text-slate-400">
-                          Peaks: <strong className="text-white">{cand.matched_peaks?.length || 0}</strong> · RIR={estRIR.toFixed(1)}
-                        </span>
-                        <span className="text-emerald-400 font-bold">
-                          {wtPct}% wt
-                        </span>
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-          );
-        })()}
-
-        {/* Sub-view Switcher: Spectral Alignment vs ML Techniques Studio */}
-        <div className="flex flex-wrap items-center justify-between gap-3 p-3 bg-[#070A12] rounded-sm border border-slate-800">
-          <div className="flex items-center gap-2 flex-wrap">
-            <button
-              onClick={() => {
-                setResultsSubTab('alignment');
-                playSynthTone('tick');
-              }}
-              className={`px-4 py-2 rounded-sm text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer border ${
-                resultsSubTab === 'alignment'
-                  ? 'bg-indigo-600 text-white border-indigo-500'
-                  : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
-              }`}
-            >
-              <Activity className="w-4 h-4 text-cyan-300" />
-              <span>01. Spectral Cross-Correlation & Alignment</span>
-            </button>
-
-            <button
-              onClick={() => {
-                setResultsSubTab('ml_techniques');
-                playSynthTone('switch');
-              }}
-              className={`px-4 py-2 rounded-sm text-xs font-mono font-bold uppercase tracking-wider flex items-center gap-2 transition-colors cursor-pointer border ${
-                resultsSubTab === 'ml_techniques'
-                  ? 'bg-cyan-600 text-white border-cyan-500'
-                  : 'bg-[#0B0F19] text-slate-400 border-slate-800 hover:text-white hover:border-slate-700'
-              }`}
-            >
-              <Brain className="w-4 h-4 text-amber-300" />
-              <span>02. ML Techniques & PyTorch Architecture Studio</span>
-              <span className="text-[10px] font-mono text-cyan-200 opacity-90">
-                [PINN + NNLS v5.0]
-              </span>
-            </button>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-2.5 text-[11px] font-mono tabular-nums text-slate-400 pr-2">
-            <span className="text-cyan-400 font-bold">● Spectral Transformers</span>
-            <span className="text-slate-700">·</span>
-            <span className="text-emerald-400">NNLS Deconv</span>
-            <span className="text-slate-700">·</span>
-            <span className="text-indigo-400">PINN Extinctions</span>
-            <span className="text-slate-700">·</span>
-            <span className="text-amber-400">MC-Dropout</span>
-          </div>
-        </div>
-
-        {resultsSubTab === 'alignment' ? (
-          <SpectralAlignmentVisualizer
-            inputData={inputData}
-            parsedPoints={parsedPoints}
-            selectedCandidate={selectedCandidate}
-            candidates={result?.candidates || []}
-            onSelectCandidate={(cand) => setSelectedCandidate(cand)}
-            inputBroadening={inputBroadening}
-            isSimulating={isSimulating}
-            scanPos={scanPos}
-            pythonRAGResults={pythonRAGResults}
-          />
-        ) : (
+        {activeWorkbenchTab === 'train' && (
           <MLTechniquesStudio
             experimentalPeaks={dlExperimentalPeaks}
             activeCandidateName={selectedCandidate?.phase_name}
-            onApplyPredictedPhase={handleApplyMLPhase}
+            onApplyPredictedPhase={(phaseName) => {
+              handleApplyMLPhase(phaseName);
+              setActiveWorkbenchTab('phase_id');
+            }}
           />
         )}
+
+        {activeWorkbenchTab === 'explain' && (
+          <ExplainabilityUncertaintyStudio
+            parsedPoints={parsedPoints}
+            selectedCandidate={selectedCandidate}
+            candidates={result?.candidates || []}
+            engineConfig={engineConfig}
+            wavelengthA={radiationWavelength}
+            baseReport={explainabilityReport}
+            onTriggerMixtureMode={() => {
+              setIsMixMode(true);
+              setActiveWorkbenchTab('phase_id');
+              playSynthTone('switch');
+              runAnalysis(inputData, true);
+            }}
+            onSelectCandidate={(cand) => {
+              setSelectedCandidate(cand);
+              playSynthTone('tick');
+            }}
+          />
+        )}
+
+        {activeWorkbenchTab === 'export' && (
+          <DeepLearningExportStudio
+            engineConfig={engineConfig}
+            result={result}
+            explainabilityReport={explainabilityReport}
+            aiReview={aiDiagnosticReview}
+            wavelengthA={radiationWavelength}
+            pointsCount={parsedPoints.length}
+          />
+        )}
+
+        {activeWorkbenchTab === 'phase_id' && (
+        <>
+        {/* Executive Neural Phase ID & Dual-Engine NNLS / Calibrated Chung RIR Quantitative Scorecard */}
+        {result?.candidates && result.candidates.length > 0 && (
+          <ExecutivePhaseScorecard
+            candidates={result.candidates}
+            selectedCandidate={selectedCandidate}
+            onSelectCandidate={(cand) => {
+              setSelectedCandidate(cand);
+              playSynthTone('tick');
+            }}
+            parsedPoints={parsedPoints}
+            isMixMode={isMixMode}
+            diagnostics={result.diagnostics}
+            onTriggerImpurityDeconvolution={() => {
+              setIsMixMode(true);
+              playSynthTone('switch');
+              runAnalysis(inputData, true);
+            }}
+            onNavigateModule={(moduleId) => {
+              window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: moduleId }));
+              playSynthTone('switch');
+            }}
+          />
+        )}
+
+        <SpectralAlignmentVisualizer
+          inputData={inputData}
+          parsedPoints={parsedPoints}
+          selectedCandidate={selectedCandidate}
+          candidates={result?.candidates || []}
+          onSelectCandidate={(cand) => setSelectedCandidate(cand)}
+          inputBroadening={inputBroadening}
+          isSimulating={isSimulating}
+          scanPos={scanPos}
+          pythonRAGResults={pythonRAGResults}
+        />
+
+        {/* Hybrid Physics-Informed + Gemini Crystallographic Diagnostic Review */}
+        <HybridAiDiagnosticPanel
+          selectedCandidate={selectedCandidate}
+          explainabilityReport={explainabilityReport}
+          review={aiDiagnosticReview}
+          isLoading={isAiReviewLoading}
+          error={aiReviewError}
+          onRunReview={handleRunAiDiagnosticReview}
+          onOpenChatModal={() => handleRunExpertAI()}
+          onNavigateModule={(moduleId) => {
+            window.dispatchEvent(new CustomEvent('xrd-change-module', { detail: moduleId }));
+            playSynthTone('switch');
+          }}
+          onTriggerMixtureMode={() => {
+            setIsMixMode(true);
+            playSynthTone('switch');
+            runAnalysis(inputData, true);
+          }}
+        />
 
         {/* Material Intelligence Section (Selected Candidate Details) */}
         <AnimatePresence mode="wait">
@@ -10433,18 +10487,26 @@ Purity Confidence: ${selectedCandidate.confidence_score}%
             ))}
 
           {!result && !isSimulating && (
-            <div className="h-48 flex flex-col items-center justify-center bg-[#050A14] rounded-[2rem] border border-dashed border-slate-700 relative overflow-hidden group">
-              <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(139,92,246,0.05),transparent_70%)] opacity-0 group-hover:opacity-100 transition-opacity duration-700" />
-              <Brain className="w-12 h-12 mb-4 text-violet-500/50 group-hover:text-violet-400 hover:scale-110 transition-all duration-500 drop-shadow-md" />
-              <p className="font-black text-xl text-slate-300 tracking-tight group-hover:text-white transition-colors">
+            <div className="h-48 flex flex-col items-center justify-center bg-white dark:bg-[#050A14] rounded-sm border border-dashed border-slate-300 dark:border-slate-700 relative overflow-hidden">
+              <Brain className="w-10 h-10 mb-3 text-indigo-500/60" />
+              <p className="font-bold text-base text-slate-900 dark:text-slate-200 tracking-tight">
                 Awaiting Inference Protocol
               </p>
-              <p className="text-xs mt-2 font-mono text-slate-500 uppercase tracking-[0.2em]">
-                Load input data to initialize neural core
+              <p className="text-xs mt-1 font-mono text-slate-500 uppercase tracking-wider">
+                Switch to Ingest to load an XRD scan or select a benchmark standard
               </p>
+              <button
+                type="button"
+                onClick={() => setActiveWorkbenchTab('ingest')}
+                className="mt-3 px-3.5 py-1.5 rounded-sm bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-mono font-bold cursor-pointer"
+              >
+                Open Ingest Tab
+              </button>
             </div>
           )}
         </div>
+        </>
+        )}
       </div>
 
       {/* Lattice Assistant Modal */}

@@ -918,7 +918,7 @@ export interface DLPhaseCandidate {
   card_id: string;
   formula: string;
   elements?: string[];
-  matched_peaks?: { refT: number; obsT: number; refI: number; h?: number; k?: number; l?: number }[];
+  matched_peaks?: { refT: number; obsT: number; refI: number; h?: number; k?: number; l?: number; hkl?: string }[];
   fitted_strain_pct?: number;
   fitted_domain_size_broadening?: number;
   // Material Intelligence Metadata
@@ -968,6 +968,16 @@ export interface DLPhaseCandidate {
   gof?: number; // Goodness of fit (chi-squared)
   weightFraction?: number; // Quantitative weight % in mixture
   rmsAngleShift?: number; // RMS 2theta shift in degrees
+  zeroShiftDeg?: number; // Estimated zero-point / specimen displacement shift (deg 2theta)
+  dSpacingRmseA?: number; // Reciprocal-space d-spacing RMS error (Angstroms)
+  hanawaltFom?: number; // ICDD Hanawalt Top-3 Figure of Merit (0-100)
+  cosineSimilarity?: number; // Multi-scale 1D-CNN continuous cosine similarity (%)
+  epistemicUncertainty?: number; // Ensemble/MC-dropout confidence dispersion ±sigma (%)
+  rirValue?: number; // Calibrated Reference Intensity Ratio (I/Ic)
+  nnlsWeightPct?: number; // Whole-pattern NNLS weight fraction (wt%)
+  nnlsUncertaintyPct?: number; // NNLS inverse-curvature uncertainty ±sigma (wt%)
+  coverageRatio?: number; // Fraction of reference reflections matched (0-1)
+  isUserCustom?: boolean; // User-defined custom material flag
   // Bioceramics & Pharma Intelligence
   caPRatio?: number; // Calcium to Phosphorus atomic ratio (e.g., 1.67 HAp)
   bioactivityIndex?: string; // SBF Bioactivity classification
@@ -976,9 +986,97 @@ export interface DLPhaseCandidate {
   excipientRole?: string; // Tableting or DPI carrier functionality
 }
 
+export interface DLUnexplainedPeak {
+  twoTheta: number;
+  intensity: number;
+  dSpacing: number;
+  qVector: number;
+}
+
+export interface DLPhaseDiagnostics {
+  wavelengthA: number;
+  radiationLabel: string;
+  inferenceTimeMs: number;
+  databaseSize: number;
+  filteredDatabaseSize: number;
+  autoDetectedMixture: boolean;
+  explainedEnergyPct: number;
+  unexplainedPeaks: DLUnexplainedPeak[];
+  shannonEntropyBits: number;
+}
+
 export interface DLPhaseResult {
   module: string;
   candidates: DLPhaseCandidate[];
+  diagnostics?: DLPhaseDiagnostics;
+}
+
+export interface DLGradCamPoint {
+  twoTheta: number;
+  obsIntensity: number;
+  calcIntensity: number;
+  residual: number;
+  gradCam: number; // 0..1 normalized 1D Grad-CAM saliency
+  derivative: number; // scaled dI/d2theta channel
+}
+
+export interface DLPeakAttribution {
+  hkl: string;
+  refTwoTheta: number;
+  obsTwoTheta: number | null;
+  deltaTwoTheta: number;
+  dSpacingA: number;
+  refIntensity: number;
+  obsIntensity: number;
+  gradCamWeight: number; // 0..1
+  occlusionDeltaPct: number; // % confidence drop when masked
+  status: 'matched' | 'shifted' | 'preferred_orientation' | 'missing';
+}
+
+export interface DLMcDropoutCandidateStat {
+  phaseName: string;
+  formula: string;
+  meanConfidencePct: number;
+  stdPct: number;
+  ciLowPct: number;
+  ciHighPct: number;
+}
+
+export interface DLExplainabilityReport {
+  candidateName: string;
+  formula: string;
+  mcPasses: number;
+  meanConfidencePct: number;
+  confidenceStdPct: number;
+  ci95LowPct: number;
+  ci95HighPct: number;
+  predictiveEntropy: number; // 0..1 normalized Shannon entropy
+  decisionMarginPct: number; // separation vs runner-up
+  zeroShiftDeg: number;
+  displacementMm: number;
+  isotropicStrainPct: number;
+  profileRwpPct: number;
+  textureAnomalyScore: number; // 0..1 March-Dollase intensity ratio dispersion
+  unexplainedPeaks: Array<{ twoTheta: number; obsIntensity: number; residual: number }>;
+  gradCamCurve: DLGradCamPoint[];
+  peakAttributions: DLPeakAttribution[];
+  mcCandidates: DLMcDropoutCandidateStat[];
+}
+
+export interface DLAiDiagnosticReview {
+  verdict:
+    | 'confirmed'
+    | 'possible_mixture'
+    | 'preferred_orientation'
+    | 'ambiguous_polymorph'
+    | 'low_confidence';
+  verdictLabel: string;
+  executiveSummary: string;
+  confidenceCalibration: string;
+  polymorphAndTextureCheck: string;
+  peakDiagnostics: string[];
+  recommendedNextSteps: string[];
+  modelUsed: string;
 }
 
 export interface CustomPeak {

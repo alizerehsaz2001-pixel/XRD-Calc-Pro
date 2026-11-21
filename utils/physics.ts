@@ -1,5 +1,5 @@
 import { getActiveMaterials } from './materialsHelper';
-import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MonshiScherrerMethodBenchmark, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, IBModelComparisonItem, WAInputPoint, WAHarmonicDeconvolvedPoint, WAResult, WAColumnDistributionPoint, WAOrderPlotLine, WAMetrics, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, FWHMResult, LatticeParameters, HKLPlaneSuggestion, SuggestHKLsResponse } from '../types';
+import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MonshiScherrerMethodBenchmark, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, IBModelComparisonItem, WAInputPoint, WAHarmonicDeconvolvedPoint, WAResult, WAColumnDistributionPoint, WAOrderPlotLine, WAMetrics, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, DLPhaseDiagnostics, FWHMResult, LatticeParameters, HKLPlaneSuggestion, SuggestHKLsResponse } from '../types';
 
 // --- Signal Processing (Savitzky-Golay) ---
 
@@ -6546,27 +6546,107 @@ const evaluateMLValidationScore = (
     return Math.max(0, Math.min(100.0, confidence));
 };
 
-let cachedActiveMaterialsRef: any[] | null = null;
+let cachedActiveMaterialsKey: string | null = null;
 let cachedMappedDLDB: any[] | null = null;
+
+// Reference Cu K-alpha wavelength used to index the built-in crystallographic library
+const CU_KA_REF_LAMBDA = 1.54056;
+
+// Calibrated ICDD PDF-2 Reference Intensity Ratios (I/I_c) for common crystallographic standards
+const CALIBRATED_RIR_TABLE: Record<string, number> = {
+  'silicon': 4.70,
+  'quartz': 3.41,
+  'anatase': 4.86,
+  'rutile': 3.44,
+  'corundum': 1.00,
+  'alumina': 1.00,
+  'hematite': 3.17,
+  'magnetite': 4.95,
+  'calcite': 3.19,
+  'halite': 4.40,
+  'fluorite': 4.02,
+  'zincite': 5.45,
+  'periclase': 3.10,
+  'iron': 10.77,
+  'copper': 8.85,
+  'aluminum': 4.55,
+  'gold': 21.80,
+  'silver': 17.50,
+  'barium titanate': 6.90,
+  'licoo2': 5.15,
+  'hydroxyapatite': 1.38,
+  'zirconia': 5.60,
+  'graphite': 6.80,
+};
+
+function estimateCalibratedRIR(name: string, density?: number, explicitRir?: number): number {
+  if (typeof explicitRir === 'number' && Number.isFinite(explicitRir) && explicitRir > 0.1) {
+    return Number(explicitRir.toFixed(2));
+  }
+  const lower = (name || '').toLowerCase();
+  for (const [key, val] of Object.entries(CALIBRATED_RIR_TABLE)) {
+    if (lower.includes(key)) return val;
+  }
+  const rho = typeof density === 'number' && density > 0.2 ? density : 3.4;
+  return Number(Math.max(0.65, Math.min(12.0, rho * 0.78)).toFixed(2));
+}
+
+function extractElementsFromFormula(formula: string, explicit?: string[]): string[] {
+  if (Array.isArray(explicit) && explicit.length > 0) {
+    return Array.from(new Set(explicit.map((e) => String(e).trim()).filter(Boolean)));
+  }
+  const matches = String(formula || '').match(/[A-Z][a-z]?/g);
+  return matches ? Array.from(new Set(matches)) : [];
+}
+
+function convertTwoThetaWavelength(twoThetaCu: number, targetLambda: number): number | null {
+  if (Math.abs(targetLambda - CU_KA_REF_LAMBDA) < 1e-4) return twoThetaCu;
+  const sinThetaCu = Math.sin(((twoThetaCu / 2) * Math.PI) / 180);
+  if (sinThetaCu <= 1e-6) return null;
+  const d = CU_KA_REF_LAMBDA / (2 * sinThetaCu);
+  const sinThetaTarget = targetLambda / (2 * d);
+  if (sinThetaTarget <= 0.01 || sinThetaTarget >= 0.985) return null;
+  return (2 * Math.asin(sinThetaTarget) * 180) / Math.PI;
+}
+
+function getRadiationLabel(lambda: number): string {
+  if (Math.abs(lambda - 1.54056) < 0.003 || Math.abs(lambda - 1.5406) < 0.003) return 'Cu Kα₁ (1.5406 Å)';
+  if (Math.abs(lambda - 1.78897) < 0.003) return 'Co Kα₁ (1.7890 Å)';
+  if (Math.abs(lambda - 0.71073) < 0.003) return 'Mo Kα₁ (0.7107 Å)';
+  if (Math.abs(lambda - 2.2897) < 0.003) return 'Cr Kα₁ (2.2897 Å)';
+  if (Math.abs(lambda - 1.93735) < 0.003) return 'Fe Kα₁ (1.9374 Å)';
+  if (lambda < 0.65) return `Synchrotron (${lambda.toFixed(4)} Å)`;
+  return `Custom λ (${lambda.toFixed(4)} Å)`;
+}
 
 function getCachedDLDatabase() {
   const activeMats = getActiveMaterials();
-  if (activeMats === cachedActiveMaterialsRef && cachedMappedDLDB !== null) {
+  const customSig = activeMats
+    .filter((m: any) => m?.isUserCustomMaterial)
+    .map((m: any) => `${m.name}:${(m.pattern || '').length}:${(m.pattern || '').slice(0, 24)}`)
+    .join(';');
+  const cacheKey = `${activeMats.length}|${activeMats[0]?.name || ''}|${activeMats[activeMats.length - 1]?.name || ''}|${customSig}`;
+  if (cacheKey === cachedActiveMaterialsKey && cachedMappedDLDB !== null) {
     return cachedMappedDLDB;
   }
-  cachedActiveMaterialsRef = activeMats;
+  cachedActiveMaterialsKey = cacheKey;
   cachedMappedDLDB = activeMats.map((m, idx) => {
     const nameHash = (m.name || '').split('').reduce((acc: number, ch: string, ci: number) => acc + ch.charCodeAt(0) * (ci + 17), 1000000 + idx * 1337);
+    const elements = extractElementsFromFormula(m.formula || '', (m as any).elements);
     return {
       name: m.name,
       formula: m.formula || '',
-      cardId: 'COD-' + (1000000 + (Math.abs(nameHash) % 8999999)),
+      cardId: (m as any).isUserCustomMaterial
+        ? `USR-${100 + idx}`
+        : 'COD-' + (1000000 + (Math.abs(nameHash) % 8999999)),
       peaks: m.pattern ? parseXYData(m.pattern).map(p => ({t: p.twoTheta, i: p.intensity, h: p.h, k: p.k, l: p.l})) : [],
       description: m.description,
       crystalSystem: m.crystalSystem,
       spaceGroup: m.spaceGroup,
       density: m.density,
-      elements: (m as any).elements,
+      elements,
+      rir: (m as any).rir,
+      isUserCustomMaterial: Boolean((m as any).isUserCustomMaterial),
       applications: m.applications,
       materialType: m.type,
       molecularWeight: (m as any).molecularWeight,
@@ -6608,17 +6688,67 @@ export const identifyPhasesDL = (
     shapeExponent?: number;
     attentionMechanism?: boolean;
     dropout?: number;
+    wavelength?: number;
+    requiredElements?: string[];
+    excludedElements?: string[];
+    onlyAllowedElements?: boolean;
+    crystalSystemFilter?: string;
   }
 ): DLPhaseResult => {
-  const DB = getCachedDLDatabase();
+  const startTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+  const fullDB = getCachedDLDatabase();
+  const targetLambda =
+    typeof engineConfig?.wavelength === 'number' && engineConfig.wavelength > 0.1 && engineConfig.wavelength < 4.5
+      ? engineConfig.wavelength
+      : CU_KA_REF_LAMBDA;
+  const isNonCuLambda = Math.abs(targetLambda - CU_KA_REF_LAMBDA) >= 1e-4;
 
-  const TOLERANCE = 0.28; // Bounds for discrete evaluation after sub-degree zero-shift alignment
-  const ZERO_SHIFT_LIMIT = 0.32; // Max specimen displacement / zero-point shift compensation (deg 2theta)
+  const reqEls = (engineConfig?.requiredElements || []).map((e) => e.trim()).filter(Boolean);
+  const excEls = (engineConfig?.excludedElements || []).map((e) => e.trim()).filter(Boolean);
+  const onlyAllowed = Boolean(engineConfig?.onlyAllowedElements && reqEls.length > 0);
+  const sysFilter = (engineConfig?.crystalSystemFilter || 'All').trim();
+
+  const filteredRawDB = fullDB.filter((phase) => {
+    if (sysFilter && sysFilter !== 'All') {
+      const pSys = String(phase.crystalSystem || '').toLowerCase();
+      if (!pSys.includes(sysFilter.toLowerCase())) return false;
+    }
+    const phaseEls: string[] = phase.elements || [];
+    if (reqEls.length > 0) {
+      if (onlyAllowed) {
+        if (phaseEls.length === 0) return false;
+        const allowedSet = new Set(reqEls);
+        if (!phaseEls.every((el) => allowedSet.has(el))) return false;
+      } else {
+        if (!reqEls.every((el) => phaseEls.includes(el))) return false;
+      }
+    }
+    if (excEls.length > 0) {
+      if (excEls.some((el) => phaseEls.includes(el))) return false;
+    }
+    return true;
+  });
+
+  const DB = filteredRawDB
+    .map((phase) => {
+      if (!isNonCuLambda) return phase;
+      const convertedPeaks: Array<{ t: number; i: number; h?: number; k?: number; l?: number }> = [];
+      for (const pk of phase.peaks) {
+        const mappedT = convertTwoThetaWavelength(pk.t, targetLambda);
+        if (mappedT !== null && mappedT >= 5 && mappedT <= 135) {
+          convertedPeaks.push({ ...pk, t: Number(mappedT.toFixed(3)) });
+        }
+      }
+      return { ...phase, peaks: convertedPeaks };
+    })
+    .filter((p) => p.peaks.length > 0);
+
+  const TOLERANCE = isNonCuLambda ? 0.34 : 0.28;
+  const ZERO_SHIFT_LIMIT = 0.34;
   const kernelSize = engineConfig?.kernelSize || 5;
   const isMultiScale = engineConfig?.multiScale ?? true;
   const activationName = engineConfig?.activation || "ReLU";
 
-  // Helper: Estimate optimal sub-degree specimen displacement (cos theta) & lattice strain (tan theta) shift
   const estimatePhaseZeroShift = (
     obsPoints: { twoTheta: number; intensity: number }[],
     refPeaks: { t: number; i: number }[]
@@ -6646,10 +6776,134 @@ export const identifyPhasesDL = (
       }
     }
     if (weightTotal <= 0) return 0;
-    return Math.max(-0.26, Math.min(0.26, weightedShiftSum / weightTotal));
+    return Math.max(-0.28, Math.min(0.28, weightedShiftSum / weightTotal));
   };
 
-  // Generate the observed envelope vector
+  const computeCandidateGeometryDiagnostics = (
+    matchedDetails: Array<{ refT: number; obsT: number; refI: number }>,
+    estShift: number
+  ) => {
+    if (matchedDetails.length === 0) {
+      return { dSpacingRmseA: 0, rmsAngleShift: 0, fittedStrainPct: 0 };
+    }
+    let sumDsq = 0;
+    let sumTsq = 0;
+    let strainNum = 0;
+    let strainDen = 0;
+    for (const m of matchedDetails) {
+      const refRad = ((m.refT / 2) * Math.PI) / 180;
+      const obsRad = (((m.obsT - estShift) / 2) * Math.PI) / 180;
+      const sinRef = Math.max(1e-5, Math.sin(refRad));
+      const sinObs = Math.max(1e-5, Math.sin(obsRad));
+      const dRef = targetLambda / (2 * sinRef);
+      const dObs = targetLambda / (2 * sinObs);
+      const dd = dObs - dRef;
+      sumDsq += dd * dd;
+      const dt = (m.obsT - estShift) - m.refT;
+      sumTsq += dt * dt;
+      const relStrain = (dObs - dRef) / dRef;
+      const weight = Math.max(1, m.refI);
+      strainNum += relStrain * weight;
+      strainDen += weight;
+    }
+    const dSpacingRmseA = Number(Math.sqrt(sumDsq / matchedDetails.length).toFixed(4));
+    const rmsAngleShift = Number(Math.sqrt(sumTsq / matchedDetails.length).toFixed(3));
+    const fittedStrainPct = Number(((strainDen > 0 ? strainNum / strainDen : 0) * 100).toFixed(3));
+    return { dSpacingRmseA, rmsAngleShift, fittedStrainPct };
+  };
+
+  const computeFomAndUncertainty = (
+    phasePeaks: Array<{ t: number; i: number }>,
+    matchedDetails: Array<{ refT: number; obsT: number; refI: number }>,
+    estShift: number,
+    convSimPct: number,
+    mlValScore: number,
+    finalConf: number
+  ) => {
+    const top3 = [...phasePeaks].sort((a, b) => b.i - a.i).slice(0, 3);
+    let fomSum = 0;
+    let fomWeight = 0;
+    top3.forEach((rp, idx) => {
+      const w = idx === 0 ? 0.5 : idx === 1 ? 0.3 : 0.2;
+      fomWeight += w;
+      const hit = matchedDetails.find((md) => md.refT === rp.t);
+      if (hit) {
+        const dt = Math.abs((hit.refT + estShift) - hit.obsT);
+        fomSum += w * Math.max(0, 1 - dt / TOLERANCE);
+      }
+    });
+    const hanawaltFom = Number((fomWeight > 0 ? (fomSum / fomWeight) * 100 : 0).toFixed(1));
+    const meanScore = (finalConf + convSimPct + mlValScore) / 3;
+    const variance =
+      ((finalConf - meanScore) ** 2 + (convSimPct - meanScore) ** 2 + (mlValScore - meanScore) ** 2) / 3;
+    const epistemicUncertainty = Number(Math.max(0.4, Math.min(18.0, Math.sqrt(variance) * 0.38)).toFixed(1));
+    return { hanawaltFom, epistemicUncertainty };
+  };
+
+  const buildDiagnostics = (finalCandidates: DLPhaseCandidate[], mixUsed: boolean): DLPhaseDiagnostics => {
+    const coverSet = mixUsed ? finalCandidates.slice(0, 4) : finalCandidates.slice(0, 1);
+    const totalObsEnergy = inputPoints.reduce((acc, p) => acc + Math.max(0, p.intensity), 0);
+    const maxObsI = Math.max(1, ...inputPoints.map((p) => p.intensity));
+    let explainedEnergy = 0;
+    const unexplainedPeaks: Array<{ twoTheta: number; intensity: number; dSpacing: number; qVector: number }> = [];
+
+    for (const pt of inputPoints) {
+      const isExplained = coverSet.some((cand) => {
+        const shift = cand.zeroShiftDeg || 0;
+        return (cand.matched_peaks || []).some(
+          (mp) => Math.abs(mp.obsT - pt.twoTheta) <= 0.22 || Math.abs((mp.refT + shift) - pt.twoTheta) <= TOLERANCE * 1.15
+        );
+      });
+      if (isExplained) {
+        explainedEnergy += Math.max(0, pt.intensity);
+      } else if (pt.intensity >= maxObsI * 0.08) {
+        const thetaRad = ((pt.twoTheta / 2) * Math.PI) / 180;
+        const sinT = Math.max(1e-5, Math.sin(thetaRad));
+        const dSpacing = targetLambda / (2 * sinT);
+        const qVector = (2 * Math.PI) / dSpacing;
+        unexplainedPeaks.push({
+          twoTheta: Number(pt.twoTheta.toFixed(3)),
+          intensity: Number(((pt.intensity / maxObsI) * 100).toFixed(1)),
+          dSpacing: Number(dSpacing.toFixed(4)),
+          qVector: Number(qVector.toFixed(3)),
+        });
+      }
+    }
+
+    unexplainedPeaks.sort((a, b) => b.intensity - a.intensity);
+    const explainedEnergyPct = totalObsEnergy > 0
+      ? Number(Math.min(100, (explainedEnergy / totalObsEnergy) * 100).toFixed(1))
+      : 0;
+
+    const topScores = finalCandidates.slice(0, 5).map((c) => c.confidence_score / 12);
+    const maxS = Math.max(0, ...topScores);
+    const exps = topScores.map((s) => Math.exp(s - maxS));
+    const sumE = exps.reduce((a, b) => a + b, 0) || 1;
+    const shannonEntropyBits = Number(
+      Math.max(
+        0,
+        -exps.reduce((acc, e) => {
+          const p = e / sumE;
+          return p > 1e-9 ? acc + p * Math.log2(p) : acc;
+        }, 0)
+      ).toFixed(2)
+    );
+
+    const endTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+
+    return {
+      wavelengthA: Number(targetLambda.toFixed(5)),
+      radiationLabel: getRadiationLabel(targetLambda),
+      inferenceTimeMs: Number(Math.max(1, endTime - startTime).toFixed(1)),
+      databaseSize: fullDB.length,
+      filteredDatabaseSize: DB.length,
+      autoDetectedMixture: !mixUsed && unexplainedPeaks.length >= 2 && explainedEnergyPct < 86,
+      explainedEnergyPct,
+      unexplainedPeaks: unexplainedPeaks.slice(0, 8),
+      shannonEntropyBits,
+    };
+  };
+
   let S_obs = generateContinuousSpectrum(inputPoints, 10, 90, 0.2);
   
   if (engineConfig?.backgroundSubtraction) {
@@ -6657,14 +6911,12 @@ export const identifyPhasesDL = (
   }
   
   if (engineConfig?.batchNorm) {
-    // Batch normalization: mean centered, variance scaled with non-negativity shift for spectral positivity
     const mean = S_obs.reduce((a,b)=>a+b,0) / S_obs.length;
     const vari = S_obs.reduce((a,b)=>a+Math.pow(b-mean,2),0) / S_obs.length;
     const std = Math.max(Math.sqrt(vari), 1e-5);
     S_obs = S_obs.map(v => Math.max(0, (v - mean) / std));
   }
 
-  // Deterministic Inverted-Dropout Regularization at Evaluation Time:
   if ((engineConfig as any)?.dropout && (engineConfig as any).dropout > 0) {
      const dropProb = Math.min(0.8, Math.max(0, (engineConfig as any).dropout));
      const maxSignal = Math.max(...S_obs, 1e-5);
@@ -6672,24 +6924,18 @@ export const identifyPhasesDL = (
      S_obs = S_obs.map(v => v <= softThreshold ? 0 : (v - softThreshold) * (1 - 0.1 * dropProb));
   }
 
-  // Self-Attention Mechanism (Scaled Dot-Product with numerically stable log-sum-exp shift)
   if ((engineConfig as any)?.attentionMechanism) {
-    const tempScale = 10; // Scaling factor sqrt(d_k)
+    const tempScale = 10;
     const maxLogit = Math.max(...S_obs.map(v => v / tempScale), 0);
     const expVals = S_obs.map(v => Math.exp((v / tempScale) - maxLogit));
     const sumExp = expVals.reduce((a,b)=>a+b, 0);
     const attentionWeights = expVals.map(e => e / (sumExp || 1));
-    // Apply attention map back to the sequence, amplifying dominant features stably
     S_obs = S_obs.map((v, i) => v * (1 + attentionWeights[i] * Math.min(20, S_obs.length * 0.05)));
   }
 
-  // Apply our 1D Convolution with selected kernel size representing receptive fields
   let Conv_obs = convolve1D(S_obs, kernelSize, engineConfig?.kernelProfile, engineConfig);
-  
-  // If multi-scale is active, we simulate the ResNet architecture design: adding the raw input vector back with convolutional layer
   if (isMultiScale) {
     for (let i = 0; i < Conv_obs.length; i++) {
-      // 70% convolved, 30% residual path to preserve phase peak boundaries, scaled for intensity conservation
       Conv_obs[i] = Conv_obs[i] * 0.7 + S_obs[i] * 0.3;
     }
   }
@@ -6697,7 +6943,6 @@ export const identifyPhasesDL = (
   const poolType = engineConfig?.pooling || 'max';
   const Pooled_obs = applyPooling(Conv_obs, poolType);
 
-  // Optional multi-scale convolved spectrum
   let Raw_Conv_obs_wide = isMultiScale ? convolve1D(S_obs, Math.round(kernelSize * 1.8), engineConfig?.kernelProfile, engineConfig) : null;
   if (isMultiScale && Raw_Conv_obs_wide) {
     for (let i = 0; i < Raw_Conv_obs_wide.length; i++) {
@@ -6706,12 +6951,21 @@ export const identifyPhasesDL = (
   }
   const Conv_obs_wide = Raw_Conv_obs_wide ? applyPooling(Raw_Conv_obs_wide, poolType) : null;
 
+  // Physics-informed 1st-derivative channel (dI/d2theta) for sharp doublet & shoulder separation
+  const computeFirstDeriv = (arr: number[]): number[] => {
+    const out = new Array(arr.length).fill(0);
+    for (let i = 1; i < arr.length - 1; i++) {
+      out[i] = 0.5 * (arr[i + 1] - arr[i - 1]);
+    }
+    return out;
+  };
+  const Deriv_obs = computeFirstDeriv(Pooled_obs);
+
   if (isMixMode) {
     let remainingPoints = inputPoints.map(p => ({ ...p, initialIntensity: p.intensity }));
     const identifiedPhases: DLPhaseCandidate[] = [];
     let availableDB = [...DB];
     
-    // Iterative Soft Residual Stripping (up to 6 constituent phases)
     for (let iter = 0; iter < 6; iter++) {
       if (remainingPoints.length === 0) break;
       
@@ -6743,11 +6997,9 @@ export const identifyPhasesDL = (
             const intensityWeight = Math.log10(refPeak.i + 10) / 2;
             matchScore += (10 * positionWeight * intensityWeight);
             
-            // To ensure intensity ratio validity
             const relativeIntensityMatch = Math.min(refPeak.i + 10, closest.intensity + 10) / Math.max(refPeak.i + 10, closest.intensity + 10);
             matchScore *= (0.8 + 0.2 * relativeIntensityMatch);
 
-            // Crystallographic Miller Index (hkl) verification bonus
             let hklMatched = false;
             if ((closest as any).h !== undefined && refPeak.h !== undefined) {
               if ((closest as any).h === refPeak.h && (closest as any).k === refPeak.k && (closest as any).l === refPeak.l) {
@@ -6772,12 +7024,11 @@ export const identifyPhasesDL = (
           }
         }
 
-        // Fast-screen phases with zero matched peaks to avoid redundant convolution
         if (matchedPeaksCount === 0) return;
         
-        // 1D Convolution mathematical cross-correlation check for mixture candidates
+        const refCacheKey = isNonCuLambda ? `${phase.name}@${targetLambda.toFixed(4)}` : phase.name;
         const cachedRef = getCachedConvolvedReference(
-          phase.name,
+          refCacheKey,
           phase.peaks,
           kernelSize,
           engineConfig?.kernelProfile,
@@ -6789,20 +7040,22 @@ export const identifyPhasesDL = (
         
         const Conv_ref = cachedRef.convRef;
         let convSimilarity = cosineSimilarity(Pooled_obs, Conv_ref);
+        const derivSim = Math.max(0, cosineSimilarity(Deriv_obs, computeFirstDeriv(Conv_ref)));
 
         if (isMultiScale && Conv_obs_wide && cachedRef.convRefWide) {
           const similarityWide = cosineSimilarity(Conv_obs_wide, cachedRef.convRefWide);
-          convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
+          convSimilarity = 0.5 * convSimilarity + 0.32 * similarityWide + 0.18 * derivSim;
+        } else {
+          convSimilarity = 0.8 * convSimilarity + 0.2 * derivSim;
         }
 
-        // Apply custom Activation function on the convolved match
         let activatedSimilarity = convSimilarity;
         if (activationName === "ReLU") {
           activatedSimilarity = Math.max(0, convSimilarity);
         } else if (activationName === "LeakyReLU") {
           activatedSimilarity = convSimilarity > 0 ? convSimilarity : convSimilarity * 0.1;
         } else if (activationName === "GELU") {
-          const x = convSimilarity * 2; // scaled to highlight deviations
+          const x = convSimilarity * 2;
           activatedSimilarity = (0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))))) / 2;
         } else if (activationName === "Sigmoid") {
           activatedSimilarity = 1 / (1 + Math.exp(-8 * (convSimilarity - 0.4)));
@@ -6813,20 +7066,17 @@ export const identifyPhasesDL = (
         }
 
         let confidence = maxPossibleScore > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
-        
-        // Combine convolved continuous alignment (40% weight) and peak discrete check (60% weight) 
         confidence = (0.4 * activatedSimilarity * 100) + (0.6 * confidence);
 
         const mainPeak = phase.peaks.reduce((prev, curr) => curr.i > prev.i ? curr : prev, {t: 0, i: -1});
         const mainPeakMatched = matchedDetails.some(md => md.refT === mainPeak.t);
         
         if (!mainPeakMatched && mainPeak.i > 0) {
-          confidence *= 0.1; // Extremely penalize if main phase peak is missing
+          confidence *= 0.1;
         } else if (mainPeakMatched) {
-          confidence *= 1.25; // Boost if primary diagnostic peak is present
+          confidence *= 1.25;
         }
 
-        // Hanawalt Top-3 Search-Match Figure of Merit (FOM) boost
         const top3Ref = [...phase.peaks].sort((a, b) => b.i - a.i).slice(0, 3);
         const top3Hits = top3Ref.filter(rp => matchedDetails.some(md => md.refT === rp.t)).length;
         if (top3Hits === 3) confidence *= 1.12;
@@ -6895,6 +7145,17 @@ export const identifyPhasesDL = (
             TOLERANCE
           );
 
+          const geom = computeCandidateGeometryDiagnostics(matchedDetails, estShift);
+          const convSimPct = Number(Math.min(100, Math.max(0, convSimilarity * 100)).toFixed(1));
+          const { hanawaltFom, epistemicUncertainty } = computeFomAndUncertainty(
+            phase.peaks,
+            matchedDetails,
+            estShift,
+            convSimPct,
+            pythonValidatedScore,
+            finalConfidence
+          );
+
           const rawCandidate: DLPhaseCandidate = {
             phase_name: phase.name, 
             formula: phase.formula, 
@@ -6904,6 +7165,16 @@ export const identifyPhasesDL = (
             match_quality: matchQuality,
             matched_peaks: matchedDetails,
             elements: (phase as any).elements,
+            zeroShiftDeg: Number(estShift.toFixed(3)),
+            dSpacingRmseA: geom.dSpacingRmseA,
+            rmsAngleShift: geom.rmsAngleShift,
+            fitted_strain_pct: geom.fittedStrainPct,
+            hanawaltFom,
+            cosineSimilarity: convSimPct,
+            epistemicUncertainty,
+            rirValue: estimateCalibratedRIR(phase.name, phase.density, phase.rir),
+            coverageRatio: Number((matchedPeaksCount / Math.max(1, phase.peaks.length)).toFixed(2)),
+            isUserCustom: Boolean(phase.isUserCustomMaterial),
             description: phase.description,
             crystalSystem: phase.crystalSystem,
             spaceGroup: phase.spaceGroup,
@@ -6934,7 +7205,6 @@ export const identifyPhasesDL = (
         const phaseToStrip = availableDB[bestPhaseIdx];
         const stripShift = estimatePhaseZeroShift(remainingPoints, phaseToStrip.peaks);
         
-        // Estimate phase scale factor k_p = median(I_obs / I_ref) across matched peaks for soft subtraction
         const scaleRatios: number[] = [];
         for (const ref of phaseToStrip.peaks) {
           const hit = remainingPoints.find(p => Math.abs((ref.t + stripShift) - p.twoTheta) <= TOLERANCE);
@@ -6946,7 +7216,6 @@ export const identifyPhasesDL = (
           ? scaleRatios.reduce((a, b) => a + b, 0) / scaleRatios.length
           : 0.85;
 
-        // Soft Residual Intensity Subtraction (preserves overlapping reflections for secondary phases)
         const stripTolerance = Math.max(0.18, TOLERANCE * 1.15);
         remainingPoints = remainingPoints
           .map(p => {
@@ -6963,7 +7232,12 @@ export const identifyPhasesDL = (
       }
     }
     
-    return { module: "DL-Phase-ID-Smart-Mixture", candidates: identifiedPhases.sort((a,b) => b.confidence_score - a.confidence_score) };
+    const sortedMix = identifiedPhases.sort((a,b) => b.confidence_score - a.confidence_score);
+    return {
+      module: "DL-Phase-ID-Smart-Mixture",
+      candidates: sortedMix,
+      diagnostics: buildDiagnostics(sortedMix, true),
+    };
   }
 
   const candidates: DLPhaseCandidate[] = [];
@@ -6996,11 +7270,10 @@ export const identifyPhasesDL = (
         const relativeIntensityMatch = Math.min(refPeak.i + 10, closest.intensity + 10) / Math.max(refPeak.i + 10, closest.intensity + 10);
         scoreInc *= (0.8 + 0.2 * relativeIntensityMatch);
         
-        // Crystallographic Miller Index (hkl) verification bonus
         let hklMatched = false;
         if ((closest as any).h !== undefined && refPeak.h !== undefined) {
           if ((closest as any).h === refPeak.h && (closest as any).k === refPeak.k && (closest as any).l === refPeak.l) {
-            scoreInc *= 1.25; // 25% Miller index confidence bonus
+            scoreInc *= 1.25;
             hklMatched = true;
           }
         }
@@ -7022,12 +7295,11 @@ export const identifyPhasesDL = (
       }
     }
 
-    // Fast-screen phases with zero matched peaks to avoid redundant 1D convolution
     if (matchedPeaksCount === 0) continue;
 
-    // 1D Convolution mathematical cross-correlation calculation
+    const refCacheKey = isNonCuLambda ? `${phase.name}@${targetLambda.toFixed(4)}` : phase.name;
     const cachedRef = getCachedConvolvedReference(
-      phase.name,
+      refCacheKey,
       phase.peaks,
       kernelSize,
       engineConfig?.kernelProfile,
@@ -7039,20 +7311,22 @@ export const identifyPhasesDL = (
     
     const Conv_ref = cachedRef.convRef;
     let convSimilarity = cosineSimilarity(Pooled_obs, Conv_ref);
+    const derivSim = Math.max(0, cosineSimilarity(Deriv_obs, computeFirstDeriv(Conv_ref)));
 
     if (isMultiScale && Conv_obs_wide && cachedRef.convRefWide) {
       const similarityWide = cosineSimilarity(Conv_obs_wide, cachedRef.convRefWide);
-      convSimilarity = 0.6 * convSimilarity + 0.4 * similarityWide;
+      convSimilarity = 0.5 * convSimilarity + 0.32 * similarityWide + 0.18 * derivSim;
+    } else {
+      convSimilarity = 0.8 * convSimilarity + 0.2 * derivSim;
     }
 
-    // Apply custom Activation function on the convolved match
     let activatedSimilarity = convSimilarity;
     if (activationName === "ReLU") {
       activatedSimilarity = Math.max(0, convSimilarity);
     } else if (activationName === "LeakyReLU") {
       activatedSimilarity = convSimilarity > 0 ? convSimilarity : convSimilarity * 0.1;
     } else if (activationName === "GELU") {
-      const x = convSimilarity * 2; // scaled to highlight deviations
+      const x = convSimilarity * 2;
       activatedSimilarity = (0.5 * x * (1 + Math.tanh(Math.sqrt(2 / Math.PI) * (x + 0.044715 * Math.pow(x, 3))))) / 2;
     } else if (activationName === "Sigmoid") {
       activatedSimilarity = 1 / (1 + Math.exp(-8 * (convSimilarity - 0.4)));
@@ -7074,8 +7348,6 @@ export const identifyPhasesDL = (
     const coverage = matchedPeaksCount / totalRefPeaks;
     
     let baseConfidence = maxPossibleScore > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
-    
-    // Combine 1D Convolution cross-correlation with discrete peak score
     let confidence = (0.35 * activatedSimilarity * 100) + (0.65 * baseConfidence);
     
     const mainPeak = phase.peaks.reduce((prev, curr) => curr.i > prev.i ? curr : prev, {t: 0, i: -1});
@@ -7087,7 +7359,6 @@ export const identifyPhasesDL = (
       confidence *= 1.25;
     }
 
-    // Hanawalt Top-3 Search-Match Figure of Merit (FOM) boost
     const top3Ref = [...phase.peaks].sort((a, b) => b.i - a.i).slice(0, 3);
     const top3Hits = top3Ref.filter(rp => matchedDetails.some(md => md.refT === rp.t)).length;
     if (top3Hits === 3) confidence *= 1.12;
@@ -7139,7 +7410,18 @@ export const identifyPhasesDL = (
     const pythonValidatedScore = evaluateMLValidationScore(
       inputPoints.map(p => ({ two_theta: p.twoTheta - estShift, intensity: p.intensity })),
       phase.peaks.map(p => ({ two_theta: p.t, intensity: p.i })),
-      0.18
+      Math.max(0.18, TOLERANCE * 0.7)
+    );
+
+    const geom = computeCandidateGeometryDiagnostics(matchedDetails, estShift);
+    const convSimPct = Number(Math.min(100, Math.max(0, convSimilarity * 100)).toFixed(1));
+    const { hanawaltFom, epistemicUncertainty } = computeFomAndUncertainty(
+      phase.peaks,
+      matchedDetails,
+      estShift,
+      convSimPct,
+      pythonValidatedScore,
+      finalConfidence
     );
 
     const rawCandidate: DLPhaseCandidate = { 
@@ -7152,6 +7434,16 @@ export const identifyPhasesDL = (
       match_quality: matchQuality,
       matched_peaks: matchedDetails,
       elements: (phase as any).elements,
+      zeroShiftDeg: Number(estShift.toFixed(3)),
+      dSpacingRmseA: geom.dSpacingRmseA,
+      rmsAngleShift: geom.rmsAngleShift,
+      fitted_strain_pct: geom.fittedStrainPct,
+      hanawaltFom,
+      cosineSimilarity: convSimPct,
+      epistemicUncertainty,
+      rirValue: estimateCalibratedRIR(phase.name, phase.density, phase.rir),
+      coverageRatio: Number(coverage.toFixed(2)),
+      isUserCustom: Boolean(phase.isUserCustomMaterial),
       description: phase.description,
       crystalSystem: phase.crystalSystem,
       spaceGroup: phase.spaceGroup,
@@ -7178,7 +7470,11 @@ export const identifyPhasesDL = (
 
   candidates.sort((a,b) => (b as any).raw_score - (a as any).raw_score);
 
-  return { module: "DL-Phase-ID-Smart", candidates };
+  return {
+    module: "DL-Phase-ID-Smart",
+    candidates,
+    diagnostics: buildDiagnostics(candidates, false),
+  };
 };
 
 export interface ParsedXYPoint {

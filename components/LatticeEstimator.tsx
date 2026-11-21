@@ -153,7 +153,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
 
   // Refinement Configuration
   const [crystalSystem, setCrystalSystem] = useState<CrystalSystem>('Cubic');
-  const [selectedSpaceGroupNumber, setSelectedSpaceGroupNumber] = useState<number>(227); // Default Si Fd-3m
+  const [selectedSpaceGroupId, setSelectedSpaceGroupId] = useState<string>('227:Fd-3m'); // Default Si Fd-3m
   const [systematicError, setSystematicError] = useState<SystematicErrorFunction>('nelson_riley');
   const [weightingModel, setWeightingModel] = useState<WeightingModel>('statistical');
   const [monoclinicBeta, setMonoclinicBeta] = useState<number>(99.2);
@@ -211,8 +211,12 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
 
   // Active space group object
   const currentSpaceGroup = useMemo<SpaceGroupInfo>(() => {
-    return SPACE_GROUPS_DATABASE.find(s => s.number === selectedSpaceGroupNumber) || SPACE_GROUPS_DATABASE[0];
-  }, [selectedSpaceGroupNumber]);
+    return (
+      SPACE_GROUPS_DATABASE.find(s => `${s.number}:${s.symbol}` === selectedSpaceGroupId) ||
+      SPACE_GROUPS_DATABASE.find(s => String(s.number) === selectedSpaceGroupId.split(':')[0]) ||
+      SPACE_GROUPS_DATABASE[0]
+    );
+  }, [selectedSpaceGroupId]);
 
   // Synchronize space group and crystal system when preset selected
   const handleApplyPreset = (refId: string) => {
@@ -220,7 +224,7 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
     if (!mat) return;
     setSelectedRefMaterial(refId);
     setCrystalSystem(mat.system);
-    setSelectedSpaceGroupNumber(mat.spaceGroupNumber);
+    setSelectedSpaceGroupId(`${mat.spaceGroupNumber}:${mat.spaceGroupSymbol}`);
     setMonoclinicBeta(mat.beta || 90);
   };
 
@@ -534,15 +538,18 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                 <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Space Group:</span>
                 <select
                   id="space-group-select"
-                  value={selectedSpaceGroupNumber}
-                  onChange={(e) => setSelectedSpaceGroupNumber(Number(e.target.value))}
+                  value={`${currentSpaceGroup.number}:${currentSpaceGroup.symbol}`}
+                  onChange={(e) => setSelectedSpaceGroupId(e.target.value)}
                   className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 text-indigo-600 dark:text-indigo-400 font-mono text-xs font-bold rounded-xl px-2.5 py-1.5 outline-none focus:ring-1 focus:ring-indigo-500"
                 >
-                  {SPACE_GROUPS_DATABASE.map(sg => (
-                    <option key={sg.number} value={sg.number}>
-                      #{sg.number} {sg.symbol} ({sg.crystalSystem})
-                    </option>
-                  ))}
+                  {SPACE_GROUPS_DATABASE.map(sg => {
+                    const sgId = `${sg.number}:${sg.symbol}`;
+                    return (
+                      <option key={sgId} value={sgId}>
+                        #{sg.number} {sg.symbol} ({sg.crystalSystem})
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
 
@@ -1193,15 +1200,16 @@ export const LatticeEstimator: React.FC<LatticeEstimatorProps> = ({ results }) =
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {spaceGroupCandidates.map((cand, idx) => {
                     const isPerfect = cand.compatibilityScore === 100;
+                    const candId = `${cand.spaceGroup.number}:${cand.spaceGroup.symbol}`;
                     return (
                       <div
-                        key={cand.spaceGroup.number}
+                        key={candId}
                         onClick={() => {
-                          setSelectedSpaceGroupNumber(cand.spaceGroup.number);
+                          setSelectedSpaceGroupId(candId);
                           setCrystalSystem(cand.spaceGroup.crystalSystem);
                         }}
                         className={`p-4 rounded-2xl border cursor-pointer transition-all ${
-                          selectedSpaceGroupNumber === cand.spaceGroup.number
+                          selectedSpaceGroupId === candId
                             ? 'ring-2 ring-indigo-500 bg-indigo-50/20 dark:bg-indigo-950/20 border-indigo-500'
                             : isPerfect
                               ? 'bg-emerald-500/5 border-emerald-500/30 hover:border-emerald-500'

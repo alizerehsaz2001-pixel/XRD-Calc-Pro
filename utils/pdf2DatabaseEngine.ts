@@ -103,9 +103,179 @@ const CANONICAL_PDF2_METADATA: Record<
     rirValue: 1.00,
     spaceGroup: 'R-3c',
     spaceGroupNumber: 167,
-    unitCell: { a: 4.7587, b: 4.7587, c: 12.9929, alpha: 90, beta: 90, gamma: 120, volume: 254.81, z: 6 },
+    unitCell: { a: 4.7589, b: 4.7589, c: 12.9917, alpha: 90, beta: 90, gamma: 120, volume: 254.81, z: 6 },
     subfileCodes: ['Inorganic', 'Mineral', 'NBS/NIST Standard', 'Ceramic', 'Corundum RIR Reference'],
-    referenceCitation: 'beyer, D. et al., NIST SRM 676a Quantitative Intensity Standard, ICDD Grant-in-Aid (1994)',
+    referenceCitation: 'Beyer, D. et al., NIST SRM 676a Quantitative Intensity Standard, ICDD Grant-in-Aid (1994)',
+  },
+  gamma_alumina: {
+    pdfCardNumber: '00-010-0425',
+    qualityMark: '*',
+    rirValue: 0.72,
+    spaceGroup: 'Fd-3m',
+    spaceGroupNumber: 227,
+    unitCell: { a: 7.911, b: 7.911, c: 7.911, alpha: 90, beta: 90, gamma: 90, volume: 495.10, z: 10.67 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'Catalyst Support', 'Transition Alumina'],
+    referenceCitation: 'Zhou, R.S., Snyder, R.L., Acta Crystallogr. B, 47, 617 (1991) — Cubic Defect-Spinel γ-Al2O3',
+  },
+  eta_alumina: {
+    pdfCardNumber: '00-004-0875',
+    qualityMark: 'I',
+    rirValue: 0.68,
+    spaceGroup: 'Fd-3m',
+    spaceGroupNumber: 227,
+    unitCell: { a: 7.906, b: 7.906, c: 7.906, alpha: 90, beta: 90, gamma: 90, volume: 494.16, z: 10.67 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'Catalyst Support', 'Transition Alumina'],
+    referenceCitation: 'Zhou, R.S., Snyder, R.L., Acta Crystallogr. B, 47, 617 (1991) — Cubic Defect-Spinel η-Al2O3',
+  },
+  delta_alumina: {
+    pdfCardNumber: '00-046-1131',
+    qualityMark: 'I',
+    rirValue: 0.85,
+    spaceGroup: 'P-4m2',
+    spaceGroupNumber: 115,
+    unitCell: { a: 7.963, b: 7.963, c: 23.470, alpha: 90, beta: 90, gamma: 90, volume: 1488.22, z: 32 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'Transition Alumina'],
+    referenceCitation: 'Lippens, B.C., de Boer, J.H., Acta Crystallogr., 17, 1312 (1964) — Tetragonal δ-Al2O3',
+  },
+  delta_prime_alumina: {
+    pdfCardNumber: '00-046-1215',
+    qualityMark: 'I',
+    rirValue: 0.88,
+    spaceGroup: 'P212121',
+    spaceGroupNumber: 19,
+    unitCell: { a: 7.934, b: 7.956, c: 11.711, alpha: 90, beta: 90, gamma: 90, volume: 739.23, z: 16 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'Transition Alumina'],
+    referenceCitation: 'Repelin, Y., Husson, E., Mater. Res. Bull., 25, 611 (1990) — Orthorhombic δ*-Al2O3',
+  },
+  theta_alumina: {
+    pdfCardNumber: '00-035-0121',
+    qualityMark: '*',
+    rirValue: 0.92,
+    spaceGroup: 'C2/m',
+    spaceGroupNumber: 12,
+    unitCell: { a: 11.795, b: 2.910, c: 5.621, alpha: 90, beta: 103.79, gamma: 90, volume: 187.37, z: 4 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'Transition Alumina', 'TGO Scale'],
+    referenceCitation: 'Husson, E., Repelin, Y., Eur. J. Solid State Inorg. Chem., 33, 1223 (1996) — Monoclinic θ-Al2O3',
+  },
+  kappa_alumina: {
+    pdfCardNumber: '00-052-0803',
+    qualityMark: '*',
+    rirValue: 1.08,
+    spaceGroup: 'Pna21',
+    spaceGroupNumber: 33,
+    unitCell: { a: 4.835, b: 8.311, c: 8.936, alpha: 90, beta: 90, gamma: 90, volume: 359.08, z: 8 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'CVD Hard Coating', 'Transition Alumina'],
+    referenceCitation: 'Ollivier, B. et al., J. Mater. Chem., 7, 1049 (1997) — Orthorhombic κ-Al2O3',
+  },
+  chi_alumina: {
+    pdfCardNumber: '00-013-0373',
+    qualityMark: 'I',
+    rirValue: 0.65,
+    spaceGroup: 'P6/mmm',
+    spaceGroupNumber: 191,
+    unitCell: { a: 5.560, b: 5.560, c: 13.440, alpha: 90, beta: 90, gamma: 120, volume: 359.84, z: 8 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'Adsorbent', 'Transition Alumina'],
+    referenceCitation: 'Brindley, G.W., Choe, J.O., Am. Mineral., 46, 771 (1961) — Hexagonal χ-Al2O3',
+  },
+  lambda_alumina: {
+    pdfCardNumber: '00-049-0134',
+    qualityMark: 'C',
+    rirValue: 0.90,
+    spaceGroup: 'P21/c',
+    spaceGroupNumber: 14,
+    unitCell: { a: 7.630, b: 10.200, c: 9.090, alpha: 90, beta: 94.50, gamma: 90, volume: 705.26, z: 16 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'Metastable Alumina'],
+    referenceCitation: 'Kato, E. et al., J. Am. Ceram. Soc., 64, 436 (1981) — Monoclinic λ-Al2O3',
+  },
+  iota_alumina: {
+    pdfCardNumber: '00-012-0539',
+    qualityMark: 'I',
+    rirValue: 0.84,
+    spaceGroup: 'Pbam',
+    spaceGroupNumber: 55,
+    unitCell: { a: 7.590, b: 7.670, c: 2.875, alpha: 90, beta: 90, gamma: 90, volume: 167.37, z: 3 },
+    subfileCodes: ['Inorganic', 'Ceramic', 'Mullite-Type Alumina'],
+    referenceCitation: 'Foster, P.A., J. Electrochem. Soc., 106, 971 (1959) — Orthorhombic ι-Al2O3',
+  },
+  beta_alumina: {
+    pdfCardNumber: '00-031-1263',
+    qualityMark: '*',
+    rirValue: 1.35,
+    spaceGroup: 'P63/mmc',
+    spaceGroupNumber: 194,
+    unitCell: { a: 5.594, b: 5.594, c: 22.530, alpha: 90, beta: 90, gamma: 120, volume: 610.56, z: 2 },
+    subfileCodes: ['Inorganic', 'Solid Electrolyte', 'Battery & Energy Storage', 'Beta-Alumina'],
+    referenceCitation: 'Peters, C.R. et al., Acta Crystallogr. B, 27, 1826 (1971) — Hexagonal β-Al2O3 (NaAl11O17)',
+  },
+  beta_double_prime_alumina: {
+    pdfCardNumber: '00-021-1096',
+    qualityMark: '*',
+    rirValue: 1.42,
+    spaceGroup: 'R-3m',
+    spaceGroupNumber: 166,
+    unitCell: { a: 5.600, b: 5.600, c: 33.850, alpha: 90, beta: 90, gamma: 120, volume: 919.34, z: 3 },
+    subfileCodes: ['Inorganic', 'Solid Electrolyte', 'Battery & Energy Storage', 'Beta-Alumina'],
+    referenceCitation: 'Bettman, M., Peters, C.R., J. Phys. Chem., 73, 1774 (1969) — Trigonal β\'\'-Al2O3 (Na1.67Al10.33O17)',
+  },
+  rh2o3_alumina: {
+    pdfCardNumber: '01-073-1512',
+    qualityMark: 'C',
+    rirValue: 1.25,
+    spaceGroup: 'Pbcn',
+    spaceGroupNumber: 60,
+    unitCell: { a: 7.040, b: 4.920, c: 4.790, alpha: 90, beta: 90, gamma: 90, volume: 165.91, z: 4 },
+    subfileCodes: ['Inorganic', 'High-Pressure Phase', 'Mineral Physics'],
+    referenceCitation: 'Funamori, N., Jeanloz, R., Science, 278, 1109 (1997) — Orthorhombic Rh2O3(II)-type Al2O3',
+  },
+  cairo3_alumina: {
+    pdfCardNumber: '01-075-4621',
+    qualityMark: 'C',
+    rirValue: 1.40,
+    spaceGroup: 'Cmcm',
+    spaceGroupNumber: 63,
+    unitCell: { a: 2.660, b: 8.480, c: 6.460, alpha: 90, beta: 90, gamma: 90, volume: 145.72, z: 4 },
+    subfileCodes: ['Inorganic', 'High-Pressure Phase', 'Post-Perovskite'],
+    referenceCitation: 'Oganov, A.R., Ono, S., PNAS, 102, 10828 (2005) — Orthorhombic CaIrO3-type Post-Perovskite Al2O3',
+  },
+  gibbsite: {
+    pdfCardNumber: '00-033-0018',
+    qualityMark: '*',
+    rirValue: 1.60,
+    spaceGroup: 'P21/n',
+    spaceGroupNumber: 14,
+    unitCell: { a: 8.684, b: 5.078, c: 9.736, alpha: 90, beta: 94.54, gamma: 90, volume: 427.98, z: 8 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Bauxite Ore', 'Alumina Precursor'],
+    referenceCitation: 'Saalfeld, H., Wedde, M., Z. Kristallogr., 139, 129 (1974) — Monoclinic Gibbsite γ-Al(OH)3',
+  },
+  bayerite: {
+    pdfCardNumber: '00-020-0011',
+    qualityMark: '*',
+    rirValue: 1.45,
+    spaceGroup: 'P21/a',
+    spaceGroupNumber: 14,
+    unitCell: { a: 5.062, b: 8.671, c: 4.713, alpha: 90, beta: 90.27, gamma: 90, volume: 206.86, z: 4 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Alumina Precursor'],
+    referenceCitation: 'Rothbauer, R., Zigan, F., O\'Daniel, H., Z. Kristallogr., 125, 317 (1967) — Monoclinic Bayerite α-Al(OH)3',
+  },
+  boehmite: {
+    pdfCardNumber: '00-021-1307',
+    qualityMark: '*',
+    rirValue: 1.95,
+    spaceGroup: 'Cmcm',
+    spaceGroupNumber: 63,
+    unitCell: { a: 3.700, b: 12.227, c: 2.868, alpha: 90, beta: 90, gamma: 90, volume: 129.75, z: 4 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Bauxite Ore', 'Alumina Precursor'],
+    referenceCitation: 'Christoph, G.G. et al., Clays Clay Miner., 27, 81 (1979) — Orthorhombic Boehmite γ-AlO(OH)',
+  },
+  diaspore: {
+    pdfCardNumber: '00-005-0355',
+    qualityMark: '*',
+    rirValue: 2.15,
+    spaceGroup: 'Pbnm',
+    spaceGroupNumber: 62,
+    unitCell: { a: 4.401, b: 9.425, c: 2.845, alpha: 90, beta: 90, gamma: 90, volume: 118.01, z: 4 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Bauxite Ore', 'Alumina Precursor'],
+    referenceCitation: 'Hill, R.J., Phys. Chem. Miner., 5, 179 (1979) — Orthorhombic Diaspore α-AlO(OH)',
   },
   anatase: {
     pdfCardNumber: '00-021-1272',
@@ -287,6 +457,186 @@ const CANONICAL_PDF2_METADATA: Record<
     subfileCodes: ['Inorganic', 'Mineral', 'Perovskite Substrate', 'Semiconductor'],
     referenceCitation: 'McMurdie, H. et al., Natl. Bur. Stand. (U.S.) Monogr. 25, 21, 122 (1984)',
   },
+  alpha_pvdf: {
+    pdfCardNumber: '00-042-1650',
+    qualityMark: '*',
+    rirValue: 0.65,
+    spaceGroup: 'P21/c',
+    spaceGroupNumber: 14,
+    unitCell: { a: 4.96, b: 9.64, c: 4.62, alpha: 90, beta: 90, gamma: 90, volume: 220.90, z: 4 },
+    subfileCodes: ['Organic', 'Polymer', 'Fluoropolymer'],
+    referenceCitation: 'Hasegawa, R. et al., Polym. J., 3, 600 (1972) — Monoclinic α-PVDF (Form II)',
+  },
+  beta_pvdf: {
+    pdfCardNumber: '00-038-1638',
+    qualityMark: '*',
+    rirValue: 0.72,
+    spaceGroup: 'Cm2m',
+    spaceGroupNumber: 38,
+    unitCell: { a: 8.58, b: 4.91, c: 2.56, alpha: 90, beta: 90, gamma: 90, volume: 107.85, z: 2 },
+    subfileCodes: ['Organic', 'Polymer', 'Ferroelectric & Piezoelectric'],
+    referenceCitation: 'Hasegawa, R. et al., Polym. J., 3, 600 (1972) — Orthorhombic β-PVDF (Form I)',
+  },
+  gamma_pvdf: {
+    pdfCardNumber: '00-042-1649',
+    qualityMark: 'I',
+    rirValue: 0.68,
+    spaceGroup: 'Cc',
+    spaceGroupNumber: 9,
+    unitCell: { a: 4.96, b: 9.58, c: 9.23, alpha: 90, beta: 92.9, gamma: 90, volume: 438.03, z: 8 },
+    subfileCodes: ['Organic', 'Polymer', 'Dielectric Fluoropolymer'],
+    referenceCitation: 'Lovinger, A.J., Macromolecules, 14, 322 (1981) — Monoclinic γ-PVDF (Form III)',
+  },
+  ptfe_iv: {
+    pdfCardNumber: '00-047-2217',
+    qualityMark: '*',
+    rirValue: 0.95,
+    spaceGroup: 'P31',
+    spaceGroupNumber: 144,
+    unitCell: { a: 5.66, b: 5.66, c: 19.50, alpha: 90, beta: 90, gamma: 120, volume: 540.98, z: 15 },
+    subfileCodes: ['Organic', 'Polymer', 'Fluoropolymer'],
+    referenceCitation: 'Clark, E.S., Polymer, 40, 4659 (1999) — Trigonal PTFE Form IV (15/7 Helix)',
+  },
+  pom: {
+    pdfCardNumber: '00-049-2120',
+    qualityMark: '*',
+    rirValue: 0.88,
+    spaceGroup: 'P31',
+    spaceGroupNumber: 144,
+    unitCell: { a: 4.470, b: 4.470, c: 17.390, alpha: 90, beta: 90, gamma: 120, volume: 300.91, z: 9 },
+    subfileCodes: ['Organic', 'Polymer', 'Engineering Thermoplastic'],
+    referenceCitation: 'Tadokoro, H. et al., J. Polym. Sci., 44, 266 (1960) — Trigonal Polyoxymethylene (9/5 Helix)',
+  },
+  peo: {
+    pdfCardNumber: '00-049-2201',
+    qualityMark: '*',
+    rirValue: 0.76,
+    spaceGroup: 'P21/a',
+    spaceGroupNumber: 14,
+    unitCell: { a: 8.05, b: 13.04, c: 19.48, alpha: 90, beta: 125.4, gamma: 90, volume: 1667.15, z: 28 },
+    subfileCodes: ['Organic', 'Polymer', 'Solid Polymer Electrolyte'],
+    referenceCitation: 'Takahashi, Y., Tadokoro, H., Macromolecules, 6, 672 (1973) — Monoclinic PEO (7/2 Helix)',
+  },
+  pva: {
+    pdfCardNumber: '00-053-1454',
+    qualityMark: 'I',
+    rirValue: 0.64,
+    spaceGroup: 'P21/m',
+    spaceGroupNumber: 11,
+    unitCell: { a: 7.81, b: 2.52, c: 5.51, alpha: 90, beta: 91.7, gamma: 90, volume: 108.39, z: 2 },
+    subfileCodes: ['Organic', 'Polymer', 'Optical & Barrier Film'],
+    referenceCitation: 'Bunn, C.W., Nature, 161, 929 (1948) — Monoclinic Polyvinyl Alcohol',
+  },
+  nylon66: {
+    pdfCardNumber: '00-043-1662',
+    qualityMark: '*',
+    rirValue: 0.74,
+    spaceGroup: 'P-1',
+    spaceGroupNumber: 2,
+    unitCell: { a: 4.90, b: 5.40, c: 17.20, alpha: 48.5, beta: 77.0, gamma: 63.5, volume: 303.40, z: 1 },
+    subfileCodes: ['Organic', 'Polymer', 'Polyamide'],
+    referenceCitation: 'Bunn, C.W., Garner, E.V., Proc. R. Soc. A, 189, 39 (1947) — Triclinic α-Nylon 6,6',
+  },
+  nylon12: {
+    pdfCardNumber: '00-052-2468',
+    qualityMark: 'I',
+    rirValue: 0.66,
+    spaceGroup: 'P21/c',
+    spaceGroupNumber: 14,
+    unitCell: { a: 4.79, b: 31.90, c: 9.58, alpha: 90, beta: 120.0, gamma: 90, volume: 1267.68, z: 4 },
+    subfileCodes: ['Organic', 'Polymer', 'Polyamide', 'Additive Manufacturing'],
+    referenceCitation: 'Inoue, K., Hoshino, S., J. Polym. Sci. Polym. Phys. Ed., 11, 1077 (1973) — Monoclinic γ-Nylon 12',
+  },
+  pbt: {
+    pdfCardNumber: '00-048-2465',
+    qualityMark: '*',
+    rirValue: 0.78,
+    spaceGroup: 'P-1',
+    spaceGroupNumber: 2,
+    unitCell: { a: 4.83, b: 5.94, c: 11.59, alpha: 99.7, beta: 115.2, gamma: 110.8, volume: 260.45, z: 1 },
+    subfileCodes: ['Organic', 'Polymer', 'Aromatic Polyester'],
+    referenceCitation: 'Yokouchi, M. et al., Macromolecules, 9, 266 (1976) — Triclinic α-PBT',
+  },
+  pen: {
+    pdfCardNumber: '00-051-2442',
+    qualityMark: 'I',
+    rirValue: 0.80,
+    spaceGroup: 'P-1',
+    spaceGroupNumber: 2,
+    unitCell: { a: 6.51, b: 5.75, c: 13.20, alpha: 81.3, beta: 144.0, gamma: 100.0, volume: 284.70, z: 1 },
+    subfileCodes: ['Organic', 'Polymer', 'Aromatic Polyester'],
+    referenceCitation: 'Mencik, Z., Chem. Prum., 17, 78 (1967) — Triclinic α-PEN',
+  },
+  pps: {
+    pdfCardNumber: '00-049-2214',
+    qualityMark: '*',
+    rirValue: 0.82,
+    spaceGroup: 'Pbcn',
+    spaceGroupNumber: 60,
+    unitCell: { a: 8.67, b: 5.61, c: 10.26, alpha: 90, beta: 90, gamma: 90, volume: 499.03, z: 4 },
+    subfileCodes: ['Organic', 'Polymer', 'High-Temp Engineering Polymer'],
+    referenceCitation: 'Tabor, B.J., Magre, E.P., Boon, J., Eur. Polym. J., 7, 1127 (1971) — Orthorhombic PPS',
+  },
+  beta_ipp: {
+    pdfCardNumber: '00-054-1937',
+    qualityMark: '*',
+    rirValue: 0.70,
+    spaceGroup: 'P3121',
+    spaceGroupNumber: 152,
+    unitCell: { a: 11.01, b: 11.01, c: 6.50, alpha: 90, beta: 90, gamma: 120, volume: 682.37, z: 9 },
+    subfileCodes: ['Organic', 'Polymer', 'Polyolefin'],
+    referenceCitation: 'Meille, S.V., Ferro, D.R., Bruckner, S., Lovinger, A.J., Padden, F.J., Macromolecules, 27, 2615 (1994) — Trigonal β-iPP',
+  },
+  sps_alpha: {
+    pdfCardNumber: '00-053-1892',
+    qualityMark: 'I',
+    rirValue: 0.74,
+    spaceGroup: 'P-3c1',
+    spaceGroupNumber: 165,
+    unitCell: { a: 26.26, b: 26.26, c: 5.04, alpha: 90, beta: 90, gamma: 120, volume: 3009.84, z: 18 },
+    subfileCodes: ['Organic', 'Polymer', 'Engineering Styrenic'],
+    referenceCitation: 'Greis, O. et al., Polymer, 30, 590 (1989) — Trigonal α-Syndiotactic Polystyrene',
+  },
+  pb1_form1: {
+    pdfCardNumber: '00-048-2351',
+    qualityMark: 'I',
+    rirValue: 0.69,
+    spaceGroup: 'R-3c',
+    spaceGroupNumber: 167,
+    unitCell: { a: 17.70, b: 17.70, c: 6.50, alpha: 90, beta: 90, gamma: 120, volume: 1763.57, z: 18 },
+    subfileCodes: ['Organic', 'Polymer', 'Polyolefin'],
+    referenceCitation: 'Natta, G., Corradini, P., Bassi, I.W., Nuovo Cimento Suppl., 15, 52 (1960) — Trigonal Form I Poly(1-butene)',
+  },
+  p3ht: {
+    pdfCardNumber: '00-058-1940',
+    qualityMark: 'I',
+    rirValue: 0.85,
+    spaceGroup: 'P21/c',
+    spaceGroupNumber: 14,
+    unitCell: { a: 16.40, b: 7.60, c: 7.80, alpha: 90, beta: 90.0, gamma: 90, volume: 972.19, z: 4 },
+    subfileCodes: ['Organic', 'Polymer', 'Organic Semiconductor'],
+    referenceCitation: 'Prosa, T.J. et al., Macromolecules, 25, 4364 (1992) — Regioregular P3HT Lamellar Crystal',
+  },
+  pan: {
+    pdfCardNumber: '00-048-2119',
+    qualityMark: 'I',
+    rirValue: 0.62,
+    spaceGroup: 'P6/mmm',
+    spaceGroupNumber: 191,
+    unitCell: { a: 6.00, b: 6.00, c: 5.10, alpha: 90, beta: 90, gamma: 120, volume: 159.00, z: 2 },
+    subfileCodes: ['Organic', 'Polymer', 'Carbon Fiber Precursor'],
+    referenceCitation: 'Bashir, Z., J. Polym. Sci. B: Polym. Phys., 32, 1115 (1994) — Hexagonal Polyacrylonitrile',
+  },
+  pbs: {
+    pdfCardNumber: '00-055-1844',
+    qualityMark: 'I',
+    rirValue: 0.71,
+    spaceGroup: 'P21/n',
+    spaceGroupNumber: 14,
+    unitCell: { a: 5.23, b: 9.12, c: 10.90, alpha: 90, beta: 123.9, gamma: 90, volume: 431.49, z: 2 },
+    subfileCodes: ['Organic', 'Polymer', 'Biodegradable Polyester'],
+    referenceCitation: 'Ichikawa, Y. et al., Polymer, 41, 4719 (2000) — Monoclinic α-Poly(butylene succinate)',
+  },
 };
 
 // Curated ICDD PDF-2 Subfile Expansion Packs for 1-click download & installation
@@ -341,8 +691,8 @@ export const CURATED_PDF2_SUBFILE_PACKS: PDF2SubfilePack[] = [
         rirValue: 1.00,
         densityCalc: 3.987,
         molecularWeight: 101.96,
-        unitCell: { a: 4.7589, b: 4.7589, c: 12.991, alpha: 90, beta: 90, gamma: 120, volume: 254.79, z: 6 },
-        rawPattern: '25.576, 68, 0, 1, 2\n35.152, 100, 1, 0, 4\n37.776, 43, 1, 1, 0\n43.355, 92, 1, 1, 3\n52.553, 47, 0, 2, 4\n57.502, 86, 1, 1, 6\n61.302, 8, 2, 1, 1\n66.519, 34, 2, 1, 4\n68.210, 48, 3, 0, 0\n76.878, 16, 1, 0, 10',
+        unitCell: { a: 4.7589, b: 4.7589, c: 12.9917, alpha: 90, beta: 90, gamma: 120, volume: 254.81, z: 6 },
+        rawPattern: '25.576, 68, 0, 1, 2\n35.152, 100, 1, 0, 4\n37.776, 45, 1, 1, 0\n43.355, 92, 1, 1, 3\n52.553, 47, 0, 2, 4\n57.502, 86, 1, 1, 6\n61.305, 8, 0, 1, 8\n66.520, 34, 2, 1, 4\n68.211, 51, 3, 0, 0\n76.878, 16, 1, 0, 10',
         subfileCodes: ['Inorganic', 'Mineral', 'NBS/NIST Standard', 'Corundum Reference'],
         category: 'Calibration & Reference Standards',
       },
@@ -777,7 +1127,31 @@ export function convertMaterialToPDF2Card(mat: any, indexOffset: number = 0): PD
   let canonicalKey: string | undefined;
   if (nameLower.includes('low quartz') || nameLower === 'quartz' || nameLower.startsWith('quartz (')) canonicalKey = 'quartz';
   else if (nameLower.includes('srm 640') || formulaLower === 'si') canonicalKey = 'silicon';
-  else if (nameLower.includes('corundum') || nameLower.includes('srm 676') || formulaLower === 'al2o3') canonicalKey = 'corundum';
+  else if (nameLower.includes('gamma-alumina') || nameLower.includes('γ-al2o3')) canonicalKey = 'gamma_alumina';
+  else if (nameLower.includes('theta-alumina') || nameLower.includes('θ-al2o3')) canonicalKey = 'theta_alumina';
+  else if (nameLower.includes("beta-double-prime") || nameLower.includes("beta''-alumina") || nameLower.includes("β''-al2o3")) canonicalKey = 'beta_double_prime_alumina';
+  else if (nameLower.includes('beta-alumina') || nameLower.includes('β-al2o3')) canonicalKey = 'beta_alumina';
+  else if (/\beta-alumina/.test(nameLower) || nameLower.includes('η-al2o3')) canonicalKey = 'eta_alumina';
+  else if (nameLower.includes('delta-prime alumina') || nameLower.includes('δ*-al2o3')) canonicalKey = 'delta_prime_alumina';
+  else if (nameLower.includes('delta-alumina') || nameLower.includes('δ-al2o3')) canonicalKey = 'delta_alumina';
+  else if (nameLower.includes('kappa-alumina') || nameLower.includes('κ-al2o3')) canonicalKey = 'kappa_alumina';
+  else if (nameLower.includes('chi-alumina') || nameLower.includes('χ-al2o3')) canonicalKey = 'chi_alumina';
+  else if (nameLower.includes('lambda-alumina') || nameLower.includes('λ-al2o3')) canonicalKey = 'lambda_alumina';
+  else if (nameLower.includes('iota-alumina') || nameLower.includes('ι-al2o3')) canonicalKey = 'iota_alumina';
+  else if (nameLower.includes('rh2o3(ii)') || nameLower.includes('high-pressure alumina')) canonicalKey = 'rh2o3_alumina';
+  else if (nameLower.includes('cairo3-type') || nameLower.includes('post-perovskite alumina')) canonicalKey = 'cairo3_alumina';
+  else if (nameLower.includes('gibbsite')) canonicalKey = 'gibbsite';
+  else if (nameLower.includes('bayerite')) canonicalKey = 'bayerite';
+  else if (nameLower.includes('boehmite')) canonicalKey = 'boehmite';
+  else if (nameLower.includes('diaspore')) canonicalKey = 'diaspore';
+  else if (
+    nameLower.includes('corundum') ||
+    nameLower.includes('srm 676') ||
+    nameLower.includes('srm 1976') ||
+    nameLower.includes('alumina (bio-grade)') ||
+    nameLower.includes('α-al2o3') ||
+    nameLower.includes('alpha-alumina')
+  ) canonicalKey = 'corundum';
   else if (nameLower.includes('anatase')) canonicalKey = 'anatase';
   else if (nameLower.includes('rutile')) canonicalKey = 'rutile';
   else if (nameLower.includes('calcite')) canonicalKey = 'calcite';
@@ -796,6 +1170,24 @@ export function convertMaterialToPDF2Card(mat: any, indexOffset: number = 0): PD
   else if (formulaLower === 'licoo2') canonicalKey = 'licoo2';
   else if (formulaLower === 'batio3') canonicalKey = 'batio3';
   else if (formulaLower === 'srtio3') canonicalKey = 'srtio3';
+  else if (nameLower.includes('α-pvdf')) canonicalKey = 'alpha_pvdf';
+  else if (nameLower.includes('β-pvdf')) canonicalKey = 'beta_pvdf';
+  else if (nameLower.includes('γ-pvdf')) canonicalKey = 'gamma_pvdf';
+  else if (nameLower.includes('ptfe form iv')) canonicalKey = 'ptfe_iv';
+  else if (nameLower.includes('polyoxymethylene') || nameLower.includes('(pom,')) canonicalKey = 'pom';
+  else if (nameLower.includes('polyethylene oxide') || nameLower.includes('(peo,')) canonicalKey = 'peo';
+  else if (nameLower.includes('polyvinyl alcohol') || nameLower.includes('(pva,')) canonicalKey = 'pva';
+  else if (nameLower.includes('nylon 6,6')) canonicalKey = 'nylon66';
+  else if (nameLower.includes('nylon 12')) canonicalKey = 'nylon12';
+  else if (nameLower.includes('polybutylene terephthalate') || nameLower.includes('(pbt,')) canonicalKey = 'pbt';
+  else if (nameLower.includes('polyethylene naphthalate') || nameLower.includes('(pen,')) canonicalKey = 'pen';
+  else if (nameLower.includes('polyphenylene sulfide')) canonicalKey = 'pps';
+  else if (nameLower.includes('β-ipp')) canonicalKey = 'beta_ipp';
+  else if (nameLower.includes('syndiotactic polystyrene')) canonicalKey = 'sps_alpha';
+  else if (nameLower.includes('poly(1-butene)')) canonicalKey = 'pb1_form1';
+  else if (nameLower.includes('poly(3-hexylthiophene)') || nameLower.includes('(p3ht')) canonicalKey = 'p3ht';
+  else if (nameLower.includes('polyacrylonitrile')) canonicalKey = 'pan';
+  else if (nameLower.includes('poly(butylene succinate)')) canonicalKey = 'pbs';
 
   const canonical = canonicalKey ? CANONICAL_PDF2_METADATA[canonicalKey] : undefined;
 

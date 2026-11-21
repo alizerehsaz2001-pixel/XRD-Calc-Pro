@@ -10,7 +10,7 @@ import fs from "fs";
 import path from "path";
 import crypto from "crypto";
 import { fileURLToPath } from "url";
-import { GoogleGenAI, ThinkingLevel } from "@google/genai";
+import { GoogleGenAI, ThinkingLevel, Type } from "@google/genai";
 import { exec, execFile, execSync } from "child_process";
 import https from "https";
 import os from "os";
@@ -4417,7 +4417,7 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
 
       const result = await callGeminiWithResilientFallback({
         ai,
-        models: ["gemini-3.1-pro-preview", "gemini-2.5-pro", "gemini-3.8-flash"],
+        models: ["gemini-4-hydrogen", "gemini-3.1-flash-lite"],
         contents,
         config: {
           systemInstruction,
@@ -4428,6 +4428,133 @@ Output ONLY the final enhanced prompt text, without quotes or commentary.`;
     } catch (error: any) {
       console.error("Phase chat error:", error);
       return res.status(500).json({ error: error.message });
+    }
+  });
+
+  // Structured Hybrid Physics-Informed + Gemini Crystallographic Diagnostic Review
+  app.post("/api/gemini/dl-review", async (req, res) => {
+    try {
+      const {
+        wavelengthA,
+        isMixMode,
+        selectedCandidate,
+        topCandidates,
+        explainability,
+        customKey,
+      } = req.body || {};
+
+      if (!selectedCandidate || !explainability) {
+        return res.status(400).json({
+          success: false,
+          error: "Missing selectedCandidate or explainability telemetry payload.",
+        });
+      }
+
+      const ai = getOrCreateGeminiClient(customKey);
+
+      const candidateSummary = (Array.isArray(topCandidates) ? topCandidates.slice(0, 5) : [selectedCandidate])
+        .map(
+          (c: any, i: number) =>
+            `#${i + 1} ${c.phase_name} (${c.formula || "N/A"}, ${c.crystalSystem || "Unknown"}, SG ${c.spaceGroup || "N/A"}): confidence=${Number(c.confidence_score || 0).toFixed(1)}%, hanawaltFOM=${c.hanawaltFom ?? "N/A"}, strain=${c.fitted_strain_pct ?? 0}%`
+        )
+        .join("\n");
+
+      const topPeaksSummary = (explainability.peakAttributions || [])
+        .slice(0, 10)
+        .map(
+          (p: any) =>
+            `${p.hkl} ref=${p.refTwoTheta}° obs=${p.obsTwoTheta ?? "missing"}° Δ2θ=${p.deltaTwoTheta}° Iobs/Iref=${p.obsIntensity}/${p.refIntensity} GradCAM=${Math.round((p.gradCamWeight || 0) * 100)}% occlusion=-${p.occlusionDeltaPct}% status=${p.status}`
+        )
+        .join("\n");
+
+      const unexplainedSummary =
+        (explainability.unexplainedPeaks || []).length > 0
+          ? explainability.unexplainedPeaks
+              .map((u: any) => `2θ=${u.twoTheta}° (Iobs=${u.obsIntensity}, residual=+${u.residual})`)
+              .join(", ")
+          : "None detected";
+
+      const prompt = [
+        `Perform a concise, authoritative crystallographic diagnostic audit for a Deep Learning XRD Phase Identification run.`,
+        `Radiation wavelength: ${Number(wavelengthA || 1.54056).toFixed(5)} Å | Mode: ${isMixMode ? "Multi-Phase Mixture" : "Single-Phase"}`,
+        `Selected Primary Candidate: ${selectedCandidate.phase_name} (${selectedCandidate.formula || "N/A"}, ${selectedCandidate.crystalSystem || "Unknown"}, Space Group ${selectedCandidate.spaceGroup || "N/A"})`,
+        `MC-Dropout Epistemic Stats (N=${explainability.mcPasses}): mean=${explainability.meanConfidencePct}% ± ${explainability.confidenceStdPct}% (95% CI ${explainability.ci95LowPct}%–${explainability.ci95HighPct}%), Shannon entropy H=${explainability.predictiveEntropy}, decision margin=+${explainability.decisionMarginPct}%`,
+        `Physics Bragg Calibration: zero-shift=${explainability.zeroShiftDeg}°, specimen displacement=${explainability.displacementMm} mm, isotropic strain=${explainability.isotropicStrainPct}%, profile Rwp=${explainability.profileRwpPct}%, texture anomaly=${Math.round((explainability.textureAnomalyScore || 0) * 100)}%`,
+        `Unexplained Residual Peaks: ${unexplainedSummary}`,
+        `Top Ranked Candidates:\n${candidateSummary}`,
+        `Top (hkl) Occlusion & Grad-CAM Attributions:\n${topPeaksSummary}`,
+        `Return a strict JSON diagnostic review evaluating whether the phase assignment is confirmed, a possible multi-phase mixture, preferred orientation, ambiguous polymorph, or low confidence, plus concrete next steps for laboratory Rietveld refinement.`,
+      ].join("\n\n");
+
+      const response = await callGeminiWithResilientFallback({
+        ai,
+        models: ["gemini-4-hydrogen", "gemini-3.1-flash-lite"],
+        contents: [{ role: "user", parts: [{ text: prompt }] }],
+        config: {
+          systemInstruction:
+            "You are a senior X-ray diffraction crystallographer auditing automated 1D-CNN phase identification results. Be quantitative, concise, and grounded strictly in the provided Bragg metrics, peak attributions, and residual peaks.",
+          responseMimeType: "application/json",
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              verdict: {
+                type: Type.STRING,
+                enum: [
+                  "confirmed",
+                  "possible_mixture",
+                  "preferred_orientation",
+                  "ambiguous_polymorph",
+                  "low_confidence",
+                ],
+              },
+              verdictLabel: { type: Type.STRING },
+              executiveSummary: { type: Type.STRING },
+              confidenceCalibration: { type: Type.STRING },
+              polymorphAndTextureCheck: { type: Type.STRING },
+              peakDiagnostics: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+              recommendedNextSteps: {
+                type: Type.ARRAY,
+                items: { type: Type.STRING },
+              },
+            },
+            required: [
+              "verdict",
+              "verdictLabel",
+              "executiveSummary",
+              "confidenceCalibration",
+              "polymorphAndTextureCheck",
+              "peakDiagnostics",
+              "recommendedNextSteps",
+            ],
+          },
+        },
+      });
+
+      const parsed = JSON.parse(response.text || "{}");
+      return res.json({
+        success: true,
+        review: {
+          verdict: parsed.verdict || "confirmed",
+          verdictLabel: parsed.verdictLabel || "Diagnostic Review Completed",
+          executiveSummary: parsed.executiveSummary || "",
+          confidenceCalibration: parsed.confidenceCalibration || "",
+          polymorphAndTextureCheck: parsed.polymorphAndTextureCheck || "",
+          peakDiagnostics: Array.isArray(parsed.peakDiagnostics) ? parsed.peakDiagnostics : [],
+          recommendedNextSteps: Array.isArray(parsed.recommendedNextSteps)
+            ? parsed.recommendedNextSteps
+            : [],
+          modelUsed: response.modelUsed || "gemini-4-hydrogen",
+        },
+      });
+    } catch (error: any) {
+      console.error("DL diagnostic review error:", error);
+      return res.status(500).json({
+        success: false,
+        error: error?.message || "Failed to execute Gemini diagnostic review.",
+      });
     }
   });
 

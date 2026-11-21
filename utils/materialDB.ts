@@ -163,17 +163,17 @@ const RAW_MATERIAL_DB = [
     name: "NIST SRM 1976 (Corundum / α-Al2O3)",
     type: "Calibration & Standards",
     pattern:
-      "25.58, 60, 0, 1, 2\n35.15, 100, 1, 0, 4\n37.78, 45, 1, 1, 0\n43.36, 100, 1, 1, 3\n52.55, 45, 0, 2, 4\n57.50, 80, 1, 1, 6\n61.30, 15, 2, 1, 4\n66.52, 25, 3, 0, 0\n68.21, 35, 1, 2, 4\n76.88, 20, 1, 0, 10",
+      "25.58, 68, 0, 1, 2\n35.15, 100, 1, 0, 4\n37.78, 45, 1, 1, 0\n43.36, 92, 1, 1, 3\n52.55, 47, 0, 2, 4\n57.50, 86, 1, 1, 6\n61.31, 8, 0, 1, 8\n66.52, 34, 2, 1, 4\n68.21, 51, 3, 0, 0\n76.88, 16, 1, 0, 10\n77.24, 12, 1, 1, 9",
     description:
-      "NIST Standard Reference Material 1976a is an alpha-alumina (corundum) standard used for calibrating X-ray powder diffraction line positions and peak shapes. Highly crystalline instrument profile standard.",
+      "NIST Standard Reference Material 1976 (sintered alpha-alumina / corundum plate; Trigonal R-3c, a = 4.7589 Å, c = 12.9917 Å, Z = 6; PDF 00-046-1212) used for calibrating X-ray powder diffraction instrument sensitivity, line positions, and peak profiles.",
     formula: "Al2O3",
     elements: ["Al", "O"],
     crystalSystem: "Trigonal",
-    spaceGroup: "R-3c",
-    density: 3.98,
+    spaceGroup: "R-3c (No. 167)",
+    density: 3.987,
     applications: [
       "Diffractometer Calibration",
-      "Line Profile Analysis STANDARD",
+      "Line Profile Analysis Standard",
       "Quantitative Phase Analysis Standard",
     ],
     molecularWeight: 101.96,
@@ -223,14 +223,14 @@ const RAW_MATERIAL_DB = [
     name: "NIST SRM 676 (Alumina Phase Quant Standard)",
     type: "Calibration & Standards",
     pattern:
-      "25.58, 60, 0, 1, 2\n35.15, 100, 1, 0, 4\n37.78, 45, 1, 1, 0\n43.36, 100, 1, 1, 3\n52.55, 45, 0, 2, 4\n57.50, 80, 1, 1, 6\n61.30, 15, 2, 1, 4\n66.52, 25, 3, 0, 0",
+      "25.58, 68, 0, 1, 2\n35.15, 100, 1, 0, 4\n37.78, 45, 1, 1, 0\n43.36, 92, 1, 1, 3\n52.55, 47, 0, 2, 4\n57.50, 86, 1, 1, 6\n61.31, 8, 0, 1, 8\n66.52, 34, 2, 1, 4\n68.21, 51, 3, 0, 0\n76.88, 16, 1, 0, 10\n77.24, 12, 1, 1, 9",
     description:
-      "NIST SRM 676 is an alpha-alumina standard designed specifically for quantitative analysis (I/Ic ratios) and Rietveld refinement internal standardization. Fine-grained powder to minimize microabsorption.",
+      "NIST SRM 676a alpha-alumina (corundum) quantitative reference powder (Trigonal R-3c, a = 4.7589 Å, c = 12.9917 Å, Z = 6; PDF 00-046-1212, RIR I/Ic = 1.00) designed specifically for quantitative phase analysis and Rietveld internal standardization.",
     formula: "Al2O3",
     elements: ["Al", "O"],
     crystalSystem: "Trigonal",
-    spaceGroup: "R-3c",
-    density: 3.98,
+    spaceGroup: "R-3c (No. 167)",
+    density: 3.987,
     applications: [
       "Rietveld Quantitative Phase Analysis",
       "I/Ic Reference Intensity Ratio",
@@ -789,15 +789,305 @@ const RAW_MATERIAL_DB = [
     name: "Corundum (Al2O3)",
     type: "Ceramics & Refractories",
     pattern:
-      "25.58, 45\n35.15, 100\n37.78, 40\n43.36, 85\n52.55, 45\n57.50, 90\n61.30, 10\n66.52, 45\n68.21, 60",
+      "25.58, 68, 0, 1, 2\n35.15, 100, 1, 0, 4\n37.78, 45, 1, 1, 0\n43.36, 92, 1, 1, 3\n52.55, 47, 0, 2, 4\n57.50, 86, 1, 1, 6\n61.31, 8, 0, 1, 8\n66.52, 34, 2, 1, 4\n68.21, 51, 3, 0, 0\n76.88, 16, 1, 0, 10\n77.24, 12, 1, 1, 9",
     description:
-      "A crystalline form of aluminum oxide typically containing traces of iron, titanium, vanadium and chromium.",
+      "Thermodynamically stable alpha-alumina (α-Al2O3, Corundum) with hexagonal close-packed (ABAB) oxygen sublattice and Al3+ occupying 2/3 of octahedral interstices. Trigonal R-3c (No. 167), a = 4.7589 Å, c = 12.9917 Å, Z = 6, PDF 00-046-1212. Forms irreversibly above ~1050–1200 °C from all transition aluminas.",
     formula: "Al2O3",
     elements: ["Al", "O"],
     crystalSystem: "Trigonal",
-    spaceGroup: "R-3c",
-    density: 3.98,
-    applications: ["Abrasives", "Refractories", "Laser host crystals"],
+    spaceGroup: "R-3c (No. 167)",
+    density: 3.987,
+    applications: ["Abrasives", "High-Temperature Refractories", "Sapphire Optics & Laser Hosts", "RIR Quantitative Standard"],
+    molecularWeight: 101.96,
+    elasticModulus: 400,
+  },
+  {
+    name: "Gamma-Alumina (γ-Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "19.42, 35, 1, 1, 1\n31.97, 25, 2, 2, 0\n37.68, 65, 3, 1, 1\n39.43, 30, 2, 2, 2\n45.85, 95, 4, 0, 0\n60.79, 20, 5, 1, 1\n66.85, 100, 4, 4, 0\n84.85, 18, 4, 4, 4",
+    description:
+      "Cubic defect-spinel transition alumina (FCC ABCABC oxygen sublattice with Al vacancies) formed by thermal dehydration of boehmite (γ-AlOOH) at 450–750 °C. Cubic Fd-3m (No. 227), a = 7.911 Å, PDF 00-010-0425. High specific surface area (150–300 m²/g) prized for heterogeneous catalysis and adsorption.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 3.66,
+    applications: ["Catalyst Supports", "Automotive Three-Way Converters", "Adsorbents & Desiccants", "Thermal Barrier Bond Coats"],
+    molecularWeight: 101.96,
+    elasticModulus: 253,
+  },
+  {
+    name: "Eta-Alumina (η-Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "19.43, 45, 1, 1, 1\n31.99, 20, 2, 2, 0\n37.71, 55, 3, 1, 1\n39.45, 35, 2, 2, 2\n45.88, 85, 4, 0, 0\n60.83, 22, 5, 1, 1\n66.89, 100, 4, 4, 0\n84.91, 20, 4, 4, 4",
+    description:
+      "Cubic defect-spinel transition alumina derived from thermal decomposition of bayerite (α-Al(OH)3) at 250–500 °C (pathway: Bayerite → η → θ → α). Cubic Fd-3m (No. 227), a = 7.906 Å, PDF 00-004-0875. Exhibits higher (111) stacking-fault disorder and stronger surface Lewis acidity than γ-Al2O3.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 3.64,
+    applications: ["Acid Catalysis & Reforming", "Hydrocracking Supports", "High-Surface-Area Adsorbents"],
+    molecularWeight: 101.96,
+    elasticModulus: 245,
+  },
+  {
+    name: "Delta-Alumina (δ-Al2O3, Tetragonal)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "19.41, 18, 1, 1, 3\n32.68, 35, 2, 2, 2\n36.46, 40, 3, 1, 2\n37.49, 48, 3, 1, 3\n39.40, 38, 2, 2, 6\n45.53, 78, 4, 0, 0\n46.39, 85, 0, 0, 12\n60.40, 25, 5, 1, 3\n66.35, 92, 4, 4, 0\n67.03, 100, 4, 0, 12",
+    description:
+      "Tetragonal cation-vacancy-ordered spinel superstructure of γ-Al2O3 formed by calcination at 750–950 °C (c ≈ 3a_spinel). Tetragonal P-4m2 (No. 115), a = 7.963 Å, c = 23.470 Å, PDF 00-046-1131. Characteristic doublet splitting of the 45.5°/46.4° and 66.4°/67.0° spinel reflections.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P-4m2 (No. 115)",
+    density: 3.67,
+    applications: ["High-Temperature Catalyst Carriers", "Plasma-Sprayed Ceramic Coatings", "Refractory Binders"],
+    molecularWeight: 101.96,
+    elasticModulus: 280,
+  },
+  {
+    name: "Delta-Prime Alumina (δ*-Al2O3, Orthorhombic)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "17.49, 12, 1, 1, 1\n27.08, 18, 0, 2, 2\n31.83, 30, 2, 2, 0\n36.59, 46, 3, 1, 1\n39.49, 34, 2, 2, 3\n45.57, 74, 0, 4, 0\n45.70, 78, 4, 0, 0\n46.49, 82, 0, 0, 6\n66.52, 95, 4, 4, 0\n67.24, 100, 4, 0, 6",
+    description:
+      "Orthorhombic superlattice polymorph of delta-alumina (δ*-Al2O3) formed during rapid solidification of molten alumina droplets or boehmite calcination around 800–950 °C. Orthorhombic P212121 (No. 19), a = 7.934 Å, b = 7.956 Å, c = 11.711 Å (c ≈ 1.5a_spinel), PDF 00-046-1215.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 3.68,
+    applications: ["Thermal Spray Coatings", "Flame-Synthesized Nanopowders", "High-Temperature Catalysis"],
+    molecularWeight: 101.96,
+    elasticModulus: 285,
+  },
+  {
+    name: "Theta-Alumina (θ-Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "15.46, 15, 2, 0, 0\n19.59, 24, -2, 0, 1\n31.61, 68, -4, 0, 1\n32.79, 85, 0, 0, 2\n36.68, 62, 1, 1, 1\n38.81, 42, 4, 0, 1\n39.79, 48, -4, 0, 2\n44.80, 92, -1, 1, 2\n47.67, 50, 1, 1, 2\n55.60, 22, -5, 1, 2\n63.93, 45, 0, 2, 0\n66.45, 100, 0, 2, 1",
+    description:
+      "High-temperature monoclinic transition alumina (isostructural with β-Ga2O3) forming between 850 and 1100 °C immediately prior to the reconstructive θ → α-Al2O3 transformation. Monoclinic C2/m (No. 12), a = 11.795 Å, b = 2.910 Å, c = 5.621 Å, β = 103.79°, Z = 4, PDF 00-035-0121. Half of Al3+ occupy tetrahedral sites and half octahedral sites.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/m (No. 12)",
+    density: 3.61,
+    applications: ["Thermally Grown Oxide (TGO) Scales", "High-Temperature Catalytic Converters", "Ceramic Sintering Studies"],
+    molecularWeight: 101.96,
+    elasticModulus: 305,
+  },
+  {
+    name: "Kappa-Alumina (κ-Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "19.86, 22, 0, 0, 2\n22.58, 18, 0, 1, 2\n23.48, 25, 1, 1, 1\n29.24, 45, 1, 1, 2\n30.04, 38, 1, 2, 1\n37.11, 55, 0, 2, 3\n37.38, 52, 1, 3, 0\n38.76, 40, 1, 3, 1\n40.34, 42, 0, 0, 4\n42.48, 72, 2, 0, 2\n42.68, 95, 1, 3, 2\n48.27, 48, 0, 4, 2\n54.35, 35, 2, 3, 2\n56.00, 44, 2, 0, 4\n67.57, 100, 0, 6, 0",
+    description:
+      "Metastable orthorhombic alumina polymorph with ABAC close-packed oxygen stacking (75% octahedral, 25% tetrahedral Al3+) synthesized via CVD wear coatings or calcination of gibbsite/tohdite (Gibbsite → χ → κ → α at 750–1050 °C). Orthorhombic Pna21 (No. 33), a = 4.835 Å, b = 8.311 Å, c = 8.936 Å, Z = 8, PDF 00-052-0803.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pna21 (No. 33)",
+    density: 3.77,
+    applications: ["CVD Hard-Metal Cutting Tool Coatings", "Thermal Insulation Barriers", "Wear-Resistant Ceramic Layers"],
+    molecularWeight: 101.96,
+    elasticModulus: 355,
+  },
+  {
+    name: "Chi-Alumina (χ-Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "13.16, 14, 0, 0, 2\n18.41, 20, 1, 0, 0\n22.70, 24, 1, 0, 2\n32.17, 32, 1, 1, 0\n34.90, 38, 1, 1, 2\n37.32, 58, 2, 0, 0\n39.74, 45, 2, 0, 2\n46.36, 76, 2, 0, 4\n50.08, 30, 2, 1, 0\n67.31, 100, 2, 2, 0",
+    description:
+      "Hexagonal transition alumina produced by thermal dehydration of gibbsite (γ-Al(OH)3) in air at 300–750 °C (Gibbsite → χ → κ → α) with disordered layered ABAC/ABAB oxygen packing. Hexagonal P6/mmm (No. 191), a = 5.560 Å, c = 13.440 Å, PDF 00-013-0373.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P6/mmm (No. 191)",
+    density: 3.56,
+    applications: ["Activated Alumina Adsorbents", "Fluoride & Arsenic Water Defluoridation", "Catalyst Precursors"],
+    molecularWeight: 101.96,
+    elasticModulus: 230,
+  },
+  {
+    name: "Lambda-Alumina (λ-Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "14.52, 18, 1, 1, 0\n17.37, 25, 0, 2, 0\n18.02, 22, 1, 1, 1\n23.37, 40, 2, 0, 0\n28.18, 55, -1, 2, 2\n35.17, 72, 0, 4, 0\n36.51, 100, 2, 2, 2\n39.76, 65, 0, 0, 4\n41.65, 58, 3, 2, 1\n48.18, 45, 2, 4, 2",
+    description:
+      "Rare monoclinic metastable alumina polymorph obtained by oxidative decomposition of β-AlH3 or high-temperature treatment of ammonium aluminum carbonate hydroxide. Monoclinic P21/c (No. 14), a = 7.630 Å, b = 10.200 Å, c = 9.090 Å, β = 94.50°.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 3.82,
+    applications: ["Metastable Phase Transformation Research", "Specialty Ceramic Synthesis"],
+    molecularWeight: 101.96,
+    elasticModulus: 310,
+  },
+  {
+    name: "Iota-Alumina (ι-Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "16.42, 48, 1, 1, 0\n26.01, 92, 1, 2, 0\n26.18, 100, 2, 1, 0\n31.08, 36, 0, 0, 1\n33.19, 44, 2, 2, 0\n35.35, 62, 1, 1, 1\n39.28, 38, 2, 0, 1\n40.96, 58, 1, 2, 1\n42.60, 40, 2, 3, 0\n57.75, 28, 0, 4, 1\n60.69, 42, 3, 3, 1",
+    description:
+      "Orthorhombic mullite-type (silica-free Al2O3) metastable polymorph obtained by rapid quenching of alumina melts or devitrification of amorphous Al2O3 films. Orthorhombic Pbam (No. 55), a = 7.590 Å, b = 7.670 Å, c = 2.875 Å, PDF 00-012-0539.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pbam (No. 55)",
+    density: 3.30,
+    applications: ["Refractory Glass-Ceramics", "Rapidly Quenched Melt Coatings", "Mullite-Type Structural Analogues"],
+    molecularWeight: 101.96,
+    elasticModulus: 220,
+  },
+  {
+    name: "Rho-Alumina (ρ-Al2O3, Amorphous)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "26.50, 35\n37.50, 100\n45.80, 52\n67.00, 88",
+    description:
+      "X-ray amorphous / poorly ordered transition alumina formed by vacuum dehydration or flash calcination of gibbsite at 200–450 °C (Gibbsite → ρ → η → θ → α). Displays broad diffuse scattering halos centered near 37.5° and 67.0° 2θ and uniquely rehydrates in water to form bayerite/boehmite.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Amorphous",
+    spaceGroup: "None (Amorphous)",
+    density: 3.10,
+    applications: ["Hydratable Alumina Refractory Binders", "Flash-Calcined Adsorbents", "ALD Amorphous Gate Dielectrics"],
+    molecularWeight: 101.96,
+    elasticModulus: 165,
+  },
+  {
+    name: "Beta-Alumina (β-Al2O3, NaAl11O17)",
+    type: "Energy & Battery Materials",
+    pattern:
+      "7.84, 100, 0, 0, 2\n15.72, 48, 0, 0, 4\n19.93, 25, 1, 0, 2\n23.68, 22, 0, 0, 6\n24.21, 28, 1, 0, 4\n31.97, 45, 1, 1, 0\n33.40, 68, 1, 0, 7\n35.82, 56, 1, 1, 4\n44.47, 50, 2, 0, 6\n66.84, 64, 2, 2, 0",
+    description:
+      "Layered two-block hexagonal sodium polyaluminate (NaAl11O17, two spinel blocks separated by mirror conduction planes along c) exhibiting rapid 2D Na+ superionic conductivity. Hexagonal P63/mmc (No. 194), a = 5.594 Å, c = 22.530 Å, Z = 2, PDF 00-031-1263.",
+    formula: "NaAl11O17",
+    elements: ["Na", "Al", "O"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 3.24,
+    applications: ["Solid-State Na+ Electrolytes", "Sodium-Nickel Chloride (ZEBRA) Batteries", "Solid-State Gas Sensors"],
+    molecularWeight: 591.77,
+    elasticModulus: 215,
+  },
+  {
+    name: "Beta-Double-Prime Alumina (β''-Al2O3, Na1.67Al10.33O17)",
+    type: "Energy & Battery Materials",
+    pattern:
+      "7.83, 100, 0, 0, 3\n15.70, 52, 0, 0, 6\n18.47, 20, 1, 0, 1\n21.10, 32, 1, 0, 4\n22.53, 28, 0, 1, 5\n26.00, 26, 1, 0, 7\n31.94, 48, 1, 1, 0\n34.49, 82, 0, 1, 11\n39.44, 34, 2, 0, 5\n46.00, 72, 0, 2, 10\n66.76, 68, 2, 2, 0",
+    description:
+      "Rhombohedral three-block sodium polyaluminate superionic conductor (Na1.67Al10.33O17, typically Mg2+ or Li+ stabilized) with ~5× higher Na+ conductivity than hexagonal β-Al2O3. Trigonal R-3m (No. 166), a = 5.600 Å, c = 33.850 Å, Z = 3, PDF 00-021-1096.",
+    formula: "Na1.67Al10.33O17",
+    elements: ["Na", "Al", "O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3m (No. 166)",
+    density: 3.26,
+    applications: ["Na-S Grid Energy Storage Batteries", "ZEBRA Solid Electrolytes", "Alkali Metal Thermal-to-Electric Converters (AMTEC)"],
+    molecularWeight: 589.11,
+    elasticModulus: 210,
+  },
+  {
+    name: "High-Pressure Alumina (Rh2O3(II)-type Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "22.02, 28, 1, 1, 0\n25.28, 42, 2, 0, 0\n28.92, 60, 1, 1, 1\n36.50, 88, 0, 2, 0\n36.54, 100, 2, 1, 1\n37.52, 74, 0, 0, 2\n44.92, 52, 2, 2, 0\n55.04, 44, 1, 2, 2\n58.09, 56, 3, 1, 2",
+    description:
+      "High-pressure orthorhombic polymorph of Al2O3 adopting the Rh2O3(II) structure above ~80–100 GPa at lower-mantle conditions. Orthorhombic Pbcn (No. 60), a = 7.040 Å, b = 4.920 Å, c = 4.790 Å, Z = 4.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pbcn (No. 60)",
+    density: 4.18,
+    applications: ["High-Pressure Mineral Physics", "Deep Earth Lower-Mantle Seismology", "Diamond Anvil Cell Benchmarks"],
+    molecularWeight: 101.96,
+    elasticModulus: 460,
+  },
+  {
+    name: "Post-Perovskite Alumina (CaIrO3-type Al2O3)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "20.94, 30, 0, 2, 0\n25.10, 48, 0, 2, 1\n34.89, 76, 0, 2, 2\n35.34, 82, 1, 1, 0\n38.06, 100, 1, 1, 1\n42.61, 45, 0, 4, 0\n45.41, 68, 1, 1, 2\n49.06, 54, 1, 3, 1\n61.38, 42, 0, 2, 4\n70.79, 58, 2, 0, 0",
+    description:
+      "Ultra-high-pressure layered orthorhombic CaIrO3-type (post-perovskite) polymorph of Al2O3 stable above ~130 GPa and relevant to Earth's D'' core-mantle boundary layer. Orthorhombic Cmcm (No. 63), a = 2.660 Å, b = 8.480 Å, c = 6.460 Å, Z = 4.",
+    formula: "Al2O3",
+    elements: ["Al", "O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Cmcm (No. 63)",
+    density: 4.56,
+    applications: ["Core-Mantle Boundary Geophysics", "Ultra-High-Pressure Shock Physics", "Synchrotron DAC Calibration"],
+    molecularWeight: 101.96,
+    elasticModulus: 520,
+  },
+  {
+    name: "Gibbsite (γ-Al(OH)3, Alumina Precursor)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "18.27, 100, 0, 0, 2\n20.26, 42, 1, 1, 0\n20.50, 28, 2, 0, 0\n26.85, 12, -1, 1, 2\n27.96, 16, 1, 1, 2\n36.55, 22, 0, 2, 1\n37.02, 25, 0, 0, 4\n37.61, 30, 3, 1, 1\n44.18, 18, 2, 0, 4\n63.69, 14, 3, 3, 0",
+    description:
+      "Primary aluminum trihydroxide mineral (Bayer-process hydrate) and key precursor to transition aluminas (Gibbsite → χ → κ → α in air; Gibbsite → Boehmite → γ → δ → θ → α hydrothermally). Monoclinic P21/n (No. 14), a = 8.684 Å, b = 5.078 Å, c = 9.736 Å, β = 94.54°, Z = 8, PDF 00-033-0018.",
+    formula: "Al(OH)3",
+    elements: ["Al", "O", "H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/n (No. 14)",
+    density: 2.42,
+    applications: ["Bayer Process Alumina Refining", "Flame-Retardant Polymer Fillers", "Transition Alumina Precursor"],
+    molecularWeight: 78.00,
+    elasticModulus: 65,
+  },
+  {
+    name: "Bayerite (α-Al(OH)3, Alumina Precursor)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "18.81, 90, 0, 0, 1\n20.30, 72, 1, 1, 0\n20.47, 58, 0, 2, 0\n27.87, 45, 1, 1, 1\n38.16, 30, 0, 0, 2\n40.50, 62, 2, 0, 1\n40.74, 100, 1, 3, 1\n53.35, 36, 1, 3, 2\n55.79, 24, 2, 4, 0",
+    description:
+      "Monoclinic polymorph of aluminum trihydroxide with ABAB hydroxyl sheet stacking; canonical precursor to η-Al2O3 upon calcination (Bayerite → η → θ → α). Monoclinic P21/a (No. 14), a = 5.062 Å, b = 8.671 Å, c = 4.713 Å, β = 90.27°, Z = 4, PDF 00-020-0011.",
+    formula: "Al(OH)3",
+    elements: ["Al", "O", "H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/a (No. 14)",
+    density: 2.53,
+    applications: ["Eta-Alumina Catalyst Synthesis", "High-Purity Alumina Precursor", "Aluminum Corrosion Characterization"],
+    molecularWeight: 78.00,
+    elasticModulus: 68,
+  },
+  {
+    name: "Boehmite (γ-AlO(OH), Alumina Precursor)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "14.48, 100, 0, 2, 0\n28.17, 65, 1, 2, 0\n38.35, 55, 0, 3, 1\n45.77, 12, 1, 3, 1\n48.91, 32, 0, 5, 1\n49.21, 30, 2, 0, 0\n55.21, 15, 1, 5, 1\n64.05, 18, 2, 3, 1\n64.98, 16, 0, 0, 2\n71.91, 20, 2, 5, 1",
+    description:
+      "Layered orthorhombic aluminum oxyhydroxide (γ-AlO(OH)) and principal industrial precursor to γ-Al2O3 (Boehmite → γ → δ → θ → α). Orthorhombic Cmcm (No. 63), a = 3.700 Å, b = 12.227 Å, c = 2.868 Å, Z = 4, PDF 00-021-1307.",
+    formula: "AlO(OH)",
+    elements: ["Al", "O", "H"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Cmcm (No. 63)",
+    density: 3.03,
+    applications: ["Gamma-Alumina Catalyst Supports", "Sol-Gel Ceramic Coatings", "Lithium-Ion Battery Separator Coatings"],
+    molecularWeight: 59.99,
+    elasticModulus: 135,
+  },
+  {
+    name: "Diaspore (α-AlO(OH), Direct α-Al2O3 Precursor)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "18.82, 12, 0, 2, 0\n22.28, 100, 1, 1, 0\n27.71, 14, 1, 2, 0\n35.07, 48, 1, 3, 0\n36.88, 36, 0, 2, 1\n38.85, 58, 1, 1, 1\n42.38, 52, 1, 2, 1\n43.53, 44, 1, 4, 0\n56.30, 48, 2, 2, 1\n57.24, 28, 2, 4, 0\n62.73, 24, 1, 5, 1\n68.13, 32, 0, 6, 1",
+    description:
+      "Dense orthorhombic aluminum oxyhydroxide (α-AlO(OH)) with HCP oxygen packing that transforms topotactically and directly into α-Al2O3 (Corundum) at ~450–550 °C without intermediate transition phases. Orthorhombic Pbnm (No. 62), a = 4.401 Å, b = 9.425 Å, c = 2.845 Å, Z = 4, PDF 00-005-0355.",
+    formula: "AlO(OH)",
+    elements: ["Al", "O", "H"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pbnm (No. 62)",
+    density: 3.38,
+    applications: ["Low-Temperature Direct α-Al2O3 Synthesis", "High-Alumina Bauxite Ores", "Metamorphic Geobarometry"],
+    molecularWeight: 59.99,
+    elasticModulus: 210,
   },
   {
     name: "Rutile (TiO2)",
@@ -3588,15 +3878,16 @@ const RAW_MATERIAL_DB = [
     name: "Zirconia Toughened Alumina (ZTA)",
     type: "Biomaterials & Pharmaceuticals",
     pattern:
-      "25.6, 30\n28.2, 20\n30.2, 85\n31.8, 100\n35.2, 60\n43.4, 55\n57.5, 45\n60.2, 25",
+      "25.58, 42, 0, 1, 2\n28.18, 18, -1, 1, 1\n30.18, 90, 1, 0, 1\n31.47, 15, 1, 1, 1\n35.15, 100, 1, 0, 4\n37.78, 35, 1, 1, 0\n43.36, 85, 1, 1, 3\n50.22, 45, 1, 1, 2\n57.50, 75, 1, 1, 6\n60.18, 30, 2, 1, 1",
     description:
-      "Composite ceramic combining high hardness of alumina with the fracture toughness of zirconia. Used for hip joint replacements.",
+      "Composite ceramic combining a Trigonal α-Al2O3 (R-3c) matrix with dispersed Tetragonal (P42/nmc) and stress-transformable Monoclinic (P21/c) ZrO2 toughening phases. Used for high-reliability hip joint replacements and cutting inserts.",
     formula: "Al2O3-ZrO2",
     elements: ["Al", "O", "Zr"],
-    crystalSystem: "Hexagonal / Monoclinic / Tetragonal",
-    density: 4.1,
+    crystalSystem: "Trigonal + Tetragonal + Monoclinic",
+    spaceGroup: "R-3c + P42/nmc + P21/c",
+    density: 4.18,
     applications: ["Orthopedics", "Dental Implants", "Cutting Tools"],
-    elasticModulus: 340,
+    elasticModulus: 350,
   },
   {
     name: "Y-TZP (Yttria-stabilized Zirconia)",
@@ -5086,14 +5377,15 @@ const RAW_MATERIAL_DB = [
   {
     name: "ZTA Femoral Joint",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "35.1, 100\n43.3, 90\n57.5, 85\n30.2, 45\n50.3, 30",
+    pattern:
+      "25.58, 52, 0, 1, 2\n30.18, 58, 1, 0, 1\n35.15, 100, 1, 0, 4\n37.78, 38, 1, 1, 0\n43.36, 88, 1, 1, 3\n50.22, 32, 1, 1, 2\n52.55, 42, 0, 2, 4\n57.50, 82, 1, 1, 6\n68.21, 45, 3, 0, 0",
     description:
-      "Zirconia-toughened alumina specifically tailored for hip replacements, using stress-induced tetragonal ZrO2 transformation to interrupt crack growth in Corundum matrix.",
+      "Biomedical zirconia-toughened alumina (BIOLOX-delta class) tailored for total hip arthroplasty, combining a Trigonal α-Al2O3 (R-3c) matrix with Tetragonal Y-TZP (P42/nmc) transformation toughening.",
     formula: "Al2O3 - ZrO2 (ZTA)",
     elements: ["Al", "O", "Zr"],
-    crystalSystem: "Hexagonal + Tetragonal",
+    crystalSystem: "Trigonal + Tetragonal",
     spaceGroup: "R-3c + P42/nmc",
-    density: 4.15,
+    density: 4.37,
     applications: [
       "Total Hip Arthroplasty",
       "High-Impact Dental Crowns",
@@ -10893,14 +11185,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Alumina (Bio-Grade)",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "25.6, 40\n35.1, 100\n37.8, 50\n43.3, 80\n52.5, 50\n57.5, 60",
-    description: "High-purity sapphire-like aluminum oxide used in biomedicine due to its exceptional wear resistance and bioinert nature. Popular for femoral heads in total hip replacements.",
+    pattern:
+      "25.58, 68, 0, 1, 2\n35.15, 100, 1, 0, 4\n37.78, 45, 1, 1, 0\n43.36, 92, 1, 1, 3\n52.55, 47, 0, 2, 4\n57.50, 86, 1, 1, 6\n61.31, 8, 0, 1, 8\n66.52, 34, 2, 1, 4\n68.21, 51, 3, 0, 0",
+    description: "ISO 6474 surgical-grade high-purity α-Al2O3 (Corundum; Trigonal R-3c, a = 4.7589 Å, c = 12.9917 Å) used in biomedicine for its exceptional wear resistance, sub-micron grain density, and bioinert nature in orthopedic femoral heads.",
     formula: "Al2O3",
     elements: ["Al","O"],
-    crystalSystem: "Rhombohedral",
-    spaceGroup: "R-3c",
-    density: 3.97,
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3c (No. 167)",
+    density: 3.987,
     applications: ["Femoral Heads","Wear-Resistant Bearings","Dental Implants"],
+    molecularWeight: 101.96,
+    elasticModulus: 400,
   },
   {
     name: "Titanium Dioxide (Rutile)",
@@ -11243,12 +11538,13 @@ const RAW_MATERIAL_DB = [
   {
     name: "Sodium-Sulfur Solid State Cell (Na-S Beta''-Alumina)",
     type: "Energy & Battery Materials",
-    pattern: "11.8, 100\n16.1, 40\n21.1, 60\n27.8, 35\n33.2, 50\n46.1, 30",
-    description: "A high-performance sodium ion-conducting ceramic solid-state electrolyte critical for high-temperature sodium-sulfur grid energy storage systems.",
+    pattern:
+      "7.83, 100, 0, 0, 3\n15.70, 52, 0, 0, 6\n18.47, 20, 1, 0, 1\n21.10, 32, 1, 0, 4\n22.53, 28, 0, 1, 5\n26.00, 26, 1, 0, 7\n31.94, 48, 1, 1, 0\n34.49, 82, 0, 1, 11\n39.44, 34, 2, 0, 5\n46.00, 72, 0, 2, 10\n66.76, 68, 2, 2, 0",
+    description: "High-performance trigonal/rhombohedral β''-alumina (Na1.67Al10.33O17; Trigonal R-3m, a = 5.600 Å, c = 33.850 Å, PDF 00-021-1096) sodium superionic solid-state electrolyte separator for high-temperature Na-S grid energy storage cells.",
     formula: "Na1.67Al10.33O17",
     elements: ["Na", "Al", "O"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63/mmc",
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3m (No. 166)",
     density: 3.26,
     applications: ["Solid-State Electrolytes", "Sodium-Sulfur Batteries", "Grid Energy Storage"]
   },
@@ -15881,22 +16177,6 @@ const RAW_MATERIAL_DB = [
     elasticModulus: 100
   },
   {
-    name: "Corundum Standard (Al2O3)",
-    type: "Calibration & Standards",
-    pattern:
-      "25.58, 100\n35.15, 78\n37.78, 66\n43.36, 54\n52.55, 42\n57.50, 30\n61.30, 18\n66.52, 10\n68.21, 10",
-    description:
-      "NIST Standard Reference Material SRM 676a used for quantitative analysis and instrument calibration.",
-    formula: "Al2O3",
-    elements: ["Al","O"],
-    crystalSystem: "Trigonal",
-    spaceGroup: "R-3c (No. 167)",
-    density: 2.5,
-    applications: ["Standard","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
     name: "Lanthanum Hexaboride (LaB6)",
     type: "Calibration & Standards",
     pattern:
@@ -18338,6 +18618,294 @@ const RAW_MATERIAL_DB = [
     applications: ["Rheumatoid Arthritis Anti-Inflammatory API", "Amorphous Solid Dispersion Stability Testing", "Hot-Melt Extrusion (HME) Research"],
     molecularWeight: 357.79,
     elasticModulus: 9.1
+  },
+  {
+    name: "Polyvinylidene Fluoride (α-PVDF, Form II)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "17.87, 58, 1, 0, 0\n18.39, 85, 0, 2, 0\n20.12, 100, 1, 1, 0\n26.71, 46, 0, 2, 1\n27.95, 24, 1, 1, 1\n32.32, 18, 1, 2, 1\n36.19, 22, 2, 0, 0\n38.96, 28, 0, 0, 2",
+    description:
+      "Non-polar, thermodynamically stable melt-crystallized polymorph of polyvinylidene fluoride adopting antiparallel TGTG' helical chain packing. Monoclinic P21/c (No. 14), a = 4.96 Å, b = 9.64 Å, c = 4.62 Å, β = 90.0°, Z = 4, PDF 00-042-1650.",
+    formula: "(C2H2F2)n",
+    elements: ["C", "H", "F"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 1.78,
+    applications: ["Lithium-Ion Battery Binders & Separators", "Chemically Resistant Filtration Membranes", "Architectural Fluoropolymer Coatings"],
+    molecularWeight: 64.03,
+    elasticModulus: 2.4,
+  },
+  {
+    name: "Polyvinylidene Fluoride (β-PVDF, Form I — Piezoelectric)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "20.69, 92, 2, 0, 0\n20.83, 100, 1, 1, 0\n35.02, 32, 0, 0, 1\n36.32, 22, 3, 1, 0\n41.02, 28, 2, 0, 1\n41.10, 34, 1, 1, 1\n42.39, 18, 2, 2, 0",
+    description:
+      "Ferroelectric and piezoelectric polar polymorph of PVDF with all-trans (TTTT) planar zigzag chains aligned in parallel dipoles, produced by uniaxial stretching or electrospinning. Orthorhombic Cm2m (No. 38), a = 8.58 Å, b = 4.91 Å, c = 2.56 Å, Z = 2, PDF 00-038-1638.",
+    formula: "(C2H2F2)n",
+    elements: ["C", "H", "F"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Cm2m (No. 38)",
+    density: 1.97,
+    applications: ["Piezoelectric Sensors & Acoustic Transducers", "Pyroelectric Infrared Detectors", "Flexible Energy Harvesters"],
+    molecularWeight: 64.03,
+    elasticModulus: 3.1,
+  },
+  {
+    name: "Polyvinylidene Fluoride (γ-PVDF, Form III)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "18.51, 72, 0, 2, 0\n19.24, 55, 0, 0, 2\n20.16, 100, 1, 1, 0\n26.82, 42, 0, 2, 2\n36.24, 30, 2, 0, 0\n39.25, 24, 2, 1, 1",
+    description:
+      "Intermediate polar polymorph of PVDF crystallizing from polar solvents (DMSO/DMAc) or high-temperature annealing (~160 °C) in a TTTGTTTG' chain conformation. Monoclinic Cc (No. 9), a = 4.96 Å, b = 9.58 Å, c = 9.23 Å, β = 92.9°, Z = 8.",
+    formula: "(C2H2F2)n",
+    elements: ["C", "H", "F"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "Cc (No. 9)",
+    density: 1.92,
+    applications: ["High-Energy-Density Dielectric Capacitors", "Electrocaloric Cooling Films", "Ferroelectric Memory Research"],
+    molecularWeight: 64.03,
+    elasticModulus: 2.7,
+  },
+  {
+    name: "Polytetrafluoroethylene (PTFE Form IV, 15/7 Helix)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "18.08, 100, 1, 0, 0\n31.59, 18, 1, 1, 0\n36.64, 12, 2, 0, 0\n37.09, 14, 1, 0, 7\n41.33, 16, 1, 0, 8\n45.66, 10, 1, 1, 7\n49.14, 8, 2, 1, 0",
+    description:
+      "Ambient room-temperature crystalline polymorph of polytetrafluoroethylene (stable 19–30 °C) composed of tightly packed 15/7 fluorocarbon helices. Trigonal P31 (No. 144), a = 5.66 Å, c = 19.50 Å, PDF 00-047-2217. Displays an iconic ultra-sharp (100) peak at 18.08° 2θ.",
+    formula: "(C2F4)n",
+    elements: ["C", "F"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "P31 (No. 144)",
+    density: 2.30,
+    applications: ["Ultra-Low-Friction Bearings & Seals", "High-Frequency RF Coaxial Dielectrics", "Chemically Inert Labware & Membranes"],
+    molecularWeight: 100.02,
+    elasticModulus: 0.58,
+  },
+  {
+    name: "Polyoxymethylene (POM, Trigonal Acetal Homopolymer)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "22.96, 100, 1, 0, 0\n34.64, 32, 1, 0, 5\n40.32, 18, 1, 1, 0\n46.90, 12, 2, 0, 0\n47.96, 14, 1, 0, 8\n48.37, 24, 1, 1, 5\n54.19, 15, 2, 0, 5",
+    description:
+      "Highly crystalline (70–85%) engineering acetal thermoplastic consisting of helical 9/5 (CH2O)n chains packed in a trigonal lattice. Trigonal P31 (No. 144), a = 4.470 Å, c = 17.390 Å, PDF 00-049-2120. Renowned for high stiffness, dimensional stability, and low friction.",
+    formula: "(CH2O)n",
+    elements: ["C", "H", "O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "P31 (No. 144)",
+    density: 1.49,
+    applications: ["Precision Gears & Mechanical Bushings", "Automotive Fuel System Components", "Low-Wear Engineering Fasteners"],
+    molecularWeight: 30.03,
+    elasticModulus: 3.1,
+  },
+  {
+    name: "Polyethylene Oxide (PEO, Crystalline Monoclinic)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "19.17, 88, 1, 2, 0\n22.38, 25, 0, 0, 4\n23.04, 72, 1, 1, 2\n23.31, 100, 0, 3, 2\n27.16, 22, 2, 0, 0\n30.18, 48, 1, 3, 2\n35.79, 35, 2, 1, 2",
+    description:
+      "Semi-crystalline polyether adopting a 7/2 helical conformation in a monoclinic lattice. Monoclinic P21/a (No. 14), a = 8.05 Å, b = 13.04 Å, c = 19.48 Å, β = 125.4°, PDF 00-049-2201. Benchmark host matrix for solid polymer lithium electrolytes (PEO-LiTFSI).",
+    formula: "(C2H4O)n",
+    elements: ["C", "H", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/a (No. 14)",
+    density: 1.23,
+    applications: ["Solid Polymer Battery Electrolytes", "Pharmaceutical Sustained-Release Matrices", "Hydrogel & Biomedical Coatings"],
+    molecularWeight: 44.05,
+    elasticModulus: 0.65,
+  },
+  {
+    name: "Polyvinyl Alcohol (PVA, Crystalline Monoclinic)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "11.33, 25, 1, 0, 0\n19.43, 85, -1, 0, 1\n19.99, 100, 1, 0, 1\n22.76, 32, 2, 0, 0\n28.39, 22, 2, 0, 1\n32.49, 20, 0, 0, 2\n37.47, 18, 1, 1, 0",
+    description:
+      "Water-soluble semi-crystalline polymer stabilized by dense intermolecular O–H···O hydrogen-bonded sheets of planar zigzag chains. Monoclinic P21/m (No. 11), a = 7.81 Å, b = 2.52 Å, c = 5.51 Å, β = 91.7°, Z = 2.",
+    formula: "(C2H4O)n",
+    elements: ["C", "H", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/m (No. 11)",
+    density: 1.35,
+    applications: ["LCD Polarizing Optical Films", "Gas-Barrier Packaging Films", "Biomedical Hydrogels & Embolization Microspheres"],
+    molecularWeight: 44.05,
+    elasticModulus: 3.8,
+  },
+  {
+    name: "Nylon 6,6 (Polyamide 66, α-Form)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "13.81, 12, 0, 0, 2\n20.35, 100, 1, 0, 0\n24.07, 82, 0, 1, 0\n24.41, 74, 1, 1, 0\n37.76, 22, 1, -1, 0\n41.38, 18, 2, 0, 0",
+    description:
+      "Triclinic α-polymorph of poly(hexamethylene adipamide) featuring fully extended planar zigzag chains linked into hydrogen-bonded sheets that progressively shift along the chain axis. Triclinic P-1 (No. 2), a = 4.90 Å, b = 5.40 Å, c = 17.20 Å, α = 48.5°, β = 77.0°, γ = 63.5°, Z = 1, PDF 00-043-1662.",
+    formula: "(C12H22N2O2)n",
+    elements: ["C", "H", "N", "O"],
+    crystalSystem: "Triclinic",
+    spaceGroup: "P-1 (No. 2)",
+    density: 1.24,
+    applications: ["High-Strength Engineering Fibers & Tire Cords", "Under-the-Hood Automotive Components", "Structural Injection-Molded Gears"],
+    molecularWeight: 226.32,
+    elasticModulus: 3.3,
+  },
+  {
+    name: "Nylon 12 (Polyamide 12, γ-Form)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "5.54, 28, 0, 2, 0\n11.09, 16, 0, 4, 0\n16.66, 12, 0, 6, 0\n21.40, 100, 1, 0, 0\n22.12, 35, 1, 2, 0\n37.52, 42, 1, 0, 2\n43.60, 18, 2, 0, 0",
+    description:
+      "Pseudo-hexagonal monoclinic γ-polymorph of polylaurolactam (PA12), the standard crystalline phase in selective laser sintering (SLS) 3D printing powders. Monoclinic P21/c (No. 14), a = 4.79 Å, b = 31.90 Å, c = 9.58 Å, β = 120.0°, Z = 4.",
+    formula: "(C12H23NO)n",
+    elements: ["C", "H", "N", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 1.04,
+    applications: ["Selective Laser Sintering (SLS) 3D Printing", "Automotive Pneumatic & Fuel Tubing", "Flexible Medical Catheters"],
+    molecularWeight: 197.32,
+    elasticModulus: 1.8,
+  },
+  {
+    name: "Polybutylene Terephthalate (PBT, α-Form)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "9.10, 18, 0, 0, 1\n16.16, 62, 0, -1, 1\n17.23, 75, 0, 1, 0\n19.88, 65, 1, 0, -1\n21.24, 50, 1, -1, 0\n23.16, 100, 1, 0, 0\n25.33, 48, 1, -1, 1",
+    description:
+      "Relaxed triclinic α-polymorph of fast-crystallizing aromatic polyester PBT with gauche-trans-gauche tetramethylene segments (reversibly transforms to β-PBT under tensile stress). Triclinic P-1 (No. 2), a = 4.83 Å, b = 5.94 Å, c = 11.59 Å, α = 99.7°, β = 115.2°, γ = 110.8°, Z = 1.",
+    formula: "(C12H12O4)n",
+    elements: ["C", "H", "O"],
+    crystalSystem: "Triclinic",
+    spaceGroup: "P-1 (No. 2)",
+    density: 1.40,
+    applications: ["High-Voltage Electrical Connectors", "Precision Automotive Housings", "Optical Fiber Loose-Tube Buffers"],
+    molecularWeight: 220.22,
+    elasticModulus: 2.6,
+  },
+  {
+    name: "Polyethylene Naphthalate (PEN, α-Form)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "15.64, 100, 0, 1, 0\n19.22, 45, 0, 1, 1\n23.32, 78, 1, 0, 0\n27.00, 52, 1, -1, 0\n29.36, 34, 1, 1, 0",
+    description:
+      "High-Tg semi-crystalline naphthalene-ring polyester offering superior O2/CO2 barrier and thermal stability over PET. Triclinic P-1 (No. 2), a = 6.51 Å, b = 5.75 Å, c = 13.20 Å, α = 81.3°, β = 144.0°, γ = 100.0°, Z = 1.",
+    formula: "(C14H10O4)n",
+    elements: ["C", "H", "O"],
+    crystalSystem: "Triclinic",
+    spaceGroup: "P-1 (No. 2)",
+    density: 1.41,
+    applications: ["Flexible OLED & Organic Solar Substrates", "High-Temperature Film Capacitors", "High-Barrier Beverage Packaging"],
+    molecularWeight: 242.23,
+    elasticModulus: 5.2,
+  },
+  {
+    name: "Polyphenylene Sulfide (PPS)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "18.83, 100, 1, 1, 0\n20.47, 92, 2, 0, 0\n20.73, 65, 1, 1, 1\n26.91, 48, 2, 0, 2\n27.39, 52, 2, 1, 1\n31.88, 36, 0, 2, 0\n34.89, 24, 3, 1, 0",
+    description:
+      "High-performance flame-retardant semi-crystalline engineering thermoplastic with alternating phenylene rings tilted ±45° relative to the sulfide zigzag plane. Orthorhombic Pbcn (No. 60), a = 8.67 Å, b = 5.61 Å, c = 10.26 Å, Z = 4, PDF 00-049-2214.",
+    formula: "(C6H4S)n",
+    elements: ["C", "H", "S"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pbcn (No. 60)",
+    density: 1.44,
+    applications: ["Aerospace Thermoplastic Composites", "High-Temperature Chemical Pump Impellers", "Flue-Gas Baghouse Filter Fibers"],
+    molecularWeight: 108.16,
+    elasticModulus: 3.8,
+  },
+  {
+    name: "Isotactic Polypropylene (β-iPP, Trigonal Polymorph)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "16.09, 100, 1, 1, 0\n21.13, 42, 1, 1, 1\n24.68, 18, 2, 1, 0\n28.05, 28, 3, 0, 0\n31.30, 24, 3, 0, 1\n32.50, 16, 2, 2, 0\n36.66, 14, 3, 1, 1",
+    description:
+      "Frustrated trigonal β-modification of isotactic polypropylene (3 isochiral 3/1 helices per cell) induced by β-nucleating agents or shear flow; imparts dramatically higher impact toughness than monoclinic α-iPP. Trigonal P3121 (No. 152), a = 11.01 Å, c = 6.50 Å, Z = 9, with diagnostic strong 16.09° (110) peak.",
+    formula: "(C3H6)n",
+    elements: ["C", "H"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "P3121 (No. 152)",
+    density: 0.922,
+    applications: ["Microporous Battery Separator Membranes", "High-Impact Automotive Bumpers & Pipes", "Thermoformed Packaging"],
+    molecularWeight: 42.08,
+    elasticModulus: 1.65,
+  },
+  {
+    name: "Syndiotactic Polystyrene (sPS, α-Form)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "6.73, 68, 1, 1, 0\n11.66, 100, 3, 0, 0\n13.48, 48, 2, 2, 0\n17.86, 36, 4, 1, 0\n20.27, 28, 3, 3, 0\n20.41, 76, 2, 1, 1\n22.56, 52, 3, 1, 1",
+    description:
+      "High-melting (Tm ≈ 270 °C) crystalline engineering polystyrene formed via metallocene catalysis with all-trans planar zigzag triplets arranged in a trigonal lattice. Trigonal P-3c1 (No. 165), a = 26.26 Å, c = 5.04 Å, Z = 18.",
+    formula: "(C8H8)n",
+    elements: ["C", "H"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "P-3c1 (No. 165)",
+    density: 1.033,
+    applications: ["Low-Loss 5G Microwave & Millimeter-Wave Substrates", "Automotive High-Voltage Connectors", "Chemical-Resistant Structural Moldings"],
+    molecularWeight: 104.15,
+    elasticModulus: 3.4,
+  },
+  {
+    name: "Poly(1-butene) (PB-1, Form I — Trigonal)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "9.99, 100, 1, 1, 0\n17.34, 72, 3, 0, 0\n20.05, 65, 2, 2, 0\n20.52, 58, 2, 1, 1\n25.01, 32, 3, 1, 1\n26.63, 24, 4, 1, 0",
+    description:
+      "Thermodynamically stable twinned trigonal polymorph of isotactic poly(1-butene) (3/1 helical chains) that forms spontaneously via solid-state transformation from tetragonal Form II upon aging at room temperature. Trigonal R-3c (No. 167), a = 17.70 Å, c = 6.50 Å, Z = 18.",
+    formula: "(C4H8)n",
+    elements: ["C", "H"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3c (No. 167)",
+    density: 0.95,
+    applications: ["Hot-Water Pressurized Plumbing Pipes", "Creep-Resistant Packaging Seals", "Solid-State Polymorphic Kinetics Benchmark"],
+    molecularWeight: 56.11,
+    elasticModulus: 0.45,
+  },
+  {
+    name: "Poly(3-hexylthiophene) (P3HT, Regioregular Semiconducting Polymer)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "5.38, 100, 1, 0, 0\n10.78, 42, 2, 0, 0\n16.20, 24, 3, 0, 0\n23.39, 58, 0, 2, 0\n24.02, 22, 1, 2, 0\n25.82, 16, 2, 2, 0",
+    description:
+      "Benchmark π-conjugated crystalline semiconducting polymer self-assembling into edge-on or face-on lamellae with sharp (h00) alkyl side-chain lamellar orders (d100 = 16.40 Å) and (020) π–π stacking reflection at 23.39° (d = 3.80 Å). Monoclinic P21/c (No. 14), a = 16.40 Å, b = 7.60 Å, c = 7.80 Å, β = 90.0°.",
+    formula: "(C10H14S)n",
+    elements: ["C", "H", "S"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 1.12,
+    applications: ["Organic Field-Effect Transistors (OFETs)", "Bulk-Heterojunction Organic Photovoltaics", "Flexible Thermoelectrics & Bioelectronics"],
+    molecularWeight: 166.28,
+    elasticModulus: 1.3,
+  },
+  {
+    name: "Polyacrylonitrile (PAN, Hexagonal Mesocrystalline)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "17.05, 100, 1, 0, 0\n24.44, 26, 1, 0, 1\n29.76, 38, 1, 1, 0\n34.49, 22, 2, 0, 0\n46.19, 14, 2, 1, 0",
+    description:
+      "Rod-like dipole-coupled polymer chains packed in a laterally ordered hexagonal lattice; the dominant precursor for aerospace-grade carbon fibers upon thermal stabilization and carbonization. Hexagonal P6/mmm (No. 191), a = 6.00 Å, c = 5.10 Å, characterized by its sharp 17.05° (100) equatorial peak.",
+    formula: "(C3H3N)n",
+    elements: ["C", "H", "N"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P6/mmm (No. 191)",
+    density: 1.18,
+    applications: ["Aerospace Carbon Fiber Precursor", "Ultrafiltration Hollow-Fiber Membranes", "Electrospun Nanofiber Battery Separators"],
+    molecularWeight: 53.06,
+    elasticModulus: 4.5,
+  },
+  {
+    name: "Poly(butylene succinate) (PBS, α-Form Biodegradable Polyester)",
+    type: "Polymers & Frameworks",
+    pattern:
+      "19.45, 78, 0, 2, 0\n21.22, 38, 1, 1, -2\n21.81, 45, 0, 2, 1\n22.67, 100, 1, 1, 0\n25.95, 42, 1, 2, -1\n36.04, 24, 1, 3, 0\n39.49, 20, 0, 4, 0",
+    description:
+      "Bio-based biodegradable aliphatic polyester crystallizing in the monoclinic α-form with T7GTG' chain conformation (transforms to β-PBS under tensile strain). Monoclinic P21/n (No. 14), a = 5.23 Å, b = 9.12 Å, c = 10.90 Å, β = 123.9°, Z = 2.",
+    formula: "(C8H12O4)n",
+    elements: ["C", "H", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/n (No. 14)",
+    density: 1.34,
+    applications: ["Compostable Packaging & Agricultural Mulch Films", "Biodegradable Tissue Scaffolds", "Eco-Friendly Injection-Molded Goods"],
+    molecularWeight: 172.18,
+    elasticModulus: 0.72,
   }
 ];
 

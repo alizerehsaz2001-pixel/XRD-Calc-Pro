@@ -25,5 +25,15 @@
     },
     "allowImportingTsExtensions": true,
     "noEmit": true
-  }
+  },
+  "exclude": [
+    "node_modules",
+    "dist",
+    "tmp",
+    "**/*.cjs",
+    "**/*.js",
+    "patch_*.ts",
+    "test_*.ts",
+    "test_*.tsx"
+  ]
 }

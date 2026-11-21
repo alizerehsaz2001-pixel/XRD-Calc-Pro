@@ -41,6 +41,7 @@ import {
 } from 'lucide-react';
 import { playSynthTone } from '../utils/sound';
 import { MATERIAL_DB } from '../utils/materialDB';
+import { mergeWithCanonicalMaterials } from '../utils/materialsHelper';
 import { calculateThermodynamics, generateTemperatureSweep } from '../utils/thermodynamics';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts';
 import { db, useAuth, auth } from '../services/firebase';
@@ -798,28 +799,16 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
   const { t } = useTranslation();
   const inspectorRef = useRef<HTMLDivElement>(null);
 
-  // Load and preserve materials with local overrides
+  // Load and preserve materials with local overrides while purging deprecated records
   const [materials, setMaterials] = useState<any[]>(() => {
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
-      let list = MATERIAL_DB;
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          // Merge any newly introduced materials from MATERIAL_DB that are missing by name
-          const parsedNames = new Set(parsed.map(m => m?.name).filter(Boolean));
-          const missing = MATERIAL_DB.filter(m => !parsedNames.has(m.name));
-          list = [...parsed, ...missing];
+          return mergeWithCanonicalMaterials(parsed);
         }
       }
-      // Guarantee absolute uniqueness by name
-      const uniqueMap = new Map<string, any>();
-      list.forEach(m => {
-        if (m && m.name && !uniqueMap.has(m.name)) {
-          uniqueMap.set(m.name, m);
-        }
-      });
-      return Array.from(uniqueMap.values());
     } catch (e) {
       console.error('Failed to load material overrides', e);
     }
@@ -846,14 +835,7 @@ export const MaterialDatabaseExplorer: React.FC<{ pythonFeaturesEnabled?: boolea
         if (!saved) return;
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const uniqueMap = new Map<string, any>();
-          parsed.forEach((m) => {
-            if (m && m.name && !uniqueMap.has(m.name)) uniqueMap.set(m.name, m);
-          });
-          MATERIAL_DB.forEach((m) => {
-            if (m && m.name && !uniqueMap.has(m.name)) uniqueMap.set(m.name, m);
-          });
-          setMaterials(Array.from(uniqueMap.values()));
+          setMaterials(mergeWithCanonicalMaterials(parsed));
         }
       } catch {
         // Ignore storage read errors

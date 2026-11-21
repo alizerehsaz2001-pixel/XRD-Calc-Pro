@@ -4,6 +4,46 @@ import { getOfflineMaterials, bulkSaveOfflineMaterials } from './offlineDb';
 let cachedRawString: string | null | undefined = undefined;
 let cachedMergedList: any[] | null = null;
 
+// Names of deprecated / erroneous legacy materials removed from MATERIAL_DB
+// so older localStorage caches never resurrect them.
+export const DEPRECATED_MATERIAL_NAMES = new Set<string>([
+  'Corundum Standard (Al2O3)',
+]);
+
+const BUILTIN_MATERIAL_MAP = new Map<string, any>(
+  MATERIAL_DB.map((m) => [m.name, m])
+);
+
+/**
+ * Merges cached localStorage materials with the canonical built-in MATERIAL_DB:
+ * - Removes any deprecated/erroneous legacy records.
+ * - Preserves all user-created custom materials and user-edited overrides (`isUserCustomMaterial === true`).
+ * - Ensures updated built-in MATERIAL_DB records supersede stale cached copies of built-in materials.
+ */
+export function mergeWithCanonicalMaterials(parsed: any[]): any[] {
+  const uniqueMap = new Map<string, any>();
+
+  // 1. Keep user custom entries and custom-edited overrides first
+  parsed.forEach((m) => {
+    if (!m || !m.name || DEPRECATED_MATERIAL_NAMES.has(m.name)) return;
+    const isBuiltIn = BUILTIN_MATERIAL_MAP.has(m.name);
+    if (!isBuiltIn || m.isUserCustomMaterial === true) {
+      if (!uniqueMap.has(m.name)) {
+        uniqueMap.set(m.name, m);
+      }
+    }
+  });
+
+  // 2. Insert all canonical built-in MATERIAL_DB entries (if not overridden by an explicit custom edit)
+  MATERIAL_DB.forEach((m) => {
+    if (m && m.name && !uniqueMap.has(m.name)) {
+      uniqueMap.set(m.name, m);
+    }
+  });
+
+  return Array.from(uniqueMap.values());
+}
+
 export function getActiveMaterials(): any[] {
   if (typeof window === 'undefined') return MATERIAL_DB;
   try {
@@ -15,17 +55,7 @@ export function getActiveMaterials(): any[] {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        // Merge missing entries by name
-        const parsedNames = new Set(parsed.map(m => m?.name).filter(Boolean));
-        const missing = MATERIAL_DB.filter(m => !parsedNames.has(m.name));
-        const combined = [...parsed, ...missing];
-        const uniqueMap = new Map<string, any>();
-        combined.forEach(m => {
-          if (m && m.name && !uniqueMap.has(m.name)) {
-            uniqueMap.set(m.name, m);
-          }
-        });
-        cachedMergedList = Array.from(uniqueMap.values());
+        cachedMergedList = mergeWithCanonicalMaterials(parsed);
         return cachedMergedList;
       }
     }

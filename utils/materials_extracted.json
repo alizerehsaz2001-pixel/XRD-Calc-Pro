@@ -6,7 +6,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P6222 / P6422",
     "density": 2.53,
-    "description": "The high-temperature polymorph of quartz, stable above 573 \u00b0C (at ambient pressure). Crystallizes in the hexagonal system.",
+    "description": "The high-temperature polymorph of quartz, stable above 573 °C (at ambient pressure). Crystallizes in the hexagonal system.",
     "pattern": "20.6, 30\\n25.8, 100\\n36.4, 20\\n38.8, 15\\n42.3, 10\\n45.5, 12\\n50.0, 18"
   },
   {
@@ -26,7 +26,7 @@
     "crystal_system": "Cubic",
     "space_group": "Fd-3m",
     "density": 2.2,
-    "description": "The high-temperature cubic polymorph of cristobalite, stable above ~267 \u00b0C and sometimes found stabilized at room temperature in glasses.",
+    "description": "The high-temperature cubic polymorph of cristobalite, stable above ~267 °C and sometimes found stabilized at room temperature in glasses.",
     "pattern": "21.5, 100\\n35.8, 20\\n44.3, 10\\n48.2, 5"
   },
   {
@@ -46,7 +46,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P63/mmc",
     "density": 2.22,
-    "description": "The high-temperature hexagonal polymorph of tridymite. Forms typically between 870 \u00b0C and 1470 \u00b0C.",
+    "description": "The high-temperature hexagonal polymorph of tridymite. Forms typically between 870 °C and 1470 °C.",
     "pattern": "21.2, 100\\n35.6, 30\\n42.5, 15"
   },
   {
@@ -90,14 +90,14 @@
     "pattern": "30.1, 100\\n31.5, 80\\n34.2, 60\\n42.1, 40\\n48.5, 30"
   },
   {
-    "name": "NIST SRM 1976 (Corundum / \u03b1-Al2O3)",
+    "name": "NIST SRM 1976 (Corundum / α-Al2O3)",
     "formula": "Al2O3",
     "category": "Calibration & Standards",
     "crystal_system": "Trigonal",
-    "space_group": "R-3c",
-    "density": 3.98,
-    "description": "NIST Standard Reference Material 1976a is an alpha-alumina (corundum) standard used for calibrating X-ray powder diffraction line positions and peak shapes. Highly crystalline instrument profile standard.",
-    "pattern": "25.58, 60, 0, 1, 2\\n35.15, 100, 1, 0, 4\\n37.78, 45, 1, 1, 0\\n43.36, 100, 1, 1, 3\\n52.55, 45, 0, 2, 4\\n57.50, 80, 1, 1, 6\\n61.30, 15, 2, 1, 4\\n66.52, 25, 3, 0, 0\\n68.21, 35, 1, 2, 4\\n76.88, 20, 1, 0, 10"
+    "space_group": "R-3c (No. 167)",
+    "density": 3.987,
+    "description": "NIST Standard Reference Material 1976 (sintered alpha-alumina / corundum plate; Trigonal R-3c, a = 4.7589 Å, c = 12.9917 Å, Z = 6; PDF 00-046-1212) used for calibrating X-ray powder diffraction instrument sensitivity, line positions, and peak profiles.",
+    "pattern": "25.58, 68, 0, 1, 2\\n35.15, 100, 1, 0, 4\\n37.78, 45, 1, 1, 0\\n43.36, 92, 1, 1, 3\\n52.55, 47, 0, 2, 4\\n57.50, 86, 1, 1, 6\\n61.31, 8, 0, 1, 8\\n66.52, 34, 2, 1, 4\\n68.21, 51, 3, 0, 0\\n76.88, 16, 1, 0, 10\\n77.24, 12, 1, 1, 9"
   },
   {
     "name": "NIST SRM 640 (Silicon Profile Standard)",
@@ -124,10 +124,10 @@
     "formula": "Al2O3",
     "category": "Calibration & Standards",
     "crystal_system": "Trigonal",
-    "space_group": "R-3c",
-    "density": 3.98,
-    "description": "NIST SRM 676 is an alpha-alumina standard designed specifically for quantitative analysis (I/Ic ratios) and Rietveld refinement internal standardization. Fine-grained powder to minimize microabsorption.",
-    "pattern": "25.58, 60, 0, 1, 2\\n35.15, 100, 1, 0, 4\\n37.78, 45, 1, 1, 0\\n43.36, 100, 1, 1, 3\\n52.55, 45, 0, 2, 4\\n57.50, 80, 1, 1, 6\\n61.30, 15, 2, 1, 4\\n66.52, 25, 3, 0, 0"
+    "space_group": "R-3c (No. 167)",
+    "density": 3.987,
+    "description": "NIST SRM 676a alpha-alumina (corundum) quantitative reference powder (Trigonal R-3c, a = 4.7589 Å, c = 12.9917 Å, Z = 6; PDF 00-046-1212, RIR I/Ic = 1.00) designed specifically for quantitative phase analysis and Rietveld internal standardization.",
+    "pattern": "25.58, 68, 0, 1, 2\\n35.15, 100, 1, 0, 4\\n37.78, 45, 1, 1, 0\\n43.36, 92, 1, 1, 3\\n52.55, 47, 0, 2, 4\\n57.50, 86, 1, 1, 6\\n61.31, 8, 0, 1, 8\\n66.52, 34, 2, 1, 4\\n68.21, 51, 3, 0, 0\\n76.88, 16, 1, 0, 10\\n77.24, 12, 1, 1, 9"
   },
   {
     "name": "NIST SRM 674b (TiO2/ZnO/Cr2O3/CeO2)",
@@ -251,12 +251,12 @@
   },
   {
     "name": "Amorphous Calcium Phosphate",
-    "formula": "CaxHy(PO4)z\u00b7nH2O",
+    "formula": "CaxHy(PO4)z·nH2O",
     "category": "Advanced Materials",
     "crystal_system": "Amorphous",
     "space_group": "N/A",
     "density": 2.3,
-    "description": "A non-crystalline precursor to hydroxyapatite. XRD pattern shows a broad",
+    "description": "A non-crystalline precursor to hydroxyapatite. XRD pattern shows a broad \"halo\" rather than sharp peaks, characteristic of amorphous states.",
     "pattern": "30.0, 100 (broad)"
   },
   {
@@ -311,7 +311,7 @@
   },
   {
     "name": "Maghemite",
-    "formula": "\u03b3-Fe2O3",
+    "formula": "γ-Fe2O3",
     "category": "Magnetic & Ferroelectric",
     "crystal_system": "Cubic",
     "space_group": "P4332",
@@ -416,7 +416,7 @@
     "crystal_system": "Trigonal",
     "space_group": "R-3c",
     "density": 5.26,
-    "description": "One of the most abundant minerals on Earth",
+    "description": "One of the most abundant minerals on Earth's surface and an important ore of iron.",
     "pattern": "24.14, 30\\n33.15, 100\\n35.61, 70\\n40.85, 20\\n49.48, 40\\n54.09, 45\\n62.45, 30\\n64.02, 30"
   },
   {
@@ -504,10 +504,190 @@
     "formula": "Al2O3",
     "category": "Ceramics & Refractories",
     "crystal_system": "Trigonal",
-    "space_group": "R-3c",
-    "density": 3.98,
-    "description": "A crystalline form of aluminum oxide typically containing traces of iron, titanium, vanadium and chromium.",
-    "pattern": "25.58, 45\\n35.15, 100\\n37.78, 40\\n43.36, 85\\n52.55, 45\\n57.50, 90\\n61.30, 10\\n66.52, 45\\n68.21, 60"
+    "space_group": "R-3c (No. 167)",
+    "density": 3.987,
+    "description": "Thermodynamically stable alpha-alumina (α-Al2O3, Corundum) with hexagonal close-packed (ABAB) oxygen sublattice and Al3+ occupying 2/3 of octahedral interstices. Trigonal R-3c (No. 167), a = 4.7589 Å, c = 12.9917 Å, Z = 6, PDF 00-046-1212. Forms irreversibly above ~1050–1200 °C from all transition aluminas.",
+    "pattern": "25.58, 68, 0, 1, 2\\n35.15, 100, 1, 0, 4\\n37.78, 45, 1, 1, 0\\n43.36, 92, 1, 1, 3\\n52.55, 47, 0, 2, 4\\n57.50, 86, 1, 1, 6\\n61.31, 8, 0, 1, 8\\n66.52, 34, 2, 1, 4\\n68.21, 51, 3, 0, 0\\n76.88, 16, 1, 0, 10\\n77.24, 12, 1, 1, 9"
+  },
+  {
+    "name": "Gamma-Alumina (γ-Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Cubic",
+    "space_group": "Fd-3m (No. 227)",
+    "density": 3.66,
+    "description": "Cubic defect-spinel transition alumina (FCC ABCABC oxygen sublattice with Al vacancies) formed by thermal dehydration of boehmite (γ-AlOOH) at 450–750 °C. Cubic Fd-3m (No. 227), a = 7.911 Å, PDF 00-010-0425. High specific surface area (150–300 m²/g) prized for heterogeneous catalysis and adsorption.",
+    "pattern": "19.42, 35, 1, 1, 1\\n31.97, 25, 2, 2, 0\\n37.68, 65, 3, 1, 1\\n39.43, 30, 2, 2, 2\\n45.85, 95, 4, 0, 0\\n60.79, 20, 5, 1, 1\\n66.85, 100, 4, 4, 0\\n84.85, 18, 4, 4, 4"
+  },
+  {
+    "name": "Eta-Alumina (η-Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Cubic",
+    "space_group": "Fd-3m (No. 227)",
+    "density": 3.64,
+    "description": "Cubic defect-spinel transition alumina derived from thermal decomposition of bayerite (α-Al(OH)3) at 250–500 °C (pathway: Bayerite → η → θ → α). Cubic Fd-3m (No. 227), a = 7.906 Å, PDF 00-004-0875. Exhibits higher (111) stacking-fault disorder and stronger surface Lewis acidity than γ-Al2O3.",
+    "pattern": "19.43, 45, 1, 1, 1\\n31.99, 20, 2, 2, 0\\n37.71, 55, 3, 1, 1\\n39.45, 35, 2, 2, 2\\n45.88, 85, 4, 0, 0\\n60.83, 22, 5, 1, 1\\n66.89, 100, 4, 4, 0\\n84.91, 20, 4, 4, 4"
+  },
+  {
+    "name": "Delta-Alumina (δ-Al2O3, Tetragonal)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Tetragonal",
+    "space_group": "P-4m2 (No. 115)",
+    "density": 3.67,
+    "description": "Tetragonal cation-vacancy-ordered spinel superstructure of γ-Al2O3 formed by calcination at 750–950 °C (c ≈ 3a_spinel). Tetragonal P-4m2 (No. 115), a = 7.963 Å, c = 23.470 Å, PDF 00-046-1131. Characteristic doublet splitting of the 45.5°/46.4° and 66.4°/67.0° spinel reflections.",
+    "pattern": "19.41, 18, 1, 1, 3\\n32.68, 35, 2, 2, 2\\n36.46, 40, 3, 1, 2\\n37.49, 48, 3, 1, 3\\n39.40, 38, 2, 2, 6\\n45.53, 78, 4, 0, 0\\n46.39, 85, 0, 0, 12\\n60.40, 25, 5, 1, 3\\n66.35, 92, 4, 4, 0\\n67.03, 100, 4, 0, 12"
+  },
+  {
+    "name": "Delta-Prime Alumina (δ*-Al2O3, Orthorhombic)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Orthorhombic",
+    "space_group": "P212121 (No. 19)",
+    "density": 3.68,
+    "description": "Orthorhombic superlattice polymorph of delta-alumina (δ*-Al2O3) formed during rapid solidification of molten alumina droplets or boehmite calcination around 800–950 °C. Orthorhombic P212121 (No. 19), a = 7.934 Å, b = 7.956 Å, c = 11.711 Å (c ≈ 1.5a_spinel), PDF 00-046-1215.",
+    "pattern": "17.49, 12, 1, 1, 1\\n27.08, 18, 0, 2, 2\\n31.83, 30, 2, 2, 0\\n36.59, 46, 3, 1, 1\\n39.49, 34, 2, 2, 3\\n45.57, 74, 0, 4, 0\\n45.70, 78, 4, 0, 0\\n46.49, 82, 0, 0, 6\\n66.52, 95, 4, 4, 0\\n67.24, 100, 4, 0, 6"
+  },
+  {
+    "name": "Theta-Alumina (θ-Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Monoclinic",
+    "space_group": "C2/m (No. 12)",
+    "density": 3.61,
+    "description": "High-temperature monoclinic transition alumina (isostructural with β-Ga2O3) forming between 850 and 1100 °C immediately prior to the reconstructive θ → α-Al2O3 transformation. Monoclinic C2/m (No. 12), a = 11.795 Å, b = 2.910 Å, c = 5.621 Å, β = 103.79°, Z = 4, PDF 00-035-0121. Half of Al3+ occupy tetrahedral sites and half octahedral sites.",
+    "pattern": "15.46, 15, 2, 0, 0\\n19.59, 24, -2, 0, 1\\n31.61, 68, -4, 0, 1\\n32.79, 85, 0, 0, 2\\n36.68, 62, 1, 1, 1\\n38.81, 42, 4, 0, 1\\n39.79, 48, -4, 0, 2\\n44.80, 92, -1, 1, 2\\n47.67, 50, 1, 1, 2\\n55.60, 22, -5, 1, 2\\n63.93, 45, 0, 2, 0\\n66.45, 100, 0, 2, 1"
+  },
+  {
+    "name": "Kappa-Alumina (κ-Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Pna21 (No. 33)",
+    "density": 3.77,
+    "description": "Metastable orthorhombic alumina polymorph with ABAC close-packed oxygen stacking (75% octahedral, 25% tetrahedral Al3+) synthesized via CVD wear coatings or calcination of gibbsite/tohdite (Gibbsite → χ → κ → α at 750–1050 °C). Orthorhombic Pna21 (No. 33), a = 4.835 Å, b = 8.311 Å, c = 8.936 Å, Z = 8, PDF 00-052-0803.",
+    "pattern": "19.86, 22, 0, 0, 2\\n22.58, 18, 0, 1, 2\\n23.48, 25, 1, 1, 1\\n29.24, 45, 1, 1, 2\\n30.04, 38, 1, 2, 1\\n37.11, 55, 0, 2, 3\\n37.38, 52, 1, 3, 0\\n38.76, 40, 1, 3, 1\\n40.34, 42, 0, 0, 4\\n42.48, 72, 2, 0, 2\\n42.68, 95, 1, 3, 2\\n48.27, 48, 0, 4, 2\\n54.35, 35, 2, 3, 2\\n56.00, 44, 2, 0, 4\\n67.57, 100, 0, 6, 0"
+  },
+  {
+    "name": "Chi-Alumina (χ-Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Hexagonal",
+    "space_group": "P6/mmm (No. 191)",
+    "density": 3.56,
+    "description": "Hexagonal transition alumina produced by thermal dehydration of gibbsite (γ-Al(OH)3) in air at 300–750 °C (Gibbsite → χ → κ → α) with disordered layered ABAC/ABAB oxygen packing. Hexagonal P6/mmm (No. 191), a = 5.560 Å, c = 13.440 Å, PDF 00-013-0373.",
+    "pattern": "13.16, 14, 0, 0, 2\\n18.41, 20, 1, 0, 0\\n22.70, 24, 1, 0, 2\\n32.17, 32, 1, 1, 0\\n34.90, 38, 1, 1, 2\\n37.32, 58, 2, 0, 0\\n39.74, 45, 2, 0, 2\\n46.36, 76, 2, 0, 4\\n50.08, 30, 2, 1, 0\\n67.31, 100, 2, 2, 0"
+  },
+  {
+    "name": "Lambda-Alumina (λ-Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/c (No. 14)",
+    "density": 3.82,
+    "description": "Rare monoclinic metastable alumina polymorph obtained by oxidative decomposition of β-AlH3 or high-temperature treatment of ammonium aluminum carbonate hydroxide. Monoclinic P21/c (No. 14), a = 7.630 Å, b = 10.200 Å, c = 9.090 Å, β = 94.50°.",
+    "pattern": "14.52, 18, 1, 1, 0\\n17.37, 25, 0, 2, 0\\n18.02, 22, 1, 1, 1\\n23.37, 40, 2, 0, 0\\n28.18, 55, -1, 2, 2\\n35.17, 72, 0, 4, 0\\n36.51, 100, 2, 2, 2\\n39.76, 65, 0, 0, 4\\n41.65, 58, 3, 2, 1\\n48.18, 45, 2, 4, 2"
+  },
+  {
+    "name": "Iota-Alumina (ι-Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Pbam (No. 55)",
+    "density": 3.3,
+    "description": "Orthorhombic mullite-type (silica-free Al2O3) metastable polymorph obtained by rapid quenching of alumina melts or devitrification of amorphous Al2O3 films. Orthorhombic Pbam (No. 55), a = 7.590 Å, b = 7.670 Å, c = 2.875 Å, PDF 00-012-0539.",
+    "pattern": "16.42, 48, 1, 1, 0\\n26.01, 92, 1, 2, 0\\n26.18, 100, 2, 1, 0\\n31.08, 36, 0, 0, 1\\n33.19, 44, 2, 2, 0\\n35.35, 62, 1, 1, 1\\n39.28, 38, 2, 0, 1\\n40.96, 58, 1, 2, 1\\n42.60, 40, 2, 3, 0\\n57.75, 28, 0, 4, 1\\n60.69, 42, 3, 3, 1"
+  },
+  {
+    "name": "Rho-Alumina (ρ-Al2O3, Amorphous)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Amorphous",
+    "space_group": "None (Amorphous)",
+    "density": 3.1,
+    "description": "X-ray amorphous / poorly ordered transition alumina formed by vacuum dehydration or flash calcination of gibbsite at 200–450 °C (Gibbsite → ρ → η → θ → α). Displays broad diffuse scattering halos centered near 37.5° and 67.0° 2θ and uniquely rehydrates in water to form bayerite/boehmite.",
+    "pattern": "26.50, 35\\n37.50, 100\\n45.80, 52\\n67.00, 88"
+  },
+  {
+    "name": "Beta-Alumina (β-Al2O3, NaAl11O17)",
+    "formula": "NaAl11O17",
+    "category": "Energy & Battery Materials",
+    "crystal_system": "Hexagonal",
+    "space_group": "P63/mmc (No. 194)",
+    "density": 3.24,
+    "description": "Layered two-block hexagonal sodium polyaluminate (NaAl11O17, two spinel blocks separated by mirror conduction planes along c) exhibiting rapid 2D Na+ superionic conductivity. Hexagonal P63/mmc (No. 194), a = 5.594 Å, c = 22.530 Å, Z = 2, PDF 00-031-1263.",
+    "pattern": "7.84, 100, 0, 0, 2\\n15.72, 48, 0, 0, 4\\n19.93, 25, 1, 0, 2\\n23.68, 22, 0, 0, 6\\n24.21, 28, 1, 0, 4\\n31.97, 45, 1, 1, 0\\n33.40, 68, 1, 0, 7\\n35.82, 56, 1, 1, 4\\n44.47, 50, 2, 0, 6\\n66.84, 64, 2, 2, 0"
+  },
+  {
+    "name": "Beta-Double-Prime Alumina (β''-Al2O3, Na1.67Al10.33O17)",
+    "formula": "Na1.67Al10.33O17",
+    "category": "Energy & Battery Materials",
+    "crystal_system": "Trigonal",
+    "space_group": "R-3m (No. 166)",
+    "density": 3.26,
+    "description": "Rhombohedral three-block sodium polyaluminate superionic conductor (Na1.67Al10.33O17, typically Mg2+ or Li+ stabilized) with ~5× higher Na+ conductivity than hexagonal β-Al2O3. Trigonal R-3m (No. 166), a = 5.600 Å, c = 33.850 Å, Z = 3, PDF 00-021-1096.",
+    "pattern": "7.83, 100, 0, 0, 3\\n15.70, 52, 0, 0, 6\\n18.47, 20, 1, 0, 1\\n21.10, 32, 1, 0, 4\\n22.53, 28, 0, 1, 5\\n26.00, 26, 1, 0, 7\\n31.94, 48, 1, 1, 0\\n34.49, 82, 0, 1, 11\\n39.44, 34, 2, 0, 5\\n46.00, 72, 0, 2, 10\\n66.76, 68, 2, 2, 0"
+  },
+  {
+    "name": "High-Pressure Alumina (Rh2O3(II)-type Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Pbcn (No. 60)",
+    "density": 4.18,
+    "description": "High-pressure orthorhombic polymorph of Al2O3 adopting the Rh2O3(II) structure above ~80–100 GPa at lower-mantle conditions. Orthorhombic Pbcn (No. 60), a = 7.040 Å, b = 4.920 Å, c = 4.790 Å, Z = 4.",
+    "pattern": "22.02, 28, 1, 1, 0\\n25.28, 42, 2, 0, 0\\n28.92, 60, 1, 1, 1\\n36.50, 88, 0, 2, 0\\n36.54, 100, 2, 1, 1\\n37.52, 74, 0, 0, 2\\n44.92, 52, 2, 2, 0\\n55.04, 44, 1, 2, 2\\n58.09, 56, 3, 1, 2"
+  },
+  {
+    "name": "Post-Perovskite Alumina (CaIrO3-type Al2O3)",
+    "formula": "Al2O3",
+    "category": "Ceramics & Refractories",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Cmcm (No. 63)",
+    "density": 4.56,
+    "description": "Ultra-high-pressure layered orthorhombic CaIrO3-type (post-perovskite) polymorph of Al2O3 stable above ~130 GPa and relevant to Earth's D'' core-mantle boundary layer. Orthorhombic Cmcm (No. 63), a = 2.660 Å, b = 8.480 Å, c = 6.460 Å, Z = 4.",
+    "pattern": "20.94, 30, 0, 2, 0\\n25.10, 48, 0, 2, 1\\n34.89, 76, 0, 2, 2\\n35.34, 82, 1, 1, 0\\n38.06, 100, 1, 1, 1\\n42.61, 45, 0, 4, 0\\n45.41, 68, 1, 1, 2\\n49.06, 54, 1, 3, 1\\n61.38, 42, 0, 2, 4\\n70.79, 58, 2, 0, 0"
+  },
+  {
+    "name": "Gibbsite (γ-Al(OH)3, Alumina Precursor)",
+    "formula": "Al(OH)3",
+    "category": "Minerals, Ores & Geology",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/n (No. 14)",
+    "density": 2.42,
+    "description": "Primary aluminum trihydroxide mineral (Bayer-process hydrate) and key precursor to transition aluminas (Gibbsite → χ → κ → α in air; Gibbsite → Boehmite → γ → δ → θ → α hydrothermally). Monoclinic P21/n (No. 14), a = 8.684 Å, b = 5.078 Å, c = 9.736 Å, β = 94.54°, Z = 8, PDF 00-033-0018.",
+    "pattern": "18.27, 100, 0, 0, 2\\n20.26, 42, 1, 1, 0\\n20.50, 28, 2, 0, 0\\n26.85, 12, -1, 1, 2\\n27.96, 16, 1, 1, 2\\n36.55, 22, 0, 2, 1\\n37.02, 25, 0, 0, 4\\n37.61, 30, 3, 1, 1\\n44.18, 18, 2, 0, 4\\n63.69, 14, 3, 3, 0"
+  },
+  {
+    "name": "Bayerite (α-Al(OH)3, Alumina Precursor)",
+    "formula": "Al(OH)3",
+    "category": "Minerals, Ores & Geology",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/a (No. 14)",
+    "density": 2.53,
+    "description": "Monoclinic polymorph of aluminum trihydroxide with ABAB hydroxyl sheet stacking; canonical precursor to η-Al2O3 upon calcination (Bayerite → η → θ → α). Monoclinic P21/a (No. 14), a = 5.062 Å, b = 8.671 Å, c = 4.713 Å, β = 90.27°, Z = 4, PDF 00-020-0011.",
+    "pattern": "18.81, 90, 0, 0, 1\\n20.30, 72, 1, 1, 0\\n20.47, 58, 0, 2, 0\\n27.87, 45, 1, 1, 1\\n38.16, 30, 0, 0, 2\\n40.50, 62, 2, 0, 1\\n40.74, 100, 1, 3, 1\\n53.35, 36, 1, 3, 2\\n55.79, 24, 2, 4, 0"
+  },
+  {
+    "name": "Boehmite (γ-AlO(OH), Alumina Precursor)",
+    "formula": "AlO(OH)",
+    "category": "Minerals, Ores & Geology",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Cmcm (No. 63)",
+    "density": 3.03,
+    "description": "Layered orthorhombic aluminum oxyhydroxide (γ-AlO(OH)) and principal industrial precursor to γ-Al2O3 (Boehmite → γ → δ → θ → α). Orthorhombic Cmcm (No. 63), a = 3.700 Å, b = 12.227 Å, c = 2.868 Å, Z = 4, PDF 00-021-1307.",
+    "pattern": "14.48, 100, 0, 2, 0\\n28.17, 65, 1, 2, 0\\n38.35, 55, 0, 3, 1\\n45.77, 12, 1, 3, 1\\n48.91, 32, 0, 5, 1\\n49.21, 30, 2, 0, 0\\n55.21, 15, 1, 5, 1\\n64.05, 18, 2, 3, 1\\n64.98, 16, 0, 0, 2\\n71.91, 20, 2, 5, 1"
+  },
+  {
+    "name": "Diaspore (α-AlO(OH), Direct α-Al2O3 Precursor)",
+    "formula": "AlO(OH)",
+    "category": "Minerals, Ores & Geology",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Pbnm (No. 62)",
+    "density": 3.38,
+    "description": "Dense orthorhombic aluminum oxyhydroxide (α-AlO(OH)) with HCP oxygen packing that transforms topotactically and directly into α-Al2O3 (Corundum) at ~450–550 °C without intermediate transition phases. Orthorhombic Pbnm (No. 62), a = 4.401 Å, b = 9.425 Å, c = 2.845 Å, Z = 4, PDF 00-005-0355.",
+    "pattern": "18.82, 12, 0, 2, 0\\n22.28, 100, 1, 1, 0\\n27.71, 14, 1, 2, 0\\n35.07, 48, 1, 3, 0\\n36.88, 36, 0, 2, 1\\n38.85, 58, 1, 1, 1\\n42.38, 52, 1, 2, 1\\n43.53, 44, 1, 4, 0\\n56.30, 48, 2, 2, 1\\n57.24, 28, 2, 4, 0\\n62.73, 24, 1, 5, 1\\n68.13, 32, 0, 6, 1"
   },
   {
     "name": "Rutile (TiO2)",
@@ -561,12 +741,12 @@
   },
   {
     "name": "Zeolite A (LTA)",
-    "formula": "Na12Al12Si12O48\u00b727H2O",
+    "formula": "Na12Al12Si12O48·27H2O",
     "category": "Ceramics & Refractories",
     "crystal_system": "Cubic",
     "space_group": "Pm-3m",
     "density": 1.55,
-    "description": "A synthetic zeolite with a pore size of about 4 \u00c5ngstr\u00f6ms.",
+    "description": "A synthetic zeolite with a pore size of about 4 Ångströms.",
     "pattern": "7.2, 100\\n10.2, 50\\n12.5, 60\\n16.1, 20\\n21.7, 35\\n24.0, 45\\n27.1, 30\\n29.9, 40\\n34.2, 25"
   },
   {
@@ -638,16 +818,6 @@
     "density": 7.87,
     "description": "The BCC allotrope of iron, stable at room temperature.",
     "pattern": "44.67, 100\\n65.02, 20\\n82.33, 30\\n98.94, 10"
-  },
-  {
-    "name": "Zirconia (ZrO2)",
-    "formula": "ZrO2",
-    "category": "Ceramics & Refractories",
-    "crystal_system": "Monoclinic",
-    "space_group": "P21/c",
-    "density": 5.68,
-    "description": "Monoclinic zirconia (baddeleyite), a tough ceramic used in structural applications.",
-    "pattern": "28.17, 100\\n31.47, 65\\n34.15, 25\\n50.12, 35\\n50.55, 30\\n60.05, 20"
   },
   {
     "name": "Graphite",
@@ -756,7 +926,7 @@
     "crystal_system": "Cubic",
     "space_group": "Pa-3",
     "density": 5.01,
-    "description": "Known as fool",
+    "description": "Known as fool's gold, it is an iron sulfide mineral.",
     "pattern": "28.5, 35\\n33.0, 100\\n37.1, 55\\n40.8, 45\\n47.4, 45\\n56.3, 65\\n59.0, 20\\n64.3, 25"
   },
   {
@@ -771,7 +941,7 @@
   },
   {
     "name": "Gallium Oxide (Ga2O3)",
-    "formula": "\u03b2-Ga2O3",
+    "formula": "β-Ga2O3",
     "category": "Semiconductors & Photonics",
     "crystal_system": "Monoclinic",
     "space_group": "C2/m",
@@ -821,7 +991,7 @@
   },
   {
     "name": "Silicon Nitride (Si3N4)",
-    "formula": "\u03b2-Si3N4",
+    "formula": "β-Si3N4",
     "category": "Ceramics & Refractories",
     "crystal_system": "Hexagonal",
     "space_group": "P63/m",
@@ -846,7 +1016,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P63/mmc",
     "density": 2.1,
-    "description": "Often referred to as",
+    "description": "Often referred to as \"white graphite\" because of its lubricity and hexagonal structure.",
     "pattern": "26.7, 100\\n41.6, 12\\n43.8, 15\\n50.1, 10\\n55.1, 25\\n75.9, 5"
   },
   {
@@ -956,7 +1126,7 @@
     "crystal_system": "Monoclinic (M1)",
     "space_group": "P21/c",
     "density": 4.57,
-    "description": "Known for its reversible metal-insulator transition at 68\u00b0C.",
+    "description": "Known for its reversible metal-insulator transition at 68°C.",
     "pattern": "27.9, 100\\n37.1, 35\\n42.3, 25\\n55.6, 45\\n57.7, 30"
   },
   {
@@ -970,13 +1140,13 @@
     "pattern": "23.1, 100\\n23.6, 95\\n24.4, 95\\n26.6, 25\\n28.9, 20\\n33.3, 45\\n34.1, 50\\n41.8, 15\\n50.0, 15"
   },
   {
-    "name": "Austenite (\u03b3-Fe)",
+    "name": "Austenite (γ-Fe)",
     "formula": "Fe",
     "category": "Advanced Materials",
     "crystal_system": "Cubic (FCC)",
     "space_group": "Fm-3m",
     "density": 7.9,
-    "description": "The FCC allotrope of iron, typically stable above 912\u00b0C or in stainless steels.",
+    "description": "The FCC allotrope of iron, typically stable above 912°C or in stainless steels.",
     "pattern": "43.6, 100\\n50.7, 45\\n74.7, 25\\n90.7, 20"
   },
   {
@@ -1051,7 +1221,7 @@
   },
   {
     "name": "Brushite (DCPD)",
-    "formula": "CaHPO4\u00b72H2O",
+    "formula": "CaHPO4·2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "Ia",
@@ -1106,12 +1276,12 @@
     "crystal_system": "Cubic",
     "space_group": "Fd-3m",
     "density": 3.48,
-    "description": "An",
+    "description": "An \"extremely safe\" anode material for lithium-ion batteries with zero-strain characteristics.",
     "pattern": "18.4, 100\\n35.6, 55\\n43.3, 45\\n47.4, 15\\n57.2, 35\\n62.8, 30"
   },
   {
     "name": "YBCO Superconductor (YBa2Cu3O7)",
-    "formula": "YBa2Cu3O7-\u03b4",
+    "formula": "YBa2Cu3O7-δ",
     "category": "Advanced Materials",
     "crystal_system": "Orthorhombic",
     "space_group": "Pmmm",
@@ -1121,7 +1291,7 @@
   },
   {
     "name": "Zeolite ZSM-5",
-    "formula": "NanAlnSi96-nO192\u00b716H2O",
+    "formula": "NanAlnSi96-nO192·16H2O",
     "category": "Advanced Materials",
     "crystal_system": "Orthorhombic",
     "space_group": "Pnma",
@@ -1201,7 +1371,7 @@
   },
   {
     "name": "Octacalcium Phosphate (OCP)",
-    "formula": "Ca8(HPO4)2(PO4)4\u00b75H2O",
+    "formula": "Ca8(HPO4)2(PO4)4·5H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1",
@@ -1241,7 +1411,7 @@
   },
   {
     "name": "Calcium Oxalate Monohydrate",
-    "formula": "CaC2O4\u00b7H2O",
+    "formula": "CaC2O4·H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -1251,7 +1421,7 @@
   },
   {
     "name": "Amorphous Calcium Phosphate (ACP)",
-    "formula": "CaxHy(PO4)z\u00b7nH2O",
+    "formula": "CaxHy(PO4)z·nH2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Amorphous",
     "space_group": "N/A",
@@ -1305,7 +1475,7 @@
     "category": "Nuclear & Shielding",
     "crystal_system": "Cubic (Fluorite)",
     "space_group": "Fm-3m",
-    "density": 10.0,
+    "density": 10,
     "description": "A crystalline fertile powder that can be bred into fissile U-233; possesses the highest melting point of all oxides.",
     "pattern": "27.6, 100\\n31.9, 40\\n45.8, 55\\n54.4, 45\\n57.0, 35"
   },
@@ -1326,7 +1496,7 @@
     "crystal_system": "Cubic",
     "space_group": "Ia-3",
     "density": 7.4,
-    "description": "A chemical compound used as a neutron-absorbing",
+    "description": "A chemical compound used as a neutron-absorbing \"burnable poison\" in nuclear fuel to manage reactivity over time.",
     "pattern": "28.6, 100\\n33.1, 35\\n47.5, 45\\n56.4, 40\\n59.1, 15\\n69.5, 20"
   },
   {
@@ -1370,18 +1540,8 @@
     "pattern": "38.5, 100\\n41.2, 45\\n44.0, 40\\n59.3, 20\\n69.8, 15"
   },
   {
-    "name": "Austenite (\u03b3-Fe)",
-    "formula": "\u03b3-Fe",
-    "category": "Metals & Alloys",
-    "crystal_system": "Cubic (FCC)",
-    "space_group": "Fm-3m",
-    "density": 7.98,
-    "description": "The face-centered cubic (FCC) phase of iron. High temperature stable phase often retained in stainless steels.",
-    "pattern": "43.6, 100\\n50.8, 45\\n74.7, 30\\n90.7, 25\\n95.9, 10"
-  },
-  {
-    "name": "Martensite (\u03b1",
-    "formula": "\u03b1",
+    "name": "Martensite (α'-Fe)",
+    "formula": "α'-Fe",
     "category": "Metals & Alloys",
     "crystal_system": "Tetragonal (BCT)",
     "space_group": "I4/mmm",
@@ -1400,7 +1560,7 @@
     "pattern": "37.7, 60\\n39.8, 80\\n40.6, 100\\n42.9, 70\\n43.7, 90\\n44.5, 85\\n44.9, 95"
   },
   {
-    "name": "Titanium-6Al-4V (\u03b1+\u03b2)",
+    "name": "Titanium-6Al-4V (α+β)",
     "formula": "Ti-6Al-4V",
     "category": "Metals & Alloys",
     "crystal_system": "HCP + BCC",
@@ -1521,7 +1681,7 @@
   },
   {
     "name": "Molybdenum Trioxide (MoO3)",
-    "formula": "\u03b1-MoO3",
+    "formula": "α-MoO3",
     "category": "Semiconductors & Photonics",
     "crystal_system": "Orthorhombic",
     "space_group": "Pbnm",
@@ -1540,23 +1700,13 @@
     "pattern": "24.3, 35\\n33.0, 100\\n36.2, 80\\n41.2, 20\\n49.7, 30\\n54.0, 95\\n62.9, 15\\n64.1, 25"
   },
   {
-    "name": "Hematite (Fe2O3)",
-    "formula": "Fe2O3",
-    "category": "Ceramics & Refractories",
-    "crystal_system": "Trigonal",
-    "space_group": "R-3c",
-    "density": 5.24,
-    "description": "The mineral form of iron(III) oxide, one of several iron oxides.",
-    "pattern": "24.1, 40\\n33.2, 100\\n35.6, 75\\n40.9, 25\\n49.5, 40\\n54.1, 85\\n62.5, 30\\n64.0, 35"
-  },
-  {
     "name": "Perovskite (CaTiO3)",
     "formula": "CaTiO3",
     "category": "Semiconductors & Photonics",
     "crystal_system": "Orthorhombic",
     "space_group": "Pbnm",
     "density": 3.98,
-    "description": "The namesake of the perovskite crystal structure, found in the Earth",
+    "description": "The namesake of the perovskite crystal structure, found in the Earth's mantle.",
     "pattern": "23.2, 25\\n33.1, 100\\n40.3, 15\\n47.5, 45\\n53.8, 10\\n59.2, 35\\n69.6, 30"
   },
   {
@@ -1575,7 +1725,7 @@
     "category": "Metals & Alloys",
     "crystal_system": "Cubic (FCC)",
     "space_group": "Fm-3m",
-    "density": 8.0,
+    "density": 8,
     "description": "Low-carbon FCC austenitic steel with excellent corrosion resistance containing Mo.",
     "pattern": "43.6, 100\\n50.8, 45\\n74.7, 25\\n90.7, 20\\n95.9, 10"
   },
@@ -1830,16 +1980,6 @@
     "pattern": "12.1, 40\\n15.5, 60\\n18.2, 100\\n20.4, 35\\n23.5, 45\\n24.4, 80\\n32.8, 20"
   },
   {
-    "name": "Magnetite (Fe3O4)",
-    "formula": "Fe3O4",
-    "category": "Magnetic & Ferroelectric",
-    "crystal_system": "Cubic (Spinel)",
-    "space_group": "Fd-3m",
-    "density": 5.17,
-    "description": "A common ferrimagnetic iron oxide mineral with an inverse spinel structure.",
-    "pattern": "30.1, 30\\n35.4, 100\\n43.1, 20\\n53.4, 10\\n57.0, 30\\n62.6, 40"
-  },
-  {
     "name": "Polyethylene (PE)",
     "formula": "(C2H4)n",
     "category": "Polymers & Frameworks",
@@ -2015,7 +2155,7 @@
     "category": "Semiconductors & Photonics",
     "crystal_system": "Cubic",
     "space_group": "Pn-3m",
-    "density": 6.0,
+    "density": 6,
     "description": "A copper oxide mineral that naturally crystallizes as an octahedral cubic structure and acts as a p-type semiconductor.",
     "pattern": "29.5, 35\\n36.4, 100\\n42.3, 40\\n61.3, 25\\n73.5, 20\\n77.3, 15"
   },
@@ -2171,7 +2311,7 @@
   },
   {
     "name": "Alpha-Uranium Metal",
-    "formula": "\u03b1-U",
+    "formula": "α-U",
     "category": "Nuclear & Shielding",
     "crystal_system": "Orthorhombic",
     "space_group": "Cmcm",
@@ -2196,7 +2336,7 @@
     "crystal_system": "Orthorhombic",
     "space_group": "Ammm",
     "density": 8.3,
-    "description": "The most stable form of uranium oxide. Common",
+    "description": "The most stable form of uranium oxide. Common \"yellowcake\" component.",
     "pattern": "21.44, 45\\n25.95, 100\\n26.45, 95\\n34.32, 60\\n43.15, 25\\n44.50, 20"
   },
   {
@@ -2208,16 +2348,6 @@
     "density": 7.29,
     "description": "Orange-colored oxide, a critical intermediate in the conversion of uranium to fuel.",
     "pattern": "15.20, 100\\n26.10, 85\\n33.40, 40\\n46.50, 20\\n52.80, 15"
-  },
-  {
-    "name": "Gallium Nitride (GaN)",
-    "formula": "GaN",
-    "category": "Semiconductors & Photonics",
-    "crystal_system": "Hexagonal",
-    "space_group": "P63mc",
-    "density": 6.15,
-    "description": "Wurtzite structure GaN. Essential semiconductor for high-power electronics and blue LEDs.",
-    "pattern": "32.39, 65\\n34.56, 100\\n36.84, 90\\n48.08, 15\\n57.78, 25\\n63.45, 18\\n67.89, 22"
   },
   {
     "name": "Silicon Carbide (6H-SiC)",
@@ -2238,16 +2368,6 @@
     "density": 6.02,
     "description": "Tetragonal phase BaTiO3 showing characteristic peak splitting due to ferroelectric distortion.",
     "pattern": "22.25, 45\\n31.55, 100\\n38.89, 25\\n45.32, 60\\n51.05, 18\\n56.12, 35"
-  },
-  {
-    "name": "Strontium Titanate (SrTiO3)",
-    "formula": "SrTiO3",
-    "category": "Semiconductors & Photonics",
-    "crystal_system": "Cubic",
-    "space_group": "Pm-3m",
-    "density": 5.12,
-    "description": "Cubic perovskite standard. Widely used as a lattice-matched substrate for thin film growth.",
-    "pattern": "22.84, 40\\n32.42, 100\\n40.01, 35\\n46.52, 65\\n57.85, 22\\n67.88, 30"
   },
   {
     "name": "Titanium (Grade 2 CP)",
@@ -2335,7 +2455,7 @@
     "category": "Metals & Alloys",
     "crystal_system": "Body-centered Cubic (Martensitic)",
     "space_group": "",
-    "density": 8.0,
+    "density": 8,
     "description": "Ultra-high-strength steel that is iron-based, highly alloyed with nickel. Low carbon, derives strength from intermetallic precipitates.",
     "pattern": "44.5, 100\\n64.8, 20\\n82.1, 30"
   },
@@ -2400,16 +2520,6 @@
     "pattern": "30.6, 100\\n32.0, 80\\n43.9, 40\\n44.9, 50\\n55.3, 20"
   },
   {
-    "name": "Lead (Pb)",
-    "formula": "Pb",
-    "category": "Metals & Alloys",
-    "crystal_system": "Face-centered Cubic",
-    "space_group": "Fm-3m",
-    "density": 11.34,
-    "description": "Heavy metal that is denser than most common materials. Soft and malleable with relatively low melting point.",
-    "pattern": "31.3, 100\\n36.3, 40\\n52.3, 30\\n62.2, 25\\n65.3, 15"
-  },
-  {
     "name": "Zinc (Zn)",
     "formula": "Zn",
     "category": "Metals & Alloys",
@@ -2453,11 +2563,11 @@
     "name": "Zirconia Toughened Alumina (ZTA)",
     "formula": "Al2O3-ZrO2",
     "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Hexagonal / Monoclinic / Tetragonal",
-    "space_group": "",
-    "density": 4.1,
-    "description": "Composite ceramic combining high hardness of alumina with the fracture toughness of zirconia. Used for hip joint replacements.",
-    "pattern": "25.6, 30\\n28.2, 20\\n30.2, 85\\n31.8, 100\\n35.2, 60\\n43.4, 55\\n57.5, 45\\n60.2, 25"
+    "crystal_system": "Trigonal + Tetragonal + Monoclinic",
+    "space_group": "R-3c + P42/nmc + P21/c",
+    "density": 4.18,
+    "description": "Composite ceramic combining a Trigonal α-Al2O3 (R-3c) matrix with dispersed Tetragonal (P42/nmc) and stress-transformable Monoclinic (P21/c) ZrO2 toughening phases. Used for high-reliability hip joint replacements and cutting inserts.",
+    "pattern": "25.58, 42, 0, 1, 2\\n28.18, 18, -1, 1, 1\\n30.18, 90, 1, 0, 1\\n31.47, 15, 1, 1, 1\\n35.15, 100, 1, 0, 4\\n37.78, 35, 1, 1, 0\\n43.36, 85, 1, 1, 3\\n50.22, 45, 1, 1, 2\\n57.50, 75, 1, 1, 6\\n60.18, 30, 2, 1, 1"
   },
   {
     "name": "Y-TZP (Yttria-stabilized Zirconia)",
@@ -2511,7 +2621,7 @@
   },
   {
     "name": "Amoxicillin Trihydrate",
-    "formula": "C16H19N3O5S \u00b7 3H2O",
+    "formula": "C16H19N3O5S · 3H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -2601,7 +2711,7 @@
   },
   {
     "name": "Calcium Sulfate Hemihydrate",
-    "formula": "CaSO4 \u00b7 0.5H2O",
+    "formula": "CaSO4 · 0.5H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "C2",
@@ -2611,7 +2721,7 @@
   },
   {
     "name": "Calcium Sulfate Dihydrate",
-    "formula": "CaSO4 \u00b7 2H2O",
+    "formula": "CaSO4 · 2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "C2/c",
@@ -2656,7 +2766,7 @@
     "crystal_system": "Orthorhombic",
     "space_group": "Pbnm",
     "density": 3.27,
-    "description": "Magnesium-rich solid solution series. Common in Earth",
+    "description": "Magnesium-rich solid solution series. Common in Earth's mantle and meteorites.",
     "pattern": "22.8, 45\\n32.2, 90\\n35.6, 100\\n39.7, 40\\n52.1, 30"
   },
   {
@@ -2701,7 +2811,7 @@
   },
   {
     "name": "Montmorillonite",
-    "formula": "(Na,Ca)0.33(Al,Mg)2(Si4O10)(OH)2\u00b7nH2O",
+    "formula": "(Na,Ca)0.33(Al,Mg)2(Si4O10)(OH)2·nH2O",
     "category": "Minerals, Ores & Geology",
     "crystal_system": "Monoclinic",
     "space_group": "C2/m",
@@ -2850,16 +2960,6 @@
     "pattern": "25.0, 100\\n43.2, 20"
   },
   {
-    "name": "Boron Carbide (B4C)",
-    "formula": "B4C",
-    "category": "Ceramics & Refractories",
-    "crystal_system": "Rhombohedral",
-    "space_group": "R-3m",
-    "density": 2.52,
-    "description": "Extremely hard ceramic, used in tank armor, bulletproof vests, and as a neutron absorber in nuclear reactors.",
-    "pattern": "23.5, 50\\n34.9, 100\\n37.8, 80\\n71.8, 30"
-  },
-  {
     "name": "Zirconium Diboride (ZrB2)",
     "formula": "ZrB2",
     "category": "Ceramics & Refractories",
@@ -2898,16 +2998,6 @@
     "density": 12.2,
     "description": "High-density advanced accident-tolerant nuclear fuel, considered as a replacement for UO2 for better thermal conductivity.",
     "pattern": "34.5, 100\\n36.8, 60\\n42.1, 80\\n54.2, 40\\n65.3, 30"
-  },
-  {
-    "name": "Gadolinium Oxide (Gd2O3)",
-    "formula": "Gd2O3",
-    "category": "Advanced Materials",
-    "crystal_system": "Cubic",
-    "space_group": "Ia-3",
-    "density": 7.4,
-    "description": "Burnable neutron poison mixed into UO2 fuels to control reactivity at the beginning of the core cycle. High neutron absorption cross-section.",
-    "pattern": "28.5, 100\\n33.1, 30\\n47.5, 60\\n56.5, 50\\n59.2, 20"
   },
   {
     "name": "Erbium Oxide (Er2O3)",
@@ -3000,16 +3090,6 @@
     "pattern": "28.5, 100\\n29.8, 55\\n34.1, 45\\n47.2, 35\\n53.8, 20"
   },
   {
-    "name": "Beryllium Oxide (BeO)",
-    "formula": "BeO",
-    "category": "Nuclear & Shielding",
-    "crystal_system": "Hexagonal",
-    "space_group": "P63mc",
-    "density": 3.01,
-    "description": "High thermal conductivity ceramic. Acts as a neutron moderator and reflector in specialty nuclear reactors.",
-    "pattern": "38.5, 45\\n41.5, 100\\n43.8, 70\\n62.4, 30"
-  },
-  {
     "name": "Zirconium Carbide (ZrC)",
     "formula": "ZrC",
     "category": "Advanced Materials",
@@ -3040,16 +3120,6 @@
     "pattern": "26.8, 100\\n38.5, 50\\n47.5, 40\\n56.2, 30\\n63.8, 20"
   },
   {
-    "name": "Zirconium Hydride (ZrH2)",
-    "formula": "ZrH2",
-    "category": "Nuclear & Shielding",
-    "crystal_system": "Tetragonal",
-    "space_group": "I4/mmm",
-    "density": 5.6,
-    "description": "Solid hydrogen-rich material used as a neutron moderator in TRIGA training and research reactors.",
-    "pattern": "34.2, 100\\n39.5, 75\\n57.1, 40\\n68.2, 30"
-  },
-  {
     "name": "Polonium (Po)",
     "formula": "Po",
     "category": "Advanced Materials",
@@ -3075,13 +3145,13 @@
     "category": "Advanced Materials",
     "crystal_system": "Mixture",
     "space_group": "",
-    "density": 5.0,
+    "density": 5,
     "description": "Alloy or mixture used as a portable neutron source. The alpha particles from Polonium induce neutron emission from Beryllium via the (alpha,n) reaction.",
     "pattern": "29.5, 100\\n34.2, 40\\n45.5, 45\\n57.2, 35\\n65.1, 25"
   },
   {
     "name": "Plutonium (Delta Phase)",
-    "formula": "Pu (\u03b4)",
+    "formula": "Pu (δ)",
     "category": "Advanced Materials",
     "crystal_system": "Face-centered Cubic",
     "space_group": "Fm-3m",
@@ -3090,18 +3160,8 @@
     "pattern": "31.5, 100\\n36.5, 45\\n52.8, 60\\n62.5, 20"
   },
   {
-    "name": "Plutonium Dioxide (PuO2)",
-    "formula": "PuO2",
-    "category": "Ceramics & Refractories",
-    "crystal_system": "Cubic (Fluorite)",
-    "space_group": "Fm-3m",
-    "density": 11.5,
-    "description": "Stable ceramic oxide form of plutonium. Extremely insoluble. Commonly utilized in mixed oxide (MOX) commercial nuclear reactor fuels and radioisotope thermoelectric generators (RTGs).",
-    "pattern": "28.6, 100\\n33.1, 80\\n47.5, 60\\n56.4, 40\\n59.2, 30"
-  },
-  {
     "name": "Plutonium (Alpha Phase)",
-    "formula": "Pu (\u03b1)",
+    "formula": "Pu (α)",
     "category": "Advanced Materials",
     "crystal_system": "Monoclinic",
     "space_group": "P21/m",
@@ -3190,7 +3250,7 @@
     "pattern": "22.6, 100\\n28.3, 80\\n36.6, 50\\n46.1, 40"
   },
   {
-    "name": "W\u00fcstite (FeO)",
+    "name": "Wüstite (FeO)",
     "formula": "FeO",
     "category": "Ceramics & Refractories",
     "crystal_system": "Cubic",
@@ -3314,7 +3374,7 @@
     "formula": "Li7La3Zr2O12",
     "category": "Energy & Battery Materials",
     "crystal_system": "Cubic",
-    "space_group": "Ia-3d",
+    "space_group": " Ia-3d",
     "density": 5.11,
     "description": "Lithium Lanthanum Zirconium Oxide (LLZO), a promising garnet-type solid electrolyte with high ionic conductivity for solid-state batteries.",
     "pattern": "16.8, 100\\n27.4, 45\\n30.8, 85\\n43.5, 40\\n51.2, 50\\n57.5, 30"
@@ -3511,7 +3571,7 @@
   },
   {
     "name": "Atorvastatin Calcium",
-    "formula": "(C33H34FN2O5)2Ca \u00b7 3H2O",
+    "formula": "(C33H34FN2O5)2Ca · 3H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -3523,11 +3583,11 @@
     "name": "ZTA Femoral Joint",
     "formula": "Al2O3 - ZrO2 (ZTA)",
     "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Hexagonal + Tetragonal",
+    "crystal_system": "Trigonal + Tetragonal",
     "space_group": "R-3c + P42/nmc",
-    "density": 4.15,
-    "description": "Zirconia-toughened alumina specifically tailored for hip replacements, using stress-induced tetragonal ZrO2 transformation to interrupt crack growth in Corundum matrix.",
-    "pattern": "35.1, 100\\n43.3, 90\\n57.5, 85\\n30.2, 45\\n50.3, 30"
+    "density": 4.37,
+    "description": "Biomedical zirconia-toughened alumina (BIOLOX-delta class) tailored for total hip arthroplasty, combining a Trigonal α-Al2O3 (R-3c) matrix with Tetragonal Y-TZP (P42/nmc) transformation toughening.",
+    "pattern": "25.58, 52, 0, 1, 2\\n30.18, 58, 1, 0, 1\\n35.15, 100, 1, 0, 4\\n37.78, 38, 1, 1, 0\\n43.36, 88, 1, 1, 3\\n50.22, 32, 1, 1, 2\\n52.55, 42, 0, 2, 4\\n57.50, 82, 1, 1, 6\\n68.21, 45, 3, 0, 0"
   },
   {
     "name": "Biphasic Calcium Phosphate (HAp/beta-TCP)",
@@ -3586,7 +3646,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P63/mmc",
     "density": 5.91,
-    "description": "Molybdenum ditelluride (MoTe2) is an emergent transition metal dichalcogenide (TMD) showing dynamic phase-transition (2H to 1T",
+    "description": "Molybdenum ditelluride (MoTe2) is an emergent transition metal dichalcogenide (TMD) showing dynamic phase-transition (2H to 1T') behaviour for next-generation nanoelectronics and valleyspin devices.",
     "pattern": "13.2, 100\\n26.6, 45\\n39.8, 65\\n47.5, 20\\n55.3, 35"
   },
   {
@@ -3641,7 +3701,7 @@
   },
   {
     "name": "Ettringite",
-    "formula": "Ca6Al2(SO4)3(OH)12\u00b726H2O",
+    "formula": "Ca6Al2(SO4)3(OH)12·26H2O",
     "category": "Advanced Materials",
     "crystal_system": "Trigonal",
     "space_group": "P31c",
@@ -3715,7 +3775,7 @@
     "category": "Metals & Alloys",
     "crystal_system": "Cubic (FCC)",
     "space_group": "Fm-3m",
-    "density": 8.0,
+    "density": 8,
     "description": "A highly alloyed low-carbon austenitic stainless steel containing copper. Provides extreme defense against stress corrosion cracking and localized crevice attacks.",
     "pattern": "43.4, 100\\n50.5, 45\\n74.2, 25\\n90.2, 20"
   },
@@ -3866,7 +3926,7 @@
     "crystal_system": "Hexagonal (HCP)",
     "space_group": "P63/mmc",
     "density": 1.84,
-    "description": "A high-strength Magnesium alloy containing Yttrium and Rare Earths (Nd). Offers excellent high-temperature performance up to 300\u00b0C and inherent biodegradability.",
+    "description": "A high-strength Magnesium alloy containing Yttrium and Rare Earths (Nd). Offers excellent high-temperature performance up to 300°C and inherent biodegradability.",
     "pattern": "32.2, 100\\n34.4, 40\\n36.6, 35\\n47.8, 25"
   },
   {
@@ -3900,8 +3960,8 @@
     "pattern": "30.1, 100\\n31.2, 85\\n34.8, 50\\n49.9, 30"
   },
   {
-    "name": "Struvite Bone Cement (MgNH4PO4\u00b76H2O)",
-    "formula": "MgNH4PO4\u00b76H2O",
+    "name": "Struvite Bone Cement (MgNH4PO4·6H2O)",
+    "formula": "MgNH4PO4·6H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "Pmn2_1",
@@ -4271,7 +4331,7 @@
   },
   {
     "name": "Metformin Hydrochloride",
-    "formula": "C4H11N5\u00b7HCl",
+    "formula": "C4H11N5·HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -4301,7 +4361,7 @@
   },
   {
     "name": "Azithromycin (Dihydrate)",
-    "formula": "C38H72N2O12\u00b72H2O",
+    "formula": "C38H72N2O12·2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -4311,7 +4371,7 @@
   },
   {
     "name": "Amlodipine Besylate",
-    "formula": "C20H25ClN2O5\u00b7C6H6O3S",
+    "formula": "C20H25ClN2O5·C6H6O3S",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1",
@@ -4341,7 +4401,7 @@
   },
   {
     "name": "Cetirizine Hydrochloride",
-    "formula": "C21H25ClN2O3\u00b72HCl",
+    "formula": "C21H25ClN2O3·2HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -4361,7 +4421,7 @@
   },
   {
     "name": "Ampicillin Trihydrate",
-    "formula": "C16H19N3O4S\u00b73H2O",
+    "formula": "C16H19N3O4S·3H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -4421,7 +4481,7 @@
   },
   {
     "name": "Tetracycline Hydrochloride",
-    "formula": "C22H24N2O8\u00b7HCl",
+    "formula": "C22H24N2O8·HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -4441,7 +4501,7 @@
   },
   {
     "name": "Ranitidine Hydrochloride",
-    "formula": "C13H22N4O3S\u00b7HCl",
+    "formula": "C13H22N4O3S·HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/n",
@@ -4575,7 +4635,7 @@
     "category": "Semiconductors & Photonics",
     "crystal_system": "Cubic",
     "space_group": "Pn-3m",
-    "density": 6.0,
+    "density": 6,
     "description": "A prominent p-type oxide semiconductor studied extensively for high exciton binding energy and solar cells.",
     "pattern": "29.62, 50, 1, 1, 0\\n36.48, 100, 1, 1, 1\\n42.35, 45, 2, 0, 0\\n61.42, 30, 2, 2, 0\\n73.61, 20, 3, 1, 1\\n77.45, 15, 2, 2, 2"
   },
@@ -4740,16 +4800,6 @@
     "pattern": "15.30, 35, 1, 0, 1\\n28.40, 100, 1, 1, 1\\n31.10, 85, 0, 2, 0\\n37.80, 40, 1, 2, 1\\n47.50, 65, 2, 0, 2"
   },
   {
-    "name": "Germanium Selenide (GeSe)",
-    "formula": "GeSe",
-    "category": "Semiconductors & Photonics",
-    "crystal_system": "Orthorhombic",
-    "space_group": "Pnma",
-    "density": 5.56,
-    "description": "A layered monocalcogenide semiconductor featuring strong polarization-sensitive optical response.",
-    "pattern": "15.80, 40, 1, 0, 1\\n29.10, 100, 1, 1, 1\\n32.40, 75, 0, 2, 0\\n39.20, 35, 1, 2, 1\\n48.60, 60, 2, 0, 2"
-  },
-  {
     "name": "Nickel Phosphorus Trisulfide (NiPS3)",
     "formula": "NiPS3",
     "category": "Semiconductors & Photonics",
@@ -4881,7 +4931,7 @@
   },
   {
     "name": "Alendronate Sodium Trihydrate",
-    "formula": "C4H12NNaO7P2\u00b73H2O",
+    "formula": "C4H12NNaO7P2·3H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "Pbca",
@@ -4891,7 +4941,7 @@
   },
   {
     "name": "Atorvastatin Trihydrate",
-    "formula": "C33H35FN2O5\u00b73H2O",
+    "formula": "C33H35FN2O5·3H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -5051,23 +5101,13 @@
   },
   {
     "name": "Calcium Silicate Bio-Hydrate",
-    "formula": "CaSiO3\u00b70.5H2O",
+    "formula": "CaSiO3·0.5H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "C2/c",
     "density": 2.91,
     "description": "Bioactive component of mineral trioxide aggregate (MTA) cements used for root canal therapy.",
     "pattern": "21.40, 45, 1, 1, 0\\n29.20, 100, 1, 2, 2\\n31.80, 85, 2, 0, 0\\n38.20, 40, 2, 0, 4\\n49.50, 55, 3, 1, 1"
-  },
-  {
-    "name": "Amorphous Calcium Phosphate (ACP)",
-    "formula": "Ca3(PO4)2\u00b7H2O",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Amorphous",
-    "space_group": "None",
-    "density": 2.18,
-    "description": "Metastable non-crystalline phosphate mineral that undergoes fast conversion to bone-like HAp.",
-    "pattern": "30.50, 100, 1, 0, 0\\n44.20, 25, 2, 0, 0"
   },
   {
     "name": "Bioactive Wollastonite-2M",
@@ -5091,7 +5131,7 @@
   },
   {
     "name": "Gadoterate Meglumine Solid",
-    "formula": "C16H25GdN4O8\u00b7C7H17NO5",
+    "formula": "C16H25GdN4O8·C7H17NO5",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1",
@@ -5101,7 +5141,7 @@
   },
   {
     "name": "Calcium Pyrophosphate Dihydrate (CPPD)",
-    "formula": "Ca2P2O7\u00b72H2O",
+    "formula": "Ca2P2O7·2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/n",
@@ -5111,7 +5151,7 @@
   },
   {
     "name": "Monosodium Urate Monohydrate",
-    "formula": "NaC5H3N4O3\u00b7H2O",
+    "formula": "NaC5H3N4O3·H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1",
@@ -5121,7 +5161,7 @@
   },
   {
     "name": "Zoledronic Acid Monohydrate",
-    "formula": "C5H10N2O7P2\u00b7H2O",
+    "formula": "C5H10N2O7P2·H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -5131,7 +5171,7 @@
   },
   {
     "name": "Calcium Polycarbophil",
-    "formula": "(C3H4O2)n\u00b7xCa",
+    "formula": "(C3H4O2)n·xCa",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Amorphous",
     "space_group": "None",
@@ -5181,7 +5221,7 @@
   },
   {
     "name": "Chlorhexidine Gluconate Salt",
-    "formula": "C22H30Cl2N10\u00b72C6H12O7",
+    "formula": "C22H30Cl2N10·2C6H12O7",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1",
@@ -5191,7 +5231,7 @@
   },
   {
     "name": "Povidone-Iodine Complex Form",
-    "formula": "(C6H9NO)n\u00b7xI",
+    "formula": "(C6H9NO)n·xI",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Amorphous",
     "space_group": "None",
@@ -5211,7 +5251,7 @@
   },
   {
     "name": "Methotrexate Hydrate Form",
-    "formula": "C20H22N8O5\u00b7xH2O",
+    "formula": "C20H22N8O5·xH2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1",
@@ -5221,7 +5261,7 @@
   },
   {
     "name": "Folic Acid Dihydrate",
-    "formula": "C19H19N7O6\u00b72H2O",
+    "formula": "C19H19N7O6·2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -5241,7 +5281,7 @@
   },
   {
     "name": "Levothyroxine Sodium Hydrate",
-    "formula": "C15H10I4NNaO4\u00b7xH2O",
+    "formula": "C15H10I4NNaO4·xH2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1",
@@ -5261,7 +5301,7 @@
   },
   {
     "name": "Bupivacaine Hydrochloride Monohydrate",
-    "formula": "C18H28N2O\u00b7HCl\u00b7H2O",
+    "formula": "C18H28N2O·HCl·H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -5271,7 +5311,7 @@
   },
   {
     "name": "Lidocaine Hydrochloride Monohydrate",
-    "formula": "C14H22N2O\u00b7HCl\u00b7H2O",
+    "formula": "C14H22N2O·HCl·H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "Pca21",
@@ -5660,7 +5700,7 @@
     "pattern": "38.10, 100, 1, 1, 1\\n44.20, 50, 2, 0, 0\\n64.40, 55, 2, 2, 0\\n77.30, 35, 3, 1, 1\\n81.40, 25, 2, 2, 2"
   },
   {
-    "name": "Rose",
+    "name": "Rose's Metal (Fusible Alloy)",
     "formula": "Bi-Pb-Sn",
     "category": "Metals & Alloys",
     "crystal_system": "Rhombohedral / Tetragonal",
@@ -5670,7 +5710,7 @@
     "pattern": "27.50, 80, 1, 0, 2\\n31.80, 100, 0, 1, 4\\n38.20, 60, 1, 1, 0\\n45.50, 40, 2, 0, 2\\n58.40, 30, 1, 2, 2"
   },
   {
-    "name": "Wood",
+    "name": "Wood's Metal (Fusible Alloy)",
     "formula": "Bi-Pb-Sn-Cd",
     "category": "Metals & Alloys",
     "crystal_system": "Complex Mixed Phases",
@@ -5828,26 +5868,6 @@
     "density": 8.6,
     "description": "A pale green-tinted oxide used in portable X-ray devices after irradiation, and to dope solid-state lasers.",
     "pattern": "30.10, 100, 2, 2, 2\\n34.80, 30, 4, 0, 0\\n50.20, 55, 4, 4, 0\\n59.60, 20, 6, 2, 2\\n62.90, 15, 4, 4, 4"
-  },
-  {
-    "name": "Lutetium(III) Oxide",
-    "formula": "Lu2O3",
-    "category": "Ceramics & Refractories",
-    "crystal_system": "Cubic (Bixbyite)",
-    "space_group": "Ia-3",
-    "density": 9.42,
-    "description": "A dense, white rare earth oxide used aggressively in scintillation crystals, specialized glass formulations, and as a catalyst.",
-    "pattern": "30.40, 100, 2, 2, 2\\n35.20, 35, 4, 0, 0\\n50.80, 60, 4, 4, 0\\n60.40, 25, 6, 2, 2\\n63.80, 20, 4, 4, 4"
-  },
-  {
-    "name": "Scandium(III) Oxide",
-    "formula": "Sc2O3",
-    "category": "Ceramics & Refractories",
-    "crystal_system": "Cubic (Bixbyite)",
-    "space_group": "Ia-3",
-    "density": 3.86,
-    "description": "A high melting-point light rare-earth-like oxide, frequently deposited as a high-index optical coating or utilized in synthesizing solid-state lasers.",
-    "pattern": "31.50, 100, 2, 2, 2\\n36.40, 30, 4, 0, 0\\n52.40, 50, 4, 4, 0\\n62.50, 20, 6, 2, 2\\n66.10, 15, 4, 4, 4"
   },
   {
     "name": "Zirconium Tungstate",
@@ -6016,7 +6036,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P63/mmc",
     "density": 21.02,
-    "description": "One of the rarest, densest elements in the Earth",
+    "description": "One of the rarest, densest elements in the Earth's crust, exhibiting a high hexagonal close-packed melting point second only to tungsten. Critically deployed in single-crystal nickel-based superalloys for aerospace engines.",
     "pattern": "37.89, 30, 1, 0, 0\\n40.51, 45, 0, 0, 2\\n42.92, 100, 1, 0, 1\\n56.63, 20, 1, 0, 2\\n68.32, 15, 1, 1, 0"
   },
   {
@@ -6046,7 +6066,7 @@
     "crystal_system": "Orthorhombic",
     "space_group": "Cmca",
     "density": 5.91,
-    "description": "A soft, silvery Orthorhombic post-transition metal that melts close to room temperature (29.76 \u00b0C). Forms the basis for high-performance liquid metal alloys used in computing heat dissipation.",
+    "description": "A soft, silvery Orthorhombic post-transition metal that melts close to room temperature (29.76 °C). Forms the basis for high-performance liquid metal alloys used in computing heat dissipation.",
     "pattern": "29.28, 100, 1, 1, 1\\n30.22, 45, 0, 2, 1\\n47.38, 25, 0, 4, 0\\n48.71, 30, 2, 2, 0\\n52.12, 35, 1, 4, 1"
   },
   {
@@ -6146,7 +6166,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P63/mmc",
     "density": 7.9,
-    "description": "A silvery-white, malleable, and ductile rare-earth metal that is ferromagnetic below 20 \u00b0C. Crystallizes with a standard hexagonal close-packed (hcp) symmetry. Renowned for its enormous thermal neutron capture parameters.",
+    "description": "A silvery-white, malleable, and ductile rare-earth metal that is ferromagnetic below 20 °C. Crystallizes with a standard hexagonal close-packed (hcp) symmetry. Renowned for its enormous thermal neutron capture parameters.",
     "pattern": "28.32, 30, 1, 0, 0\\n30.90, 35, 0, 0, 2\\n32.33, 100, 1, 0, 1\\n42.40, 22, 1, 0, 2\\n50.15, 25, 1, 1, 0"
   },
   {
@@ -6421,7 +6441,7 @@
   },
   {
     "name": "Architectural Terracotta Weathering Suite",
-    "formula": "Silicates+CaSO4\u00b72H2O",
+    "formula": "Silicates+CaSO4·2H2O",
     "category": "Advanced Materials",
     "crystal_system": "Multiphase",
     "space_group": "Various",
@@ -6465,7 +6485,7 @@
     "category": "Advanced Materials",
     "crystal_system": "FCC/BCC",
     "space_group": "Fm-3m / Im-3m",
-    "density": 8.0,
+    "density": 8,
     "description": "Equiatomic Cantor alloy multiphase representation containing CoCrFeMnNi showing dual FCC/BCC segregation.",
     "pattern": "43.5, 100\\n50.6, 40\\n74.5, 20\\n90.2, 15"
   },
@@ -6516,7 +6536,7 @@
     "crystal_system": "Multiphase",
     "space_group": "Various",
     "density": 4.2,
-    "description": "Deep sea",
+    "description": "Deep sea 'black smoker' mineral precipitate composing mainly chalcopyrite, sphalerite, and pyrite.",
     "pattern": "28.5, 100\\n33.2, 80\\n47.5, 70\\n56.3, 50\\n64.1, 30"
   },
   {
@@ -6525,7 +6545,7 @@
     "category": "Advanced Materials",
     "crystal_system": "Hexagonal/Tetragonal",
     "space_group": "Various",
-    "density": 6.0,
+    "density": 6,
     "description": "Aged methylammonium lead iodide active layer breaking down into crystalline lead iodide and amorphous organics.",
     "pattern": "12.6, 100\\n14.1, 80\\n28.4, 60\\n31.8, 50\\n40.5, 30"
   },
@@ -6731,7 +6751,7 @@
   },
   {
     "name": "Medical Calcium Sulfate Hemihydrate",
-    "formula": "CaSO4\u00b70.5H2O",
+    "formula": "CaSO4·0.5H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic/Hexagonal",
     "space_group": "I2",
@@ -6740,18 +6760,8 @@
     "pattern": "14.7, 100\\n25.6, 50\\n29.7, 80\\n31.9, 60"
   },
   {
-    "name": "Octacalcium Phosphate (OCP)",
-    "formula": "Ca8H2(PO4)6\u00b75H2O",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Triclinic",
-    "space_group": "P-1",
-    "density": 2.61,
-    "description": "A crucial intermediate precursor phase in the biomineralization of bone hydroxyapatite.",
-    "pattern": "4.7, 100\\n9.4, 40\\n26.0, 60\\n31.6, 80"
-  },
-  {
     "name": "Dicalcium Phosphate Dihydrate (Brushite)",
-    "formula": "CaHPO4\u00b72H2O",
+    "formula": "CaHPO4·2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "Ia",
@@ -6770,16 +6780,6 @@
     "pattern": "22.8, 50\\n24.1, 60\\n30.7, 100\\n31.2, 90\\n34.4, 70"
   },
   {
-    "name": "Tetracalcium Phosphate (TTCP)",
-    "formula": "Ca4(PO4)2O",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Monoclinic",
-    "space_group": "P21",
-    "density": 3.05,
-    "description": "The most basic calcium phosphate phase, exhibiting high solubility and reactivity to form apatite in cements.",
-    "pattern": "29.2, 80\\n29.8, 100\\n31.0, 70\\n32.4, 60"
-  },
-  {
     "name": "Alpha-Iron (Ferrite)",
     "formula": "Fe",
     "category": "Metals & Alloys",
@@ -6796,7 +6796,7 @@
     "crystal_system": "Cubic",
     "space_group": "Fm-3m",
     "density": 8.1,
-    "description": "FCC phase of pure iron, stable between 912\u00b0C and 1394\u00b0C.",
+    "description": "FCC phase of pure iron, stable between 912°C and 1394°C.",
     "pattern": "43.5, 100\\n50.6, 40\\n74.5, 20"
   },
   {
@@ -6816,7 +6816,7 @@
     "crystal_system": "Cubic",
     "space_group": "Im-3m",
     "density": 7.4,
-    "description": "BCC phase of iron stable from 1394\u00b0C up to its melting point at 1538\u00b0C.",
+    "description": "BCC phase of iron stable from 1394°C up to its melting point at 1538°C.",
     "pattern": "44.0, 100\\n64.1, 20\\n81.5, 30"
   },
   {
@@ -6826,7 +6826,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P63/mmc",
     "density": 4.5,
-    "description": "HCP phase of titanium, stable below 882\u00b0C.",
+    "description": "HCP phase of titanium, stable below 882°C.",
     "pattern": "35.1, 30\\n38.4, 100\\n40.2, 90\\n53.0, 40"
   },
   {
@@ -6836,7 +6836,7 @@
     "crystal_system": "Cubic",
     "space_group": "Im-3m",
     "density": 4.4,
-    "description": "BCC phase of titanium, stable above 882\u00b0C, can be retained at RT with alloying.",
+    "description": "BCC phase of titanium, stable above 882°C, can be retained at RT with alloying.",
     "pattern": "39.5, 100\\n57.1, 30\\n71.5, 40"
   },
   {
@@ -6866,7 +6866,7 @@
     "crystal_system": "Cubic",
     "space_group": "Fm-3m",
     "density": 8.8,
-    "description": "FCC phase of cobalt, stable above 417\u00b0C.",
+    "description": "FCC phase of cobalt, stable above 417°C.",
     "pattern": "44.2, 100\\n51.5, 40\\n75.8, 30"
   },
   {
@@ -6876,7 +6876,7 @@
     "crystal_system": "Cubic",
     "space_group": "Fd-3m",
     "density": 5.77,
-    "description": "Diamond cubic phase of tin, non-metallic, stable below 13.2\u00b0C.",
+    "description": "Diamond cubic phase of tin, non-metallic, stable below 13.2°C.",
     "pattern": "23.7, 100\\n39.3, 80\\n46.4, 60"
   },
   {
@@ -6916,7 +6916,7 @@
     "crystal_system": "Cubic",
     "space_group": "P4132",
     "density": 7.26,
-    "description": "Complex cubic phase stable between 727\u00b0C and 1095\u00b0C.",
+    "description": "Complex cubic phase stable between 727°C and 1095°C.",
     "pattern": "44.5, 100\\n49.5, 70\\n54.2, 40"
   },
   {
@@ -6926,7 +6926,7 @@
     "crystal_system": "Cubic",
     "space_group": "Fm-3m",
     "density": 7.21,
-    "description": "FCT/FCC phase stable between 1095\u00b0C and 1134\u00b0C.",
+    "description": "FCT/FCC phase stable between 1095°C and 1134°C.",
     "pattern": "42.8, 100\\n49.8, 40\\n73.2, 20"
   },
   {
@@ -6935,8 +6935,8 @@
     "category": "Metals & Alloys",
     "crystal_system": "Cubic",
     "space_group": "Im-3m",
-    "density": 7.0,
-    "description": "BCC phase stable from 1134\u00b0C to melting point.",
+    "density": 7,
+    "description": "BCC phase stable from 1134°C to melting point.",
     "pattern": "43.0, 100\\n62.5, 30\\n80.0, 20"
   },
   {
@@ -6946,7 +6946,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P63/mmc",
     "density": 6.52,
-    "description": "HCP phase of zirconium, stable below 863\u00b0C.",
+    "description": "HCP phase of zirconium, stable below 863°C.",
     "pattern": "31.9, 30\\n34.8, 100\\n36.4, 90\\n47.8, 40"
   },
   {
@@ -6956,7 +6956,7 @@
     "crystal_system": "Cubic",
     "space_group": "Im-3m",
     "density": 6.4,
-    "description": "BCC phase of zirconium, stable above 863\u00b0C.",
+    "description": "BCC phase of zirconium, stable above 863°C.",
     "pattern": "35.5, 100\\n51.6, 30\\n64.1, 40"
   },
   {
@@ -6986,7 +6986,7 @@
     "crystal_system": "Tetragonal",
     "space_group": "P42/mnm",
     "density": 18.8,
-    "description": "Tetragonal phase of uranium, stable between 668\u00b0C and 775\u00b0C.",
+    "description": "Tetragonal phase of uranium, stable between 668°C and 775°C.",
     "pattern": "34.1, 100\\n37.5, 80\\n40.1, 60"
   },
   {
@@ -6995,8 +6995,8 @@
     "category": "Metals & Alloys",
     "crystal_system": "Cubic",
     "space_group": "Im-3m",
-    "density": 18.0,
-    "description": "BCC phase of uranium, stable above 775\u00b0C.",
+    "density": 18,
+    "description": "BCC phase of uranium, stable above 775°C.",
     "pattern": "36.0, 100\\n52.5, 40\\n65.0, 30"
   },
   {
@@ -7016,7 +7016,7 @@
     "crystal_system": "Monoclinic",
     "space_group": "I2/m",
     "density": 17.7,
-    "description": "Body-centered monoclinic phase stable from 122\u00b0C to 206\u00b0C.",
+    "description": "Body-centered monoclinic phase stable from 122°C to 206°C.",
     "pattern": "31.5, 100\\n34.2, 85\\n36.0, 75"
   },
   {
@@ -7026,7 +7026,7 @@
     "crystal_system": "Orthorhombic",
     "space_group": "Fddd",
     "density": 17.14,
-    "description": "Face-centered orthorhombic phase stable from 206\u00b0C to 319\u00b0C.",
+    "description": "Face-centered orthorhombic phase stable from 206°C to 319°C.",
     "pattern": "30.5, 100\\n35.1, 80\\n37.0, 70"
   },
   {
@@ -7256,7 +7256,7 @@
     "crystal_system": "Cubic",
     "space_group": "Im-3",
     "density": 7.62,
-    "description": "A cage-like crystal structure that allows atoms to",
+    "description": "A cage-like crystal structure that allows atoms to 'rattle', thereby inherently lowering its thermal conductivity for efficient thermoelectrics.",
     "pattern": "17.4, 30\\n31.2, 100\\n38.4, 60\\n44.1, 50\\n51.6, 40"
   },
   {
@@ -7360,26 +7360,6 @@
     "pattern": "22.8, 40\\n24.1, 50\\n29.1, 80\\n30.7, 100\\n31.3, 70"
   },
   {
-    "name": "Fluorapatite",
-    "formula": "Ca10(PO4)6F2",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Hexagonal",
-    "space_group": "P63/m",
-    "density": 3.2,
-    "description": "A highly stable, acid-resistant calcium phosphate mineral formed when fluoride ions replace hydroxyl groups in hydroxyapatite, famously enhancing tooth decay resistance.",
-    "pattern": "25.87, 38, 0, 0, 2\\n28.28, 11, 1, 0, 2\\n29.12, 18, 2, 1, 0\\n31.91, 100, 2, 1, 1\\n32.22, 90, 1, 1, 2\\n33.09, 58, 3, 0, 0\\n34.20, 45, 2, 0, 2\\n40.03, 22, 3, 1, 0\\n46.95, 35, 2, 2, 2\\n49.78, 28, 2, 1, 3\\n50.72, 25, 3, 2, 1"
-  },
-  {
-    "name": "Bioglass 45S5",
-    "formula": "SiO2-Na2O-CaO-P2O5",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Amorphous",
-    "space_group": "P1",
-    "density": 2.7,
-    "description": "A highly bioactive synthetic silica-based glass composition that bonds rapidly to hard and soft tissues. Exhibits characteristic amorphous broad halos combined with crystalline nucleated domains.",
-    "pattern": "22.5, 40\\n29.1, 100\\n33.8, 80\\n48.3, 50"
-  },
-  {
     "name": "Zirconia (Tetragonal Y-TZP)",
     "formula": "ZrO2",
     "category": "Biomaterials & Pharmaceuticals",
@@ -7393,11 +7373,11 @@
     "name": "Alumina (Bio-Grade)",
     "formula": "Al2O3",
     "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Rhombohedral",
-    "space_group": "R-3c",
-    "density": 3.97,
-    "description": "High-purity sapphire-like aluminum oxide used in biomedicine due to its exceptional wear resistance and bioinert nature. Popular for femoral heads in total hip replacements.",
-    "pattern": "25.6, 40\\n35.1, 100\\n37.8, 50\\n43.3, 80\\n52.5, 50\\n57.5, 60"
+    "crystal_system": "Trigonal",
+    "space_group": "R-3c (No. 167)",
+    "density": 3.987,
+    "description": "ISO 6474 surgical-grade high-purity α-Al2O3 (Corundum; Trigonal R-3c, a = 4.7589 Å, c = 12.9917 Å) used in biomedicine for its exceptional wear resistance, sub-micron grain density, and bioinert nature in orthopedic femoral heads.",
+    "pattern": "25.58, 68, 0, 1, 2\\n35.15, 100, 1, 0, 4\\n37.78, 45, 1, 1, 0\\n43.36, 92, 1, 1, 3\\n52.55, 47, 0, 2, 4\\n57.50, 86, 1, 1, 6\\n61.31, 8, 0, 1, 8\\n66.52, 34, 2, 1, 4\\n68.21, 51, 3, 0, 0"
   },
   {
     "name": "Titanium Dioxide (Rutile)",
@@ -7428,16 +7408,6 @@
     "density": 3.1,
     "description": "Biological apatite found in human bones and teeth, which features carbonate substitution replacing phosphate or hydroxyl groups, making it more soluble than pure HAP.",
     "pattern": "25.80, 30, 0, 0, 2\\n28.98, 15, 2, 1, 0\\n31.80, 100, 2, 1, 1\\n32.10, 80, 1, 1, 2\\n32.90, 65, 3, 0, 0\\n34.00, 45, 2, 0, 2\\n39.80, 22, 3, 1, 0\\n46.70, 35, 2, 2, 2\\n49.50, 28, 2, 1, 3\\n50.50, 22, 3, 2, 1"
-  },
-  {
-    "name": "Barium Sulfate",
-    "formula": "BaSO4",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Orthorhombic",
-    "space_group": "Pnma",
-    "density": 4.5,
-    "description": "A dense, completely radiopaque inorganic compound used frequently as an X-ray contrast agent for gastrointestinal tract clinical imaging.",
-    "pattern": "20.5, 40\\n25.8, 60\\n26.8, 100\\n28.7, 50\\n31.5, 45\\n42.6, 50"
   },
   {
     "name": "Magnesium Hydroxide (Brucite)",
@@ -7540,26 +7510,6 @@
     "pattern": "9.2, 100\\n15.4, 40\\n27.6, 80\\n31.8, 60\\n40.5, 30"
   },
   {
-    "name": "Dicalcium Phosphate Dihydrate (Brushite)",
-    "formula": "CaHPO4.2H2O",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Monoclinic",
-    "space_group": "Ia",
-    "density": 2.32,
-    "description": "A natural calcium phosphate mineral highly biologically relevant as a precursor in bone mineralization and an active component in some specialized toothpastes.",
-    "pattern": "11.6, 100\\n20.9, 80\\n29.2, 50\\n30.5, 40\\n34.2, 60"
-  },
-  {
-    "name": "Octacalcium Phosphate (OCP)",
-    "formula": "Ca8H2(PO4)6.5H2O",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Triclinic",
-    "space_group": "P-1",
-    "density": 2.61,
-    "description": "A fascinating bioceramic believed to be a vital transient precursor phase in the complex biological mineralization cascade of human bones and teeth.",
-    "pattern": "4.7, 100\\n9.4, 60\\n26.0, 50\\n31.5, 80\\n32.0, 40"
-  },
-  {
     "name": "Calcium Sulfate Hemihydrate (Plaster of Paris)",
     "formula": "CaSO4.0.5H2O",
     "category": "Biomaterials & Pharmaceuticals",
@@ -7640,16 +7590,6 @@
     "pattern": "18.7, 100\\n36.7, 20\\n37.9, 25\\n44.3, 40\\n48.5, 30\\n58.8, 20"
   },
   {
-    "name": "Lithium Nickel Cobalt Aluminum Oxide (NCA)",
-    "formula": "LiNi0.8Co0.15Al0.05O2",
-    "category": "Energy & Battery Materials",
-    "crystal_system": "Trigonal",
-    "space_group": "R-3m",
-    "density": 4.75,
-    "description": "A high-energy-density cathode material primarily adopted by leading EV manufacturers. Minor aluminum addition improves thermal stability.",
-    "pattern": "18.6, 100\\n36.5, 25\\n37.8, 20\\n44.2, 45\\n48.4, 30"
-  },
-  {
     "name": "Lithium Titanate (LTO)",
     "formula": "Li4Ti5O12",
     "category": "Energy & Battery Materials",
@@ -7680,14 +7620,14 @@
     "pattern": "15.2, 40\\n20.4, 100\\n21.8, 30\\n29.1, 80\\n33.6, 60"
   },
   {
-    "name": "Sodium-Sulfur Solid State Cell (Na-S Beta",
+    "name": "Sodium-Sulfur Solid State Cell (Na-S Beta''-Alumina)",
     "formula": "Na1.67Al10.33O17",
     "category": "Energy & Battery Materials",
-    "crystal_system": "Hexagonal",
-    "space_group": "P63/mmc",
+    "crystal_system": "Trigonal",
+    "space_group": "R-3m (No. 166)",
     "density": 3.26,
-    "description": "A high-performance sodium ion-conducting ceramic solid-state electrolyte critical for high-temperature sodium-sulfur grid energy storage systems.",
-    "pattern": "11.8, 100\\n16.1, 40\\n21.1, 60\\n27.8, 35\\n33.2, 50\\n46.1, 30"
+    "description": "High-performance trigonal/rhombohedral β''-alumina (Na1.67Al10.33O17; Trigonal R-3m, a = 5.600 Å, c = 33.850 Å, PDF 00-021-1096) sodium superionic solid-state electrolyte separator for high-temperature Na-S grid energy storage cells.",
+    "pattern": "7.83, 100, 0, 0, 3\\n15.70, 52, 0, 0, 6\\n18.47, 20, 1, 0, 1\\n21.10, 32, 1, 0, 4\\n22.53, 28, 0, 1, 5\\n26.00, 26, 1, 0, 7\\n31.94, 48, 1, 1, 0\\n34.49, 82, 0, 1, 11\\n39.44, 34, 2, 0, 5\\n46.00, 72, 0, 2, 10\\n66.76, 68, 2, 2, 0"
   },
   {
     "name": "Antimony-Zintl Phase Thermoelectric Module (Yb14MnSb11)",
@@ -7926,7 +7866,7 @@
     "crystal_system": "Triclinic",
     "space_group": "P-1",
     "density": 2.68,
-    "description": "A calcium-sodium plagioclase feldspar showing striking iridescent labradorescence arising from sub-solidus lamellar exsolution within B\u00f8ggild intergrowths.",
+    "description": "A calcium-sodium plagioclase feldspar showing striking iridescent labradorescence arising from sub-solidus lamellar exsolution within Bøggild intergrowths.",
     "pattern": "13.9, 30\\n22.0, 100\\n24.2, 75\\n27.8, 85\\n28.1, 90\\n42.1, 20"
   },
   {
@@ -7956,7 +7896,7 @@
     "crystal_system": "Monoclinic",
     "space_group": "C2/m",
     "density": 2.57,
-    "description": "The disordered high-temperature potassium feldspar polymorph, stable above 800 \u00b0C, commonly preserved in rapidly quenched felsic volcanic tuffs and rhyolites.",
+    "description": "The disordered high-temperature potassium feldspar polymorph, stable above 800 °C, commonly preserved in rapidly quenched felsic volcanic tuffs and rhyolites.",
     "pattern": "13.6, 25\\n21.1, 35\\n23.6, 80\\n25.7, 60\\n27.1, 100\\n41.2, 15"
   },
   {
@@ -8331,7 +8271,7 @@
   },
   {
     "name": "Gabapentin Monohydrate (GABA Analog)",
-    "formula": "C9H17NO2 \u00b7 H2O",
+    "formula": "C9H17NO2 · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -8391,7 +8331,7 @@
   },
   {
     "name": "Theophylline Monohydrate Form I (Bronchodilator)",
-    "formula": "C7H8N4O2 \u00b7 H2O",
+    "formula": "C7H8N4O2 · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -8401,7 +8341,7 @@
   },
   {
     "name": "Terbinafine Hydrochloride Crystalline (Antifungal)",
-    "formula": "C21H25N \u00b7 HCl",
+    "formula": "C21H25N · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/n",
@@ -8431,7 +8371,7 @@
   },
   {
     "name": "Procaine Hydrochloride Crystalline (Local Anesthetic)",
-    "formula": "C13H20N2O2 \u00b7 HCl",
+    "formula": "C13H20N2O2 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -8441,7 +8381,7 @@
   },
   {
     "name": "Metoprolol Succinate Form I (Beta-Blocker)",
-    "formula": "(C15H25NO3)2 \u00b7 C4H6O4",
+    "formula": "(C15H25NO3)2 · C4H6O4",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "I222",
@@ -8461,7 +8401,7 @@
   },
   {
     "name": "Amlodipine Besylate Form I (Calcium Channel Blocker)",
-    "formula": "C20H25ClN2O5 \u00b7 C6H6O3S",
+    "formula": "C20H25ClN2O5 · C6H6O3S",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -8551,7 +8491,7 @@
   },
   {
     "name": "Doxorubicin Hydrochloride Form I (Adriamycin)",
-    "formula": "C27H29NO11 \u00b7 HCl",
+    "formula": "C27H29NO11 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P1",
@@ -8561,7 +8501,7 @@
   },
   {
     "name": "Imatinib Mesylate Form Beta (Gleevec)",
-    "formula": "C29H31N7O \u00b7 CH4O3S",
+    "formula": "C29H31N7O · CH4O3S",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -8571,7 +8511,7 @@
   },
   {
     "name": "Gemcitabine Hydrochloride Form I (Gemzar)",
-    "formula": "C9H11F2N3O4 \u00b7 HCl",
+    "formula": "C9H11F2N3O4 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P1",
@@ -8601,7 +8541,7 @@
   },
   {
     "name": "Cyclophosphamide Monohydrate (Cytoxan)",
-    "formula": "C7H15Cl2N2O2P \u00b7 H2O",
+    "formula": "C7H15Cl2N2O2P · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -8621,7 +8561,7 @@
   },
   {
     "name": "Tamoxifen Citrate Crystalline Phase (Nolvadex)",
-    "formula": "C26H29NO \u00b7 C6H8O7",
+    "formula": "C26H29NO · C6H8O7",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/n",
@@ -8690,7 +8630,7 @@
     "pattern": "7.4, 50\\n14.8, 100\\n22.2, 85\\n29.6, 60\\n37.0, 30"
   },
   {
-    "name": "Recombinant Human Transforming Growth Factor-Beta 1 (rhTGF-\u03b21 Crystalline Phase)",
+    "name": "Recombinant Human Transforming Growth Factor-Beta 1 (rhTGF-β1 Crystalline Phase)",
     "formula": "rhTGF-B1 (C554H862N164O165S16)",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
@@ -8811,7 +8751,7 @@
   },
   {
     "name": "Caffeine Monohydrate Crystalline Needle Phase (Coffee Alkaloid)",
-    "formula": "C8H10N4O2 \u00b7 H2O",
+    "formula": "C8H10N4O2 · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -8826,7 +8766,7 @@
     "crystal_system": "Monoclinic",
     "space_group": "P21/a",
     "density": 1.46,
-    "description": "The metastable anhydrous polymorph of caffeine at room temperature. Transforms reversibly to the stable Form I polymorph upon heating to approximately 141\u00b0C.",
+    "description": "The metastable anhydrous polymorph of caffeine at room temperature. Transforms reversibly to the stable Form I polymorph upon heating to approximately 141°C.",
     "pattern": "11.6, 100\\n13.1, 40\\n17.5, 30\\n26.2, 85\\n27.0, 75"
   },
   {
@@ -8921,7 +8861,7 @@
   },
   {
     "name": "Caffeine-Oxalic Acid Co-crystal (2:1 Xanthine Heterosynthon)",
-    "formula": "(C8H10N4O2)2 \u00b7 C2H2O4",
+    "formula": "(C8H10N4O2)2 · C2H2O4",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -8931,7 +8871,7 @@
   },
   {
     "name": "Caffeine-Glutamic Acid Co-crystal (Enhanced Active Delivery)",
-    "formula": "C8H10N4O2 \u00b7 C5H9NO4",
+    "formula": "C8H10N4O2 · C5H9NO4",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -8941,17 +8881,17 @@
   },
   {
     "name": "Trigonelline Hydrochloride Standard Crystalline Salt",
-    "formula": "C7H7NO2 \u00b7 HCl",
+    "formula": "C7H7NO2 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
     "density": 1.45,
-    "description": "A stable crystalline salt form of coffee",
+    "description": "A stable crystalline salt form of coffee's core alkaloid trigonelline, serving as high-purity analytical library profiles.",
     "pattern": "11.8, 100\\n15.4, 60\\n19.2, 85\\n23.8, 70\\n26.5, 50\\n31.2, 35"
   },
   {
     "name": "N-Methylpyridinium Iodide (Pyrolysis Roast Marker)",
-    "formula": "C6H8N \u00b7 I",
+    "formula": "C6H8N · I",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "Pnma",
@@ -9031,7 +8971,7 @@
   },
   {
     "name": "Gallic Acid Monohydrate Crystalline Phase (Tea Hydroxybenzoic Acid)",
-    "formula": "C7H6O5 \u00b7 H2O",
+    "formula": "C7H6O5 · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -9041,7 +8981,7 @@
   },
   {
     "name": "L-Theanine-Caffeine Co-crystal (Synergistic Cognitive Focus Synthon)",
-    "formula": "C7H14N2O3 \u00b7 C8H10N4O2",
+    "formula": "C7H14N2O3 · C8H10N4O2",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -9161,7 +9101,7 @@
   },
   {
     "name": "Methane Clathrate Hydrate (Structure I Crystalline Gas Hydrate)",
-    "formula": "CH4 \u00b7 5.75H2O",
+    "formula": "CH4 · 5.75H2O",
     "category": "Carbon & 2D Materials",
     "crystal_system": "Cubic",
     "space_group": "Pm-3n",
@@ -9171,7 +9111,7 @@
   },
   {
     "name": "Carbon Dioxide Clathrate Hydrate Crystalline Phase",
-    "formula": "CO2 \u00b7 5.75H2O",
+    "formula": "CO2 · 5.75H2O",
     "category": "Carbon & 2D Materials",
     "crystal_system": "Cubic",
     "space_group": "Pm-3n",
@@ -9181,7 +9121,7 @@
   },
   {
     "name": "Nicotine Hydrogen Tartrate Crystalline Salt (Tobacco Alkaloid Standard)",
-    "formula": "C10H14N2 \u00b7 2C4H6O6",
+    "formula": "C10H14N2 · 2C4H6O6",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -9191,7 +9131,7 @@
   },
   {
     "name": "Nicotine Salicylate Crystalline Phase (Stable Protonated Alkaloid)",
-    "formula": "C10H14N2 \u00b7 C7H6O3",
+    "formula": "C10H14N2 · C7H6O3",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -9221,7 +9161,7 @@
   },
   {
     "name": "Anabasine Hydrochloride Crystalline Salt (Tobacco Marker Alkaloid)",
-    "formula": "C10H14N2 \u00b7 HCl",
+    "formula": "C10H14N2 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -9231,7 +9171,7 @@
   },
   {
     "name": "Anatabine Hydrogen Sulfate Crystalline Salt",
-    "formula": "C10H12N2 \u00b7 H2SO4",
+    "formula": "C10H12N2 · H2SO4",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -9256,7 +9196,7 @@
     "crystal_system": "Orthorhombic",
     "space_group": "P21212",
     "density": 1.98,
-    "description": "Commonly referred to as",
+    "description": "Commonly referred to as 'wine diamonds' when they spontaneously crystallize in wine casks and bottles. It is a monoclinic crystalline precipitate of tartaric acid and potassium in grape fermentation products.",
     "pattern": "12.4, 100\\n16.1, 40\\n18.8, 65\\n24.6, 80\\n29.2, 50\\n33.8, 30"
   },
   {
@@ -9271,7 +9211,7 @@
   },
   {
     "name": "Calcium Tartrate Tetrahydrate (White Wine Crystalline Precipitate)",
-    "formula": "CaC4H4O6 \u00b7 4H2O",
+    "formula": "CaC4H4O6 · 4H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -9321,7 +9261,7 @@
   },
   {
     "name": "Quercetin Dihydrate Crystalline Phase (Grape Skin Flavanol Marker)",
-    "formula": "C15H10O7 \u00b7 2H2O",
+    "formula": "C15H10O7 · 2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -9331,7 +9271,7 @@
   },
   {
     "name": "Creatine Monohydrate Crystalline Phase (Skeletal Muscle Energy Store)",
-    "formula": "C4H9N3O2 \u00b7 H2O",
+    "formula": "C4H9N3O2 · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -9361,7 +9301,7 @@
   },
   {
     "name": "Trimethylamine N-oxide Dihydrate (Marine Fish Osmolyte - TMAO)",
-    "formula": "C3H9NO \u00b7 2H2O",
+    "formula": "C3H9NO · 2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "Pnma",
@@ -9421,7 +9361,7 @@
   },
   {
     "name": "Thiamine Hydrochloride (Vitamin B1 Active Salt)",
-    "formula": "C12H17ClN4OS \u00b7 HCl",
+    "formula": "C12H17ClN4OS · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -9441,7 +9381,7 @@
   },
   {
     "name": "Pyridoxine Hydrochloride (Vitamin B6 Crystalline Standard)",
-    "formula": "C8H11NO3 \u00b7 HCl",
+    "formula": "C8H11NO3 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1",
@@ -9451,7 +9391,7 @@
   },
   {
     "name": "Folic Acid Dihydrate (Vitamin B9 Crystalline Phase)",
-    "formula": "C19H19N7O6 \u00b7 2H2O",
+    "formula": "C19H19N7O6 · 2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -9461,7 +9401,7 @@
   },
   {
     "name": "Cyanocobalamin Hydrated Phase (Vitamin B12)",
-    "formula": "C63H88CoN14O14P \u00b7 10H2O",
+    "formula": "C63H88CoN14O14P · 10H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -9671,7 +9611,7 @@
   },
   {
     "name": "Crystalline Ice-Clathrate Water Cage (Structure H Hexagonal)",
-    "formula": "34H2O \u00b7 (Guest)",
+    "formula": "34H2O · (Guest)",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Hexagonal",
     "space_group": "P6/mmm",
@@ -9701,7 +9641,7 @@
   },
   {
     "name": "Crystalline Carbon Dioxide Clathrate Hydrate",
-    "formula": "CO2 \u00b7 5.75H2O",
+    "formula": "CO2 · 5.75H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Cubic",
     "space_group": "Pm-3n",
@@ -9741,7 +9681,7 @@
   },
   {
     "name": "Carbon Dioxide - Nitrogen Mixed Clathrate Hydrate",
-    "formula": "(CO2)0.7(N2)0.3 \u00b7 5.75H2O",
+    "formula": "(CO2)0.7(N2)0.3 · 5.75H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Cubic",
     "space_group": "Pm-3n",
@@ -9791,7 +9731,7 @@
   },
   {
     "name": "Cholesterol Monohydrate Crystal",
-    "formula": "C27H46O \u00b7 H2O",
+    "formula": "C27H46O · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P1",
@@ -9931,7 +9871,7 @@
   },
   {
     "name": "Naloxone Hydrochloride Dihydrate (Emergency Antagonist)",
-    "formula": "C19H21NO4 \u00b7 HCl \u00b7 2H2O",
+    "formula": "C19H21NO4 · HCl · 2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -9941,7 +9881,7 @@
   },
   {
     "name": "Codeine Phosphate Hemihydrate (Clinical Analgesic)",
-    "formula": "C18H21NO3 \u00b7 H3PO4 \u00b7 0.5H2O",
+    "formula": "C18H21NO3 · H3PO4 · 0.5H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -9951,7 +9891,7 @@
   },
   {
     "name": "Lidocaine Hydrochloride Monohydrate (Local Anesthetic)",
-    "formula": "C14H22N2O \u00b7 HCl \u00b7 H2O",
+    "formula": "C14H22N2O · HCl · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -9961,7 +9901,7 @@
   },
   {
     "name": "Atropine Sulfate Monohydrate (Emergency Cholinolytic)",
-    "formula": "(C17H23NO3)2 \u00b7 H2SO4 \u00b7 H2O",
+    "formula": "(C17H23NO3)2 · H2SO4 · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -9981,7 +9921,7 @@
   },
   {
     "name": "Diacetylmorphine Hydrochloride (Heroin)",
-    "formula": "C21H23NO5 \u00b7 HCl",
+    "formula": "C21H23NO5 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21",
@@ -9991,7 +9931,7 @@
   },
   {
     "name": "Cocaine Hydrochloride",
-    "formula": "C17H21NO4 \u00b7 HCl",
+    "formula": "C17H21NO4 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -10001,7 +9941,7 @@
   },
   {
     "name": "Morphine Sulfate Pentahydrate",
-    "formula": "(C17H19NO3)2 \u00b7 H2SO4 \u00b7 5H2O",
+    "formula": "(C17H19NO3)2 · H2SO4 · 5H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121",
@@ -10011,7 +9951,7 @@
   },
   {
     "name": "Fentanyl Citrate",
-    "formula": "C22H28N2O \u00b7 C6H8O7",
+    "formula": "C22H28N2O · C6H8O7",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c",
@@ -10035,7 +9975,7 @@
     "category": "Metals & Alloys",
     "crystal_system": "Cubic",
     "space_group": "Fm-3m",
-    "density": 8.0,
+    "density": 8,
     "description": "Low-carbon molybdenum-bearing austenitic stainless steel. Highly resistant to pitting and crevice corrosion in chloride environments. Extensively used in marine, chemical, and medical implant applications.",
     "pattern": "43.6, 100\\n50.8, 40\\n74.7, 20\\n90.6, 25\\n96.0, 10"
   },
@@ -10056,7 +9996,7 @@
     "crystal_system": "Cubic",
     "space_group": "Fm-3m",
     "density": 8.19,
-    "description": "Precipitation-hardenable nickel-chromium-iron superalloy. Key phases are FCC gamma matrix (Ni-Cr-Fe) and body-centered tetragonal (BCT) gamma-prime and gamma-double-prime precipitates. Known for its exceptional yield, tensile, and creep-rupture properties up to 700 \u00b0C.",
+    "description": "Precipitation-hardenable nickel-chromium-iron superalloy. Key phases are FCC gamma matrix (Ni-Cr-Fe) and body-centered tetragonal (BCT) gamma-prime and gamma-double-prime precipitates. Known for its exceptional yield, tensile, and creep-rupture properties up to 700 °C.",
     "pattern": "43.5, 100\\n50.6, 42\\n74.4, 22\\n90.3, 23"
   },
   {
@@ -10076,7 +10016,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P-6m2",
     "density": 14.5,
-    "description": "Widely referred to as Widia (from German",
+    "description": "Widely referred to as Widia (from German 'wie Diamant' - like diamond). Sintered WC-Co composite material combining ultra-high hardness of hexagonal tungsten carbide with the ductility of cobalt matrix.",
     "pattern": "31.5, 40\\n35.6, 100\\n48.3, 85\\n64.1, 35\\n73.1, 45\\n75.5, 15\\n84.1, 25"
   },
   {
@@ -10090,13 +10030,13 @@
     "pattern": "25.0, 40\\n30.5, 100\\n43.8, 90\\n47.9, 55\\n57.1, 70"
   },
   {
-    "name": "Shape Memory Alloy Nitinol (Martensitic B19",
+    "name": "Shape Memory Alloy Nitinol (Martensitic B19' Phase)",
     "formula": "NiTi",
     "category": "Metals & Alloys",
     "crystal_system": "Monoclinic",
     "space_group": "P21/m",
     "density": 6.45,
-    "description": "The monoclinic martensitic B19",
+    "description": "The monoclinic martensitic B19' phase of Nickel-Titanium (Nitinol), which is stable at low temperatures. Undergoing thermal or stress-induced transition to cubic austenite (B2 phase) drives its shape memory effect.",
     "pattern": "25.4, 30\\n38.8, 100\\n41.5, 95\\n43.9, 80\\n45.4, 60"
   },
   {
@@ -10126,7 +10066,7 @@
     "crystal_system": "Cubic",
     "space_group": "Im-3m",
     "density": 17.6,
-    "description": "Heavy alloy consisting of BCC tungsten grains held in a ductile FCC Ni-Fe binder matrix. Possesses extremely high density (17-18.5 g/cm\u00b3), excellent mechanical strength, and superior radiation shielding characteristics.",
+    "description": "Heavy alloy consisting of BCC tungsten grains held in a ductile FCC Ni-Fe binder matrix. Possesses extremely high density (17-18.5 g/cm³), excellent mechanical strength, and superior radiation shielding characteristics.",
     "pattern": "40.3, 100\\n58.3, 15\\n73.2, 38\\n87.0, 11"
   },
   {
@@ -10166,7 +10106,7 @@
     "crystal_system": "Cubic",
     "space_group": "Im-3m",
     "density": 7.1,
-    "description": "Known commercially as Kanthal A-1. An iron-chromium-aluminum alloy used for high-temperature electrical heating elements operating up to 1400 \u00b0C. Forms a protective alumina (Al2O3) surface layer.",
+    "description": "Known commercially as Kanthal A-1. An iron-chromium-aluminum alloy used for high-temperature electrical heating elements operating up to 1400 °C. Forms a protective alumina (Al2O3) surface layer.",
     "pattern": "44.2, 100\\n64.4, 15\\n81.5, 30"
   },
   {
@@ -10195,7 +10135,7 @@
     "category": "Nuclear & Shielding",
     "crystal_system": "Cubic",
     "space_group": "Fm-3m",
-    "density": 10.0,
+    "density": 10,
     "description": "Also known as Thoria. Precursor oxide for the thorium fuel cycle. Upon irradiation with thermal neutrons, Th-232 transmutes to fissile U-233. Exhibits outstanding thermal conductivity and a higher melting point than UO2.",
     "pattern": "27.6, 100\\n32.0, 42\\n45.9, 52\\n54.4, 48\\n57.0, 10\\n66.9, 23\\n73.8, 20\\n76.1, 7\\n85.1, 14"
   },
@@ -10246,7 +10186,7 @@
     "crystal_system": "Rhombohedral",
     "space_group": "R-3m",
     "density": 2.52,
-    "description": "Sintered boron carbide characterized by structural carbon-boron networks. Serves as a standard thermal neutron poison / regulating control blade core owing to boron-10",
+    "description": "Sintered boron carbide characterized by structural carbon-boron networks. Serves as a standard thermal neutron poison / regulating control blade core owing to boron-10's phenomenal neutron absorbency profile.",
     "pattern": "23.5, 30\\n34.9, 100\\n37.8, 85\\n53.1, 40\\n61.8, 46\\n72.2, 35"
   },
   {
@@ -10940,8 +10880,208 @@
     "pattern": "8.5, 80\\n14.8, 45\\n18.2, 100\\n21.3, 65\\n24.1, 50"
   },
   {
+    "name": "Egyptian Blue (Cuprorivaite)",
+    "formula": "CaCuSi4O10",
+    "category": "Historical & Pigments",
+    "crystal_system": "Tetragonal",
+    "space_group": "P4/ncc",
+    "density": 3.08,
+    "description": "One of the first synthetic pigments, created in ancient Egypt by heating silica, copper, calcium, and soda. Extremely stable and still bright blue today.",
+    "pattern": "20.6, 20\\n23.4, 40\\n24.0, 100\\n26.5, 30\\n29.1, 80\\n31.8, 50\\n34.5, 25\\n39.2, 15"
+  },
+  {
+    "name": "Han Purple",
+    "formula": "BaCuSi2O6",
+    "category": "Historical & Pigments",
+    "crystal_system": "Tetragonal",
+    "space_group": "I41/acd",
+    "density": 4.88,
+    "description": "A synthetic barium copper silicate pigment developed in ancient China. Used to paint the Terracotta Army. Notably, it exhibits unique quantum magnetic properties at ultralow temperatures.",
+    "pattern": "22.1, 45\\n24.3, 100\\n26.6, 80\\n29.4, 30\\n31.5, 50\\n35.2, 20\\n38.7, 10"
+  },
+  {
+    "name": "Lead White (Hydrocerussite)",
+    "formula": "2PbCO3·Pb(OH)2",
+    "category": "Historical & Pigments",
+    "crystal_system": "Trigonal",
+    "space_group": "P-3m1",
+    "density": 6.8,
+    "description": "A toxic but highly opaque white pigment used globally from Antiquity until the 20th century. Prepared by exposing lead to vinegar and horse manure vapors.",
+    "pattern": "24.6, 100\\n27.2, 60\\n34.1, 55\\n36.4, 25\\n43.8, 30\\n47.1, 15"
+  },
+  {
+    "name": "Cinnabar (Vermilion)",
+    "formula": "HgS",
+    "category": "Historical & Pigments",
+    "crystal_system": "Trigonal",
+    "space_group": "P3121",
+    "density": 8.1,
+    "description": "The bright scarlet to brick-red ore of mercury. Used since antiquity as the pigment vermilion for murals, illuminated manuscripts, and lacquerware.",
+    "pattern": "26.5, 100\\n28.2, 35\\n31.2, 80\\n37.4, 25\\n43.5, 40\\n45.9, 15"
+  },
+  {
+    "name": "Lapis Lazuli (Lazurite)",
+    "formula": "Na6Ca2(Al6Si6O24)(S,SO4,Cl)2",
+    "category": "Historical & Pigments",
+    "crystal_system": "Cubic",
+    "space_group": "P43n",
+    "density": 2.4,
+    "description": "A complex feldspathoid mineral responsible for the deep celestial blue of Lapis Lazuli. Ground to produce authentic ultramarine, Europe's most expensive Renaissance pigment.",
+    "pattern": "13.8, 20\\n24.1, 70\\n28.3, 100\\n34.8, 40\\n42.1, 25\\n47.5, 15"
+  },
+  {
+    "name": "Malachite (Green Copper Carbonate)",
+    "formula": "Cu2CO3(OH)2",
+    "category": "Historical & Pigments",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/a",
+    "density": 4,
+    "description": "A green copper carbonate hydroxide mineral. Extremely popular in antiquity as a pigment and for ornamental carving in Egypt and Russia.",
+    "pattern": "11.1, 20\\n16.2, 55\\n24.0, 100\\n31.3, 85\\n35.4, 40\\n39.8, 30"
+  },
+  {
+    "name": "Azurite",
+    "formula": "Cu3(CO3)2(OH)2",
+    "category": "Historical & Pigments",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/c",
+    "density": 3.77,
+    "description": "A soft, deep-blue copper mineral. It was the most important blue pigment in European painting from the Middle Ages to the Renaissance, often shifting green (to malachite) over centuries.",
+    "pattern": "15.7, 40\\n22.8, 60\\n25.3, 100\\n30.8, 45\\n35.3, 55\\n38.3, 20"
+  },
+  {
+    "name": "Orpiment",
+    "formula": "As2S3",
+    "category": "Historical & Pigments",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/n",
+    "density": 3.49,
+    "description": "A golden-yellow arsenic sulfide mineral. Used worldwide as a vibrant yellow pigment despite its high toxicity, and prominently in alchemy.",
+    "pattern": "14.3, 100\\n17.8, 60\\n28.6, 40\\n32.2, 35\\n36.4, 25\\n41.0, 15"
+  },
+  {
+    "name": "Realgar",
+    "formula": "As4S4",
+    "category": "Historical & Pigments",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/n",
+    "density": 3.56,
+    "description": "A ruby-red arsenic sulfide. Known as 'sandaracha' in ancient Rome, used as a red pigment and poison, though it degrades to yellow pararealgar under light.",
+    "pattern": "16.1, 100\\n18.3, 50\\n24.9, 40\\n29.5, 60\\n34.2, 30"
+  },
+  {
+    "name": "Mayan Blue (Palygorskite base)",
+    "formula": "(Mg,Al)2Si4O10(OH)·4H2O",
+    "category": "Historical & Pigments",
+    "crystal_system": "Monoclinic",
+    "space_group": "P2/a",
+    "density": 2.1,
+    "description": "A remarkably resilient azure pigment synthesized by pre-Columbian Mesoamerican cultures. It consists of the organic dye indigo trapped within the crystalline lattice of palygorskite clay.",
+    "pattern": "8.4, 100\\n13.7, 40\\n16.4, 15\\n19.8, 55\\n27.5, 25\\n34.2, 10"
+  },
+  {
+    "name": "Wootz Steel (Cementite Phase in Iron)",
+    "formula": "Fe3C",
+    "category": "Historical & Metallurgical",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Pnma",
+    "density": 7.69,
+    "description": "Crucible steel characterized by a pattern of bands. The bands are formed by sheets of microscopic cementite (Fe3C) particles in a pearlite matrix. The origins of legendary Damascus swords.",
+    "pattern": "37.8, 40\\n40.1, 50\\n42.8, 80\\n43.7, 100\\n45.8, 70\\n48.2, 30"
+  },
+  {
+    "name": "Kamacite (Meteoric Iron)",
+    "formula": "Fe0.9Ni0.1",
+    "category": "Historical & Metallurgical",
+    "crystal_system": "Cubic",
+    "space_group": "Im-3m",
+    "density": 7.9,
+    "description": "An alloy of iron and nickel (typically up to 7% Ni) found almost exclusively in meteorites. The earliest iron tools crafted by humanity were cold-forged from kamacite.",
+    "pattern": "44.6, 100\\n64.9, 20\\n82.2, 35\\n98.7, 10\\n116.1, 15"
+  },
+  {
+    "name": "Historical Bronze (Cu-Sn Alpha solid solution)",
+    "formula": "Cu0.9Sn0.1",
+    "category": "Historical & Metallurgical",
+    "crystal_system": "Cubic",
+    "space_group": "Fm-3m",
+    "density": 8.8,
+    "description": "Characteristic XRD profile of ancient cast bronze (approx. 10% tin). The peak positions are slightly shifted from pure copper due to lattice expansion by tin atoms.",
+    "pattern": "42.5, 100\\n49.5, 45\\n72.2, 25\\n87.3, 20"
+  },
+  {
+    "name": "Electrum (Gold-Silver Alloy)",
+    "formula": "Au0.5Ag0.5",
+    "category": "Historical & Metallurgical",
+    "crystal_system": "Cubic",
+    "space_group": "Fm-3m",
+    "density": 14.5,
+    "description": "A naturally occurring or artificially mixed alloy of gold and silver. Used for the earliest known metal coins in Lydia and ancient Egyptian obelisk coatings.",
+    "pattern": "38.1, 100\\n44.3, 40\\n64.5, 30\\n77.5, 35"
+  },
+  {
+    "name": "Alum (Potassium Alum)",
+    "formula": "KAl(SO4)2·12H2O",
+    "category": "Historical & Pigments",
+    "crystal_system": "Cubic",
+    "space_group": "Pa-3",
+    "density": 1.72,
+    "description": "Used widely in antiquity as a mordant to fix organic dyes (like Tyrian Purple or Madder) onto fabrics, making the colors fast and bright.",
+    "pattern": "10.4, 20\\n21.1, 100\\n30.2, 70\\n35.4, 40\\n48.2, 30"
+  },
+  {
+    "name": "Bone Ash (Hydroxylapatite)",
+    "formula": "Ca10(PO4)6(OH)2",
+    "category": "Historical & Ceramics",
+    "crystal_system": "Hexagonal",
+    "space_group": "P63/m",
+    "density": 3.16,
+    "description": "Calcined animal bone, primarily hydroxylapatite. Historically used for making cupels for assaying silver/gold, and later for creating Bone China.",
+    "pattern": "25.80, 40, 0, 0, 2\\n28.90, 15, 2, 1, 0\\n31.80, 100, 2, 1, 1\\n32.20, 60, 1, 1, 2\\n32.90, 60, 3, 0, 0\\n34.00, 45, 2, 0, 2\\n39.80, 20, 3, 1, 0\\n46.70, 30, 2, 2, 2\\n49.50, 25, 2, 1, 3"
+  },
+  {
+    "name": "Roman Concrete (Tobermorite binder)",
+    "formula": "Ca5Si6O16(OH)2·4H2O",
+    "category": "Historical & Ceramics",
+    "crystal_system": "Orthorhombic",
+    "space_group": "C2221",
+    "density": 2.45,
+    "description": "Tobermorite is a rare calcium silicate hydrate mineral, but it formed abundantly in Roman marine concrete (opus caementicium) yielding incredible multi-millennia durability.",
+    "pattern": "7.8, 100\\n16.1, 20\\n29.1, 80\\n29.9, 65\\n31.8, 40"
+  },
+  {
+    "name": "Natron",
+    "formula": "Na2CO3·10H2O",
+    "category": "Historical & Chemicals",
+    "crystal_system": "Monoclinic",
+    "space_group": "C2/c",
+    "density": 1.46,
+    "description": "A naturally occurring mixture of sodium carbonate decahydrate and sodium bicarbonate. Essential in ancient Egyptian mummification and early glassmaking.",
+    "pattern": "16.8, 100\\n26.6, 20\\n31.7, 40\\n34.2, 60\\n38.4, 25\\n40.1, 15"
+  },
+  {
+    "name": "Litharge",
+    "formula": "PbO",
+    "category": "Historical & Pigments",
+    "crystal_system": "Tetragonal",
+    "space_group": "P4/nmm",
+    "density": 9.53,
+    "description": "Lead(II) oxide (red/yellow). Crucial in antiquity for the cupellation of silver, and as an historic pigment and drying agent for oil paints.",
+    "pattern": "28.5, 100\\n32.7, 50\\n47.1, 35\\n55.4, 40\\n58.0, 15"
+  },
+  {
+    "name": "Verdigris (Copper Acetate)",
+    "formula": "Cu(CH3COO)2·H2O",
+    "category": "Historical & Pigments",
+    "crystal_system": "Monoclinic",
+    "space_group": "C2/c",
+    "density": 1.88,
+    "description": "A synthetic blue-green pigment widely used from antiquity to the 19th century, made by hanging copper plates over boiling vinegar in sealed pots.",
+    "pattern": "12.5, 100\\n16.1, 55\\n22.8, 40\\n26.4, 25\\n30.5, 15"
+  },
+  {
     "name": "Roman Concrete (Alberese Lime)",
-    "formula": "CaCO3\u00b7Ca(OH)2\u00b7Al-Tobermorite",
+    "formula": "CaCO3·Ca(OH)2·Al-Tobermorite",
     "category": "Calibration & Standards",
     "crystal_system": "Complex Multiphase",
     "space_group": "Pm-3m",
@@ -10951,7 +11091,7 @@
   },
   {
     "name": "Egyptian Natron",
-    "formula": "Na2CO3\u00b710H2O + NaHCO3",
+    "formula": "Na2CO3·10H2O + NaHCO3",
     "category": "Calibration & Standards",
     "crystal_system": "Monoclinic",
     "space_group": "C2/c",
@@ -10971,7 +11111,7 @@
   },
   {
     "name": "Maya Blue",
-    "formula": "(Mg,Al)2Si4O10(OH)\u00b74(H2O)",
+    "formula": "(Mg,Al)2Si4O10(OH)·4(H2O)",
     "category": "Calibration & Standards",
     "crystal_system": "Monoclinic",
     "space_group": "Pm-3m",
@@ -10998,16 +11138,6 @@
     "density": 2.5,
     "description": "Internal reference standard used globally for peak position and line-broadening calibration.",
     "pattern": "28.44, 100\\n47.30, 78\\n56.12, 66\\n69.13, 54\\n76.38, 42\\n88.03, 30\\n94.89, 18"
-  },
-  {
-    "name": "Corundum Standard (Al2O3)",
-    "formula": "Al2O3",
-    "category": "Calibration & Standards",
-    "crystal_system": "Trigonal",
-    "space_group": "R-3c (No. 167)",
-    "density": 2.5,
-    "description": "NIST Standard Reference Material SRM 676a used for quantitative analysis and instrument calibration.",
-    "pattern": "25.58, 100\\n35.15, 78\\n37.78, 66\\n43.36, 54\\n52.55, 42\\n57.50, 30\\n61.30, 18\\n66.52, 10\\n68.21, 10"
   },
   {
     "name": "Lanthanum Hexaboride (LaB6)",
@@ -11066,7 +11196,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P3121 (No. 152)",
     "density": 2.5,
-    "description": "Highly helical crystalline polymer with a prominent reflection at 18.1\u00b0 corresponding to interchain packing.",
+    "description": "Highly helical crystalline polymer with a prominent reflection at 18.1° corresponding to interchain packing.",
     "pattern": "18.10, 100\\n31.50, 78\\n36.60, 66\\n41.20, 54"
   },
   {
@@ -11196,7 +11326,7 @@
     "crystal_system": "Hexagonal",
     "space_group": "P6222 (No. 180)",
     "density": 2.5,
-    "description": "The high-temperature polymorph of quartz, stable above 573 \u00b0C (at ambient pressure).",
+    "description": "The high-temperature polymorph of quartz, stable above 573 °C (at ambient pressure).",
     "pattern": "20.60, 100\\n25.80, 78\\n36.40, 66\\n38.80, 54\\n42.30, 42\\n45.50, 30\\n50.00, 18"
   },
   {
@@ -11306,7 +11436,7 @@
     "crystal_system": "Cubic",
     "space_group": "Fd-3m (No. 227)",
     "density": 2.5,
-    "description": "Sp\u00b3 carbon diamond-cubic framework with ultra-small unit cell sizes and sparse peaks.",
+    "description": "Sp³ carbon diamond-cubic framework with ultra-small unit cell sizes and sparse peaks.",
     "pattern": "43.92, 100\\n75.30, 78\\n91.50, 66\\n119.52, 54"
   },
   {
@@ -11461,7 +11591,7 @@
   },
   {
     "name": "Cholesterol Monohydrate",
-    "formula": "C27H46O \u00b7 H2O",
+    "formula": "C27H46O · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P1 (No. 1)",
@@ -11581,7 +11711,7 @@
   },
   {
     "name": "Naloxone Hydrochloride (Emergency Antagonist)",
-    "formula": "C19H21NO4 \u00b7 HCl \u00b7 2H2O",
+    "formula": "C19H21NO4 · HCl · 2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Orthorhombic",
     "space_group": "P212121 (No. 19)",
@@ -11591,7 +11721,7 @@
   },
   {
     "name": "Codeine Phosphate Hemihydrate",
-    "formula": "C18H21NO3 \u00b7 H3PO4 \u00b7 0.5H2O",
+    "formula": "C18H21NO3 · H3PO4 · 0.5H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21 (No. 4)",
@@ -11601,7 +11731,7 @@
   },
   {
     "name": "Atropine Sulfate Monohydrate",
-    "formula": "(C17H23NO3)2 \u00b7 H2SO4 \u00b7 H2O",
+    "formula": "(C17H23NO3)2 · H2SO4 · H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21 (No. 4)",
@@ -11621,7 +11751,7 @@
   },
   {
     "name": "Diacetylmorphine HCl (Heroin)",
-    "formula": "C21H23NO5 \u00b7 HCl",
+    "formula": "C21H23NO5 · HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21 (No. 4)",
@@ -11671,7 +11801,7 @@
   },
   {
     "name": "Carbon Dioxide Clathrate Hydrate",
-    "formula": "CO2 \u00b7 5.75H2O",
+    "formula": "CO2 · 5.75H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Cubic",
     "space_group": "Pm-3n (No. 223)",
@@ -11711,7 +11841,7 @@
   },
   {
     "name": "CO2-N2 Mixed Clathrate",
-    "formula": "(CO2)0.7(N2)0.3 \u00b7 5.75H2O",
+    "formula": "(CO2)0.7(N2)0.3 · 5.75H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Cubic",
     "space_group": "Pm-3n (No. 223)",
@@ -11970,7 +12100,7 @@
     "pattern": "40.26, 100\\n58.25, 78\\n73.18, 66\\n86.97, 54\\n100.74, 42\\n114.93, 30"
   },
   {
-    "name": "Alpha Titanium (\u03b1-Ti)",
+    "name": "Alpha Titanium (α-Ti)",
     "formula": "Ti",
     "category": "Metals & Alloys",
     "crystal_system": "Hexagonal",
@@ -12026,7 +12156,7 @@
     "crystal_system": "Cubic",
     "space_group": "Im-3m (No. 229)",
     "density": 2.5,
-    "description": "Corrosion resistant refractory cubic tantalum metal showing superb ductility and melting points above 3000\u00b0C.",
+    "description": "Corrosion resistant refractory cubic tantalum metal showing superb ductility and melting points above 3000°C.",
     "pattern": "38.47, 100\\n55.55, 78\\n69.58, 66\\n82.44, 54\\n94.94, 42"
   },
   {
@@ -12190,13 +12320,13 @@
     "pattern": "45.82, 100\\n50.84, 78\\n52.74, 66\\n82.52, 54\\n95.88, 42"
   },
   {
-    "name": "Alpha Manganese (\u03b1-Mn)",
+    "name": "Alpha Manganese (α-Mn)",
     "formula": "Mn",
     "category": "Metals & Alloys",
     "crystal_system": "Cubic",
     "space_group": "I-43m (No. 217)",
     "density": 2.5,
-    "description": "Complex cubic \u03b1-phase manganese containing 58 atoms per unit cell. Exhibits a unique and extremely rich diffraction fingerprint.",
+    "description": "Complex cubic α-phase manganese containing 58 atoms per unit cell. Exhibits a unique and extremely rich diffraction fingerprint.",
     "pattern": "42.15, 100\\n43.12, 78\\n44.85, 66\\n46.52, 54\\n75.12, 42\\n82.44, 30"
   },
   {
@@ -12230,7 +12360,7 @@
     "pattern": "40.15, 100\\n43.62, 78\\n44.82, 66\\n59.45, 54\\n71.02, 42\\n80.52, 30\\n86.15, 18"
   },
   {
-    "name": "Alpha-Uranium Metal (\u03b1-U)",
+    "name": "Alpha-Uranium Metal (α-U)",
     "formula": "U",
     "category": "Metals & Alloys",
     "crystal_system": "Orthorhombic",
@@ -12246,7 +12376,7 @@
     "crystal_system": "Orthorhombic",
     "space_group": "Ammm or Pnma",
     "density": 2.5,
-    "description": "The most stable form of uranium oxide under ambient conditions. Commonly known as \\",
+    "description": "The most stable form of uranium oxide under ambient conditions. Commonly known as \"yellowcake\" in its crude concentrated form.",
     "pattern": "21.44, 100\\n25.95, 78\\n26.45, 66\\n34.32, 54\\n43.15, 42\\n44.50, 30"
   },
   {
@@ -12346,7 +12476,7 @@
     "crystal_system": "Cubic",
     "space_group": "Fm-3m (No. 225)",
     "density": 8.44,
-    "description": "A premium nickel-chromium-molybdenum solid-solution strengthened superalloy with nominal additions of niobium. Renowned for its exceptional high strength, outstanding fabrication properties, and superb corrosion resistance at elevated temperatures up to 982 \u00b0C. Heavily relied upon in aerospace turbine structures, exhaust systems, and critical chemical process equipment.",
+    "description": "A premium nickel-chromium-molybdenum solid-solution strengthened superalloy with nominal additions of niobium. Renowned for its exceptional high strength, outstanding fabrication properties, and superb corrosion resistance at elevated temperatures up to 982 °C. Heavily relied upon in aerospace turbine structures, exhaust systems, and critical chemical process equipment.",
     "pattern": "43.60, 100\\n50.80, 45\\n74.60, 25\\n90.60, 15\\n95.90, 8"
   },
   {
@@ -12380,18 +12510,8 @@
     "pattern": "29.80, 100, 1, 1, 0\\n32.40, 85, 2, 0, 0\\n34.10, 60, 2, 1, 1\\n48.50, 30, 2, 2, 0"
   },
   {
-    "name": "Octacalcium Phosphate (OCP)",
-    "formula": "Ca8H2(PO4)6\u00b75H2O",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Triclinic",
-    "space_group": "P-1 (No. 2)",
-    "density": 2.61,
-    "description": "Biological precursor phase in human bone, dentin, and tooth enamel mineralization. Possesses an alternating apatitic layer and hydrated sub-layer structure, imparting high bio-resorbability and osteoinductive signaling for bone tissue repair.",
-    "pattern": "4.72, 100, 1, 0, 0\\n9.45, 55, 2, 0, 0\\n14.20, 25, 3, 0, 0\\n26.10, 80, 0, 0, 2\\n31.80, 70, 2, 1, 1"
-  },
-  {
     "name": "Dicalcium Phosphate Dihydrate (DCPD / Brushite)",
-    "formula": "CaHPO4\u00b72H2O",
+    "formula": "CaHPO4·2H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "Ia (No. 9)",
@@ -12401,7 +12521,7 @@
   },
   {
     "name": "Monocalcium Phosphate Monohydrate (MCPM)",
-    "formula": "Ca(H2PO4)2\u00b7H2O",
+    "formula": "Ca(H2PO4)2·H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Triclinic",
     "space_group": "P-1 (No. 2)",
@@ -12441,7 +12561,7 @@
   },
   {
     "name": "Mineral Trioxide Aggregate (MTA)",
-    "formula": "(CaO)3\u00b7SiO2 + Bi2O3",
+    "formula": "(CaO)3·SiO2 + Bi2O3",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic + Cubic",
     "space_group": "Cm / P21/m",
@@ -12452,11 +12572,11 @@
   {
     "name": "Y-TZP Zirconia Dental Bioceramic (3Y-TZP)",
     "formula": "ZrO2 (3 mol% Y2O3)",
-    "category": "",
+    "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Tetragonal",
     "space_group": "P42/nmc (No. 137)",
     "density": 6.08,
-    "description": "Yttria-stabilized tetragonal zirconia polycrystal ceramic (3 mol% Y2O3). Renowned for stress-induced phase transformation toughening (t -> m transition at crack tips), providing unprecedented fracture toughness (>8 MPa\u00b7m1/2) for structural all-ceramic dental crowns and orthopedic joint implants.",
+    "description": "Yttria-stabilized tetragonal zirconia polycrystal ceramic (3 mol% Y2O3). Renowned for stress-induced phase transformation toughening (t -> m transition at crack tips), providing unprecedented fracture toughness (>8 MPa·m1/2) for structural all-ceramic dental crowns and orthopedic joint implants.",
     "pattern": "30.20, 100, 1, 0, 1\\n34.60, 25, 0, 0, 2\\n35.20, 30, 1, 1, 0\\n50.20, 65, 1, 1, 2\\n50.80, 40, 2, 0, 0\\n59.80, 35, 2, 1, 1"
   },
   {
@@ -12501,7 +12621,7 @@
   },
   {
     "name": "Metformin Hydrochloride Form I",
-    "formula": "C4H11N5\u00b7HCl",
+    "formula": "C4H11N5·HCl",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21/c (No. 14)",
@@ -12511,7 +12631,7 @@
   },
   {
     "name": "Alpha-Lactose Monohydrate (Pharma Excipient)",
-    "formula": "C12H22O11\u00b7H2O",
+    "formula": "C12H22O11·H2O",
     "category": "Biomaterials & Pharmaceuticals",
     "crystal_system": "Monoclinic",
     "space_group": "P21 (No. 4)",
@@ -12540,23 +12660,183 @@
     "pattern": "9.60, 40, 0, 1, 1\\n14.60, 100, 1, 1, 0\\n18.80, 70, 0, 2, 1\\n20.40, 85, 1, 2, 0\\n22.10, 60, 2, 0, 0\\n25.20, 50, 2, 1, 1"
   },
   {
-    "name": "Amoxicillin Trihydrate",
-    "formula": "C16H19N3O5S\u00b73H2O",
-    "category": "Biomaterials & Pharmaceuticals",
-    "crystal_system": "Orthorhombic",
-    "space_group": "P212121 (No. 19)",
-    "density": 1.41,
-    "description": "Broad-spectrum beta-lactam antibiotic active pharmaceutical ingredient crystal phase. Crystalline trihydrate matrix contains three stoichiometry-bound water molecules per amoxicillin unit, establishing a stable crystalline lattice resistant to ambient humidity.",
-    "pattern": "12.10, 70, 0, 1, 1\\n15.20, 100, 1, 1, 0\\n18.00, 85, 0, 2, 0\\n23.10, 60, 2, 0, 0\\n26.80, 45, 2, 1, 1"
+    "name": "Polyvinylidene Fluoride (α-PVDF, Form II)",
+    "formula": "(C2H2F2)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/c (No. 14)",
+    "density": 1.78,
+    "description": "Non-polar, thermodynamically stable melt-crystallized polymorph of polyvinylidene fluoride adopting antiparallel TGTG' helical chain packing. Monoclinic P21/c (No. 14), a = 4.96 Å, b = 9.64 Å, c = 4.62 Å, β = 90.0°, Z = 4, PDF 00-042-1650.",
+    "pattern": "17.87, 58, 1, 0, 0\\n18.39, 85, 0, 2, 0\\n20.12, 100, 1, 1, 0\\n26.71, 46, 0, 2, 1\\n27.95, 24, 1, 1, 1\\n32.32, 18, 1, 2, 1\\n36.19, 22, 2, 0, 0\\n38.96, 28, 0, 0, 2"
   },
   {
-    "name": "Indomethacin Gamma-Form",
-    "formula": "C19H16ClNO4",
-    "category": "Biomaterials & Pharmaceuticals",
+    "name": "Polyvinylidene Fluoride (β-PVDF, Form I — Piezoelectric)",
+    "formula": "(C2H2F2)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Cm2m (No. 38)",
+    "density": 1.97,
+    "description": "Ferroelectric and piezoelectric polar polymorph of PVDF with all-trans (TTTT) planar zigzag chains aligned in parallel dipoles, produced by uniaxial stretching or electrospinning. Orthorhombic Cm2m (No. 38), a = 8.58 Å, b = 4.91 Å, c = 2.56 Å, Z = 2, PDF 00-038-1638.",
+    "pattern": "20.69, 92, 2, 0, 0\\n20.83, 100, 1, 1, 0\\n35.02, 32, 0, 0, 1\\n36.32, 22, 3, 1, 0\\n41.02, 28, 2, 0, 1\\n41.10, 34, 1, 1, 1\\n42.39, 18, 2, 2, 0"
+  },
+  {
+    "name": "Polyvinylidene Fluoride (γ-PVDF, Form III)",
+    "formula": "(C2H2F2)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Monoclinic",
+    "space_group": "Cc (No. 9)",
+    "density": 1.92,
+    "description": "Intermediate polar polymorph of PVDF crystallizing from polar solvents (DMSO/DMAc) or high-temperature annealing (~160 °C) in a TTTGTTTG' chain conformation. Monoclinic Cc (No. 9), a = 4.96 Å, b = 9.58 Å, c = 9.23 Å, β = 92.9°, Z = 8.",
+    "pattern": "18.51, 72, 0, 2, 0\\n19.24, 55, 0, 0, 2\\n20.16, 100, 1, 1, 0\\n26.82, 42, 0, 2, 2\\n36.24, 30, 2, 0, 0\\n39.25, 24, 2, 1, 1"
+  },
+  {
+    "name": "Polytetrafluoroethylene (PTFE Form IV, 15/7 Helix)",
+    "formula": "(C2F4)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Trigonal",
+    "space_group": "P31 (No. 144)",
+    "density": 2.3,
+    "description": "Ambient room-temperature crystalline polymorph of polytetrafluoroethylene (stable 19–30 °C) composed of tightly packed 15/7 fluorocarbon helices. Trigonal P31 (No. 144), a = 5.66 Å, c = 19.50 Å, PDF 00-047-2217. Displays an iconic ultra-sharp (100) peak at 18.08° 2θ.",
+    "pattern": "18.08, 100, 1, 0, 0\\n31.59, 18, 1, 1, 0\\n36.64, 12, 2, 0, 0\\n37.09, 14, 1, 0, 7\\n41.33, 16, 1, 0, 8\\n45.66, 10, 1, 1, 7\\n49.14, 8, 2, 1, 0"
+  },
+  {
+    "name": "Polyoxymethylene (POM, Trigonal Acetal Homopolymer)",
+    "formula": "(CH2O)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Trigonal",
+    "space_group": "P31 (No. 144)",
+    "density": 1.49,
+    "description": "Highly crystalline (70–85%) engineering acetal thermoplastic consisting of helical 9/5 (CH2O)n chains packed in a trigonal lattice. Trigonal P31 (No. 144), a = 4.470 Å, c = 17.390 Å, PDF 00-049-2120. Renowned for high stiffness, dimensional stability, and low friction.",
+    "pattern": "22.96, 100, 1, 0, 0\\n34.64, 32, 1, 0, 5\\n40.32, 18, 1, 1, 0\\n46.90, 12, 2, 0, 0\\n47.96, 14, 1, 0, 8\\n48.37, 24, 1, 1, 5\\n54.19, 15, 2, 0, 5"
+  },
+  {
+    "name": "Polyethylene Oxide (PEO, Crystalline Monoclinic)",
+    "formula": "(C2H4O)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/a (No. 14)",
+    "density": 1.23,
+    "description": "Semi-crystalline polyether adopting a 7/2 helical conformation in a monoclinic lattice. Monoclinic P21/a (No. 14), a = 8.05 Å, b = 13.04 Å, c = 19.48 Å, β = 125.4°, PDF 00-049-2201. Benchmark host matrix for solid polymer lithium electrolytes (PEO-LiTFSI).",
+    "pattern": "19.17, 88, 1, 2, 0\\n22.38, 25, 0, 0, 4\\n23.04, 72, 1, 1, 2\\n23.31, 100, 0, 3, 2\\n27.16, 22, 2, 0, 0\\n30.18, 48, 1, 3, 2\\n35.79, 35, 2, 1, 2"
+  },
+  {
+    "name": "Polyvinyl Alcohol (PVA, Crystalline Monoclinic)",
+    "formula": "(C2H4O)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/m (No. 11)",
+    "density": 1.35,
+    "description": "Water-soluble semi-crystalline polymer stabilized by dense intermolecular O–H···O hydrogen-bonded sheets of planar zigzag chains. Monoclinic P21/m (No. 11), a = 7.81 Å, b = 2.52 Å, c = 5.51 Å, β = 91.7°, Z = 2.",
+    "pattern": "11.33, 25, 1, 0, 0\\n19.43, 85, -1, 0, 1\\n19.99, 100, 1, 0, 1\\n22.76, 32, 2, 0, 0\\n28.39, 22, 2, 0, 1\\n32.49, 20, 0, 0, 2\\n37.47, 18, 1, 1, 0"
+  },
+  {
+    "name": "Nylon 6,6 (Polyamide 66, α-Form)",
+    "formula": "(C12H22N2O2)n",
+    "category": "Polymers & Frameworks",
     "crystal_system": "Triclinic",
     "space_group": "P-1 (No. 2)",
-    "density": 1.38,
-    "description": "Thermodynamically stable gamma-polymorph of non-steroidal anti-inflammatory active pharmaceutical ingredient indomethacin. Features cyclic centrosymmetric carboxylic acid hydrogen-bonded dimers in a triclinic unit cell.",
-    "pattern": "11.60, 100, 1, 0, 0\\n17.00, 80, 0, 1, 1\\n19.60, 90, 1, 1, 0\\n21.80, 75, 2, 0, 0\\n26.60, 50, 2, 1, 1"
+    "density": 1.24,
+    "description": "Triclinic α-polymorph of poly(hexamethylene adipamide) featuring fully extended planar zigzag chains linked into hydrogen-bonded sheets that progressively shift along the chain axis. Triclinic P-1 (No. 2), a = 4.90 Å, b = 5.40 Å, c = 17.20 Å, α = 48.5°, β = 77.0°, γ = 63.5°, Z = 1, PDF 00-043-1662.",
+    "pattern": "13.81, 12, 0, 0, 2\\n20.35, 100, 1, 0, 0\\n24.07, 82, 0, 1, 0\\n24.41, 74, 1, 1, 0\\n37.76, 22, 1, -1, 0\\n41.38, 18, 2, 0, 0"
+  },
+  {
+    "name": "Nylon 12 (Polyamide 12, γ-Form)",
+    "formula": "(C12H23NO)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/c (No. 14)",
+    "density": 1.04,
+    "description": "Pseudo-hexagonal monoclinic γ-polymorph of polylaurolactam (PA12), the standard crystalline phase in selective laser sintering (SLS) 3D printing powders. Monoclinic P21/c (No. 14), a = 4.79 Å, b = 31.90 Å, c = 9.58 Å, β = 120.0°, Z = 4.",
+    "pattern": "5.54, 28, 0, 2, 0\\n11.09, 16, 0, 4, 0\\n16.66, 12, 0, 6, 0\\n21.40, 100, 1, 0, 0\\n22.12, 35, 1, 2, 0\\n37.52, 42, 1, 0, 2\\n43.60, 18, 2, 0, 0"
+  },
+  {
+    "name": "Polybutylene Terephthalate (PBT, α-Form)",
+    "formula": "(C12H12O4)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Triclinic",
+    "space_group": "P-1 (No. 2)",
+    "density": 1.4,
+    "description": "Relaxed triclinic α-polymorph of fast-crystallizing aromatic polyester PBT with gauche-trans-gauche tetramethylene segments (reversibly transforms to β-PBT under tensile stress). Triclinic P-1 (No. 2), a = 4.83 Å, b = 5.94 Å, c = 11.59 Å, α = 99.7°, β = 115.2°, γ = 110.8°, Z = 1.",
+    "pattern": "9.10, 18, 0, 0, 1\\n16.16, 62, 0, -1, 1\\n17.23, 75, 0, 1, 0\\n19.88, 65, 1, 0, -1\\n21.24, 50, 1, -1, 0\\n23.16, 100, 1, 0, 0\\n25.33, 48, 1, -1, 1"
+  },
+  {
+    "name": "Polyethylene Naphthalate (PEN, α-Form)",
+    "formula": "(C14H10O4)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Triclinic",
+    "space_group": "P-1 (No. 2)",
+    "density": 1.41,
+    "description": "High-Tg semi-crystalline naphthalene-ring polyester offering superior O2/CO2 barrier and thermal stability over PET. Triclinic P-1 (No. 2), a = 6.51 Å, b = 5.75 Å, c = 13.20 Å, α = 81.3°, β = 144.0°, γ = 100.0°, Z = 1.",
+    "pattern": "15.64, 100, 0, 1, 0\\n19.22, 45, 0, 1, 1\\n23.32, 78, 1, 0, 0\\n27.00, 52, 1, -1, 0\\n29.36, 34, 1, 1, 0"
+  },
+  {
+    "name": "Polyphenylene Sulfide (PPS)",
+    "formula": "(C6H4S)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Orthorhombic",
+    "space_group": "Pbcn (No. 60)",
+    "density": 1.44,
+    "description": "High-performance flame-retardant semi-crystalline engineering thermoplastic with alternating phenylene rings tilted ±45° relative to the sulfide zigzag plane. Orthorhombic Pbcn (No. 60), a = 8.67 Å, b = 5.61 Å, c = 10.26 Å, Z = 4, PDF 00-049-2214.",
+    "pattern": "18.83, 100, 1, 1, 0\\n20.47, 92, 2, 0, 0\\n20.73, 65, 1, 1, 1\\n26.91, 48, 2, 0, 2\\n27.39, 52, 2, 1, 1\\n31.88, 36, 0, 2, 0\\n34.89, 24, 3, 1, 0"
+  },
+  {
+    "name": "Isotactic Polypropylene (β-iPP, Trigonal Polymorph)",
+    "formula": "(C3H6)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Trigonal",
+    "space_group": "P3121 (No. 152)",
+    "density": 0.922,
+    "description": "Frustrated trigonal β-modification of isotactic polypropylene (3 isochiral 3/1 helices per cell) induced by β-nucleating agents or shear flow; imparts dramatically higher impact toughness than monoclinic α-iPP. Trigonal P3121 (No. 152), a = 11.01 Å, c = 6.50 Å, Z = 9, with diagnostic strong 16.09° (110) peak.",
+    "pattern": "16.09, 100, 1, 1, 0\\n21.13, 42, 1, 1, 1\\n24.68, 18, 2, 1, 0\\n28.05, 28, 3, 0, 0\\n31.30, 24, 3, 0, 1\\n32.50, 16, 2, 2, 0\\n36.66, 14, 3, 1, 1"
+  },
+  {
+    "name": "Syndiotactic Polystyrene (sPS, α-Form)",
+    "formula": "(C8H8)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Trigonal",
+    "space_group": "P-3c1 (No. 165)",
+    "density": 1.033,
+    "description": "High-melting (Tm ≈ 270 °C) crystalline engineering polystyrene formed via metallocene catalysis with all-trans planar zigzag triplets arranged in a trigonal lattice. Trigonal P-3c1 (No. 165), a = 26.26 Å, c = 5.04 Å, Z = 18.",
+    "pattern": "6.73, 68, 1, 1, 0\\n11.66, 100, 3, 0, 0\\n13.48, 48, 2, 2, 0\\n17.86, 36, 4, 1, 0\\n20.27, 28, 3, 3, 0\\n20.41, 76, 2, 1, 1\\n22.56, 52, 3, 1, 1"
+  },
+  {
+    "name": "Poly(1-butene) (PB-1, Form I — Trigonal)",
+    "formula": "(C4H8)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Trigonal",
+    "space_group": "R-3c (No. 167)",
+    "density": 0.95,
+    "description": "Thermodynamically stable twinned trigonal polymorph of isotactic poly(1-butene) (3/1 helical chains) that forms spontaneously via solid-state transformation from tetragonal Form II upon aging at room temperature. Trigonal R-3c (No. 167), a = 17.70 Å, c = 6.50 Å, Z = 18.",
+    "pattern": "9.99, 100, 1, 1, 0\\n17.34, 72, 3, 0, 0\\n20.05, 65, 2, 2, 0\\n20.52, 58, 2, 1, 1\\n25.01, 32, 3, 1, 1\\n26.63, 24, 4, 1, 0"
+  },
+  {
+    "name": "Poly(3-hexylthiophene) (P3HT, Regioregular Semiconducting Polymer)",
+    "formula": "(C10H14S)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/c (No. 14)",
+    "density": 1.12,
+    "description": "Benchmark π-conjugated crystalline semiconducting polymer self-assembling into edge-on or face-on lamellae with sharp (h00) alkyl side-chain lamellar orders (d100 = 16.40 Å) and (020) π–π stacking reflection at 23.39° (d = 3.80 Å). Monoclinic P21/c (No. 14), a = 16.40 Å, b = 7.60 Å, c = 7.80 Å, β = 90.0°.",
+    "pattern": "5.38, 100, 1, 0, 0\\n10.78, 42, 2, 0, 0\\n16.20, 24, 3, 0, 0\\n23.39, 58, 0, 2, 0\\n24.02, 22, 1, 2, 0\\n25.82, 16, 2, 2, 0"
+  },
+  {
+    "name": "Polyacrylonitrile (PAN, Hexagonal Mesocrystalline)",
+    "formula": "(C3H3N)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Hexagonal",
+    "space_group": "P6/mmm (No. 191)",
+    "density": 1.18,
+    "description": "Rod-like dipole-coupled polymer chains packed in a laterally ordered hexagonal lattice; the dominant precursor for aerospace-grade carbon fibers upon thermal stabilization and carbonization. Hexagonal P6/mmm (No. 191), a = 6.00 Å, c = 5.10 Å, characterized by its sharp 17.05° (100) equatorial peak.",
+    "pattern": "17.05, 100, 1, 0, 0\\n24.44, 26, 1, 0, 1\\n29.76, 38, 1, 1, 0\\n34.49, 22, 2, 0, 0\\n46.19, 14, 2, 1, 0"
+  },
+  {
+    "name": "Poly(butylene succinate) (PBS, α-Form Biodegradable Polyester)",
+    "formula": "(C8H12O4)n",
+    "category": "Polymers & Frameworks",
+    "crystal_system": "Monoclinic",
+    "space_group": "P21/n (No. 14)",
+    "density": 1.34,
+    "description": "Bio-based biodegradable aliphatic polyester crystallizing in the monoclinic α-form with T7GTG' chain conformation (transforms to β-PBS under tensile strain). Monoclinic P21/n (No. 14), a = 5.23 Å, b = 9.12 Å, c = 10.90 Å, β = 123.9°, Z = 2.",
+    "pattern": "19.45, 78, 0, 2, 0\\n21.22, 38, 1, 1, -2\\n21.81, 45, 0, 2, 1\\n22.67, 100, 1, 1, 0\\n25.95, 42, 1, 2, -1\\n36.04, 24, 1, 3, 0\\n39.49, 20, 0, 4, 0"
   }
 ]
