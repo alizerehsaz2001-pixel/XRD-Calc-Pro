@@ -1,5 +1,6 @@
-import React from 'react';
-import { CrystalElement } from './types';
+import React, { useState, useMemo } from 'react';
+import { CrystalElement, XRayAnodeType } from './types';
+import { computeElementBraggSticks, XRAY_ANODES } from './xrayAnodePhysics';
 
 /**
  * Computes exact ground-state electron shell populations [K, L, M, N, O, P, Q] for Z = 1..118
@@ -39,18 +40,30 @@ export function getElectronShellPopulations(Z: number): number[] {
     rem -= take;
   }
 
-  // Known Cr, Cu, Nb, Mo, Ru, Rh, Pd, Ag, Pt, Au outer-shell adjustments
+  // Complete IUPAC ground-state d-block & f-block shell population exceptions
   const exceptions: Record<number, number[]> = {
-    24: [2, 8, 13, 1],          // Cr
-    29: [2, 8, 18, 1],          // Cu
-    41: [2, 8, 18, 12, 1],      // Nb
-    42: [2, 8, 18, 13, 1],      // Mo
-    44: [2, 8, 18, 15, 1],      // Ru
-    45: [2, 8, 18, 16, 1],      // Rh
-    46: [2, 8, 18, 18],         // Pd
-    47: [2, 8, 18, 18, 1],      // Ag
-    78: [2, 8, 18, 32, 17, 1],  // Pt
-    79: [2, 8, 18, 32, 18, 1]   // Au
+    24: [2, 8, 13, 1],                    // Cr
+    29: [2, 8, 18, 1],                    // Cu
+    41: [2, 8, 18, 12, 1],                // Nb
+    42: [2, 8, 18, 13, 1],                // Mo
+    44: [2, 8, 18, 15, 1],                // Ru
+    45: [2, 8, 18, 16, 1],                // Rh
+    46: [2, 8, 18, 18],                   // Pd
+    47: [2, 8, 18, 18, 1],                // Ag
+    57: [2, 8, 18, 18, 9, 2],             // La
+    58: [2, 8, 18, 19, 9, 2],             // Ce
+    64: [2, 8, 18, 25, 9, 2],             // Gd
+    78: [2, 8, 18, 32, 17, 1],            // Pt
+    79: [2, 8, 18, 32, 18, 1],            // Au
+    89: [2, 8, 18, 32, 18, 9, 2],         // Ac
+    90: [2, 8, 18, 32, 18, 10, 2],        // Th
+    91: [2, 8, 18, 32, 20, 9, 2],         // Pa
+    92: [2, 8, 18, 32, 21, 9, 2],         // U
+    93: [2, 8, 18, 32, 22, 9, 2],         // Np
+    96: [2, 8, 18, 32, 25, 9, 2],         // Cm
+    103: [2, 8, 18, 32, 32, 8, 3],        // Lr (7p1)
+    110: [2, 8, 18, 32, 32, 17, 1],       // Ds
+    111: [2, 8, 18, 32, 32, 18, 1]        // Rg
   };
 
   if (exceptions[Z]) {
@@ -305,105 +318,53 @@ export const ElectronShellRingGraphic: React.FC<{
 };
 
 /**
- * Live Simulated Powder XRD Stick Pattern for any CrystalElement (Cu Kα = 1.5406 Å)
+ * Live Simulated Powder XRD Stick Pattern for any CrystalElement & X-Ray Tube Anode
+ * Uses exact crystallographic metric-tensor d(hkl) for all 7 crystal systems.
  */
 export const LiveMiniXrdStickPattern: React.FC<{
   element: CrystalElement;
-}> = ({ element }) => {
-  const lambda = 1.5406; // Cu K-alpha
-  const a = element.a || 4.0;
-  const c = element.c || a * 1.633;
-  const struct = element.crystalStructure;
+  anode?: XRayAnodeType;
+}> = ({ element, anode = 'Cu' }) => {
+  const [hoveredIdx, setHoveredIdx] = useState<number | null>(null);
+  const anodeSpec = XRAY_ANODES[anode];
+  const peaks = useMemo(
+    () => computeElementBraggSticks(element, anode, 10, 115),
+    [element, anode]
+  );
 
-  // Candidate hkl sets with relative structure factor + multiplicity weights
-  const hklCandidates: { label: string; d: number; relI: number }[] = [];
+  const primaryPeak = useMemo(() => {
+    if (peaks.length === 0) return null;
+    return peaks.reduce((best, p) => (p.relI > best.relI ? p : best), peaks[0]);
+  }, [peaks]);
 
-  if (struct === 'FCC') {
-    const planes: [number, number, number, number][] = [
-      [1, 1, 1, 100],
-      [2, 0, 0, 48],
-      [2, 2, 0, 32],
-      [3, 1, 1, 36],
-      [2, 2, 2, 12]
-    ];
-    planes.forEach(([h, k, l, I]) => {
-      const d = a / Math.sqrt(h * h + k * k + l * l);
-      hklCandidates.push({ label: `${h}${k}${l}`, d, relI: I });
-    });
-  } else if (struct === 'BCC') {
-    const planes: [number, number, number, number][] = [
-      [1, 1, 0, 100],
-      [2, 0, 0, 18],
-      [2, 1, 1, 35],
-      [2, 2, 0, 12],
-      [3, 1, 0, 16]
-    ];
-    planes.forEach(([h, k, l, I]) => {
-      const d = a / Math.sqrt(h * h + k * k + l * l);
-      hklCandidates.push({ label: `${h}${k}${l}`, d, relI: I });
-    });
-  } else if (struct === 'Diamond') {
-    const planes: [number, number, number, number][] = [
-      [1, 1, 1, 100],
-      [2, 2, 0, 55],
-      [3, 1, 1, 30],
-      [4, 0, 0, 8],
-      [3, 3, 1, 14]
-    ];
-    planes.forEach(([h, k, l, I]) => {
-      const d = a / Math.sqrt(h * h + k * k + l * l);
-      hklCandidates.push({ label: `${h}${k}${l}`, d, relI: I });
-    });
-  } else if (struct === 'HCP' || struct === 'Hexagonal') {
-    const planes: [number, number, number, number][] = [
-      [1, 0, 0, 28],
-      [0, 0, 2, 32],
-      [1, 0, 1, 100],
-      [1, 0, 2, 18],
-      [1, 1, 0, 22]
-    ];
-    planes.forEach(([h, k, l, I]) => {
-      const invD2 = (4 / 3) * ((h * h + h * k + k * k) / (a * a)) + (l * l) / (c * c);
-      const d = 1 / Math.sqrt(Math.max(0.001, invD2));
-      hklCandidates.push({ label: `${h}${k}${l}`, d, relI: I });
-    });
-  } else {
-    const planes: [number, number, number, number][] = [
-      [1, 0, 0, 100],
-      [1, 1, 0, 65],
-      [1, 1, 1, 40],
-      [2, 0, 0, 25],
-      [2, 1, 0, 18]
-    ];
-    planes.forEach(([h, k, l, I]) => {
-      const d = a / Math.sqrt(h * h + k * k + l * l);
-      hklCandidates.push({ label: `${h}${k}${l}`, d, relI: I });
-    });
-  }
-
-  const peaks = hklCandidates
-    .map(p => {
-      const sinTheta = lambda / (2 * p.d);
-      if (sinTheta >= 0.995) return null;
-      const twoTheta = (2 * Math.asin(sinTheta) * 180) / Math.PI;
-      return { ...p, twoTheta };
-    })
-    .filter((p): p is { label: string; d: number; relI: number; twoTheta: number } => p !== null && p.twoTheta >= 10 && p.twoTheta <= 115);
+  const activePeak = hoveredIdx !== null && peaks[hoveredIdx] ? peaks[hoveredIdx] : primaryPeak;
 
   return (
     <div className="w-full space-y-1">
-      <div className="flex items-center justify-between text-[8.5px] font-mono text-slate-400">
-        <span className="uppercase font-bold text-indigo-300">Cu Kα Bragg Stick Pattern</span>
-        <span className="tabular-nums text-slate-500">2θ (10°–115°)</span>
+      <div className="flex items-center justify-between gap-2 text-[9px] font-mono text-slate-400">
+        <span className="uppercase font-bold text-indigo-300 truncate">
+          {anodeSpec.shortLabel} ({anodeSpec.wavelengthKa1.toFixed(3)} Å)
+        </span>
+        {activePeak ? (
+          <span className="tabular-nums text-cyan-300 font-bold truncate">
+            {activePeak.hkl} · {activePeak.twoTheta.toFixed(2)}° · d={activePeak.dSpacing.toFixed(3)}Å
+          </span>
+        ) : (
+          <span className="tabular-nums text-slate-500">Amorphous / No peaks</span>
+        )}
       </div>
-      <svg viewBox="0 0 220 56" className="w-full h-14 bg-[#060a12] rounded-lg border border-slate-800/90 overflow-visible">
+      <svg
+        viewBox="0 0 220 56"
+        className="w-full h-14 bg-[#060a12] rounded-lg border border-slate-800/90 overflow-visible"
+        onMouseLeave={() => setHoveredIdx(null)}
+      >
         {/* Horizontal axis ticks */}
         {[20, 40, 60, 80, 100].map(deg => {
           const x = 10 + ((deg - 10) / 105) * 200;
           return (
             <g key={deg}>
               <line x1={x} y1={44} x2={x} y2={47} stroke="#334155" strokeWidth="0.8" />
-              <text x={x} y={53} textAnchor="middle" className="fill-slate-600 font-mono text-[6.5px]">
+              <text x={x} y={53.5} textAnchor="middle" className="fill-slate-500 font-mono text-[6.5px]">
                 {deg}°
               </text>
             </g>
@@ -414,34 +375,45 @@ export const LiveMiniXrdStickPattern: React.FC<{
         {/* Diffraction Peaks */}
         {peaks.map((pk, idx) => {
           const x = 10 + ((pk.twoTheta - 10) / 105) * 200;
-          const barH = (pk.relI / 100) * 30;
+          const barH = Math.max(4, (pk.relI / 100) * 29);
           const yTop = 44 - barH;
           const isPrimary = pk.relI === 100;
+          const isHovered = hoveredIdx === idx;
           return (
-            <g key={idx}>
+            <g
+              key={`${pk.hkl}-${idx}`}
+              className="cursor-pointer"
+              onMouseEnter={() => setHoveredIdx(idx)}
+            >
+              {/* Wider invisible hit target */}
+              <rect x={x - 4} y={6} width={8} height={38} fill="transparent" />
               <line
                 x1={x}
                 y1={44}
                 x2={x}
                 y2={yTop}
-                stroke={isPrimary ? '#22d3ee' : '#818cf8'}
-                strokeWidth={isPrimary ? '2.2' : '1.5'}
+                stroke={isHovered ? '#facc15' : isPrimary ? '#22d3ee' : '#818cf8'}
+                strokeWidth={isHovered ? '2.6' : isPrimary ? '2.2' : '1.4'}
                 strokeLinecap="round"
               />
               <circle
                 cx={x}
                 cy={yTop}
-                r={isPrimary ? 2.2 : 1.5}
-                fill={isPrimary ? '#22d3ee' : '#818cf8'}
+                r={isHovered ? 2.6 : isPrimary ? 2.1 : 1.4}
+                fill={isHovered ? '#facc15' : isPrimary ? '#22d3ee' : '#818cf8'}
               />
-              <text
-                x={x}
-                y={yTop - 3.5}
-                textAnchor="middle"
-                className={`font-mono text-[6.5px] font-bold ${isPrimary ? 'fill-cyan-300' : 'fill-indigo-300/80'}`}
-              >
-                ({pk.label})
-              </text>
+              {(isPrimary || isHovered || peaks.length <= 6) && (
+                <text
+                  x={x}
+                  y={Math.max(8, yTop - 3.5)}
+                  textAnchor="middle"
+                  className={`font-mono text-[6.5px] font-bold pointer-events-none ${
+                    isHovered ? 'fill-amber-300' : isPrimary ? 'fill-cyan-300' : 'fill-indigo-300/80'
+                  }`}
+                >
+                  {pk.hkl}
+                </text>
+              )}
             </g>
           );
         })}

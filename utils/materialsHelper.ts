@@ -11,6 +11,15 @@ export const DEPRECATED_MATERIAL_NAMES = new Set<string>([
   'Alpha Titanium (α-Ti)',
   'Chromium Standard (Cr)',
   'Cobalt Nanoparticles (Hexagonal)',
+  'Thorium Dioxide',
+  'Alpha-Uranium Metal (α-U)',
+  'Triuranium Octoxide (U3O8)',
+  'Uranium Trioxide (UO3)',
+  'Zinc Oxide',
+  'Zinc Oxide Quantum Dots (ZnO QDs)',
+  'Pure Magnesium Sheet (Mg)',
+  'Zinc Foil Standards (Zn)',
+  'Zinc Oxide Nanorods (ZnO)',
 ]);
 
 const BUILTIN_MATERIAL_MAP = new Map<string, any>(

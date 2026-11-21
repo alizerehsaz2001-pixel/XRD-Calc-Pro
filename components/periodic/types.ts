@@ -72,8 +72,11 @@ export interface CrystalElement extends ScientificProperties {
   muOverRhoCu?: number; // cm²/g
 }
 
+export type XRayAnodeType = 'Cu' | 'Co' | 'Mo' | 'Cr' | 'Fe' | 'Ag';
+
 export type HeatmapMode =
   | 'none'
+  | 'dbPhaseCount'
   | 'latticeA'
   | 'unitCellVolume'
   | 'molarVolume'

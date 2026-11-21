@@ -125,6 +125,7 @@ export const StructureFactorPhasorDiagram: React.FC<StructureFactorPhasorDiagram
 
       case "BCC":
       case "Tetragonal_I":
+      case "Orthorhombic_I":
         return [
           { id: "bcc-0", label: "Corner (0, 0, 0)", element: "M", coords: [0, 0, 0], f: f1, color: "#38bdf8" },
           { id: "bcc-1", label: "Body Center (½, ½, ½)", element: "M", coords: [0.5, 0.5, 0.5], f: f1, color: "#a855f7" },
@@ -199,8 +200,15 @@ export const StructureFactorPhasorDiagram: React.FC<StructureFactorPhasorDiagram
           { id: "hex-1", label: "Interstitial (⅔, ⅓, ½)", element: "M", coords: [2 / 3, 1 / 3, 0.5], f: f1, color: "#a855f7" },
         ];
 
+      case "Rhombohedral":
+        return [
+          { id: "rhomb-0", label: "Origin (0, 0, 0)", element: "M", coords: [0, 0, 0], f: f1, color: "#38bdf8" },
+          { id: "rhomb-1", label: "Obverse 1 (⅔, ⅓, ⅓)", element: "M", coords: [2 / 3, 1 / 3, 1 / 3], f: f1, color: "#a855f7" },
+          { id: "rhomb-2", label: "Obverse 2 (⅓, ⅔, ⅔)", element: "M", coords: [1 / 3, 2 / 3, 2 / 3], f: f1, color: "#34d399" },
+        ];
+
       case "Orthorhombic_C":
-      case "Monoclinic":
+      case "Monoclinic_C":
         return [
           { id: "ortho-0", label: "Corner (0, 0, 0)", element: "M", coords: [0, 0, 0], f: f1, color: "#38bdf8" },
           { id: "ortho-1", label: "Base Center (½, ½, 0)", element: "M", coords: [0.5, 0.5, 0], f: f1, color: "#34d399" },

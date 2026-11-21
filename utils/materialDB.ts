@@ -543,30 +543,33 @@ const RAW_MATERIAL_DB = [
   {
     name: "Zinc-doped Ferrite",
     type: "Magnetic & Ferroelectric",
-    pattern: "29.9, 45\n35.2, 100\n42.9, 25\n53.1, 15\n56.7, 28\n62.3, 42",
+    pattern: "18.23, 12, 1, 1, 1\n29.99, 34, 2, 2, 0\n35.33, 100, 3, 1, 1\n36.95, 8, 2, 2, 2\n42.93, 22, 4, 0, 0\n53.25, 10, 4, 2, 2\n56.77, 30, 5, 1, 1\n62.33, 38, 4, 4, 0",
     description:
-      "Zinc-substituted magnetite used to tune the Curie temperature for self-regulated hyperthermia.",
+      "Zinc-substituted magnetite spinel ferrite (Zn0.5Fe2.5O4) where non-magnetic Zn²⁺ preferentially occupies tetrahedral A-sites, raising room-temperature saturation magnetization and lowering Curie temperature for soft magnetic cores and biomedical hyperthermia. Cubic Fd-3m (No. 227), a = 8.420 Å, Z = 8.",
     formula: "Zn0.5Fe2.5O4",
-    elements: ["Zn", "Fe", "O"],
-    crystalSystem: "Cubic (Spinel)",
-    spaceGroup: "Fd-3m",
-    density: 5.25,
+    elements: ["Zn","Fe","O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 5.28,
     applications: ["Self-Regulated Hyperthermia", "Soft Magnetic Devices"],
-    molecularWeight: 238.2,
+    molecularWeight: 236.31,
+    elasticModulus: 165
   },
   {
     name: "Zinc Oxide (ZnO)",
     type: "Semiconductors & Photonics",
     pattern:
-      "31.77, 57\n34.42, 44\n36.25, 100\n47.54, 23\n56.60, 32\n62.86, 29",
+      "31.77, 57, 1, 0, 0\n34.42, 44, 0, 0, 2\n36.25, 100, 1, 0, 1\n47.54, 23, 1, 0, 2\n56.60, 32, 1, 1, 0\n62.86, 29, 1, 0, 3\n66.38, 4, 2, 0, 0\n67.95, 23, 1, 1, 2\n69.09, 11, 2, 0, 1\n72.57, 2, 0, 0, 4\n76.96, 4, 2, 0, 2",
     description:
-      "An inorganic compound used as an additive in numerous materials and products.",
+      "Hexagonal wurtzite zincite (ZnO), a direct wide-bandgap (3.37 eV) piezoelectric semiconductor and NIST SRM 674b quantitative XRD reference material. Used in varistors, transparent conducting oxides (AZO), photocatalysis, UV optoelectronics, and rubber vulcanization. Hexagonal P63mc (No. 186), a = 3.2498 Å, c = 5.2066 Å, Z = 2, PDF 00-036-1451.",
     formula: "ZnO",
-    elements: ["Zn", "O"],
+    elements: ["Zn","O"],
     crystalSystem: "Hexagonal",
-    spaceGroup: "P63mc",
-    density: 5.61,
+    spaceGroup: "P63mc (No. 186)",
+    density: 5.606,
     applications: ["Rubber", "Plastics", "Ceramics", "Glass"],
+    molecularWeight: 81.38,
+    elasticModulus: 140
   },
   {
     name: "Polytetrafluoroethylene (PTFE)",
@@ -707,15 +710,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Oxide (MgO)",
     type: "Ceramics & Refractories",
-    pattern: "36.94, 10\n42.91, 100\n62.30, 52\n74.65, 4\n78.61, 12",
+    pattern: "36.94, 10, 1, 1, 1\n42.92, 100, 2, 0, 0\n62.31, 52, 2, 2, 0\n74.70, 4, 3, 1, 1\n78.64, 12, 2, 2, 2\n94.05, 5, 4, 0, 0\n105.75, 2, 3, 3, 1\n109.78, 15, 4, 2, 0",
     description:
-      "A white hygroscopic solid mineral that occurs naturally as periclase.",
+      "Periclase cubic rock-salt magnesium oxide (MgO) with an exceptionally high melting point (2852 °C), wide optical bandgap (7.8 eV), and superior thermal shock resistance. Standard basic refractory lining, spintronic MTJ tunnel barrier, and electrical heating insulator. Cubic Fm-3m (No. 225), a = 4.2112 Å, Z = 4, PDF 00-045-0946.",
     formula: "MgO",
-    elements: ["Mg", "O"],
+    elements: ["Mg","O"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
-    density: 3.58,
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 3.584,
     applications: ["Refractories", "Medicine", "Insulation"],
+    molecularWeight: 40.304,
+    elasticModulus: 295
   },
   {
     name: "Titanium (Ti)",
@@ -1569,15 +1574,17 @@ const RAW_MATERIAL_DB = [
     name: "Zinc Selenide (ZnSe)",
     type: "Semiconductors & Photonics",
     pattern:
-      "27.2, 100\n31.5, 10\n45.3, 85\n53.6, 45\n66.0, 20\n72.7, 25\n83.4, 15",
+      "27.23, 100, 1, 1, 1\n31.54, 1, 2, 0, 0\n45.21, 70, 2, 2, 0\n53.57, 44, 3, 1, 1\n65.85, 9, 4, 0, 0\n72.64, 13, 3, 3, 1\n83.47, 15, 4, 2, 2\n89.83, 9, 5, 1, 1",
     description:
-      "A light-yellow, solid binary compound. It is an intrinsic semiconductor and optical material.",
+      "Cubic zinc-blende II-VI semiconductor (Eg = 2.70 eV) prized for ultra-low absorption across 0.6–20 μm, making it the premier CO2 laser optics, FLIR thermal imaging window, and ATR-FTIR crystal. Cubic F-43m (No. 216), a = 5.6688 Å, Z = 4, PDF 00-037-1463.",
     formula: "ZnSe",
-    elements: ["Zn", "Se"],
+    elements: ["Zn","Se"],
     crystalSystem: "Cubic",
-    spaceGroup: "F-43m",
-    density: 5.27,
+    spaceGroup: "F-43m (No. 216)",
+    density: 5.265,
     applications: ["Infrared Optics", "CO2 Lasers", "X-ray Detectors"],
+    molecularWeight: 144.34,
+    elasticModulus: 67
   },
   {
     name: "Tantalum (Ta)",
@@ -1762,15 +1769,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Zinc Sulfide (ZnS)",
     type: "Semiconductors & Photonics",
-    pattern: "28.5, 100\n47.5, 60\n56.4, 45\n69.4, 15\n76.8, 18",
+    pattern: "28.56, 100, 1, 1, 1\n33.09, 10, 2, 0, 0\n47.50, 51, 2, 2, 0\n56.37, 30, 3, 1, 1\n59.12, 2, 2, 2, 2\n69.45, 6, 4, 0, 0\n76.74, 9, 3, 3, 1\n88.47, 9, 4, 2, 2",
     description:
-      "A versatile material used as a white pigment and in electroluminescence.",
-    formula: "ZnS (Sphalerite)",
-    elements: ["Zn", "S"],
+      "Low-temperature cubic zinc blende (sphalerite, β-ZnS) polymorph, primary zinc ore mineral and wide-bandgap (3.68 eV) infrared-transparent optical window and electroluminescent phosphor host. Cubic F-43m (No. 216), a = 5.4093 Å, Z = 4, PDF 00-005-0566.",
+    formula: "ZnS",
+    elements: ["Zn","S"],
     crystalSystem: "Cubic",
-    spaceGroup: "F-43m",
+    spaceGroup: "F-43m (No. 216)",
     density: 4.09,
     applications: ["Phosphors", "Optical Windows", "Infrared Lenses"],
+    molecularWeight: 97.45,
+    elasticModulus: 75
   },
   {
     name: "beta-Tricalcium Phosphate (beta-TCP)",
@@ -2160,13 +2169,14 @@ const RAW_MATERIAL_DB = [
   {
     name: "Uranium Dioxide (UO2)",
     type: "Nuclear & Shielding",
-    pattern: "28.2, 100\n32.7, 45\n47.0, 50\n55.8, 40\n58.5, 30",
+    pattern:
+      "28.23, 100, 1, 1, 1\n32.71, 46, 2, 0, 0\n46.94, 52, 2, 2, 0\n55.68, 42, 3, 1, 1\n58.39, 13, 2, 2, 2\n68.56, 8, 4, 0, 0\n75.73, 17, 3, 3, 1\n78.06, 12, 4, 2, 0\n87.23, 14, 4, 2, 2",
     description:
-      "An oxide of uranium utilized as the primary nuclear fuel in light water reactors.",
+      "Fluorite-type uranium dioxide (UO2), the primary ceramic nuclear fuel in light-water reactors. Cubic Fm-3m (No. 225), a = 5.4704 Å, Z = 4, PDF 00-041-1422.",
     formula: "UO2",
     elements: ["U", "O"],
-    crystalSystem: "Cubic (Fluorite)",
-    spaceGroup: "Fm-3m",
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 10.97,
     applications: ["Nuclear Reactor Fuel", "Radiological Shielding"],
     molecularWeight: 270.03,
@@ -2179,13 +2189,14 @@ const RAW_MATERIAL_DB = [
   {
     name: "Thorium Dioxide (ThO2)",
     type: "Nuclear & Shielding",
-    pattern: "27.6, 100\n31.9, 40\n45.8, 55\n54.4, 45\n57.0, 35",
+    pattern:
+      "27.58, 100, 1, 1, 1\n31.95, 36, 2, 0, 0\n45.81, 56, 2, 2, 0\n54.31, 44, 3, 1, 1\n56.94, 10, 2, 2, 2\n66.80, 9, 4, 0, 0\n73.72, 18, 3, 3, 1\n75.97, 13, 4, 2, 0\n84.78, 15, 4, 2, 2",
     description:
-      "A crystalline fertile powder that can be bred into fissile U-233; possesses the highest melting point of all oxides.",
+      "Crystalline fluorite-type thorium dioxide (thoria, ThO2), a fertile nuclear ceramic with the highest melting point of all binary oxides (3390 °C). Cubic Fm-3m (No. 225), a = 5.5974 Å, Z = 4, PDF 00-042-1462.",
     formula: "ThO2",
     elements: ["Th", "O"],
-    crystalSystem: "Cubic (Fluorite)",
-    spaceGroup: "Fm-3m",
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 10.0,
     applications: ["Advanced Nuclear Fuel Cycles", "High-Temp Crucibles"],
     molecularWeight: 264.04,
@@ -2229,16 +2240,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Plutonium Dioxide (PuO2)",
     type: "Nuclear & Shielding",
-    pattern: "28.6, 100\n33.1, 40\n47.5, 55\n56.4, 45\n59.1, 10\n69.5, 20",
+    pattern:
+      "28.63, 100, 1, 1, 1\n33.18, 42, 2, 0, 0\n47.63, 55, 2, 2, 0\n56.52, 46, 3, 1, 1\n59.28, 12, 2, 2, 2\n69.64, 9, 4, 0, 0\n76.96, 18, 3, 3, 1\n79.35, 13, 4, 2, 0\n88.75, 15, 4, 2, 2",
     description:
-      "A stable ceramic form of plutonium used in MOX fuel and radioisotope thermoelectric generators (RTGs).",
+      "Stable fluorite-structured ceramic plutonium dioxide (PuO2) used in Mixed Oxide (MOX) nuclear fuel and deep-space radioisotope thermoelectric generators (RTGs). Cubic Fm-3m (No. 225), a = 5.3960 Å, Z = 4, PDF 00-041-1170.",
     formula: "PuO2",
     elements: ["Pu", "O"],
-    crystalSystem: "Cubic (Fluorite)",
-    spaceGroup: "Fm-3m",
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 11.46,
     applications: ["MOX Fuel", "Deep Space Power (RTGs)"],
-    molecularWeight: 271.0,
+    molecularWeight: 276.0,
     hazards: ["Highly Radioactive", "Alpha Emitter", "Chemically Toxic"],
   },
   {
@@ -2670,15 +2682,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Brass (C26000)",
     type: "Metals & Alloys",
-    pattern: "42.6, 100\n49.6, 45\n72.8, 20\n88.1, 15",
+    pattern: "42.50, 100, 1, 1, 1\n49.48, 46, 2, 0, 0\n72.58, 25, 2, 2, 0\n87.90, 24, 3, 1, 1\n92.92, 7, 2, 2, 2\n113.66, 4, 4, 0, 0",
     description:
-      "A copper-zinc alloy (70-30), exhibiting good strength and corrosion resistance.",
-    formula: "Cu-Zn (Brass)",
-    elements: ["Cu", "Zn", "Br"],
-    crystalSystem: "Cubic (FCC)",
-    spaceGroup: "Fm-3m",
+      "Single-phase FCC alpha-brass (Cartridge Brass C26000, Cu-30wt%Zn) with substantial lattice expansion relative to pure Cu (a = 3.6810 vs 3.6150 Å) due to substitutional Zn dissolution. Optimal combination of high ductility, cold-drawing workability, and corrosion resistance. Cubic Fm-3m (No. 225), a = 3.6810 Å, Z = 4, PDF 00-050-1333.",
+    formula: "Cu0.70Zn0.30",
+    elements: ["Cu","Zn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 8.53,
     applications: ["Ammunition", "Plumbing", "Musical Instruments"],
+    molecularWeight: 64.1,
+    elasticModulus: 110
   },
   {
     name: "Inconel 718",
@@ -3193,15 +3207,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Zinc Telluride (ZnTe)",
     type: "Semiconductors & Photonics",
-    pattern: "25.3, 100\n41.9, 60\n49.6, 40\n60.4, 15\n67.1, 20\n76.5, 10",
+    pattern: "25.26, 100, 1, 1, 1\n29.25, 10, 2, 0, 0\n41.83, 81, 2, 2, 0\n49.50, 45, 3, 1, 1\n60.65, 11, 4, 0, 0\n66.76, 17, 3, 3, 1\n76.39, 18, 4, 2, 2\n81.97, 10, 5, 1, 1",
     description:
-      "A binary chemical compound with a direct band gap, used in optoelectronic devices.",
+      "Direct-bandgap (2.26 eV) cubic zinc-blende II-VI semiconductor widely used for electro-optic terahertz (THz) generation/detection crystals, CdTe solar cell back-contacts, and green LEDs. Cubic F-43m (No. 216), a = 6.1026 Å, Z = 4, PDF 00-015-0746.",
     formula: "ZnTe",
-    elements: ["Zn", "Te"],
+    elements: ["Zn","Te"],
     crystalSystem: "Cubic",
-    spaceGroup: "F-43m",
-    density: 6.34,
+    spaceGroup: "F-43m (No. 216)",
+    density: 5.636,
     applications: ["LEDs", "Solar Cells", "Terahertz Generators"],
+    molecularWeight: 192.98,
+    elasticModulus: 61
   },
   {
     name: "Lanthanum Aluminate (LaAlO3)",
@@ -3461,15 +3477,15 @@ const RAW_MATERIAL_DB = [
     name: "Alpha-Uranium Metal",
     type: "Nuclear & Shielding",
     pattern:
-      "35.08, 100\n36.25, 40\n38.74, 55\n39.24, 60\n50.15, 30\n50.21, 28",
+      "30.43, 14, 0, 2, 0\n34.93, 92, 1, 1, 0\n35.52, 100, 0, 2, 1\n36.23, 52, 0, 0, 2\n39.51, 58, 1, 1, 1\n48.02, 18, 0, 2, 2\n51.21, 46, 1, 1, 2\n57.03, 16, 1, 3, 0\n60.27, 34, 1, 3, 1\n64.71, 22, 0, 2, 3\n65.35, 16, 2, 0, 0\n67.37, 25, 1, 1, 3",
     description:
-      "The standard orthorhombic allotrope of elemental uranium. Critical fuel precursor for nuclear systems.",
+      "Room-temperature orthorhombic allotrope of elemental uranium (α-U, stable below 668 °C) with corrugated (010) atomic layers and highly anisotropic thermal expansion. Orthorhombic Cmcm (No. 63), a = 2.8537 Å, b = 5.8695 Å, c = 4.9548 Å, Z = 4, PDF 00-011-0628.",
     formula: "α-U",
     elements: ["U"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Cmcm",
-    density: 19.1,
-    applications: ["Nuclear Fuel", "Radiation Shielding", "Armor Piercing"],
+    spaceGroup: "Cmcm (No. 63)",
+    density: 19.05,
+    applications: ["Nuclear Fuel", "Radiation Shielding", "Actinide Metallurgy"],
     molecularWeight: 238.03,
     elasticModulus: 208,
   },
@@ -3477,13 +3493,13 @@ const RAW_MATERIAL_DB = [
     name: "Uranium Dioxide",
     type: "Nuclear & Shielding",
     pattern:
-      "28.25, 100\n32.74, 35\n47.01, 55\n55.78, 45\n58.55, 15\n68.62, 25",
+      "28.23, 100, 1, 1, 1\n32.71, 46, 2, 0, 0\n46.94, 52, 2, 2, 0\n55.68, 42, 3, 1, 1\n58.39, 13, 2, 2, 2\n68.56, 8, 4, 0, 0\n75.73, 17, 3, 3, 1\n78.06, 12, 4, 2, 0\n87.23, 14, 4, 2, 2",
     description:
-      "Highly stable fluorite-structured oxide. The primary ceramic nuclear fuel used in commercial reactors.",
+      "Stoichiometric fluorite-structured uranium dioxide (UO2), the primary ceramic nuclear fuel used in commercial light-water reactors. Cubic Fm-3m (No. 225), a = 5.4704 Å, Z = 4, PDF 00-041-1422.",
     formula: "UO2",
     elements: ["U", "O"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 10.97,
     applications: ["Nuclear Power", "Ceramic Fuel"],
     molecularWeight: 270.03,
@@ -3493,30 +3509,31 @@ const RAW_MATERIAL_DB = [
     name: "Triuranium Octoxide",
     type: "Nuclear & Shielding",
     pattern:
-      "21.44, 45\n25.95, 100\n26.45, 95\n34.32, 60\n43.15, 25\n44.50, 20",
+      "21.41, 100, 0, 0, 1\n25.97, 82, 1, 3, 0\n26.52, 62, 2, 0, 0\n33.90, 58, 1, 3, 1\n34.34, 44, 2, 0, 1\n43.62, 28, 0, 0, 2\n51.72, 32, 3, 3, 1\n53.41, 24, 2, 6, 0\n58.19, 20, 2, 6, 1\n64.83, 16, 0, 6, 2",
     description:
-      'The most stable form of uranium oxide. Common "yellowcake" component.',
-    formula: "U3O8",
+      "Thermodynamically most stable mixed-valence (U5+/U6+) uranium oxide (α-U3O8) in air; the primary constituent of refined yellowcake concentrate and long-term uranium oxide storage. Orthorhombic C2mm (No. 38), a = 6.716 Å, b = 11.960 Å, c = 4.147 Å, Z = 2, PDF 00-047-1493.",
+    formula: "α-U3O8",
     elements: ["U", "O"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Ammm",
-    density: 8.3,
-    applications: ["Yellowcake concentrate", "Fuel Processing"],
-    molecularWeight: 842.1,
+    spaceGroup: "C2mm (No. 38)",
+    density: 8.38,
+    applications: ["Yellowcake Concentrate", "Fuel Processing", "Uranium Assay Standards"],
+    molecularWeight: 842.09,
     elasticModulus: 160,
   },
   {
     name: "Uranium Trioxide",
     type: "Nuclear & Shielding",
-    pattern: "15.20, 100\n26.10, 85\n33.40, 40\n46.50, 20\n52.80, 15",
+    pattern:
+      "13.57, 20, 1, 1, 1\n17.79, 55, 0, 4, 0\n20.16, 38, 2, 2, 0\n20.33, 42, 0, 2, 2\n25.79, 100, 2, 0, 2\n29.13, 35, 3, 1, 1\n31.51, 52, 2, 4, 2\n36.60, 28, 4, 0, 0\n37.55, 30, 2, 6, 2\n40.97, 26, 4, 4, 0\n41.34, 24, 0, 4, 4",
     description:
-      "Orange-colored oxide, a critical intermediate in the conversion of uranium to fuel.",
-    formula: "UO3",
+      "Orange-yellow gamma-uranium trioxide (γ-UO3), the most stable polymorph of hexavalent UO3 produced by denitration of uranyl nitrate in nuclear fuel conversion. Orthorhombic Fddd (No. 70), a = 9.813 Å, b = 19.930 Å, c = 9.711 Å, Z = 32, PDF 00-031-1425.",
+    formula: "γ-UO3",
     elements: ["U", "O"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Fddd",
-    density: 7.29,
-    applications: ["Fuel Enrichment", "Intermediates"],
+    spaceGroup: "Fddd (No. 70)",
+    density: 7.80,
+    applications: ["Nuclear Fuel Conversion", "UO2 Precursor", "Actinide Chemistry"],
     molecularWeight: 286.03,
     elasticModulus: 155,
   },
@@ -3602,16 +3619,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Alloy (AZ31B)",
     type: "Metals & Alloys",
-    pattern: "32.2, 40\n34.4, 50\n36.6, 100\n47.8, 15\n57.4, 20\n63.2, 10",
+    pattern: "32.33, 26, 1, 0, 0\n34.55, 38, 0, 0, 2\n36.78, 100, 1, 0, 1\n48.04, 15, 1, 0, 2\n57.66, 18, 1, 1, 0\n63.37, 16, 1, 0, 3\n67.67, 4, 2, 0, 0\n68.98, 13, 1, 1, 2\n70.37, 10, 2, 0, 1\n72.87, 4, 0, 0, 4",
     description:
-      "Lightweight magnesium-aluminum-zinc alloy. Wrought form widely used in aerospace applications.",
-    formula: "Mg-Al-Zn",
-    elements: ["Mg", "Al", "Zn"],
+      "Most widely used wrought magnesium alloy (AZ31B: Mg-3wt%Al-1wt%Zn-0.3wt%Mn). Substitutional Al and Zn solutes slightly contract the HCP α-Mg unit cell (a = 3.195 Å, c = 5.188 Å), shifting Bragg peaks ~0.15° higher than pure Mg. Rolled sheet often shows strong basal (002) texture. Hexagonal P63/mmc (No. 194), PDF 00-035-0821 (solid solution).",
+    formula: "Mg-3Al-1Zn-0.3Mn",
+    elements: ["Mg","Al","Zn","Mn"],
     crystalSystem: "Hexagonal",
-    spaceGroup: "P63/mmc",
+    spaceGroup: "P63/mmc (No. 194)",
     density: 1.77,
     applications: ["Aerospace", "Automotive", "Electronics Casings"],
     elasticModulus: 45,
+    molecularWeight: 24.72
   },
   {
     name: "Cobalt-Chrome (CoCrMo)",
@@ -3790,16 +3808,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium (Mg)",
     type: "Metals & Alloys",
-    pattern: "32.2, 35\n34.4, 45\n36.6, 100\n47.8, 15\n57.4, 10",
+    pattern: "32.18, 25, 1, 0, 0\n34.39, 36, 0, 0, 2\n36.61, 100, 1, 0, 1\n47.81, 15, 1, 0, 2\n57.37, 18, 1, 1, 0\n63.06, 16, 1, 0, 3\n67.32, 4, 2, 0, 0\n68.63, 13, 1, 1, 2\n70.01, 10, 2, 0, 1\n72.50, 4, 0, 0, 4\n77.84, 5, 2, 0, 2",
     description:
-      "Shiny gray solid and the lightest structural metal. Highly reactive but forms passivating oxide surface layer.",
+      "Lightest structural engineering metal (1.738 g/cm³) crystallizing in a nearly ideal HCP lattice (c/a = 1.6236). Essential base phase for aerospace/automotive lightweighting alloys, bioresorbable orthopedic implants, hydrogen storage, and rechargeable magnesium batteries. Hexagonal P63/mmc (No. 194), a = 3.2094 Å, c = 5.2108 Å, Z = 2, PDF 00-035-0821.",
     formula: "Mg",
     elements: ["Mg"],
     crystalSystem: "Hexagonal",
-    spaceGroup: "P63/mmc",
-    density: 1.74,
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 1.738,
     applications: ["Alloying Agent", "Die Casting", "Sacrificial Anodes"],
     elasticModulus: 45,
+    molecularWeight: 24.305
   },
   {
     name: "Tin (Sn)",
@@ -3832,16 +3851,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Zinc (Zn)",
     type: "Metals & Alloys",
-    pattern: "36.3, 50\n39.0, 45\n43.2, 100\n54.3, 15\n70.1, 20\n70.6, 10",
+    pattern: "36.29, 53, 0, 0, 2\n38.99, 40, 1, 0, 0\n43.22, 100, 1, 0, 1\n54.32, 28, 1, 0, 2\n70.08, 25, 1, 0, 3\n70.63, 21, 1, 1, 0\n77.05, 4, 0, 0, 4\n82.09, 23, 1, 1, 2\n83.75, 5, 2, 0, 0\n86.54, 17, 2, 0, 1\n89.92, 4, 1, 0, 4",
     description:
-      "Slightly brittle metal at room temperature, it has a blue-silvery appearance. First major application is galvanization of steel.",
+      "Elemental hexagonal close-packed zinc metal with an anomalously large axial ratio (c/a = 1.856) that causes (002) at 36.29° to precede (100) at 38.99°. Widely used for hot-dip galvanizing, cathodic protection anodes, die-casting alloys, and aqueous zinc-ion battery anodes. Hexagonal P63/mmc (No. 194), a = 2.6650 Å, c = 4.9470 Å, Z = 2, PDF 00-004-0831.",
     formula: "Zn",
     elements: ["Zn"],
     crystalSystem: "Hexagonal",
-    spaceGroup: "P63/mmc",
-    density: 7.14,
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 7.134,
     applications: ["Galvanizing", "Brass Addition", "Die Casting"],
     elasticModulus: 108,
+    molecularWeight: 65.38
   },
   {
     name: "Electrical Steel (Fe-Si)",
@@ -4165,32 +4185,36 @@ const RAW_MATERIAL_DB = [
   {
     name: "Olivine (Forsterite)",
     type: "Minerals, Ores & Geology",
-    pattern: "22.8, 45\n32.2, 90\n35.6, 100\n39.7, 40\n52.1, 30",
+    pattern: "17.38, 20, 0, 2, 0\n22.90, 62, 0, 2, 1\n23.89, 14, 1, 0, 1\n25.46, 26, 1, 1, 1\n25.60, 12, 1, 2, 0\n29.70, 18, 1, 2, 1\n32.35, 68, 1, 3, 0\n35.75, 85, 1, 3, 1\n36.55, 100, 1, 1, 2\n39.72, 22, 1, 2, 2\n40.10, 28, 1, 4, 0\n52.29, 55, 2, 2, 2",
     description:
-      "Magnesium-rich solid solution series. Common in Earth's mantle and meteorites.",
+      "Magnesium end-member olivine orthosilicate (Mg2SiO4, forsterite), dominant upper-mantle mineral and high-Q microwave dielectric / bioactive bone-scaffold ceramic. Orthorhombic Pbnm (No. 62), a = 4.7540 Å, b = 10.1971 Å, c = 5.9806 Å, Z = 4, PDF 00-034-0189.",
     formula: "Mg2SiO4",
-    elements: ["Mg", "Si", "O"],
+    elements: ["Mg","Si","O"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Pbnm",
-    density: 3.27,
+    spaceGroup: "Pbnm (No. 62)",
+    density: 3.227,
     applications: [
       "Refractories",
       "Carbon Sequestration",
       "Gemstone (Peridot)",
     ],
+    molecularWeight: 140.69,
+    elasticModulus: 200
   },
   {
     name: "Pyroxene (Enstatite)",
     type: "Minerals, Ores & Geology",
-    pattern: "28.1, 80\n29.4, 60\n31.0, 100\n35.3, 40\n44.5, 20",
+    pattern: "13.97, 8, 2, 1, 0\n19.47, 10, 4, 0, 0\n28.15, 100, 4, 2, 0\n28.32, 35, 2, 2, 1\n31.12, 85, 6, 1, 0\n33.13, 25, 4, 2, 1\n34.64, 15, 0, 0, 2\n35.45, 42, 1, 3, 1\n36.49, 28, 2, 3, 1\n42.78, 20, 6, 3, 0\n57.50, 18, 10, 2, 1",
     description:
-      "Common rock-forming inosilicate mineral in igneous and metamorphic rocks.",
+      "Magnesium end-member orthopyroxene chain silicate (MgSiO3, enstatite), major Earth mantle / chondritic meteorite mineral and low-loss steatite ceramic electrical insulator. Orthorhombic Pbca (No. 61), a = 18.225 Å, b = 8.815 Å, c = 5.175 Å, Z = 16, PDF 00-019-0768.",
     formula: "MgSiO3",
-    elements: ["Mg", "Si", "O"],
+    elements: ["Mg","Si","O"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Pbca",
-    density: 3.2,
+    spaceGroup: "Pbca (No. 61)",
+    density: 3.204,
     applications: ["Petrology", "Ceramics"],
+    molecularWeight: 100.39,
+    elasticModulus: 175
   },
   {
     name: "Biotite",
@@ -4260,19 +4284,21 @@ const RAW_MATERIAL_DB = [
   {
     name: "Dolomite",
     type: "Minerals, Ores & Geology",
-    pattern: "30.9, 100\n33.5, 30\n41.1, 20\n50.5, 45\n51.1, 15",
+    pattern: "22.05, 3, 1, 0, 1\n24.08, 6, 0, 1, 2\n30.98, 100, 1, 0, 4\n33.57, 5, 0, 0, 6\n35.35, 5, 0, 1, 5\n37.39, 6, 1, 1, 0\n41.16, 18, 1, 1, 3\n44.96, 10, 2, 0, 2\n49.31, 6, 0, 2, 4\n51.12, 15, 1, 1, 6\n58.93, 4, 2, 1, 1\n63.48, 6, 2, 1, 4",
     description:
-      "An anhydrous carbonate mineral composed of calcium magnesium carbonate.",
+      "Ordered calcium magnesium double carbonate (CaMg(CO3)2) with alternating Ca²⁺ and Mg²⁺ cation layers reducing symmetry from R-3c to R-3 (diagnostic ordering reflections (101) at 22.05° and (015) at 35.35°). Major raw material for Pidgeon-process metallic Mg production and dolomitic refractories. Trigonal R-3 (No. 148), a = 4.8069 Å, c = 16.0034 Å, Z = 3, PDF 00-036-0426.",
     formula: "CaMg(CO3)2",
-    elements: ["Ca", "Mg", "C", "O"],
+    elements: ["Ca","Mg","C","O"],
     crystalSystem: "Trigonal",
-    spaceGroup: "R-3",
-    density: 2.84,
+    spaceGroup: "R-3 (No. 148)",
+    density: 2.866,
     applications: [
       "Ornamental stone",
       "Concrete aggregate",
       "Source of magnesium",
     ],
+    molecularWeight: 184.4,
+    elasticModulus: 117
   },
   {
     name: "Aragonite",
@@ -4485,15 +4511,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Uranium Silicide (U3Si2)",
     type: "Nuclear & Shielding",
-    pattern: "34.5, 100\n36.8, 60\n42.1, 80\n54.2, 40\n65.3, 30",
+    pattern:
+      "17.09, 10, 1, 1, 0\n22.78, 12, 0, 0, 1\n24.26, 20, 2, 0, 0\n27.18, 42, 2, 1, 0\n28.62, 18, 1, 1, 1\n33.52, 58, 2, 0, 1\n34.58, 45, 2, 2, 0\n35.75, 100, 2, 1, 1\n38.81, 40, 3, 1, 0\n41.81, 22, 2, 2, 1\n45.48, 34, 3, 1, 1\n46.54, 26, 0, 0, 2\n50.59, 18, 3, 2, 1\n51.35, 24, 4, 1, 0",
     description:
-      "High-density advanced accident-tolerant nuclear fuel, considered as a replacement for UO2 for better thermal conductivity.",
+      "High-uranium-density, high-thermal-conductivity accident-tolerant nuclear fuel (U3Si2) used in research reactors and ATF commercial LWR fuel concepts. Tetragonal P4/mbm (No. 127), a = 7.331 Å, c = 3.900 Å, Z = 2, PDF 00-047-1070.",
     formula: "U3Si2",
     elements: ["U", "Si"],
     crystalSystem: "Tetragonal",
-    spaceGroup: "P4/mbm",
+    spaceGroup: "P4/mbm (No. 127)",
     density: 12.2,
-    applications: ["Accident-Tolerant Fuel (ATF)"],
+    applications: ["Accident-Tolerant Fuel (ATF)", "Research Reactor Dispersion Fuel"],
+    molecularWeight: 770.26,
     elasticModulus: 140,
   },
   {
@@ -4582,16 +4610,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Aluminate Spinel",
     type: "Advanced Materials",
-    pattern: "31.2, 100\n36.8, 35\n44.8, 50\n59.3, 40\n65.2, 25",
+    pattern: "19.00, 35, 1, 1, 1\n31.27, 40, 2, 2, 0\n36.85, 100, 3, 1, 1\n38.55, 4, 2, 2, 2\n44.81, 65, 4, 0, 0\n55.66, 10, 4, 2, 2\n59.36, 45, 5, 1, 1\n65.24, 55, 4, 4, 0\n77.35, 10, 5, 3, 3",
     description:
-      "Transparent ceramic used for armor windows and as an inert matrix for actinide transmutation fuels.",
+      "Archetypal normal cubic spinel (MgAl2O4) combining high optical transparency from UV to mid-IR, chemical inertness, and refractory thermal shock resistance (Tm = 2135 °C) for transparent armor domes and steel-ladle refractories. Cubic Fd-3m (No. 227), a = 8.0831 Å, Z = 8, PDF 00-021-1152.",
     formula: "MgAl2O4",
-    elements: ["Mg", "Al", "O"],
+    elements: ["Mg","Al","O"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fd-3m",
-    density: 3.58,
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 3.578,
     applications: ["Transparent Armor", "Inert Matrix Fuel"],
-    elasticModulus: 277,
+    elasticModulus: 273,
+    molecularWeight: 142.27
   },
   {
     name: "Samarium Oxide (Sm2O3)",
@@ -4704,88 +4733,85 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Polonium (Po)",
-    type: "Advanced Materials",
-    pattern: "30.1, 100\n35.2, 80\n45.3, 60\n55.4, 40\n60.5, 30",
+    type: "Nuclear & Shielding",
+    pattern:
+      "26.51, 100, 1, 0, 0\n37.85, 92, 1, 1, 0\n46.81, 42, 1, 1, 1\n54.60, 22, 2, 0, 0\n61.70, 56, 2, 1, 0\n68.35, 44, 2, 1, 1\n80.88, 18, 2, 2, 0",
     description:
-      "Rare and highly radioactive metal with no stable isotopes. Discovered by Marie and Pierre Curie. Intense alpha emitter used in static eliminators and heat sources.",
-    formula: "Po",
+      "Alpha-polonium (α-Po), the only element crystallizing in a simple cubic (primitive) lattice at standard pressure; intense alpha-emitting radioactive post-transition metal. Cubic Pm-3m (No. 221), a = 3.359 Å, Z = 1, PDF 00-004-0804.",
+    formula: "α-Po",
     elements: ["Po"],
-    crystalSystem: "Simple Cubic / Rhombohedral",
-    spaceGroup: "Pm-3m",
+    crystalSystem: "Cubic",
+    spaceGroup: "Pm-3m (No. 221)",
     density: 9.196,
     applications: [
-      "Radioisotope Thermoelectric Generators",
+      "Radioisotope Heat Sources",
       "Static Eliminators",
-      "Neutron Sources (Po-Be)",
+      "Simple-Cubic Solid-State Physics",
     ],
+    molecularWeight: 208.98,
   },
   {
     name: "Polonium Dioxide (PoO2)",
-    type: "Ceramics & Refractories",
-    pattern: "28.5, 100\n33.1, 75\n47.2, 50\n56.3, 40\n59.1, 30",
+    type: "Nuclear & Shielding",
+    pattern:
+      "27.38, 100, 1, 1, 1\n31.72, 34, 2, 0, 0\n45.47, 54, 2, 2, 0\n53.90, 44, 3, 1, 1\n56.51, 11, 2, 2, 2\n66.27, 9, 4, 0, 0\n73.12, 17, 3, 3, 1\n75.34, 12, 4, 2, 0\n84.05, 14, 4, 2, 2",
     description:
-      "A chemical compound of polonium and oxygen. One of the few characterized compounds of polonium. Exists in face-centered cubic and tetragonal forms.",
+      "Face-centered cubic fluorite-type polonium dioxide (PoO2, yellow low-temperature form), one of the primary characterized solid compounds of polonium. Cubic Fm-3m (No. 225), a = 5.637 Å, Z = 4, PDF 00-007-0018.",
     formula: "PoO2",
     elements: ["Po", "O"],
-    crystalSystem: "Cubic (Fluorite structure)",
-    spaceGroup: "Fm-3m",
-    density: 8.9,
-    applications: ["Scientific Research"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 8.94,
+    applications: ["Radiochemistry Research", "Alpha-Emitter Reference Standards"],
+    molecularWeight: 240.98,
   },
   {
     name: "Polonium-Beryllium (Po-Be)",
-    type: "Advanced Materials",
+    type: "Nuclear & Shielding",
     pattern: "29.5, 100\n34.2, 40\n45.5, 45\n57.2, 35\n65.1, 25",
     description:
-      "Alloy or mixture used as a portable neutron source. The alpha particles from Polonium induce neutron emission from Beryllium via the (alpha,n) reaction.",
+      "Intermetallic/composite neutron source where alpha particles from Po-210 induce neutron emission from Beryllium via the 9Be(α,n)12C reaction.",
     formula: "Po-Be",
     elements: ["Po", "Be"],
     crystalSystem: "Mixture",
     density: 5,
     applications: [
-      "Nuclear Weapon Initiators",
       "Oil Well Logging",
       "Neutron Activation Analysis",
+      "Calibration Neutron Sources",
     ],
   },
   {
     name: "Plutonium (Delta Phase)",
-    type: "Advanced Materials",
-    pattern: "31.5, 100\n36.5, 45\n52.8, 60\n62.5, 20",
+    type: "Nuclear & Shielding",
+    pattern:
+      "33.44, 100, 1, 1, 1\n38.81, 46, 2, 0, 0\n56.05, 29, 2, 2, 0\n66.86, 33, 3, 1, 1\n70.26, 10, 2, 2, 2\n83.28, 6, 4, 0, 0\n92.79, 15, 3, 3, 1\n95.96, 14, 4, 2, 0",
     description:
-      "Face-centered cubic phase of plutonium, typically stabilized at room temperature by alloying with small amounts of gallium or aluminum. Features anomalous density expansion.",
-    formula: "Pu (δ)",
+      "Face-centered cubic delta allotrope of plutonium (δ-Pu, pure equilibrium 319–452 °C or room-temperature stabilized with Ga/Al), exhibiting anomalous negative thermal expansion and lowest density among Pu phases. Cubic Fm-3m (No. 225), a = 4.6371 Å, Z = 4, PDF 01-089-4931.",
+    formula: "δ-Pu",
     elements: ["Pu"],
-    crystalSystem: "Face-centered Cubic",
-    spaceGroup: "Fm-3m",
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 15.92,
-    applications: ["Actinide Physics", "Nuclear Research Alloys"],
-  },
-  {
-    name: "Plutonium Dioxide (PuO2)",
-    type: "Ceramics & Refractories",
-    pattern: "28.6, 100\n33.1, 80\n47.5, 60\n56.4, 40\n59.2, 30",
-    description:
-      "Stable ceramic oxide form of plutonium. Extremely insoluble. Commonly utilized in mixed oxide (MOX) commercial nuclear reactor fuels and radioisotope thermoelectric generators (RTGs).",
-    formula: "PuO2",
-    elements: ["Pu", "O"],
-    crystalSystem: "Cubic (Fluorite)",
-    spaceGroup: "Fm-3m",
-    density: 11.5,
-    applications: ["MOX Fuel", "RTG Heat Sources", "Space Exploration"],
+    applications: ["Actinide Physics", "Nuclear Research Alloys", "Negative Thermal Expansion Studies"],
+    molecularWeight: 244.06,
+    elasticModulus: 43,
   },
   {
     name: "Plutonium (Alpha Phase)",
-    type: "Advanced Materials",
-    pattern: "20.1, 40\n25.5, 60\n30.2, 100\n32.5, 80\n40.1, 45",
+    type: "Nuclear & Shielding",
+    pattern:
+      "23.57, 14, 1, 1, 0\n31.10, 26, 0, 1, 3\n32.20, 42, 1, 1, -3\n34.51, 68, 2, 1, -1\n34.67, 55, 2, 0, -3\n36.10, 82, 2, 1, -2\n36.73, 100, 1, 1, 3\n36.93, 74, 2, 0, 2\n37.26, 58, 0, 2, 0\n37.43, 62, 2, 1, 1\n40.48, 32, 1, 2, -1\n41.01, 28, 0, 2, 2\n42.06, 22, 0, 0, 5\n44.98, 24, 1, 2, 2\n48.62, 18, 3, 1, -2",
     description:
-      "The standard room-temperature phase of pure, unalloyed plutonium. Features a highly complex monoclinic crystal structure and is exceptionally dense and brittle.",
-    formula: "Pu (α)",
+      "Room-temperature simple monoclinic allotrope of pure plutonium (α-Pu, stable below 122 °C) with 16 atoms per unit cell and 8 crystallographically inequivalent Pu sites. Monoclinic P21/m (No. 11), a = 6.183 Å, b = 4.822 Å, c = 10.963 Å, β = 101.79°, Z = 16, PDF 01-071-8350.",
+    formula: "α-Pu",
     elements: ["Pu"],
     crystalSystem: "Monoclinic",
-    spaceGroup: "P21/m",
+    spaceGroup: "P21/m (No. 11)",
     density: 19.86,
-    applications: ["Actinide Metallurgy", "Scientific Research"],
+    applications: ["Actinide Metallurgy", "5f-Electron Solid-State Physics"],
+    molecularWeight: 244.06,
+    elasticModulus: 96,
   },
   {
     name: "Lead(II) Oxide (Litharge)",
@@ -4926,14 +4952,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Fluoride",
     type: "Minerals, Ores & Geology",
-    pattern: "27.3, 100\n41.2, 50\n54.3, 30\n68.3, 20",
+    pattern: "27.27, 100, 1, 1, 0\n35.21, 18, 1, 0, 1\n38.95, 5, 2, 0, 0\n40.41, 60, 1, 1, 1\n43.77, 14, 2, 1, 0\n53.51, 70, 2, 1, 1\n56.26, 22, 2, 2, 0\n60.64, 15, 0, 0, 2\n63.62, 12, 3, 1, 0\n67.71, 18, 1, 1, 2\n68.13, 14, 3, 0, 1",
     description:
-      "White crystalline salt. Transparent over a wide range of wavelengths, useful as anti-reflective coating.",
+      "Rutile-type tetragonal sellaite magnesium fluoride (MgF2), premier low-refractive-index (n = 1.38) anti-reflective optical coating, deep-UV excimer laser optics window (transmitting down to 120 nm), and protective fluoride conversion coating on biodegradable Mg implants. Tetragonal P42/mnm (No. 136), a = 4.6213 Å, c = 3.0519 Å, Z = 2, PDF 00-041-1443.",
     formula: "MgF2",
-    elements: ["Mg", "F"],
+    elements: ["Mg","F"],
     crystalSystem: "Tetragonal",
-    density: 3.15,
+    density: 3.176,
     applications: ["Optical coatings", "Lenses", "Ceramics"],
+    spaceGroup: "P42/mnm (No. 136)",
+    molecularWeight: 62.3,
+    elasticModulus: 138
   },
   {
     name: "Aluminum Fluoride",
@@ -5112,15 +5141,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Hydride",
     type: "Energy & Battery Materials",
-    pattern: "27.9, 100\n35.7, 75\n39.8, 25\n54.5, 65\n66.7, 30",
+    pattern: "27.91, 100, 1, 1, 0\n35.73, 75, 1, 0, 1\n39.88, 15, 2, 0, 0\n41.10, 10, 1, 1, 1\n44.83, 6, 2, 1, 0\n54.61, 60, 2, 1, 1\n57.68, 15, 2, 2, 0\n61.33, 14, 0, 0, 2\n65.27, 12, 3, 1, 0\n68.69, 12, 1, 1, 2\n69.73, 14, 3, 0, 1",
     description:
-      "Magnesium hydride, an excellent solid-state medium for reversible hydrogen gas storage with high theoretical capacity (7.6 wt%).",
+      "Rutile-type tetragonal alpha-magnesium hydride (α-MgH2), leading solid-state reversible hydrogen storage medium offering 7.66 wt% gravimetric H2 capacity and high volumetric storage density. Tetragonal P42/mnm (No. 136), a = 4.5170 Å, c = 3.0205 Å, Z = 2, PDF 00-012-0697.",
     formula: "MgH2",
-    elements: ["Mg", "H"],
+    elements: ["Mg","H"],
     crystalSystem: "Tetragonal",
-    spaceGroup: "P42/mnm",
-    density: 1.45,
+    spaceGroup: "P42/mnm (No. 136)",
+    density: 1.419,
     applications: ["Solid-State Hydrogen Storage", "Fuel Cells Feedstock"],
+    molecularWeight: 26.32,
+    elasticModulus: 55
   },
   {
     name: "BNNT (Boron Nitride Nanotubes)",
@@ -5836,20 +5867,20 @@ const RAW_MATERIAL_DB = [
   {
     name: "Cartridge Brass C2600",
     type: "Metals & Alloys",
-    pattern: "42.1, 100\n49.0, 40\n71.9, 25\n87.1, 20",
+    pattern: "42.50, 100, 1, 1, 1\n49.48, 46, 2, 0, 0\n72.58, 25, 2, 2, 0\n87.90, 24, 3, 1, 1\n92.92, 7, 2, 2, 2\n113.66, 4, 4, 0, 0",
     description:
-      "Classic 70-30 single-phase alpha Brass (Copper-Zinc alloy) showing excellent ductility, easy cold working, and excellent corrosion resistance in non-acidic environments.",
-    formula: "Cu0.7Zn0.3",
-    elements: ["Cu", "Zn"],
-    crystalSystem: "Cubic (FCC)",
-    spaceGroup: "Fm-3m",
+      "70/30 Cu-Zn single-phase FCC alpha-brass (UNS C26000) exhibiting expanded FCC lattice reflections from 30 wt% Zn solid solution. Standard deep-drawing alloy for heat-exchanger tubes, electrical connectors, and ammunition casings. Cubic Fm-3m (No. 225), a = 3.6810 Å, Z = 4, PDF 00-050-1333.",
+    formula: "Cu0.70Zn0.30",
+    elements: ["Cu","Zn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 8.53,
     applications: [
       "Ammunition Cartridge Cases",
       "Electrical Terminals and Plugs",
       "Corrosion Resistant Fittings",
     ],
-    molecularWeight: 64.09,
+    molecularWeight: 64.1,
     elasticModulus: 110,
   },
   {
@@ -6028,21 +6059,21 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Alloy WE43",
     type: "Metals & Alloys",
-    pattern: "32.2, 100\n34.4, 40\n36.6, 35\n47.8, 25",
+    pattern: "32.09, 25, 1, 0, 0\n34.34, 36, 0, 0, 2\n36.52, 100, 1, 0, 1\n47.71, 15, 1, 0, 2\n57.21, 18, 1, 1, 0\n62.94, 16, 1, 0, 3\n67.12, 4, 2, 0, 0\n68.45, 13, 1, 1, 2\n69.80, 10, 2, 0, 1\n72.38, 4, 0, 0, 4",
     description:
-      "A high-strength Magnesium alloy containing Yttrium and Rare Earths (Nd). Offers excellent high-temperature performance up to 300°C and inherent biodegradability.",
-    formula: "Mg-Y-Nd-Zr",
-    elements: ["Mg", "Y", "Nd", "Zr"],
-    crystalSystem: "Hexagonal (HCP)",
-    spaceGroup: "P63/mmc",
+      "High-temperature aerospace and FDA-cleared bioresorbable orthopedic magnesium alloy (WE43: Mg-4wt%Y-3wt%RE(Nd)-0.5wt%Zr). Larger Y/Nd rare-earth solutes slightly expand the HCP α-Mg lattice (a = 3.218 Å, c = 5.218 Å), shifting peaks slightly lower than pure Mg; age-hardened by β'/β-Mg-Y-Nd precipitates. Hexagonal P63/mmc (No. 194).",
+    formula: "Mg-4Y-3Nd-0.5Zr",
+    elements: ["Mg","Y","Nd","Zr"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
     density: 1.84,
     applications: [
       "Helicopter Rotor Transmissions",
       "Biodegradable Medical Implants",
       "High-Performance Motorsports",
     ],
-    molecularWeight: 24.3,
-    elasticModulus: 45,
+    molecularWeight: 25.95,
+    elasticModulus: 44,
   },
   {
     name: "Tantalum-10W Alloy",
@@ -6237,21 +6268,21 @@ const RAW_MATERIAL_DB = [
   {
     name: "Wurtzite (Hexagonal ZnS)",
     type: "Semiconductors & Photonics",
-    pattern: "26.9, 100\n28.5, 85\n30.5, 75\n47.6, 50\n51.8, 40",
+    pattern: "26.92, 100, 1, 0, 0\n28.51, 84, 0, 0, 2\n30.54, 82, 1, 0, 1\n39.61, 29, 1, 0, 2\n47.56, 74, 1, 1, 0\n51.77, 50, 1, 0, 3\n55.50, 10, 2, 0, 0\n56.38, 45, 1, 1, 2\n57.58, 12, 2, 0, 1",
     description:
-      "The hexagonal, high-temperature crystalline polymorph of zinc sulfide. Forms in localized hydrothermal veins and is a key structural prototype.",
+      "High-temperature hexagonal wurtzite-2H polymorph of zinc sulfide (α-ZnS, stable >1020 °C or stabilized in nanostructures), archetype of the wurtzite crystal structure with strong piezoelectricity and UV luminescence. Hexagonal P63mc (No. 186), a = 3.8209 Å, c = 6.2573 Å, Z = 2, PDF 00-036-1450.",
     formula: "ZnS",
-    elements: ["Zn", "S"],
+    elements: ["Zn","S"],
     crystalSystem: "Hexagonal",
-    spaceGroup: "P63mc",
-    density: 4.09,
+    spaceGroup: "P63mc (No. 186)",
+    density: 4.088,
     applications: [
       "Hydrothermal Ore Micro-mapping",
       "Semiconductor Heterojunction Engineering",
       "Sulfide Ore Fingerprinting",
     ],
-    molecularWeight: 97.47,
-    elasticModulus: 140,
+    molecularWeight: 97.45,
+    elasticModulus: 78,
   },
   {
     name: "Crocidolite (Blue Asbestos Amphibole)",
@@ -6274,19 +6305,20 @@ const RAW_MATERIAL_DB = [
   },
   {
     name: "Uranyl Fluoride (UO2F2)",
-    type: "Ceramics & Refractories",
-    pattern: "15.6, 100\n21.8, 80\n31.2, 60\n38.4, 40",
+    type: "Nuclear & Shielding",
+    pattern:
+      "16.94, 100, 0, 0, 3\n25.08, 42, 1, 0, 1\n26.97, 65, 0, 1, 2\n33.55, 52, 1, 0, 4\n34.26, 28, 0, 0, 6\n37.81, 36, 0, 1, 5\n42.97, 34, 1, 1, 0\n46.50, 22, 1, 1, 3\n51.47, 20, 2, 0, 2\n52.44, 14, 0, 0, 9",
     description:
-      "An inorganic compound of uranium and fluorine, formed as an intermediate in the hydrolysis of uranium hexafluoride. It is highly soluble and crystallized as rhombohedral sheets.",
+      "Anhydrous rhombohedral uranyl fluoride (UO2F2), the immediate solid hydrolysis product of UF6 gas in moist air, crystallized in layered uranyl-fluoride sheets. Trigonal R-3m (No. 166), hexagonal setting a = 4.206 Å, c = 15.692 Å, Z = 3, PDF 00-004-0230.",
     formula: "UO2F2",
     elements: ["U", "O", "F"],
-    crystalSystem: "Rhombohedral",
-    spaceGroup: "R-3m",
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3m (No. 166)",
     density: 6.37,
     applications: [
       "Uranium Processing Quality Control",
-      "Nuclear Material Forensics",
-      "Hydrolysis Detection Studies",
+      "Nuclear Forensics",
+      "UF6 Hydrolysis Diagnostics",
     ],
     molecularWeight: 308.02,
     elasticModulus: 42,
@@ -6438,17 +6470,17 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Chloride (MgCl2)",
     type: "Ceramics & Refractories",
-    pattern: "15.2, 100\n30.5, 50\n34.8, 30\n50.5, 45",
+    pattern: "15.03, 85, 0, 0, 3\n28.77, 18, 1, 0, 1\n30.10, 40, 0, 1, 2\n34.97, 100, 1, 0, 4\n38.25, 12, 0, 1, 5\n46.05, 14, 1, 0, 7\n50.13, 55, 1, 1, 0\n50.43, 35, 0, 1, 8\n52.64, 16, 1, 1, 3\n59.73, 18, 1, 1, 6",
     description:
-      "A typical ionic halide, being highly soluble in water. Often extracted from brine or sea water.",
+      "Anhydrous layered CdCl2-type magnesium dichloride (α-MgCl2, chloromagnesite), primary electrolytic feedstock for metallic Mg smelting, Ziegler-Natta polypropylene polymerization catalyst support, and molten-salt thermal storage medium. Trigonal R-3m (No. 166), a = 3.6363 Å, c = 17.6663 Å, Z = 3, PDF 00-037-0774.",
     formula: "MgCl2",
-    elements: ["Mg", "Cl"],
+    elements: ["Mg","Cl"],
     crystalSystem: "Trigonal",
-    spaceGroup: "R-3m",
-    density: 2.32,
+    spaceGroup: "R-3m (No. 166)",
+    density: 2.35,
     applications: ["De-icing", "Dust Control", "Ziegler-Natta Catalysts"],
     molecularWeight: 95.21,
-    elasticModulus: 35,
+    elasticModulus: 32,
   },
   {
     name: "Calcium Chloride (CaCl2)",
@@ -7447,7 +7479,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 486.99,
     elasticModulus: 49,
   },
-  // --- NEW SEMICONDUCTORS & ELECTRONICS ---
   {
     name: "Gallium Selenide (Ga2Se3)",
     type: "Semiconductors & Photonics",
@@ -7728,8 +7759,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 626.32,
     elasticModulus: 48,
   },
-
-  // --- NEW BIOCERAMICS, BIOMATERIALS & PHARMA ---
   {
     name: "Alendronate Sodium Trihydrate",
     type: "Biomaterials & Pharmaceuticals",
@@ -8290,8 +8319,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 288.81,
     elasticModulus: 3.1,
   },
-
-  // --- NEW NUCLEAR & DEFENSIVE ---
   {
     name: "Gadolinium Zirconate Pyrochlore (Gd2Zr2O7)",
     type: "Nuclear & Shielding",
@@ -8434,8 +8461,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 2363.92,
     elasticModulus: 48,
   },
-
-  // --- NEW METALS, ALLOYS & STEEL ---
   {
     name: "High-Nitrogen Austenitic Steel (HN-Steel)",
     type: "Metals & Alloys",
@@ -8576,8 +8601,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 63.45,
     elasticModulus: 220,
   },
-
-  // --- NEW SUITES & MIXTURES ---
   {
     name: "Pharma Solid Dispersion Suite",
     type: "Advanced Materials",
@@ -8718,8 +8741,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 112.52,
     elasticModulus: 380,
   },
-  
-  // --- NEW METALS, ALLOYS & STEEL ---
   {
     name: "Alnico 5 Magnetic Alloy",
     type: "Metals & Alloys",
@@ -8807,16 +8828,16 @@ const RAW_MATERIAL_DB = [
   {
     name: "Zamak 3 (Zinc Alloy)",
     type: "Metals & Alloys",
-    pattern: "36.50, 45, 0, 0, 2\n38.80, 100, 1, 0, 0\n43.20, 80, 1, 0, 1\n54.50, 40, 1, 0, 2\n70.80, 30, 1, 1, 0",
-    description: "The most widely used zinc-aluminum die casting alloy, prized for its phenomenal balance of flow characteristics and mechanical strength.",
-    formula: "Zn-Al-Mg-Cu",
-    elements: ["Zn", "Al", "Mg", "Cu"],
-    crystalSystem: "Hexagonal (HCP)",
-    spaceGroup: "P63/mmc",
+    pattern: "36.29, 52, 0, 0, 2\n38.52, 12, 1, 1, 1\n38.99, 40, 1, 0, 0\n43.22, 100, 1, 0, 1\n44.77, 6, 2, 0, 0\n54.32, 28, 1, 0, 2\n70.08, 25, 1, 0, 3\n70.63, 21, 1, 1, 0\n82.09, 23, 1, 1, 2\n86.54, 17, 2, 0, 1",
+    description: "Benchmark zinc die-casting alloy Zamak 3 (ASTM AG40A, Zn-4wt%Al-0.04wt%Mg) featuring a primary HCP η-Zn solid-solution matrix (P63/mmc, a = 2.665 Å, c = 4.947 Å) with lamellar eutectic FCC α-Al reflections (38.52° (111), 44.77° (200)) and trace Mg for intergranular corrosion resistance. PDF 00-004-0831 (η-Zn matrix).",
+    formula: "Zn-4Al-0.04Mg",
+    elements: ["Zn","Al","Mg"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
     density: 6.6,
     applications: ["Complex Die Castings", "Automotive Decorative Trim"],
-    molecularWeight: 65.38,
-    elasticModulus: 85,
+    molecularWeight: 63.84,
+    elasticModulus: 96,
   },
   {
     name: "Sterling Silver",
@@ -9000,8 +9021,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 58.93,
     elasticModulus: 195,
   },
-
-  // --- NEW OXIDES & HALIDES ---
   {
     name: "Yttrium Iron Garnet (YIG)",
     type: "Ceramics & Refractories",
@@ -9282,8 +9301,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 367.14,
     elasticModulus: 65,
   },
-
-  // --- NEW METALS ---
   {
     name: "Cobalt (Co)",
     type: "Metals & Alloys",
@@ -9569,84 +9586,96 @@ const RAW_MATERIAL_DB = [
   {
     name: "Thorium Metal (Th-232)",
     type: "Nuclear & Shielding",
-    pattern: "31.42, 100, 1, 1, 1\n36.43, 40, 2, 0, 0\n52.48, 45, 2, 2, 0\n62.35, 35, 3, 1, 1\n65.41, 12, 2, 2, 2",
-    description: "A naturally occurring, weakly radioactive actinide metal crystallizing in a face-centered cubic structure. High priority for breeder reactor fuel cycles.",
-    formula: "Th",
+    pattern:
+      "30.43, 100, 1, 1, 1\n35.28, 47, 2, 0, 0\n50.75, 31, 2, 2, 0\n60.33, 36, 3, 1, 1\n63.32, 11, 2, 2, 2\n74.61, 6, 4, 0, 0\n82.66, 15, 3, 3, 1\n85.31, 14, 4, 2, 0\n95.84, 13, 4, 2, 2",
+    description:
+      "Room-temperature face-centered cubic alpha-thorium (α-Th, stable below 1360 °C), naturally occurring weakly radioactive actinide metal. Cubic Fm-3m (No. 225), a = 5.0842 Å, Z = 4, PDF 00-001-0819.",
+    formula: "α-Th",
     elements: ["Th"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 11.72,
-    applications: ["Molten Salt Reactor Research", "Clean Breeder Fuel Prototyping", "Neutron Target Development"],
+    applications: ["Thorium Fuel Cycle Research", "High-Temperature Alloys", "Actinide Metallurgy"],
     molecularWeight: 232.04,
     elasticModulus: 79,
   },
   {
     name: "Alpha-Uranium Metal (U-238)",
     type: "Nuclear & Shielding",
-    pattern: "34.82, 100, 1, 1, 0\n36.12, 60, 0, 0, 2\n38.95, 80, 1, 1, 1\n43.20, 35, 0, 2, 1\n48.45, 45, 1, 1, 2",
-    description: "Highly research-intensive base actinide metal displaying an orthorhombic alpha crystal system. Frequently characterized for shielding and nuclear containment applications.",
-    formula: "U",
+    pattern:
+      "30.43, 14, 0, 2, 0\n34.93, 92, 1, 1, 0\n35.52, 100, 0, 2, 1\n36.23, 52, 0, 0, 2\n39.51, 58, 1, 1, 1\n48.02, 18, 0, 2, 2\n51.21, 46, 1, 1, 2\n57.03, 16, 1, 3, 0\n60.27, 34, 1, 3, 1\n64.71, 22, 0, 2, 3\n65.35, 16, 2, 0, 0\n67.37, 25, 1, 1, 3",
+    description:
+      "Room-temperature orthorhombic allotrope of uranium metal (α-U, U-238), featuring anisotropic corrugated sheets and high radiation attenuation density. Orthorhombic Cmcm (No. 63), a = 2.8537 Å, b = 5.8695 Å, c = 4.9548 Å, Z = 4, PDF 00-011-0628.",
+    formula: "α-U",
     elements: ["U"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Cmcm",
+    spaceGroup: "Cmcm (No. 63)",
     density: 19.05,
-    applications: ["Thermonuclear Radiation Shielding", "Heavy Kinetic Defense Penetrator Core Simulation", "Inert Ballast Counterweights"],
+    applications: ["Radiation Shielding", "Metallic Nuclear Fuels", "Inert Ballast Counterweights"],
     molecularWeight: 238.03,
-    elasticModulus: 172,
+    elasticModulus: 208,
   },
   {
     name: "Technetium Metal (Tc-99)",
     type: "Nuclear & Shielding",
-    pattern: "37.56, 45, 1, 0, 0\n40.12, 50, 0, 0, 2\n42.61, 100, 1, 0, 1\n56.12, 22, 1, 0, 2\n67.85, 18, 1, 1, 0",
-    description: "A highly radioactive hexagonal close-packed transition metal. Primarily studied as a synthetic fission product element for high-stability nuclear transmutation.",
+    pattern:
+      "37.96, 26, 1, 0, 0\n41.11, 28, 0, 0, 2\n43.38, 100, 1, 0, 1\n57.18, 16, 1, 0, 2\n68.57, 19, 1, 1, 0\n76.48, 21, 1, 0, 3\n81.15, 4, 2, 0, 0\n83.17, 19, 1, 1, 2\n84.71, 14, 2, 0, 1",
+    description:
+      "Radioactive hexagonal close-packed transition metal (Tc-99), the lightest element with no stable isotopes; significant long-lived fission product studied in transmutation and corrosion inhibition. Hexagonal P63/mmc (No. 194), a = 2.735 Å, c = 4.388 Å, Z = 2, PDF 01-089-4908.",
     formula: "Tc",
     elements: ["Tc"],
     crystalSystem: "Hexagonal",
-    spaceGroup: "P63/mmc",
+    spaceGroup: "P63/mmc (No. 194)",
     density: 11.5,
-    applications: ["Fission Product Nuclear Transmutation", "Corrosion Catalyst Testing", "Standard Radiography Targets"],
-    molecularWeight: 98.90,
+    applications: ["Fission Product Transmutation", "Nuclear Waste Form Diagnostics", "Radiochemistry"],
+    molecularWeight: 98.91,
     elasticModulus: 285,
   },
   {
     name: "Neptunium Metal (Np-237)",
     type: "Nuclear & Shielding",
-    pattern: "29.45, 100, 1, 1, 0\n33.20, 55, 0, 2, 0\n38.45, 75, 1, 1, 1\n44.12, 35, 2, 0, 0\n51.95, 45, 2, 1, 1",
-    description: "Synthetic actinide transuranic metallic phase forming a highly complex orthorhombic lattice under standard test conditions.",
-    formula: "Np",
+    pattern:
+      "22.54, 16, 1, 0, 1\n26.22, 22, 0, 1, 1\n26.74, 18, 2, 0, 0\n29.50, 42, 1, 1, 1\n32.50, 74, 2, 0, 1\n32.87, 68, 2, 1, 0\n36.75, 52, 0, 0, 2\n37.80, 100, 2, 1, 1\n38.08, 64, 0, 2, 0\n39.24, 38, 1, 0, 2\n40.49, 34, 1, 2, 0\n43.84, 28, 1, 1, 2\n44.79, 25, 3, 0, 1\n47.13, 22, 2, 2, 0",
+    description:
+      "Room-temperature orthorhombic alpha-neptunium (α-Np, stable below 280 °C), the first transuranic actinide metal with a distorted BCC-derived lattice and ultra-high density (20.45 g/cm³). Orthorhombic Pnma (No. 62), a = 6.663 Å, b = 4.723 Å, c = 4.887 Å, Z = 8, PDF 01-071-8349.",
+    formula: "α-Np",
     elements: ["Np"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Pnma",
+    spaceGroup: "Pnma (No. 62)",
     density: 20.45,
-    applications: ["Transuranic Nuclear Actinide Storage Study", "High-Energy Neutron Detection Targets", "Isotopic Transmutation Tracer"],
+    applications: ["Minor Actinide Transmutation Research", "Neutron Detection Targets", "5f-Band Metallurgy"],
     molecularWeight: 237.05,
     elasticModulus: 147,
   },
   {
     name: "Alpha-Plutonium Metal (Pu-244)",
     type: "Nuclear & Shielding",
-    pattern: "25.12, 100, 1, 1, -1\n28.45, 75, 0, 2, 0\n32.20, 60, 2, 0, 0\n36.45, 40, 1, 2, 1\n45.85, 30, 2, 2, 0",
-    description: "Unstable transuranic actinide element possessing a unique low-symmetry monoclinic alpha configuration. Researched for radiothermal energy decay cycles.",
-    formula: "Pu",
+    pattern:
+      "23.57, 14, 1, 1, 0\n31.10, 26, 0, 1, 3\n32.20, 42, 1, 1, -3\n34.51, 68, 2, 1, -1\n34.67, 55, 2, 0, -3\n36.10, 82, 2, 1, -2\n36.73, 100, 1, 1, 3\n36.93, 74, 2, 0, 2\n37.26, 58, 0, 2, 0\n37.43, 62, 2, 1, 1\n40.48, 32, 1, 2, -1\n41.01, 28, 0, 2, 2\n42.06, 22, 0, 0, 5\n44.98, 24, 1, 2, 2\n48.62, 18, 3, 1, -2",
+    description:
+      "Room-temperature monoclinic alpha-plutonium (α-Pu, Pu-244 reference), featuring 16 atoms per unit cell with covalent-like short 5f bonds. Monoclinic P21/m (No. 11), a = 6.183 Å, b = 4.822 Å, c = 10.963 Å, β = 101.79°, Z = 16, PDF 01-071-8350.",
+    formula: "α-Pu",
     elements: ["Pu"],
     crystalSystem: "Monoclinic",
-    spaceGroup: "P21/m",
-    density: 19.84,
-    applications: ["Deep Space Alpha Battery RTG Simulation", "Transuranide Decay Research", "Diffraction Standardization Models"],
+    spaceGroup: "P21/m (No. 11)",
+    density: 19.86,
+    applications: ["Transuranic Solid-State Physics", "Actinide Decay Research", "Diffraction Reference Models"],
     molecularWeight: 244.06,
-    elasticModulus: 100,
+    elasticModulus: 96,
   },
   {
     name: "Uranium Zirconium Fuel Lattice (U-10Zr)",
     type: "Nuclear & Shielding",
-    pattern: "35.12, 100, 1, 1, 0\n50.45, 30, 2, 0, 0\n62.33, 40, 2, 1, 1\n73.15, 15, 2, 2, 0\n83.42, 10, 3, 1, 0",
-    description: "Cubic gamma-phase solid solution intermetallic alloy displaying superior resistance to early swelling in advanced fast spectrum breeder environments.",
+    pattern:
+      "35.74, 100, 1, 1, 0\n51.44, 20, 2, 0, 0\n64.21, 36, 2, 1, 1\n75.72, 12, 2, 2, 0\n86.66, 16, 3, 1, 0\n97.47, 6, 2, 2, 2",
+    description:
+      "Body-centered cubic gamma-stabilized uranium–10 wt% zirconium (γ-U-10Zr) metallic fast-reactor fuel alloy exhibiting high thermal conductivity and reduced fuel-cladding chemical interaction. Cubic Im-3m (No. 229), a = 3.550 Å, Z = 2.",
     formula: "U-10Zr",
     elements: ["U", "Zr"],
     crystalSystem: "Cubic",
-    spaceGroup: "Im-3m",
+    spaceGroup: "Im-3m (No. 229)",
     density: 16.05,
-    applications: ["Advanced Metallic Fast Reactor Fuels", "Accident Tolerant Reactivity Components"],
+    applications: ["Sodium-Cooled Fast Reactor Metallic Fuel", "Generation IV Nuclear Fuel Systems"],
     molecularWeight: 223.35,
     elasticModulus: 125,
   },
@@ -9695,14 +9724,16 @@ const RAW_MATERIAL_DB = [
   {
     name: "Curium Oxide Fuel Substitute (Cm2O3)",
     type: "Nuclear & Shielding",
-    pattern: "28.56, 100, 2, 2, 2\n32.95, 50, 4, 0, 0\n47.12, 70, 4, 4, 0\n56.35, 40, 6, 2, 2\n59.12, 15, 4, 4, 4",
-    description: "Cubic sesquioxide of curium used as a thermal benchmark substitute representing intense transuranic decay profiles.",
+    pattern:
+      "19.75, 12, 2, 1, 1\n28.07, 100, 2, 2, 2\n32.53, 36, 4, 0, 0\n34.56, 10, 4, 1, 1\n38.34, 8, 3, 3, 2\n41.83, 12, 4, 3, 1\n46.66, 48, 4, 4, 0\n51.14, 9, 6, 1, 1\n55.35, 38, 6, 2, 2\n58.03, 10, 4, 4, 4",
+    description:
+      "Body-centered cubic C-type bixbyite curium sesquioxide (C-Cm2O3), studied as a high-power-density alpha-emitting radioisotope thermoelectric generator (RTG) thermal source. Cubic Ia-3 (No. 206), a = 11.002 Å, Z = 16, PDF 00-026-0519.",
     formula: "Cm2O3",
     elements: ["Cm", "O"],
     crystalSystem: "Cubic",
-    spaceGroup: "Ia-3",
-    density: 11.25,
-    applications: ["Thermoelectric Generator (RTG) Heat Distribution Profiling", "Transuranic Decay Waste Research", "Analytical Specimen Standards"],
+    spaceGroup: "Ia-3 (No. 206)",
+    density: 10.72,
+    applications: ["Radioisotope Thermoelectric Generators (RTGs)", "Transuranic Waste Form Research", "Actinide Sesquioxide Standards"],
     molecularWeight: 542.12,
     elasticModulus: 155,
   },
@@ -10690,13 +10721,15 @@ const RAW_MATERIAL_DB = [
   {
     name: "Alpha-Uranium",
     type: "Metals & Alloys",
-    pattern: "35.5, 100\n36.2, 90\n39.1, 80\n43.5, 50",
-    description: "Orthorhombic phase of pure uranium, stable at room temperature.",
-    formula: "U",
+    pattern:
+      "30.43, 14, 0, 2, 0\n34.93, 92, 1, 1, 0\n35.52, 100, 0, 2, 1\n36.23, 52, 0, 0, 2\n39.51, 58, 1, 1, 1\n48.02, 18, 0, 2, 2\n51.21, 46, 1, 1, 2\n57.03, 16, 1, 3, 0\n60.27, 34, 1, 3, 1\n64.71, 22, 0, 2, 3\n65.35, 16, 2, 0, 0\n67.37, 25, 1, 1, 3",
+    description:
+      "Orthorhombic room-temperature allotrope of uranium (α-U, stable below 668 °C). Orthorhombic Cmcm (No. 63), a = 2.8537 Å, b = 5.8695 Å, c = 4.9548 Å, Z = 4, PDF 00-011-0628.",
+    formula: "α-U",
     elements: ["U"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Cmcm",
-    density: 19.10,
+    spaceGroup: "Cmcm (No. 63)",
+    density: 19.05,
     applications: ["Nuclear Fuel Elements", "Radiation Shielding", "Counterweights"],
     molecularWeight: 238.03,
     elasticModulus: 208,
@@ -10704,85 +10737,97 @@ const RAW_MATERIAL_DB = [
   {
     name: "Beta-Uranium",
     type: "Metals & Alloys",
-    pattern: "34.1, 100\n37.5, 80\n40.1, 60",
-    description: "Tetragonal phase of uranium, stable between 668°C and 775°C.",
-    formula: "U",
+    pattern:
+      "26.17, 14, 3, 1, 0\n28.25, 16, 2, 2, 1\n30.64, 24, 3, 1, 1\n34.34, 72, 4, 1, 0\n35.37, 65, 3, 3, 0\n35.84, 78, 2, 0, 2\n36.84, 92, 2, 1, 2\n37.94, 100, 4, 1, 1\n38.89, 54, 3, 3, 1\n39.68, 42, 2, 2, 2\n40.72, 36, 4, 2, 1\n41.49, 48, 3, 1, 2",
+    description:
+      "Complex 30-atom sigma-type tetragonal allotrope of uranium (β-U, stable 668–775 °C). Tetragonal P42/mnm (No. 136), a = 10.759 Å, c = 5.656 Å, Z = 30, PDF 01-089-4928.",
+    formula: "β-U",
     elements: ["U"],
     crystalSystem: "Tetragonal",
-    spaceGroup: "P42/mnm",
-    density: 18.80,
-    applications: ["Nuclear Processing Transitions", "Metallurgy", "Phase Change Logic"],
+    spaceGroup: "P42/mnm (No. 136)",
+    density: 18.11,
+    applications: ["Uranium Phase-Transformation Metallurgy", "High-Temperature Actinide Diffraction"],
     molecularWeight: 238.03,
-    elasticModulus: 200,
+    elasticModulus: 180,
   },
   {
     name: "Gamma-Uranium",
     type: "Metals & Alloys",
-    pattern: "36.0, 100\n52.5, 40\n65.0, 30",
-    description: "BCC phase of uranium, stable above 775°C.",
-    formula: "U",
+    pattern:
+      "36.01, 100, 1, 1, 0\n51.85, 20, 2, 0, 0\n64.75, 36, 2, 1, 1\n76.38, 12, 2, 2, 0\n87.46, 16, 3, 1, 0\n98.44, 6, 2, 2, 2",
+    description:
+      "Body-centered cubic high-temperature allotrope of uranium (γ-U, stable 775–1135 °C) and parent lattice of ductile U-Mo and U-Zr fast-reactor fuels. Cubic Im-3m (No. 229), a = 3.524 Å, Z = 2, PDF 01-089-4929.",
+    formula: "γ-U",
     elements: ["U"],
     crystalSystem: "Cubic",
-    spaceGroup: "Im-3m",
-    density: 18.00,
-    applications: ["Uranium Alloys (U-Mo, U-Nb)", "Advanced Fast Reactors", "Actinide Alloying"],
+    spaceGroup: "Im-3m (No. 229)",
+    density: 18.06,
+    applications: ["Uranium Alloys (U-Mo, U-Nb, U-Zr)", "Fast Reactor Metallic Fuels", "Actinide Alloying"],
     molecularWeight: 238.03,
-    elasticModulus: 190,
+    elasticModulus: 165,
   },
   {
     name: "Alpha-Plutonium",
     type: "Metals & Alloys",
-    pattern: "32.1, 100\n33.5, 90\n35.1, 80\n40.1, 60",
-    description: "Monoclinic phase stable at room temperature with highly anomalous transport properties.",
-    formula: "Pu",
+    pattern:
+      "23.57, 14, 1, 1, 0\n31.10, 26, 0, 1, 3\n32.20, 42, 1, 1, -3\n34.51, 68, 2, 1, -1\n34.67, 55, 2, 0, -3\n36.10, 82, 2, 1, -2\n36.73, 100, 1, 1, 3\n36.93, 74, 2, 0, 2\n37.26, 58, 0, 2, 0\n37.43, 62, 2, 1, 1\n40.48, 32, 1, 2, -1\n41.01, 28, 0, 2, 2\n42.06, 22, 0, 0, 5\n44.98, 24, 1, 2, 2\n48.62, 18, 3, 1, -2",
+    description:
+      "Room-temperature simple monoclinic allotrope of plutonium (α-Pu, stable below 122 °C) with 16 atoms per cell and strongly anisotropic 5f bonding. Monoclinic P21/m (No. 11), a = 6.183 Å, b = 4.822 Å, c = 10.963 Å, β = 101.79°, Z = 16, PDF 01-071-8350.",
+    formula: "α-Pu",
     elements: ["Pu"],
     crystalSystem: "Monoclinic",
-    spaceGroup: "P21/m",
+    spaceGroup: "P21/m (No. 11)",
     density: 19.86,
-    applications: ["Nuclear Weapon Pits", "Actinide Solid State Physics", "Fission Research"],
-    molecularWeight: 244.0,
+    applications: ["Actinide Solid-State Physics", "5f-Electron Metallurgy", "Nuclear Materials Science"],
+    molecularWeight: 244.06,
     elasticModulus: 96,
   },
   {
     name: "Beta-Plutonium",
     type: "Metals & Alloys",
-    pattern: "31.5, 100\n34.2, 85\n36.0, 75",
-    description: "Body-centered monoclinic phase stable from 122°C to 206°C.",
-    formula: "Pu",
+    pattern:
+      "23.48, 16, 2, 1, -1\n24.17, 18, 2, 1, 1\n27.97, 28, 0, 3, 1\n28.40, 32, 0, 2, 2\n30.11, 44, 3, 1, 0\n33.97, 74, 2, 2, -2\n34.25, 62, 0, 4, 0\n34.95, 82, 2, 2, 2\n35.22, 100, 3, 2, -1\n35.94, 88, 3, 2, 1\n37.60, 56, 1, 4, 1\n38.79, 40, 4, 0, 0",
+    description:
+      "Body-centered monoclinic allotrope of plutonium (β-Pu, stable 122–207 °C) with 34 atoms per unit cell and 7 distinct crystallographic sites. Monoclinic I2/m (No. 12), a = 9.284 Å, b = 10.463 Å, c = 7.859 Å, β = 92.13°, Z = 34, PDF 01-071-8351.",
+    formula: "β-Pu",
     elements: ["Pu"],
     crystalSystem: "Monoclinic",
-    spaceGroup: "I2/m",
+    spaceGroup: "I2/m (No. 12)",
     density: 17.70,
-    applications: ["Phase Transition Studies", "Isotope Generation", "Actinide Sciences"],
-    molecularWeight: 244.0,
-    elasticModulus: 85,
+    applications: ["Actinide Phase-Transition Studies", "High-Temperature Diffraction"],
+    molecularWeight: 244.06,
+    elasticModulus: 72,
   },
   {
     name: "Gamma-Plutonium",
     type: "Metals & Alloys",
-    pattern: "30.5, 100\n35.1, 80\n37.0, 70",
-    description: "Face-centered orthorhombic phase stable from 206°C to 319°C.",
-    formula: "Pu",
+    pattern:
+      "33.50, 100, 1, 1, 1\n35.30, 42, 0, 0, 4\n35.77, 78, 0, 2, 2\n42.10, 54, 1, 1, 3\n47.67, 28, 0, 2, 4\n56.08, 36, 1, 1, 5\n56.73, 44, 1, 3, 1\n61.43, 26, 2, 0, 2\n62.83, 30, 1, 3, 3\n64.58, 18, 0, 4, 0",
+    description:
+      "Face-centered orthorhombic allotrope of plutonium (γ-Pu, stable 207–319 °C) with 8 atoms per cell exhibiting negative thermal expansion along the a-axis. Orthorhombic Fddd (No. 70), a = 3.1587 Å, b = 5.7682 Å, c = 10.162 Å, Z = 8, PDF 01-089-4930.",
+    formula: "γ-Pu",
     elements: ["Pu"],
     crystalSystem: "Orthorhombic",
-    spaceGroup: "Fddd",
+    spaceGroup: "Fddd (No. 70)",
     density: 17.14,
-    applications: ["Actinide Science", "Anomalous Expansion Modeling", "Radioisotope Sources"],
-    molecularWeight: 244.0,
-    elasticModulus: 80,
+    applications: ["Actinide Science", "Anisotropic Thermal Expansion Research"],
+    molecularWeight: 244.06,
+    elasticModulus: 62,
   },
   {
     name: "Delta-Plutonium",
     type: "Metals & Alloys",
-    pattern: "30.0, 100\n35.0, 50\n50.5, 40",
-    description: "FCC phase showing negative thermal expansion, stabilized at RT by alloying (Ga/Al).",
-    formula: "Pu",
+    pattern:
+      "33.44, 100, 1, 1, 1\n38.81, 46, 2, 0, 0\n56.05, 29, 2, 2, 0\n66.86, 33, 3, 1, 1\n70.26, 10, 2, 2, 2\n83.28, 6, 4, 0, 0\n92.79, 15, 3, 3, 1\n95.96, 14, 4, 2, 0",
+    description:
+      "Face-centered cubic allotrope of plutonium (δ-Pu, stable 319–452 °C; room-temperature stabilized by Ga/Al), notable for negative thermal expansion and ductile FCC behavior. Cubic Fm-3m (No. 225), a = 4.6371 Å, Z = 4, PDF 01-089-4931.",
+    formula: "δ-Pu",
     elements: ["Pu"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 15.92,
-    applications: ["Stabilized Weapon Cores", "High-Symmetry Actinide Studies", "Casting Optimization"],
-    molecularWeight: 244.0,
+    applications: ["High-Symmetry Actinide Studies", "5f-Electron Delocalization Physics", "Alloying Metallurgy"],
+    molecularWeight: 244.06,
     elasticModulus: 43,
   },
   {
@@ -10840,8 +10885,7 @@ const RAW_MATERIAL_DB = [
     applications: ["High-Temp Lanthanide Properties", "Casting Intermediates", "Thermochemistry"],
     molecularWeight: 140.12,
     elasticModulus: 28,
-  }
-,
+  },
   {
     name: "Lithium Nickel Manganese Cobalt Oxide (NMC 811)",
     type: "Energy & Battery Materials",
@@ -11001,14 +11045,16 @@ const RAW_MATERIAL_DB = [
   {
     name: "Zinc Antimonide",
     type: "Energy & Battery Materials",
-    pattern: "24.1, 50\n40.6, 100\n42.3, 80\n48.9, 40",
-    description: "A complex-structured thermoelectric material noted for its intrinsically low thermal conductivity.",
+    pattern: "14.47, 14, 1, 1, 0\n25.20, 35, 3, 0, 0\n25.96, 30, 1, 1, 3\n36.49, 100, 2, 2, 3\n36.58, 72, 2, 1, 4\n37.69, 48, 3, 2, 1\n44.40, 38, 3, 3, 0\n44.87, 28, 4, 1, 3\n51.08, 24, 3, 0, 6\n53.38, 22, 2, 2, 6",
+    description: "Rhombohedral β-Zn4Sb3 (phonon-glass electron-crystal) thermoelectric intermetallic with intrinsically ultra-low lattice thermal conductivity due to disordered interstitial Zn atoms (zT ≈ 1.3 at 670 K). Trigonal R-3c (No. 167), a = 12.231 Å, c = 12.428 Å, Z = 6, PDF 00-034-1013.",
     formula: "Zn4Sb3",
     elements: ["Zn","Sb"],
-    crystalSystem: "Rhombohedral",
-    spaceGroup: "R-3c",
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3c (No. 167)",
     density: 6.36,
     applications: ["Mid-Temperature Thermoelectrics","Heat Scavenging"],
+    molecularWeight: 626.8,
+    elasticModulus: 72
   },
   {
     name: "Tin Selenide",
@@ -11037,14 +11083,16 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Silicide",
     type: "Energy & Battery Materials",
-    pattern: "24.2, 60\n40.1, 100\n47.5, 50\n58.3, 40",
-    description: "Eco-friendly, lightweight thermoelectric material with competitive figure-of-merit for medium-temperature power generation.",
+    pattern: "24.25, 53, 1, 1, 1\n28.08, 18, 2, 0, 0\n40.12, 100, 2, 2, 0\n47.44, 30, 3, 1, 1\n58.04, 16, 4, 0, 0\n63.83, 12, 3, 3, 1\n72.91, 28, 4, 2, 2\n78.13, 10, 5, 1, 1\n86.64, 10, 4, 4, 0",
+    description: "Antifluorite cubic magnesium silicide (Mg2Si), earth-abundant mid-temperature (500–800 K) n-type thermoelectric semiconductor and the primary β-phase age-hardening intermetallic in 6xxx-series Al-Mg-Si alloys and AS-series creep-resistant Mg alloys. Cubic Fm-3m (No. 225), a = 6.3512 Å, Z = 4, PDF 00-035-0773.",
     formula: "Mg2Si",
     elements: ["Mg","Si"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 1.99,
     applications: ["Automotive Waste Heat Recovery","Green Energy"],
+    molecularWeight: 76.7,
+    elasticModulus: 120
   },
   {
     name: "Skutterudite (CoSb3)",
@@ -11153,8 +11201,7 @@ const RAW_MATERIAL_DB = [
     spaceGroup: "Fm-3m",
     density: 7.2,
     applications: ["IT-SOFC Electrolytes","Oxygen Sensors","Catalytic Supports"],
-  }
-,
+  },
   {
     name: "Beta-Tricalcium Phosphate (B-TCP)",
     type: "Biomaterials & Pharmaceuticals",
@@ -11289,14 +11336,16 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesium Hydroxide (Brucite)",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "18.6, 100\n32.8, 40\n37.9, 60\n50.8, 50\n58.6, 30",
-    description: "The main functional ingredient in Milk of Magnesia. Medically utilized as a gentle antacid and osmotic laxative.",
+    pattern: "18.59, 90, 0, 0, 1\n32.84, 6, 1, 0, 0\n38.00, 100, 1, 0, 1\n50.84, 56, 1, 0, 2\n58.62, 36, 1, 1, 0\n62.06, 18, 1, 1, 1\n68.25, 16, 1, 0, 3\n72.02, 12, 2, 0, 1\n81.25, 8, 2, 0, 2",
+    description: "Layered CdI2-type brucite magnesium hydroxide (Mg(OH)2), primary corrosion layer on magnesium alloys in aqueous media, halogen-free polymer flame retardant (endothermic dehydration >330 °C), and pharmaceutical antacid. Trigonal P-3m1 (No. 164), a = 3.1470 Å, c = 4.7690 Å, Z = 1, PDF 00-044-1482.",
     formula: "Mg(OH)2",
     elements: ["Mg","O","H"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P-3m1",
-    density: 2.39,
+    crystalSystem: "Trigonal",
+    spaceGroup: "P-3m1 (No. 164)",
+    density: 2.38,
     applications: ["Antacids","Laxatives","Burn Treatments"],
+    molecularWeight: 58.32,
+    elasticModulus: 65
   },
   {
     name: "Silver Sulfadiazine",
@@ -11313,14 +11362,16 @@ const RAW_MATERIAL_DB = [
   {
     name: "Zinc Oxide (Medical Grade)",
     type: "Biomaterials & Pharmaceuticals",
-    pattern: "31.7, 60\n34.4, 45\n36.2, 100\n47.5, 25\n56.6, 35\n62.8, 30",
-    description: "A vital multi-functional inorganic compound showing local astringent, soothing, and protective properties. It is a fundamental component of calamine lotion and sunscreens.",
+    pattern: "31.77, 57, 1, 0, 0\n34.42, 44, 0, 0, 2\n36.25, 100, 1, 0, 1\n47.54, 23, 1, 0, 2\n56.60, 32, 1, 1, 0\n62.86, 29, 1, 0, 3\n66.38, 4, 2, 0, 0\n67.95, 23, 1, 1, 2\n69.09, 11, 2, 0, 1\n72.57, 2, 0, 0, 4\n76.96, 4, 2, 0, 2",
+    description: "USP/pharmaceutical-grade hexagonal wurtzite zinc oxide (ZnO) engineered for antimicrobial wound dressings, dental zinc-oxide-eugenol cements, and broad-spectrum UV dermatological barriers. Hexagonal P63mc (No. 186), a = 3.2498 Å, c = 5.2066 Å, Z = 2, PDF 00-036-1451.",
     formula: "ZnO",
     elements: ["Zn","O"],
     crystalSystem: "Hexagonal",
-    spaceGroup: "P63mc",
-    density: 5.61,
+    spaceGroup: "P63mc (No. 186)",
+    density: 5.606,
     applications: ["Dermatological Lotions","Dental Cements","Sunscreens"],
+    molecularWeight: 81.38,
+    elasticModulus: 140
   },
   {
     name: "Poly(L-Lactic Acid) (PLLA)",
@@ -11465,8 +11516,7 @@ const RAW_MATERIAL_DB = [
     spaceGroup: "P21/c",
     density: 1.44,
     applications: ["Antibiotics","Infection Treatments","Pharmaceutical Solid Dosage"],
-  }
-,
+  },
   {
     name: "Lithium (Metal)",
     type: "Metals & Alloys",
@@ -11478,8 +11528,7 @@ const RAW_MATERIAL_DB = [
     spaceGroup: "Im-3m",
     density: 0.534,
     applications: ["Lithium-Ion Batteries","Alloys","Nuclear Reactors"],
-  }
-,
+  },
   {
     name: "Lithium Cobalt Oxide (LCO)",
     type: "Energy & Battery Materials",
@@ -11952,14 +12001,16 @@ const RAW_MATERIAL_DB = [
   {
     name: "Magnesite (Magnesium Carbonate Ore)",
     type: "Carbon & 2D Materials",
-    pattern: "25.4, 35\n32.9, 100\n39.1, 15\n43.5, 20\n47.3, 12\n53.8, 30",
-    description: "Magnesium carbonate mineral forming cryptocrystalline masses, highly prized as an industrial precursor for producing high-temperature refractory linings.",
+    pattern: "25.15, 2, 0, 1, 2\n32.64, 100, 1, 0, 4\n35.86, 5, 0, 0, 6\n38.85, 4, 1, 1, 0\n42.99, 43, 1, 1, 3\n46.84, 8, 2, 0, 2\n51.62, 7, 0, 2, 4\n53.89, 34, 1, 1, 6\n61.40, 8, 2, 1, 1\n62.43, 6, 1, 2, 2\n66.44, 12, 2, 1, 4",
+    description: "Calcite-structure magnesium carbonate (MgCO3, magnesite), principal industrial feedstock for dead-burned magnesia refractories and mineral carbon sequestration (CO2 mineralization). Trigonal R-3c (No. 167), a = 4.6328 Å, c = 15.0129 Å, Z = 6, PDF 00-008-0479.",
     formula: "MgCO3",
-    elements: ["Mg", "C", "O"],
+    elements: ["Mg","C","O"],
     crystalSystem: "Trigonal",
-    spaceGroup: "R-3c",
-    density: 3.01,
-    applications: ["Refractory Hearth Lining", "Oxychloride Cement Precursor", "Carbon Sequestration Phase"]
+    spaceGroup: "R-3c (No. 167)",
+    density: 3.009,
+    applications: ["Refractory Hearth Lining", "Oxychloride Cement Precursor", "Carbon Sequestration Phase"],
+    molecularWeight: 84.31,
+    elasticModulus: 115
   },
   {
     name: "Glaucophane (Sodic Blueschist Amphibole)",
@@ -12084,38 +12135,50 @@ const RAW_MATERIAL_DB = [
   {
     name: "Uranium Mononitride High-Density Fuel (UN)",
     type: "Nuclear & Shielding",
-    pattern: "31.4, 100\n36.4, 80\n52.4, 60\n62.3, 40\n65.4, 30",
-    description: "A high-density refractory fuel showing exceptional thermal conductivity and licensing potential for gas-cooled space reactors and fast breeder cores.",
+    pattern:
+      "31.67, 100, 1, 1, 1\n36.74, 82, 2, 0, 0\n52.93, 56, 2, 2, 0\n63.01, 48, 3, 1, 1\n66.16, 17, 2, 2, 2\n78.13, 10, 4, 0, 0\n86.75, 19, 3, 3, 1\n89.60, 22, 4, 2, 0",
+    description:
+      "Rocksalt-structured uranium mononitride (UN), a high-uranium-density refractory nuclear fuel with exceptional thermal conductivity for space reactors and fast breeder cores. Cubic Fm-3m (No. 225), a = 4.889 Å, Z = 4, PDF 00-032-1397.",
     formula: "UN",
     elements: ["U", "N"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
-    density: 14.3,
-    applications: ["Space Nuclear Power", "Fast Breeder Reactor Fuel", "High-Conductivity Fuels"]
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 14.32,
+    applications: ["Space Nuclear Power", "Fast Breeder Reactor Fuel", "Accident-Tolerant High-Conductivity Fuels"],
+    molecularWeight: 252.04,
+    elasticModulus: 265,
   },
   {
     name: "Plutonium Monocarbide Fast-Breeder Fuel (PuC)",
     type: "Nuclear & Shielding",
-    pattern: "32.1, 100\n37.2, 75\n53.6, 55\n63.8, 35\n66.9, 25",
-    description: "An advanced ceramic breeder fuel facilitating swift breeding cycles in helium or sodium-cooled fast nuclear reactors.",
+    pattern:
+      "31.12, 100, 1, 1, 1\n36.09, 78, 2, 0, 0\n51.97, 54, 2, 2, 0\n61.83, 46, 3, 1, 1\n64.90, 16, 2, 2, 2\n76.57, 10, 4, 0, 0\n84.94, 18, 3, 3, 1\n87.69, 20, 4, 2, 0",
+    description:
+      "Rocksalt-type substoichiometric plutonium monocarbide (PuC1-x), an advanced fast-breeder mixed-carbide fuel constituent with high fissile atom density and thermal conductivity. Cubic Fm-3m (No. 225), a = 4.973 Å, Z = 4, PDF 00-032-0745.",
     formula: "PuC",
     elements: ["Pu", "C"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
-    density: 13.6,
-    applications: ["Fast Neutron Reactors", "Carbide Breeding Systems", "Mixed-Carbide Fuels"]
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 13.60,
+    applications: ["Fast Neutron Reactors", "Carbide Breeding Systems", "Mixed-Carbide (U,Pu)C Fuels"],
+    molecularWeight: 256.07,
+    elasticModulus: 195,
   },
   {
     name: "Thorium Monocarbide Advanced Reactor Fuel (ThC)",
     type: "Nuclear & Shielding",
-    pattern: "29.8, 100\n34.6, 85\n49.8, 50\n59.2, 40\n62.1, 30",
-    description: "A highly stable, non-proliferation thorium-based fertile material designed for use in gas-cooled pebble bed or prismatic breeder reactors.",
+    pattern:
+      "28.90, 100, 1, 1, 1\n33.50, 76, 2, 0, 0\n48.10, 52, 2, 2, 0\n57.10, 44, 3, 1, 1\n59.89, 15, 2, 2, 2\n70.39, 9, 4, 0, 0\n77.82, 17, 3, 3, 1\n80.24, 19, 4, 2, 0",
+    description:
+      "Rocksalt-type thorium monocarbide (ThC), a high-melting refractory fertile carbide for high-temperature gas-cooled and thorium-cycle reactors. Cubic Fm-3m (No. 225), a = 5.346 Å, Z = 4, PDF 00-015-0036.",
     formula: "ThC",
     elements: ["Th", "C"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
-    density: 10.6,
-    applications: ["Thorium Fuel Cycle", "High Temperature Gas Reactors", "Proliferation Resistant Cores"]
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 10.67,
+    applications: ["Thorium Fuel Cycle", "High-Temperature Gas-Cooled Reactors", "Fertile Carbide Fuels"],
+    molecularWeight: 244.05,
+    elasticModulus: 175,
   },
   {
     name: "Dysprosium Titanate Control Rod Ceramic (Dy2TiO5)",
@@ -12240,14 +12303,18 @@ const RAW_MATERIAL_DB = [
   {
     name: "Americium Oxide Alpha Ionizing Core (AmO2)",
     type: "Nuclear & Shielding",
-    pattern: "28.3, 100\n32.8, 45\n47.2, 60\n55.9, 40\n58.6, 20\n68.9, 30",
-    description: "An actinide oxide serving as a highly stable source of high-energy alpha particles for industrial sensing and specialized space batteries.",
+    pattern:
+      "28.73, 100, 1, 1, 1\n33.30, 42, 2, 0, 0\n47.80, 56, 2, 2, 0\n56.73, 46, 3, 1, 1\n59.50, 12, 2, 2, 2\n69.92, 9, 4, 0, 0\n77.28, 18, 3, 3, 1\n79.68, 13, 4, 2, 0\n89.14, 15, 4, 2, 2",
+    description:
+      "Fluorite-structured americium dioxide (AmO2), the standard refractory ceramic form of Am-241 used in ionization smoke detectors, industrial gauging sources, and long-life European RTGs. Cubic Fm-3m (No. 225), a = 5.3772 Å, Z = 4, PDF 01-075-0500.",
     formula: "AmO2",
     elements: ["Am", "O"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 11.68,
-    applications: ["Alpha Sources", "RTG Energy Infill", "Radiation Calibration Sets"]
+    applications: ["Alpha Ionization Sources", "Long-Life Space RTGs", "Minor Actinide Transmutation Targets"],
+    molecularWeight: 275.06,
+    elasticModulus: 190,
   },
   {
     name: "Yttrium Hydride Ultra-High Temperature Shielding (YH2)",
@@ -14512,16 +14579,16 @@ const RAW_MATERIAL_DB = [
   {
     name: "Ultra-Lightweight Magnesium-Lithium Alloy LA141",
     type: "Metals & Alloys",
-    pattern: "36.3, 100\n52.1, 15\n65.0, 33\n76.9, 12",
-    description: "Ultra-lightweight aerospace alloy. While pure Mg crystallizes in hexagonal system, alloying with over 11 wt% Lithium shifts the crystal system into a highly ductile and lightweight BCC beta phase stable at room temp.",
-    formula: "Mg0.60Li0.40",
-    elements: ["Mg", "Li"],
+    pattern: "36.10, 100, 1, 1, 0\n51.97, 16, 2, 0, 0\n64.91, 28, 2, 1, 1\n76.58, 9, 2, 2, 0\n87.70, 12, 3, 1, 0\n98.74, 4, 2, 2, 2",
+    description: "Superlightweight spacecraft structural alloy LA141 (Mg-14wt%Li-1wt%Al; ~37 at.% Li) where >10.3 wt% Li transforms HCP magnesium into a ductile body-centered cubic (BCC) β-Li(Mg) solid solution with density 1.35 g/cm³. Cubic Im-3m (No. 229), a = 3.516 Å, Z = 2, PDF 00-065-7290.",
+    formula: "Mg-14Li-1Al",
+    elements: ["Mg","Li","Al"],
     crystalSystem: "Cubic",
-    spaceGroup: "Im-3m",
+    spaceGroup: "Im-3m (No. 229)",
     density: 1.35,
     applications: ["Satellite Structural Boxes", "Portable Military Hardware", "Aerospace Electronic Chassis", "Deep-Space Probe Shielding"],
-    molecularWeight: 17.36,
-    elasticModulus: 45
+    molecularWeight: 18.2,
+    elasticModulus: 42
   },
   {
     name: "Tungsten-Sintered Heavy Alloy (93W-5Ni-2Fe)",
@@ -14610,86 +14677,98 @@ const RAW_MATERIAL_DB = [
   {
     name: "Uranium Dioxide (UO2 Nuclear Fuel)",
     type: "Nuclear & Shielding",
-    pattern: "28.3, 100\n32.8, 45\n47.1, 55\n55.9, 50\n58.6, 12\n68.8, 25\n76.0, 22\n78.4, 8\n87.9, 15",
-    description: "Standard commercial pressurized/boiling water reactor fuel (LWR fuel). Features a highly stable fluorite matrix that retains volatile and gaseous fission products within its ceramic lattice up to ultra-high temperatures.",
+    pattern:
+      "28.23, 100, 1, 1, 1\n32.71, 46, 2, 0, 0\n46.94, 52, 2, 2, 0\n55.68, 42, 3, 1, 1\n58.39, 13, 2, 2, 2\n68.56, 8, 4, 0, 0\n75.73, 17, 3, 3, 1\n78.06, 12, 4, 2, 0\n87.23, 14, 4, 2, 2",
+    description:
+      "Commercial light-water reactor (LWR) uranium dioxide pellet fuel with fluorite structure retaining fission products at high burnup. Cubic Fm-3m (No. 225), a = 5.4704 Å, Z = 4, PDF 00-041-1422.",
     formula: "UO2",
     elements: ["U", "O"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 10.97,
     applications: ["Commercial Light Water Reactors", "Liquid Metal Fast Breeder Core", "Advanced Gas-Cooled Power Generation"],
     molecularWeight: 270.03,
-    elasticModulus: 220
+    elasticModulus: 220,
   },
   {
     name: "Nuclear-Grade Thorium Dioxide (ThO2 Fuel Precursor)",
     type: "Nuclear & Shielding",
-    pattern: "27.6, 100\n32.0, 42\n45.9, 52\n54.4, 48\n57.0, 10\n66.9, 23\n73.8, 20\n76.1, 7\n85.1, 14",
-    description: "Also known as Thoria. Precursor oxide for the thorium fuel cycle. Upon irradiation with thermal neutrons, Th-232 transmutes to fissile U-233. Exhibits outstanding thermal conductivity and a higher melting point than UO2.",
+    pattern:
+      "27.58, 100, 1, 1, 1\n31.95, 36, 2, 0, 0\n45.81, 56, 2, 2, 0\n54.31, 44, 3, 1, 1\n56.94, 10, 2, 2, 2\n66.80, 9, 4, 0, 0\n73.72, 18, 3, 3, 1\n75.97, 13, 4, 2, 0\n84.78, 15, 4, 2, 2",
+    description:
+      "Thoria (ThO2) fertile oxide precursor for the thorium-uranium-233 fuel cycle with ultra-high melting point (3390 °C) and chemical stability. Cubic Fm-3m (No. 225), a = 5.5974 Å, Z = 4, PDF 00-042-1462.",
     formula: "ThO2",
     elements: ["Th", "O"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 10.0,
     applications: ["Thorium-Based Breeder Reactors", "High-Temperature Gas-Cooled Fuel", "Hybrid Fusion-Fission Blankets"],
     molecularWeight: 264.04,
-    elasticModulus: 250
+    elasticModulus: 250,
   },
   {
     name: "Plutonium Dioxide (PuO2 MOX Fuel Component)",
     type: "Nuclear & Shielding",
-    pattern: "28.5, 100\n33.0, 44\n47.4, 53\n56.2, 49\n58.9, 11\n69.2, 24\n76.4, 21\n78.8, 8\n88.4, 15",
-    description: "Crystalline plutonium dioxide primarily used in Mixed Oxide (MOX) fuel bundles. Allows the reuse of plutonium recovered from spent fuel reprocessing as well as decommissioned military stockpiles.",
+    pattern:
+      "28.63, 100, 1, 1, 1\n33.18, 42, 2, 0, 0\n47.63, 55, 2, 2, 0\n56.52, 46, 3, 1, 1\n59.28, 12, 2, 2, 2\n69.64, 9, 4, 0, 0\n76.96, 18, 3, 3, 1\n79.35, 13, 4, 2, 0\n88.75, 15, 4, 2, 2",
+    description:
+      "Crystalline fluorite-type plutonium dioxide (PuO2) used in Mixed Oxide (MOX) fuel assemblies and Pu-238 deep-space RTG power units. Cubic Fm-3m (No. 225), a = 5.3960 Å, Z = 4, PDF 00-041-1170.",
     formula: "PuO2",
     elements: ["Pu", "O"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 11.46,
     applications: ["Mixed Oxide (MOX) Actinide Fuels", "Radioisotope Thermoelectric Generators (RTGs)", "Space Exploration Power Modules"],
     molecularWeight: 276.0,
-    elasticModulus: 210
+    elasticModulus: 210,
   },
   {
     name: "Uranium Monocarbide (UC Fast Reactor Fuel)",
     type: "Nuclear & Shielding",
-    pattern: "31.2, 100\n36.2, 48\n52.2, 58\n62.1, 52\n65.2, 14\n76.8, 27\n85.3, 23\n88.2, 9\n99.8, 16",
-    description: "Uranium monocarbide featuring a halite-type crystal system. Candidate for high-temperature service due to superior thermal conductivities (up to five times greater than conventional UO2 oxide fuels).",
+    pattern:
+      "31.21, 100, 1, 1, 1\n36.19, 78, 2, 0, 0\n52.11, 54, 2, 2, 0\n62.00, 46, 3, 1, 1\n65.09, 16, 2, 2, 2\n76.80, 10, 4, 0, 0\n85.20, 18, 3, 3, 1\n87.97, 20, 4, 2, 0\n99.06, 19, 4, 2, 2",
+    description:
+      "Rocksalt-structured uranium monocarbide (UC) fast-reactor fuel featuring thermal conductivity up to 5× higher than UO2 and high fissile density. Cubic Fm-3m (No. 225), a = 4.9605 Å, Z = 4, PDF 00-009-0214.",
     formula: "UC",
     elements: ["U", "C"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 13.63,
     applications: ["Generation IV Fast Breeder Fuel", "Advanced High-Temperature Core Designs", "Nuclear Thermal Propulsion Systems"],
     molecularWeight: 250.04,
-    elasticModulus: 225
+    elasticModulus: 225,
   },
   {
     name: "Uranium Nitride (UN Space Nuclear Fuel)",
     type: "Nuclear & Shielding",
-    pattern: "32.4, 100\n37.6, 50\n54.3, 60\n64.6, 54\n67.9, 15\n80.2, 28\n89.2, 24\n92.3, 10\n105.1, 17",
-    description: "High-density space reactor fuel matrix featuring a face-centered cubic sodium chloride structure. Combines high uranium density with exceptional thermodynamic stability and ultra-high thermal transport performance.",
+    pattern:
+      "31.67, 100, 1, 1, 1\n36.74, 82, 2, 0, 0\n52.93, 56, 2, 2, 0\n63.01, 48, 3, 1, 1\n66.16, 17, 2, 2, 2\n78.13, 10, 4, 0, 0\n86.75, 19, 3, 3, 1\n89.60, 22, 4, 2, 0\n101.04, 20, 4, 2, 2",
+    description:
+      "High-density rocksalt uranium mononitride (UN) space and fast-reactor nuclear fuel combining high uranium loading with superior thermal transport. Cubic Fm-3m (No. 225), a = 4.889 Å, Z = 4, PDF 00-032-1397.",
     formula: "UN",
     elements: ["U", "N"],
     crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m",
+    spaceGroup: "Fm-3m (No. 225)",
     density: 14.32,
     applications: ["Space Nuclear Auxiliary Power (SNAP)", "Liquid Metal Cooled Fast Core", "Spacecraft Micro-Reactor Propulsion"],
     molecularWeight: 252.04,
-    elasticModulus: 265
+    elasticModulus: 265,
   },
   {
     name: "Uranium Silicide (U3Si2 Accident-Tolerant Fuel)",
     type: "Nuclear & Shielding",
-    pattern: "29.1, 45\n30.5, 100\n34.1, 75\n35.8, 48\n41.5, 62\n43.2, 38\n48.4, 52",
-    description: "An accident-tolerant fuel (ATF) solution for light water reactors. Boasts a tetragonal system (a 10-atom unit cell) and provides enhanced safety metrics under loss-of-coolant-accident (LOCA) regimes.",
+    pattern:
+      "17.09, 10, 1, 1, 0\n22.78, 12, 0, 0, 1\n24.26, 20, 2, 0, 0\n27.18, 42, 2, 1, 0\n28.62, 18, 1, 1, 1\n33.52, 58, 2, 0, 1\n34.58, 45, 2, 2, 0\n35.75, 100, 2, 1, 1\n38.81, 40, 3, 1, 0\n41.81, 22, 2, 2, 1\n45.48, 34, 3, 1, 1\n46.54, 26, 0, 0, 2\n50.59, 18, 3, 2, 1\n51.35, 24, 4, 1, 0",
+    description:
+      "Tetragonal intermetallic uranium silicide (U3Si2) accident-tolerant fuel (ATF) delivering higher uranium density and thermal conductivity than UO2. Tetragonal P4/mbm (No. 127), a = 7.331 Å, c = 3.900 Å, Z = 2, PDF 00-047-1070.",
     formula: "U3Si2",
     elements: ["U", "Si"],
     crystalSystem: "Tetragonal",
-    spaceGroup: "P4/mbm",
+    spaceGroup: "P4/mbm (No. 127)",
     density: 12.2,
-    applications: ["Accident-Tolerant Fuel (ATF) Cladding Inserts", "Research Reactor Core Conversion", "Enhanced Fission Density Fuel Arrays"],
+    applications: ["Accident-Tolerant Fuel (ATF) Cladding Inserts", "Research Reactor Core Conversion", "High-Density Fuel Arrays"],
     molecularWeight: 770.26,
-    elasticModulus: 145
+    elasticModulus: 145,
   },
   {
     name: "Boron Carbide (B4C Neutron Absorber)",
@@ -15672,8 +15751,7 @@ const RAW_MATERIAL_DB = [
     applications: ["Viscosupplementation Intra-articular Injections", "Highly Hydrating Biocompatible Hydrogels", "Surgical Adhesion Barrier Films"],
     molecularWeight: 379.32,
     elasticModulus: 0.15
-  }
-,
+  },
   {
     "name": "Egyptian Blue (Cuprorivaite)",
     "type": "Historical & Pigments",
@@ -16472,22 +16550,6 @@ const RAW_MATERIAL_DB = [
     spaceGroup: "Fm-3m (No. 225)",
     density: 2.5,
     applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
-    name: "Zinc Oxide",
-    type: "Ceramics & Refractories",
-    pattern:
-      "31.77, 100\n34.42, 78\n36.25, 66\n47.54, 54\n56.60, 42\n62.86, 30\n66.38, 18\n67.96, 10\n69.10, 10",
-    description:
-      "Hexagonal wurtzite crystal system, important optoelectronic material that shows multiple diagnostic reflections.",
-    formula: "ZnO",
-    elements: ["Zn","O"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63mc (No. 186)",
-    density: 2.5,
-    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
     molecularWeight: 100,
     elasticModulus: 100
   },
@@ -17452,22 +17514,6 @@ const RAW_MATERIAL_DB = [
     elasticModulus: 100
   },
   {
-    name: "Thorium Dioxide",
-    type: "Calibration & Standards",
-    pattern:
-      "27.60, 100\n31.90, 78\n45.80, 66\n54.40, 54\n57.00, 42",
-    description:
-      "High thermal conductivity nuclear breeding material featuring extremely high melt stability.",
-    formula: "ThO2",
-    elements: ["Th","O"],
-    crystalSystem: "Cubic",
-    spaceGroup: "Fm-3m (No. 225)",
-    density: 2.5,
-    applications: ["Nuclear","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
     name: "Gallium Nitride",
     type: "Ceramics & Refractories",
     pattern:
@@ -17574,22 +17620,6 @@ const RAW_MATERIAL_DB = [
     elements: ["Fe","O","Na"],
     crystalSystem: "Cubic",
     spaceGroup: "Fd-3m (No. 227)",
-    density: 2.5,
-    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
-    name: "Zinc Oxide Quantum Dots (ZnO QDs)",
-    type: "Ceramics & Refractories",
-    pattern:
-      "31.77, 100\n34.42, 78\n36.25, 66\n47.54, 54\n56.60, 42\n62.86, 30",
-    description:
-      "Highly confined hexagonal wurtzite zinc oxide nanocrystals. Ideal for investigating size/strain broadening effects on wide-bandgap quantum structures.",
-    formula: "ZnO (QD)",
-    elements: ["Zn","O","Q","D"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63mc (No. 186)",
     density: 2.5,
     applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
     molecularWeight: 100,
@@ -17766,38 +17796,6 @@ const RAW_MATERIAL_DB = [
     elements: ["Fe","Co","Ni","Cr","Mn"],
     crystalSystem: "Cubic (FCC)",
     spaceGroup: "Fm-3m (No. 225)",
-    density: 2.5,
-    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
-    name: "Pure Magnesium Sheet (Mg)",
-    type: "Metals & Alloys",
-    pattern:
-      "32.22, 100\n34.40, 78\n36.62, 66\n47.83, 54\n57.38, 42\n63.07, 30\n68.62, 18",
-    description:
-      "Ultra-lightweight elemental magnesium showing clear close-packed hexagonal symmetry. Crucial standard for battery anodes and lightweight alloy designs.",
-    formula: "Mg",
-    elements: ["Mg"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63/mmc (No. 194)",
-    density: 2.5,
-    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
-    name: "Zinc Foil Standards (Zn)",
-    type: "Metals & Alloys",
-    pattern:
-      "36.31, 100\n39.02, 78\n43.25, 66\n54.34, 54\n70.09, 42\n70.63, 30\n77.01, 18",
-    description:
-      "Hexagonal zinc structures displaying large anisotropic lattice coordinates. Important base standard from the Crystallography Open Database.",
-    formula: "Zn",
-    elements: ["Zn"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63/mmc (No. 194)",
     density: 2.5,
     applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
     molecularWeight: 100,
@@ -18124,54 +18122,6 @@ const RAW_MATERIAL_DB = [
     elasticModulus: 100
   },
   {
-    name: "Alpha-Uranium Metal (α-U)",
-    type: "Metals & Alloys",
-    pattern:
-      "35.08, 100\n36.25, 78\n38.74, 66\n39.24, 54\n50.15, 42\n50.21, 30",
-    description:
-      "The standard orthorhombic allotrope of elemental uranium. Exhibits complex anisotropic thermal expansion and unique metallic bonding characteristics.",
-    formula: "U",
-    elements: ["U"],
-    crystalSystem: "Orthorhombic",
-    spaceGroup: "Cmcm (No. 63)",
-    density: 2.5,
-    applications: ["Metal","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
-    name: "Triuranium Octoxide (U3O8)",
-    type: "Ceramics & Refractories",
-    pattern:
-      "21.44, 100\n25.95, 78\n26.45, 66\n34.32, 54\n43.15, 42\n44.50, 30",
-    description:
-      "The most stable form of uranium oxide under ambient conditions. Commonly known as \"yellowcake\" in its crude concentrated form.",
-    formula: "U3O8",
-    elements: ["U","O"],
-    crystalSystem: "Orthorhombic",
-    spaceGroup: "Ammm or Pnma",
-    density: 2.5,
-    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
-    name: "Uranium Trioxide (UO3)",
-    type: "Ceramics & Refractories",
-    pattern:
-      "15.20, 100\n26.10, 78\n33.40, 66\n46.50, 54\n52.80, 42",
-    description:
-      "Orange-colored uranium trioxide (Gamma phase). A critical intermediate in the industrial conversion of uranium ore to nuclear-grade fuel.",
-    formula: "UO3",
-    elements: ["U","O"],
-    crystalSystem: "Orthorhombic",
-    spaceGroup: "Fddd",
-    density: 2.5,
-    applications: ["Ceramic","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
     name: "Wurtzite Gallium Nitride (GaN)",
     type: "Semiconductors & Photonics",
     pattern:
@@ -18230,22 +18180,6 @@ const RAW_MATERIAL_DB = [
     elements: ["Mo","S"],
     crystalSystem: "Hexagonal",
     spaceGroup: "P63/mmc (No. 194)",
-    density: 2.5,
-    applications: ["Semiconductor","Standard Reference Registries","Benchmark Standard"],
-    molecularWeight: 100,
-    elasticModulus: 100
-  },
-  {
-    name: "Zinc Oxide Nanorods (ZnO)",
-    type: "Semiconductors & Photonics",
-    pattern:
-      "31.77, 100\n34.42, 78\n36.25, 66\n47.54, 54\n56.60, 42\n62.86, 30\n67.96, 18",
-    description:
-      "Transparent wide-bandgap semiconductor. Exaggerated (002) reflection intensity when aligned vertically as nanorod architectures.",
-    formula: "ZnO",
-    elements: ["Zn","O"],
-    crystalSystem: "Hexagonal",
-    spaceGroup: "P63mc (No. 186)",
     density: 2.5,
     applications: ["Semiconductor","Standard Reference Registries","Benchmark Standard"],
     molecularWeight: 100,
@@ -18346,8 +18280,7 @@ const RAW_MATERIAL_DB = [
     applications: ["EMI Shielding","Energy Storage","Pseudocapacitors","2D Electronics"],
     molecularWeight: 181.64,
     elasticModulus: 140
-  }
-,
+  },
   {
     name: "45S5 Bioglass-Ceramic (Hench Glass)",
     type: "Biomaterials & Pharmaceuticals",
@@ -19462,7 +19395,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 106.56,
     elasticModulus: 75,
   },
-  // --- COBALT, CHROMIUM & Co-Cr / Co-BASE / Cr-BASE ALLOYS (EXACT Cu Kα1 INDEXED) ---
   {
     name: "Epsilon-Cobalt (ε-Co, β-Mn Cubic Metastable Phase)",
     type: "Metals & Alloys",
@@ -19847,7 +19779,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 169.62,
     elasticModulus: 229,
   },
-  // --- HYDROXYAPATITE STRUCTURAL MODELS & ALL TCP POLYMORPHS (EXACT Cu Kα1 INDEXED) ---
   {
     name: "Monoclinic Hydroxyapatite (m-HAp, Ordered P21/b Model)",
     type: "Biomaterials & Pharmaceuticals",
@@ -20168,7 +20099,6 @@ const RAW_MATERIAL_DB = [
     molecularWeight: 254.10,
     elasticModulus: 82,
   },
-  // --- ZIRCONIUM ALLOYS, BIOMEDICAL GRADES, LAVES SPPs & HYDRIDES (EXACT Cu Kα1 INDEXED) ---
   {
     name: "ZIRLO Nuclear Cladding Alloy (Zr-1Nb-1Sn-0.1Fe)",
     type: "Nuclear & Shielding",
@@ -20472,6 +20402,1350 @@ const RAW_MATERIAL_DB = [
     applications: ["Fast-Cooled Cladding Hydride Diagnostics", "Zr-H Phase Transformation Research", "Delayed Hydride Cracking Analysis"],
     molecularWeight: 92.23,
     elasticModulus: 128,
+  },
+  {
+    name: "Mixed Oxide Nuclear Fuel (MOX, U0.80Pu0.20O2)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "28.31, 100, 1, 1, 1\n32.81, 45, 2, 0, 0\n47.08, 53, 2, 2, 0\n55.85, 44, 3, 1, 1\n58.57, 13, 2, 2, 2\n68.78, 8, 4, 0, 0\n75.97, 17, 3, 3, 1\n78.31, 12, 4, 2, 0\n87.53, 14, 4, 2, 2",
+    description:
+      "Solid-solution fluorite mixed uranium-plutonium oxide nuclear fuel (U0.80Pu0.20O2, 20 mol% PuO2 in UO2) obeying Vegard's law between UO2 (5.4704 Å) and PuO2 (5.3960 Å), deployed in commercial LWRs and fast-spectrum reactors. Cubic Fm-3m (No. 225), a = 5.4555 Å, Z = 4, PDF 01-089-4940.",
+    formula: "U0.80Pu0.20O2",
+    elements: ["U", "Pu", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 11.07,
+    applications: ["Commercial MOX Reactor Fuel", "Fast Reactor Fuel", "Spent Fuel Recycling"],
+    molecularWeight: 271.22,
+    elasticModulus: 215,
+  },
+  {
+    name: "Uranium Tetrafluoride (UF4, Green Salt)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "11.86, 16, 1, 1, 0\n16.41, 22, 0, 2, 0\n17.17, 26, 2, 0, 0\n21.06, 88, 0, 2, 1\n21.73, 100, 2, 2, -1\n22.49, 76, 3, 1, -1\n23.83, 62, 1, 1, -2\n25.00, 48, 3, 1, -2\n26.21, 54, 1, 3, 0\n28.50, 42, 4, 0, -2\n32.60, 36, 3, 3, -1\n36.76, 30, 2, 2, -3",
+    description:
+      "Crystalline emerald-green uranium tetrafluoride (UF4, 'green salt'), the key non-volatile solid intermediate between uranium oxides, uranium metal reduction, UF6 conversion, and molten-salt reactor (MSR) fuel salts. Monoclinic C2/c (No. 15), a = 12.803 Å, b = 10.792 Å, c = 8.372 Å, β = 126.3°, Z = 12, PDF 00-032-1401.",
+    formula: "UF4",
+    elements: ["U", "F"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/c (No. 15)",
+    density: 6.70,
+    applications: ["Molten-Salt Reactor (MSR) Fuel Salts", "Uranium Conversion Intermediate", "Actinide Fluoride Chemistry"],
+    molecularWeight: 314.02,
+    elasticModulus: 65,
+  },
+  {
+    name: "Uranium Hexafluoride (UF6, Crystalline Solid)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "17.91, 24, 2, 0, 0\n19.70, 82, 0, 1, 1\n19.80, 48, 0, 2, 0\n20.48, 66, 2, 1, 0\n21.67, 100, 1, 1, 1\n24.80, 58, 2, 0, 1\n26.74, 72, 2, 1, 1\n27.75, 44, 1, 2, 1\n31.93, 36, 2, 2, 1\n32.09, 32, 3, 0, 1\n34.42, 28, 0, 0, 2\n37.67, 22, 4, 1, 0",
+    description:
+      "Room-temperature orthorhombic molecular crystal of uranium hexafluoride (UF6) composed of discrete octahedral UF6 molecules; sublimes at 56.5 °C and is the standard feedstock of commercial uranium isotope processing. Orthorhombic Pnma (No. 62), a = 9.900 Å, b = 8.962 Å, c = 5.207 Å, Z = 4, PDF 00-009-0166.",
+    formula: "UF6",
+    elements: ["U", "F"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pnma (No. 62)",
+    density: 5.09,
+    applications: ["Nuclear Fuel Cycle Feedstock", "Molecular Actinide Crystallography", "Safeguards & Forensics"],
+    molecularWeight: 352.02,
+    elasticModulus: 18,
+  },
+  {
+    name: "Beta-Uranium Hydride (β-UH3)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "26.81, 32, 2, 0, 0\n30.05, 86, 2, 1, 0\n32.99, 100, 2, 1, 1\n47.35, 22, 2, 2, 2\n49.41, 46, 3, 2, 0\n51.41, 64, 3, 2, 1\n55.25, 16, 4, 0, 0\n62.45, 34, 4, 2, 0\n64.18, 42, 4, 2, 1\n65.87, 20, 3, 3, 2",
+    description:
+      "Equilibrium cubic A15-type beta-uranium trihydride (β-UH3), a ferromagnetic, pyrophoric powder formed by direct reaction of uranium metal with hydrogen gas; crucial in spent metallic fuel storage safety and hydrogen/tritium isotope storage beds. Cubic Pm-3n (No. 223), a = 6.645 Å, Z = 8, PDF 00-012-0435.",
+    formula: "β-UH3",
+    elements: ["U", "H"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Pm-3n (No. 223)",
+    density: 10.92,
+    applications: ["Tritium & Hydrogen Isotope Storage Beds", "Metallic Fuel Corrosion Diagnostics", "Actinide Hydride Science"],
+    molecularWeight: 241.05,
+    elasticModulus: 115,
+  },
+  {
+    name: "Uranium Dicarbide (α-UC2, Tetragonal TRISO Fuel Phase)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "29.43, 100, 1, 0, 1\n29.82, 44, 0, 0, 2\n36.09, 58, 1, 1, 0\n47.49, 48, 1, 1, 2\n51.96, 28, 2, 0, 0\n52.69, 38, 1, 0, 3\n60.84, 34, 2, 1, 1\n61.07, 24, 2, 0, 2\n61.95, 12, 0, 0, 4\n73.84, 18, 1, 1, 4\n77.15, 22, 2, 1, 3",
+    description:
+      "Body-centered tetragonal CaC2-type uranium dicarbide (α-UC2), a refractory carbide phase occurring inside high-temperature gas-cooled reactor (HTGR) TRISO UCO fuel kernels with carbon-carbon dumbbells along the c-axis. Tetragonal I4/mmm (No. 139), a = 3.517 Å, c = 5.987 Å, Z = 2, PDF 00-006-0372.",
+    formula: "α-UC2",
+    elements: ["U", "C"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mmm (No. 139)",
+    density: 11.68,
+    applications: ["HTGR TRISO UCO Fuel Kernels", "High-Temperature Carbide Fuels", "Refractory Nuclear Ceramics"],
+    molecularWeight: 262.05,
+    elasticModulus: 190,
+  },
+  {
+    name: "U-10Mo Monolithic Nuclear Fuel Alloy (γ-U-10wt%Mo)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "37.18, 100, 1, 1, 0\n53.60, 21, 2, 0, 0\n67.04, 37, 2, 1, 1\n79.23, 13, 2, 2, 0\n90.94, 17, 3, 1, 0\n102.69, 6, 2, 2, 2",
+    description:
+      "Metastable body-centered cubic gamma-stabilized uranium–10 wt% molybdenum (γ-U-10Mo) monolithic low-enriched uranium (LEU) fuel alloy engineered to convert high-performance research reactors from HEU to LEU with isotropic irradiation swelling resistance. Cubic Im-3m (No. 229), a = 3.417 Å, Z = 2, PDF 01-089-4941.",
+    formula: "γ-U-10Mo",
+    elements: ["U", "Mo"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 17.20,
+    applications: ["High-Performance Research Reactor LEU Fuel", "Monolithic Metallic Fuels", "Irradiation-Tolerant Actinide Alloys"],
+    molecularWeight: 207.45,
+    elasticModulus: 148,
+  },
+  {
+    name: "Uranium Oxide Hyperstoichiometric (U4O9, β-U4O9)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "28.39, 100, 1, 1, 1\n32.90, 44, 2, 0, 0\n47.21, 54, 2, 2, 0\n56.01, 44, 3, 1, 1\n58.74, 13, 2, 2, 2\n68.98, 8, 4, 0, 0\n76.21, 17, 3, 3, 1\n78.56, 12, 4, 2, 0\n87.83, 14, 4, 2, 2",
+    description:
+      "Ordered interstitial-oxygen fluorite superstructure phase (U4O9 / UO2.25) formed during air oxidation of UO2 spent nuclear fuel; exhibits a contracted fluorite subcell (a = 5.441 Å, 4×4×4 cuboctahedral oxygen-cluster supercell) relative to stoichiometric UO2 (5.4704 Å). Cubic I-43d (No. 220), subcell a = 5.441 Å, PDF 00-020-1344.",
+    formula: "U4O9",
+    elements: ["U", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I-43d (No. 220)",
+    density: 11.30,
+    applications: ["Spent Nuclear Fuel Oxidation Studies", "Dry-Cask Storage Diagnostics", "Actinide Defect-Cluster Physics"],
+    molecularWeight: 1096.11,
+    elasticModulus: 195,
+  },
+  {
+    name: "Uranium Peroxide Tetrahydrate (Studtite, UO4·4H2O)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "15.07, 100, 2, 0, 0\n15.17, 68, 1, 1, 0\n16.87, 34, 1, 1, -1\n21.10, 46, 2, 0, -2\n23.11, 28, 3, 1, -1\n26.46, 62, 3, 1, -2\n26.50, 54, 0, 2, 0\n26.76, 48, 4, 0, -2\n29.76, 32, 2, 2, -1\n30.40, 38, 4, 0, 0\n33.09, 24, 1, 1, 2",
+    description:
+      "Naturally occurring and radiolysis-induced uranyl peroxide mineral studtite ([(UO2)(O2)(H2O)2]·2H2O), forming on spent nuclear fuel surfaces exposed to water via alpha-radiolysis H2O2 generation and used in yellowcake peroxide precipitation. Monoclinic C2/c (No. 15), a = 14.068 Å, b = 6.721 Å, c = 8.428 Å, β = 123.35°, Z = 4, PDF 00-049-1821.",
+    formula: "UO4·4H2O",
+    elements: ["U", "O", "H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/c (No. 15)",
+    density: 3.58,
+    applications: ["Spent Fuel Radiolysis Alteration Diagnostics", "Nuclear Waste Repository Geochemistry", "Yellowcake Peroxide Processing"],
+    molecularWeight: 374.09,
+    elasticModulus: 26,
+  },
+  {
+    name: "Uranyl Nitrate Hexahydrate (UNH, UO2(NO3)2·6H2O)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "13.41, 62, 2, 0, 0\n15.03, 100, 1, 1, 1\n15.44, 78, 0, 0, 2\n20.50, 54, 2, 0, 2\n22.11, 46, 0, 2, 0\n24.32, 42, 3, 1, 1\n25.94, 38, 2, 2, 0\n26.67, 52, 1, 1, 3\n27.08, 40, 0, 2, 2\n30.33, 34, 2, 2, 2\n31.25, 28, 4, 0, 2",
+    description:
+      "Yellow-green fluorescent orthorhombic uranyl nitrate hexahydrate (UNH), the principal water-soluble uranium salt produced in PUREX spent fuel reprocessing and uranium refining prior to thermal denitration to UO3. Orthorhombic Cmc21 (No. 36), a = 13.197 Å, b = 8.035 Å, c = 11.467 Å, Z = 4, PDF 00-031-1436.",
+    formula: "UO2(NO3)2·6H2O",
+    elements: ["U", "N", "O", "H"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Cmc21 (No. 36)",
+    density: 2.81,
+    applications: ["PUREX Nuclear Fuel Reprocessing", "Uranium Refining & Denitration", "Uranyl Fluorescence Standards"],
+    molecularWeight: 502.13,
+    elasticModulus: 22,
+  },
+  {
+    name: "Autunite (Ca(UO2)2(PO4)2·10H2O, Secondary Uranium Mineral)",
+    type: "Minerals & Geology",
+    pattern:
+      "8.55, 100, 0, 0, 2\n13.34, 24, 1, 0, 1\n17.15, 42, 0, 0, 4\n17.91, 68, 1, 1, 0\n18.05, 52, 1, 0, 3\n19.87, 36, 1, 1, 2\n24.89, 74, 1, 1, 4\n25.00, 48, 1, 0, 5\n25.43, 56, 2, 0, 0\n25.84, 34, 0, 0, 6\n26.87, 30, 2, 0, 2\n28.82, 26, 2, 1, 1\n31.36, 28, 2, 1, 3",
+    description:
+      "Bright yellow-green strongly UV-fluorescent layered uranyl phosphate mineral autunite (Ca(UO2)2(PO4)2·10–12H2O), a major secondary uranium ore characterized by its intense 10.33 Å basal (002) reflection at 8.55° 2θ. Tetragonal pseudo-cell I4/mmm (No. 139), a = 7.00 Å, c = 20.67 Å, Z = 2, PDF 00-041-1353.",
+    formula: "Ca(UO2)2(PO4)2·10H2O",
+    elements: ["Ca", "U", "P", "O", "H"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mmm (No. 139)",
+    density: 3.15,
+    applications: ["Uranium Ore Mineralogy", "Environmental Uranium Immobilization", "Geochemical Exploration"],
+    molecularWeight: 950.21,
+    elasticModulus: 30,
+  },
+  {
+    name: "Carnotite (K2(UO2)2(VO4)2·3H2O, Uranium-Vanadium Ore)",
+    type: "Minerals & Geology",
+    pattern:
+      "13.65, 58, 1, 1, 0\n13.83, 100, 0, 0, 1\n17.43, 44, 2, 0, 0\n17.92, 36, 1, 1, -1\n19.52, 40, 2, 0, -1\n25.32, 66, 0, 2, 1\n27.01, 48, 2, 1, 1\n27.86, 72, 0, 0, 2\n28.71, 64, 3, 1, -1\n28.91, 52, 2, 2, -1\n34.43, 38, 3, 1, 1",
+    description:
+      "Canary-yellow layered potassium uranyl vanadate mineral carnotite (K2(UO2)2(VO4)2·3H2O), a classic Colorado Plateau sandstone-hosted uranium and vanadium ore mineral with diagnostic 6.40 Å basal (001) spacing at 13.83° 2θ. Monoclinic P21/a (No. 14), a = 10.47 Å, b = 8.41 Å, c = 6.59 Å, β = 103.8°, Z = 2, PDF 00-008-0317.",
+    formula: "K2(UO2)2(VO4)2·3H2O",
+    elements: ["K", "U", "V", "O", "H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/a (No. 14)",
+    density: 4.70,
+    applications: ["Uranium-Vanadium Ore Identification", "Sandstone Deposit Mineralogy", "Environmental Radiogeochemistry"],
+    molecularWeight: 902.18,
+    elasticModulus: 42,
+  },
+  {
+    name: "Delta-Prime Plutonium (δ'-Pu, Body-Centered Tetragonal)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "33.58, 100, 1, 0, 1\n38.24, 36, 1, 1, 0\n40.39, 20, 0, 0, 2\n55.19, 16, 2, 0, 0\n56.83, 28, 1, 1, 2\n66.17, 24, 2, 1, 1\n69.11, 14, 1, 0, 3\n70.57, 12, 2, 0, 2\n81.85, 8, 2, 2, 0",
+    description:
+      "Body-centered tetragonal (BCT) fifth solid allotrope of plutonium (δ'-Pu, stable in a narrow temperature window 452–480 °C between FCC δ-Pu and BCC ε-Pu) with extreme negative thermal expansion along the c-axis. Tetragonal I4/mmm (No. 139), a = 3.3261 Å, c = 4.4630 Å, Z = 2, PDF 01-089-4932.",
+    formula: "δ'-Pu",
+    elements: ["Pu"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mmm (No. 139)",
+    density: 16.00,
+    applications: ["Actinide Allotropy & Phase Diagrams", "High-Temperature Synchrotron Diffraction", "5f-Band Physics"],
+    molecularWeight: 244.06,
+    elasticModulus: 40,
+  },
+  {
+    name: "Epsilon-Plutonium (ε-Pu, High-Temperature BCC Phase)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "34.87, 100, 1, 1, 0\n50.14, 20, 2, 0, 0\n62.52, 36, 2, 1, 1\n73.62, 12, 2, 2, 0\n84.12, 16, 3, 1, 0\n94.42, 6, 2, 2, 2",
+    description:
+      "High-temperature body-centered cubic sixth solid allotrope of plutonium (ε-Pu, stable from 480 °C up to its 640 °C melting point), showing rapid self-diffusion and positive volume contraction upon melting. Cubic Im-3m (No. 229), a = 3.6361 Å, Z = 2, PDF 01-089-4933.",
+    formula: "ε-Pu",
+    elements: ["Pu"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 16.51,
+    applications: ["Actinide High-Temperature Metallurgy", "Pu-U-Zr Metallic Fuel Phase Equilibria"],
+    molecularWeight: 244.06,
+    elasticModulus: 35,
+  },
+  {
+    name: "Delta-Stabilized Plutonium-Gallium Alloy (δ-Pu-1wt%Ga)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "33.62, 100, 1, 1, 1\n39.01, 46, 2, 0, 0\n56.35, 29, 2, 2, 0\n67.24, 33, 3, 1, 1\n70.67, 10, 2, 2, 2\n83.79, 6, 4, 0, 0\n93.39, 15, 3, 3, 1\n96.60, 14, 4, 2, 0",
+    description:
+      "Room-temperature FCC δ-stabilized plutonium–1 wt% (~3.3 at%) gallium solid-solution alloy; Ga substitution contracts the FCC lattice from 4.6371 Å to 4.614 Å, suppressing the brittle δ→α' martensitic transformation and yielding ductile isotropic metallurgy. Cubic Fm-3m (No. 225), a = 4.614 Å, Z = 4, PDF 01-089-4942.",
+    formula: "δ-Pu-1Ga",
+    elements: ["Pu", "Ga"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 15.80,
+    applications: ["Actinide Aging & Self-Irradiation Studies", "FCC δ-Stabilized Plutonium Metallurgy"],
+    molecularWeight: 238.30,
+    elasticModulus: 42,
+  },
+  {
+    name: "Plutonium Sesquioxide (α-Pu2O3, Hexagonal A-Type)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "26.78, 32, 1, 0, 0\n29.97, 36, 0, 0, 2\n30.76, 100, 1, 0, 1\n40.62, 34, 1, 0, 2\n47.29, 44, 1, 1, 0\n53.71, 38, 1, 0, 3\n55.18, 10, 2, 0, 0\n57.01, 28, 1, 1, 2\n57.48, 22, 2, 0, 1\n62.28, 8, 0, 0, 4\n64.07, 14, 2, 0, 2",
+    description:
+      "Hexagonal/trigonal La2O3 A-type trivalent plutonium sesquioxide (β/A-Pu2O3), formed by carbothermic or hydrogen reduction of PuO2 under low oxygen potential; key reduced phase in high-temperature MOX fuel chemistry. Trigonal P-3m1 (No. 164), a = 3.841 Å, c = 5.958 Å, Z = 1, PDF 00-006-0328.",
+    formula: "Pu2O3",
+    elements: ["Pu", "O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "P-3m1 (No. 164)",
+    density: 11.47,
+    applications: ["MOX Fuel Redox Thermodynamics", "Actinide Oxide Phase Diagrams", "Surface Corrosion Characterization"],
+    molecularWeight: 536.12,
+    elasticModulus: 165,
+  },
+  {
+    name: "Plutonium Mononitride (PuN, Fast-Reactor Nitride Fuel)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "31.57, 100, 1, 1, 1\n36.61, 82, 2, 0, 0\n52.74, 56, 2, 2, 0\n62.78, 48, 3, 1, 1\n65.91, 17, 2, 2, 2\n77.83, 10, 4, 0, 0\n86.40, 19, 3, 3, 1\n89.23, 22, 4, 2, 0",
+    description:
+      "Rocksalt-type plutonium mononitride (PuN), an advanced Generation IV fast-reactor and minor-actinide burner nitride fuel component (commonly solid-solutioned with UN or ZrN) offering high heavy-metal density and thermal conductivity. Cubic Fm-3m (No. 225), a = 4.905 Å, Z = 4, PDF 00-006-0468.",
+    formula: "PuN",
+    elements: ["Pu", "N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 14.25,
+    applications: ["Generation IV Lead/Sodium Fast Reactor Nitride Fuel", "Actinide Transmutation Fuels"],
+    molecularWeight: 258.07,
+    elasticModulus: 210,
+  },
+  {
+    name: "Plutonium Hydride (PuH2, Cubic Fluorite Phase)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "28.83, 100, 1, 1, 1\n33.41, 40, 2, 0, 0\n47.98, 54, 2, 2, 0\n56.94, 46, 3, 1, 1\n59.73, 12, 2, 2, 2\n70.19, 9, 4, 0, 0\n77.59, 18, 3, 3, 1\n80.01, 13, 4, 2, 0\n89.53, 15, 4, 2, 2",
+    description:
+      "Face-centered cubic fluorite-structured plutonium dihydride (PuH2.0–2.7), a pyrophoric corrosion product formed rapidly when plutonium metal reacts with hydrogen or moisture; critically monitored in plutonium storage safety and hydriding-dehydriding recycling. Cubic Fm-3m (No. 225), a = 5.359 Å, Z = 4, PDF 00-009-0174.",
+    formula: "PuH2",
+    elements: ["Pu", "H"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 10.40,
+    applications: ["Plutonium Storage Corrosion Diagnostics", "Actinide Hydriding-Dehydriding Science"],
+    molecularWeight: 246.08,
+    elasticModulus: 92,
+  },
+  {
+    name: "Plutonium Tetrafluoride (PuF4)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "12.07, 16, 1, 1, 0\n16.76, 22, 0, 2, 0\n17.44, 26, 2, 0, 0\n21.42, 88, 0, 2, 1\n22.14, 100, 2, 2, -1\n22.89, 76, 3, 1, -1\n24.10, 62, 1, 1, -2\n25.38, 48, 3, 1, -2\n26.76, 54, 1, 3, 0\n28.96, 42, 4, 0, -2\n37.23, 30, 2, 2, -3",
+    description:
+      "Pink-brown monoclinic plutonium tetrafluoride (PuF4), isostructural with UF4 and ThF4 (ZrF4-type), used in pyrochemical processing, fluorination chemistry, and molten-salt actinide fuel studies. Monoclinic C2/c (No. 15), a = 12.59 Å, b = 10.57 Å, c = 8.28 Å, β = 126.2°, Z = 12, PDF 00-015-0545.",
+    formula: "PuF4",
+    elements: ["Pu", "F"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/c (No. 15)",
+    density: 7.00,
+    applications: ["Actinide Fluoride Pyrochemistry", "Molten-Salt Reactor Chemistry", "Pu Compound Characterization"],
+    molecularWeight: 320.05,
+    elasticModulus: 68,
+  },
+  {
+    name: "Plutonium Trifluoride (PuF3)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "24.52, 54, 0, 0, 2\n25.09, 48, 1, 1, 0\n27.98, 100, 1, 1, 1\n35.37, 26, 1, 1, 2\n44.20, 42, 3, 0, 0\n45.36, 58, 1, 1, 3\n51.19, 36, 3, 0, 2\n53.13, 28, 2, 2, 1\n56.99, 18, 1, 1, 4\n57.83, 22, 2, 2, 2\n69.14, 16, 3, 0, 4",
+    description:
+      "Violet-purple tysonite-type (LaF3-type) plutonium trifluoride (PuF3), an insoluble trivalent actinide fluoride precipitated from aqueous reprocessing streams and studied in molten-salt actinide burner fuel mixtures. Trigonal P-3c1 (No. 165), a = 7.093 Å, c = 7.254 Å, Z = 6, PDF 00-006-0325.",
+    formula: "PuF3",
+    elements: ["Pu", "F"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "P-3c1 (No. 165)",
+    density: 9.32,
+    applications: ["Molten-Salt Reactor Actinide Fuel", "Aqueous Actinide Precipitation Chemistry", "Tysonite Fluoride Standards"],
+    molecularWeight: 301.05,
+    elasticModulus: 84,
+  },
+  {
+    name: "Beta-Neptunium (β-Np, Tetragonal Polymorph)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "25.71, 22, 1, 1, 0\n26.28, 18, 0, 0, 1\n32.10, 88, 1, 0, 1\n36.67, 62, 2, 0, 0\n37.09, 100, 1, 1, 1\n41.19, 38, 2, 1, 0\n45.68, 44, 2, 0, 1\n49.52, 56, 2, 1, 1\n52.84, 24, 2, 2, 0\n54.09, 28, 0, 0, 2\n59.66, 22, 3, 1, 0\n60.82, 32, 1, 1, 2",
+    description:
+      "Intermediate-temperature tetragonal allotrope of neptunium metal (β-Np, stable 280–577 °C) with 4 atoms per unit cell formed from alternating planar and puckered layers. Tetragonal P4212 (No. 90), a = 4.897 Å, c = 3.388 Å, Z = 4, PDF 01-089-4934.",
+    formula: "β-Np",
+    elements: ["Np"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "P4212 (No. 90)",
+    density: 19.36,
+    applications: ["Actinide Allotropy Research", "High-Temperature Diffraction Standards"],
+    molecularWeight: 237.05,
+    elasticModulus: 120,
+  },
+  {
+    name: "Gamma-Neptunium (γ-Np, High-Temperature BCC Polymorph)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "36.06, 100, 1, 1, 0\n51.91, 20, 2, 0, 0\n64.83, 36, 2, 1, 1\n76.48, 12, 2, 2, 0\n87.58, 16, 3, 1, 0\n98.59, 6, 2, 2, 2",
+    description:
+      "High-temperature body-centered cubic allotrope of neptunium metal (γ-Np, stable 577–644 °C up to melting), forming complete BCC solid solutions with γ-U and ε-Pu in metallic fast-reactor transmutation fuels. Cubic Im-3m (No. 229), a = 3.520 Å, Z = 2, PDF 01-089-4935.",
+    formula: "γ-Np",
+    elements: ["Np"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 18.00,
+    applications: ["U-Pu-Np-Zr Metallic Transmutation Fuels", "High-Temperature Actinide Phase Diagrams"],
+    molecularWeight: 237.05,
+    elasticModulus: 98,
+  },
+  {
+    name: "Neptunium Dioxide (NpO2, Fluorite Oxide)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "28.43, 100, 1, 1, 1\n32.94, 43, 2, 0, 0\n47.28, 54, 2, 2, 0\n56.09, 45, 3, 1, 1\n58.83, 12, 2, 2, 2\n69.09, 9, 4, 0, 0\n76.34, 18, 3, 3, 1\n78.69, 13, 4, 2, 0\n87.98, 15, 4, 2, 2",
+    description:
+      "Olive-green fluorite-type neptunium dioxide (NpO2), the primary stable solid storage form of Np-237 and irradiation target for Pu-238 production for deep-space RTG missions; exhibits exotic multipolar order below 25 K. Cubic Fm-3m (No. 225), a = 5.4334 Å, Z = 4, PDF 00-041-1169.",
+    formula: "NpO2",
+    elements: ["Np", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 11.14,
+    applications: ["Pu-238 Space RTG Production Targets", "Minor Actinide Storage & Transmutation", "5f Multipolar Order Physics"],
+    molecularWeight: 269.05,
+    elasticModulus: 205,
+  },
+  {
+    name: "Dineptunium Pentoxide (Np2O5)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "12.06, 26, 1, 0, 0\n17.13, 48, 0, 1, 1\n18.08, 42, 1, 1, -1\n23.57, 68, 1, 1, 1\n24.22, 100, 2, 0, -2\n24.25, 72, 2, 0, 0\n25.65, 64, 2, 1, -1\n27.06, 54, 0, 2, 0\n31.90, 40, 1, 1, -3\n33.51, 36, 2, 1, -3\n34.65, 32, 0, 2, 2\n36.63, 28, 2, 2, -2",
+    description:
+      "Dark-brown pentavalent neptunium oxide (Np2O5), the highest stable binary oxide of neptunium containing linear neptunyl (NpO2+) cation-cation interaction chains; key solubility-limiting alteration phase in geological nuclear waste repositories. Monoclinic P2/c (No. 13), a = 8.168 Å, b = 6.584 Å, c = 9.313 Å, β = 116.09°, Z = 4, PDF 01-075-1848.",
+    formula: "Np2O5",
+    elements: ["Np", "O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P2/c (No. 13)",
+    density: 8.18,
+    applications: ["Geological Nuclear Waste Repository Modeling", "Pentavalent Actinide Crystallography"],
+    molecularWeight: 554.09,
+    elasticModulus: 135,
+  },
+  {
+    name: "Neptunium Mononitride (NpN, Minor-Actinide Transmutation Fuel)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "31.62, 100, 1, 1, 1\n36.67, 82, 2, 0, 0\n52.84, 56, 2, 2, 0\n62.89, 48, 3, 1, 1\n66.04, 17, 2, 2, 2\n77.98, 10, 4, 0, 0\n86.57, 19, 3, 3, 1\n89.41, 22, 4, 2, 0",
+    description:
+      "Rocksalt-type neptunium mononitride (NpN), an itinerant-5f ferromagnetic refractory actinide nitride studied for Accelerator-Driven System (ADS) and fast-reactor minor-actinide transmutation fuels. Cubic Fm-3m (No. 225), a = 4.897 Å, Z = 4, PDF 00-010-0263.",
+    formula: "NpN",
+    elements: ["Np", "N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 14.20,
+    applications: ["Minor-Actinide Transmutation Fuels (ADS)", "Refractory Actinide Nitride Ceramics"],
+    molecularWeight: 251.05,
+    elasticModulus: 235,
+  },
+  {
+    name: "Neptunium Monocarbide (NpC)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "30.93, 100, 1, 1, 1\n35.86, 78, 2, 0, 0\n51.62, 54, 2, 2, 0\n61.40, 46, 3, 1, 1\n64.45, 16, 2, 2, 2\n76.01, 10, 4, 0, 0\n84.29, 18, 3, 3, 1\n87.01, 20, 4, 2, 0",
+    description:
+      "Rocksalt-type neptunium monocarbide (NpC1-x), a refractory actinide carbide exhibiting ferromagnetic and antiferromagnetic transitions and complete miscibility with UC and PuC in fast-reactor carbide fuels. Cubic Fm-3m (No. 225), a = 5.004 Å, Z = 4, PDF 00-015-0895.",
+    formula: "NpC",
+    elements: ["Np", "C"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 13.50,
+    applications: ["Advanced Mixed-Carbide Fast Reactor Fuel", "Actinide Magnetism Research"],
+    molecularWeight: 249.06,
+    elasticModulus: 200,
+  },
+  {
+    name: "Beta-Thorium (β-Th, High-Temperature BCC Polymorph)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "30.74, 100, 1, 1, 0\n44.03, 21, 2, 0, 0\n54.66, 38, 2, 1, 1\n64.03, 13, 2, 2, 0\n72.69, 17, 3, 1, 0\n80.97, 6, 2, 2, 2",
+    description:
+      "High-temperature body-centered cubic allotrope of thorium metal (β-Th, stable from 1360 °C to its 1755 °C melting point). Cubic Im-3m (No. 229), a = 4.110 Å, Z = 2, PDF 01-089-4936.",
+    formula: "β-Th",
+    elements: ["Th"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 11.10,
+    applications: ["High-Temperature Thorium Metallurgy", "Th-U Metallic Fuel Alloying"],
+    molecularWeight: 232.04,
+    elasticModulus: 65,
+  },
+  {
+    name: "Thorium Mononitride (ThN)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "29.98, 100, 1, 1, 1\n34.75, 80, 2, 0, 0\n49.96, 54, 2, 2, 0\n59.37, 46, 3, 1, 1\n62.29, 16, 2, 2, 2\n73.35, 10, 4, 0, 0\n81.21, 18, 3, 3, 1\n83.79, 20, 4, 2, 0",
+    description:
+      "Golden-yellow metallic rocksalt-type thorium mononitride (ThN), a superconducting (Tc ≈ 3.2 K), ultra-refractory (mp 2820 °C) fertile nitride fuel candidate for fast-spectrum thorium breeder reactors. Cubic Fm-3m (No. 225), a = 5.159 Å, Z = 4, PDF 00-015-0035.",
+    formula: "ThN",
+    elements: ["Th", "N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 11.90,
+    applications: ["Thorium-Cycle Nitride Breeder Fuel", "Refractory Actinide Conductors"],
+    molecularWeight: 246.05,
+    elasticModulus: 215,
+  },
+  {
+    name: "Thorium Tetrafluoride (ThF4, Molten-Salt Reactor Breeder Salt)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "11.67, 16, 1, 1, 0\n16.12, 22, 0, 2, 0\n16.93, 26, 2, 0, 0\n20.62, 88, 0, 2, 1\n21.34, 100, 2, 2, -1\n22.15, 76, 3, 1, -1\n23.20, 62, 1, 1, -2\n24.46, 48, 3, 1, -2\n25.75, 54, 1, 3, 0\n27.98, 42, 4, 0, -2\n35.80, 30, 2, 2, -3",
+    description:
+      "White monoclinic thorium tetrafluoride (ThF4, ZrF4 structure type), the primary fertile thorium component dissolved in LiF–BeF2 (FLiBe) liquid-fuel Molten Salt Breeder Reactors (MSBRs) and used in specialized IR optical coatings. Monoclinic C2/c (No. 15), a = 13.00 Å, b = 10.99 Å, c = 8.60 Å, β = 126.4°, Z = 12, PDF 00-023-1426.",
+    formula: "ThF4",
+    elements: ["Th", "F"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/c (No. 15)",
+    density: 6.32,
+    applications: ["Molten-Salt Breeder Reactors (LFTR / MSBR)", "Infrared Optical Thin Films", "Thorium Fluoride Processing"],
+    molecularWeight: 308.03,
+    elasticModulus: 62,
+  },
+  {
+    name: "Thorite (ThSiO4, Tetragonal Thorium Silicate Mineral)",
+    type: "Minerals & Geology",
+    pattern:
+      "18.75, 85, 1, 0, 1\n24.95, 100, 2, 0, 0\n31.39, 32, 2, 1, 1\n33.44, 58, 1, 1, 2\n35.57, 22, 2, 2, 0\n38.02, 24, 2, 0, 2\n40.50, 26, 3, 0, 1\n44.83, 18, 1, 0, 3\n48.16, 16, 3, 2, 1\n49.62, 42, 3, 1, 2\n51.19, 14, 4, 0, 0\n57.76, 18, 4, 2, 0",
+    description:
+      "Zircon-type tetragonal thorium orthosilicate mineral thorite (ThSiO4), a primary accessory thorium-uranium ore mineral in granitic pegmatites and studied as a durable actinide-immobilization ceramic host. Tetragonal I41/amd (No. 141), a = 7.1328 Å, c = 6.3188 Å, Z = 4, PDF 00-011-0419.",
+    formula: "ThSiO4",
+    elements: ["Th", "Si", "O"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I41/amd (No. 141)",
+    density: 6.70,
+    applications: ["Thorium Ore Mineralogy", "Actinide Waste-Form Ceramic Hosts", "U-Th-Pb Geochronology"],
+    molecularWeight: 324.12,
+    elasticModulus: 185,
+  },
+  {
+    name: "Alpha-Protactinium Metal (α-Pa, Body-Centered Tetragonal)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "32.23, 44, 1, 1, 0\n35.93, 100, 1, 0, 1\n46.22, 22, 2, 0, 0\n56.82, 14, 0, 0, 2\n59.89, 38, 2, 1, 1\n66.85, 28, 1, 1, 2\n67.43, 16, 2, 2, 0\n76.16, 18, 2, 0, 2\n76.72, 15, 3, 1, 0\n95.49, 12, 1, 0, 3",
+    description:
+      "Room-temperature body-centered tetragonal (BCT) allotrope of protactinium (α-Pa, element 91, Z = 2, c/a = 0.825), the first actinide exhibiting itinerant 5f-electron bonding and superconductivity (Tc = 1.4 K). Tetragonal I4/mmm (No. 139), a = 3.925 Å, c = 3.238 Å, Z = 2, PDF 00-009-0231.",
+    formula: "α-Pa",
+    elements: ["Pa"],
+    crystalSystem: "Tetragonal",
+    spaceGroup: "I4/mmm (No. 139)",
+    density: 15.37,
+    applications: ["Thorium-232 / U-233 Breeding Chain Physics", "5f-Electron Superconductivity Research"],
+    molecularWeight: 231.04,
+    elasticModulus: 120,
+  },
+  {
+    name: "Protactinium Dioxide (PaO2, Fluorite Oxide)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "28.05, 100, 1, 1, 1\n32.50, 42, 2, 0, 0\n46.63, 54, 2, 2, 0\n55.30, 44, 3, 1, 1\n57.99, 12, 2, 2, 2\n68.07, 9, 4, 0, 0\n75.17, 17, 3, 3, 1\n77.48, 12, 4, 2, 0\n86.55, 14, 4, 2, 2",
+    description:
+      "Black face-centered cubic fluorite-type protactinium dioxide (PaO2), formed by hydrogen reduction of Pa2O5 at 1550 °C; bridges ThO2 (5.5974 Å) and UO2 (5.4704 Å) in the actinide dioxide contraction series. Cubic Fm-3m (No. 225), a = 5.505 Å, Z = 4, PDF 00-006-0523.",
+    formula: "PaO2",
+    elements: ["Pa", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 10.45,
+    applications: ["Actinide Dioxide Systematic Crystallography", "Thorium-Cycle Intermediate Chemistry"],
+    molecularWeight: 263.03,
+    elasticModulus: 210,
+  },
+  {
+    name: "Actinium Metal (Ac, FCC Actinide Series Head)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "29.10, 100, 1, 1, 1\n33.73, 47, 2, 0, 0\n48.44, 30, 2, 2, 0\n57.51, 35, 3, 1, 1\n60.32, 10, 2, 2, 2\n70.92, 6, 4, 0, 0\n78.43, 14, 3, 3, 1\n80.88, 13, 4, 2, 0\n90.56, 12, 4, 2, 2",
+    description:
+      "Silvery-white radioactive face-centered cubic actinium metal (Ac, element 89, parent of the actinide series), glowing pale blue in air from Cherenkov/air-ionization luminescence; Ac-225 is a leading targeted alpha-therapy (TAT) medical radioisotope. Cubic Fm-3m (No. 225), a = 5.311 Å, Z = 4, PDF 00-016-0469.",
+    formula: "Ac",
+    elements: ["Ac"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 10.07,
+    applications: ["Targeted Alpha-Therapy (Ac-225) Isotope Research", "Actinide Series Crystallography"],
+    molecularWeight: 227.03,
+    elasticModulus: 35,
+  },
+  {
+    name: "Alpha-Americium Metal (α-Am, Double Hexagonal Close-Packed)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "29.72, 28, 1, 0, 0\n30.79, 44, 1, 0, 1\n31.82, 46, 0, 0, 4\n33.81, 100, 1, 0, 2\n38.38, 34, 1, 0, 3\n44.10, 16, 1, 0, 4\n52.75, 28, 1, 1, 0\n57.97, 22, 1, 0, 6\n62.93, 24, 1, 1, 4\n64.14, 18, 2, 0, 2",
+    description:
+      "Room-temperature double hexagonal close-packed (DHCP, ABAC stacking) allotrope of americium metal (α-Am, element 95), marking the onset of localized lanthanide-like 5f electrons in the transplutonium actinides and becoming superconducting at 0.79 K. Hexagonal P63/mmc (No. 194), a = 3.4681 Å, c = 11.241 Å, Z = 4, PDF 00-017-0180.",
+    formula: "α-Am",
+    elements: ["Am"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 13.67,
+    applications: ["5f Localization Transition Physics", "Transplutonium Metallurgy", "High-Pressure Actinide Studies"],
+    molecularWeight: 243.06,
+    elasticModulus: 45,
+  },
+  {
+    name: "Alpha-Curium Metal (α-Cm, Double Hexagonal Close-Packed)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "29.48, 28, 1, 0, 0\n30.54, 44, 1, 0, 1\n31.56, 46, 0, 0, 4\n33.53, 100, 1, 0, 2\n38.06, 34, 1, 0, 3\n43.73, 16, 1, 0, 4\n52.29, 28, 1, 1, 0\n57.47, 22, 1, 0, 6\n62.37, 24, 1, 1, 4\n63.57, 18, 2, 0, 2",
+    description:
+      "Room-temperature double hexagonal close-packed (DHCP) allotrope of curium metal (α-Cm, element 96), characterized by a half-filled 5f7 magnetic shell (antiferromagnetic below 65 K) and strong alpha-decay self-heating (Cm-244). Hexagonal P63/mmc (No. 194), a = 3.496 Å, c = 11.331 Å, Z = 4, PDF 00-017-0181.",
+    formula: "α-Cm",
+    elements: ["Cm"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 13.51,
+    applications: ["Alpha Particle X-Ray Spectrometer (APXS) Mars Rovers", "5f7 Magnetism Physics", "Transplutonium Research"],
+    molecularWeight: 247.07,
+    elasticModulus: 50,
+  },
+  {
+    name: "Curium Dioxide (CmO2, Fluorite Radioisotope Heat-Source Oxide)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "28.83, 100, 1, 1, 1\n33.41, 42, 2, 0, 0\n47.98, 56, 2, 2, 0\n56.94, 46, 3, 1, 1\n59.73, 12, 2, 2, 2\n70.19, 9, 4, 0, 0\n77.59, 18, 3, 3, 1\n80.01, 13, 4, 2, 0\n89.53, 15, 4, 2, 2",
+    description:
+      "Black cubic fluorite-structured curium dioxide (CmO2), formed by heating curium oxalate or hydroxide in oxygen; exhibits measurable radiation self-swelling of its lattice parameter from alpha recoil damage. Cubic Fm-3m (No. 225), a = 5.359 Å, Z = 4, PDF 00-016-0468.",
+    formula: "CmO2",
+    elements: ["Cm", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 11.92,
+    applications: ["Radioisotope Heat Sources", "Alpha-Recoil Radiation Damage Studies", "Actinide Fluorite Oxide Series"],
+    molecularWeight: 279.07,
+    elasticModulus: 188,
+  },
+  {
+    name: "Alpha-Berkelium Metal (α-Bk, DHCP Transplutonium Actinide)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "30.19, 28, 1, 0, 0\n31.27, 44, 1, 0, 1\n32.33, 46, 0, 0, 4\n34.34, 100, 1, 0, 2\n38.99, 34, 1, 0, 3\n44.81, 16, 1, 0, 4\n53.62, 28, 1, 1, 0\n58.95, 22, 1, 0, 6\n64.01, 24, 1, 1, 4\n65.24, 18, 2, 0, 2",
+    description:
+      "Room-temperature double hexagonal close-packed (DHCP) allotrope of berkelium metal (α-Bk, element 97, Bk-249), a trivalent heavy actinide used as the target material for synthesizing superheavy elements such as Tennessine (Z = 117). Hexagonal P63/mmc (No. 194), a = 3.416 Å, c = 11.069 Å, Z = 4, PDF 01-089-4937.",
+    formula: "α-Bk",
+    elements: ["Bk"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 14.78,
+    applications: ["Superheavy Element Synthesis Targets", "Heavy Actinide Crystallography"],
+    molecularWeight: 247.07,
+    elasticModulus: 52,
+  },
+  {
+    name: "Alpha-Californium Metal (α-Cf, DHCP Neutron-Source Actinide)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "30.48, 28, 1, 0, 0\n31.56, 44, 1, 0, 1\n32.41, 46, 0, 0, 4\n34.63, 100, 1, 0, 2\n39.27, 34, 1, 0, 3\n45.09, 16, 1, 0, 4\n54.16, 28, 1, 1, 0\n59.25, 22, 1, 0, 6\n64.55, 24, 1, 1, 4\n65.90, 18, 2, 0, 2",
+    description:
+      "Room-temperature double hexagonal close-packed (DHCP) allotrope of californium metal (α-Cf, element 98), the heaviest actinide produced in weighable quantities; Cf-252 is a premier spontaneous-fission neutron source for reactor startup, radiography, and prompt-gamma activation analysis. Hexagonal P63/mmc (No. 194), a = 3.384 Å, c = 11.040 Å, Z = 4, PDF 01-089-4938.",
+    formula: "α-Cf",
+    elements: ["Cf"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 15.10,
+    applications: ["Spontaneous-Fission Neutron Sources (Cf-252)", "Reactor Startup Sources", "Neutron Radiography"],
+    molecularWeight: 251.08,
+    elasticModulus: 54,
+  },
+  {
+    name: "Radium Metal (Ra, Radioactive Alkaline-Earth BCC Metal)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "24.43, 100, 1, 1, 0\n34.83, 21, 2, 0, 0\n43.00, 38, 2, 1, 1\n50.08, 14, 2, 2, 0\n56.48, 18, 3, 1, 0\n62.44, 7, 2, 2, 2",
+    description:
+      "Silvery-white body-centered cubic radioactive alkaline-earth metal (Ra, element 88, isostructural with barium); Ra-223 dichloride is utilized clinically in targeted alpha radiotherapy for metastatic bone cancer. Cubic Im-3m (No. 229), a = 5.148 Å, Z = 2, PDF 00-012-0301.",
+    formula: "Ra",
+    elements: ["Ra"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Im-3m (No. 229)",
+    density: 5.50,
+    applications: ["Radiochemistry Reference Standards", "Targeted Alpha Radiotherapy (Ra-223)", "Historical Radioluminescence Studies"],
+    molecularWeight: 226.03,
+    elasticModulus: 16,
+  },
+  {
+    name: "Radium Sulfate (RaSO4, Orthorhombic Barite-Type Salt)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "19.44, 28, 2, 0, 0\n20.09, 36, 0, 1, 1\n22.35, 62, 1, 1, 1\n22.95, 44, 2, 0, 1\n24.32, 34, 0, 0, 2\n25.27, 88, 2, 1, 0\n26.23, 52, 1, 0, 2\n28.10, 100, 2, 1, 1\n32.29, 48, 0, 2, 0\n35.36, 46, 2, 1, 2\n35.82, 38, 3, 1, 1\n37.97, 30, 2, 2, 0\n42.83, 42, 4, 1, 0",
+    description:
+      "Insoluble orthorhombic barite-type radium sulfate (RaSO4), the least water-soluble sulfate salt known (Ksp ≈ 10^-10.3), forming solid solutions with BaSO4 in oilfield NORM scales and uranium mill tailings remediation. Orthorhombic Pnma (No. 62), a = 9.126 Å, b = 5.540 Å, c = 7.313 Å, Z = 4, PDF 00-039-1468.",
+    formula: "RaSO4",
+    elements: ["Ra", "S", "O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pnma (No. 62)",
+    density: 5.79,
+    applications: ["Uranium Mill Tailings & NORM Scale Diagnostics", "Radiochemical Co-Precipitation", "Sealed Gamma Calibration Sources"],
+    molecularWeight: 322.09,
+    elasticModulus: 55,
+  },
+  {
+    name: "Promethium Sesquioxide (Pm2O3, Cubic C-Type Radioactive Lanthanide)",
+    type: "Nuclear & Shielding",
+    pattern:
+      "19.77, 12, 2, 1, 1\n28.10, 100, 2, 2, 2\n32.56, 36, 4, 0, 0\n34.60, 10, 4, 1, 1\n38.39, 8, 3, 3, 2\n41.88, 12, 4, 3, 1\n46.72, 48, 4, 4, 0\n51.20, 9, 6, 1, 1\n55.41, 38, 6, 2, 2\n58.10, 10, 4, 4, 4",
+    description:
+      "Pale-pink body-centered cubic C-type bixbyite promethium(III) oxide (C-Pm2O3, element 61, the only purely radioactive lanthanide); Pm-147 is a pure beta emitter used in betavoltaic nuclear micro-batteries and luminous phosphors. Cubic Ia-3 (No. 206), a = 10.990 Å, Z = 16, PDF 00-026-1356.",
+    formula: "Pm2O3",
+    elements: ["Pm", "O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Ia-3 (No. 206)",
+    density: 6.85,
+    applications: ["Betavoltaic Nuclear Micro-Batteries (Pm-147)", "Radioactive Thickness Gauges", "Lanthanide Fission-Product Chemistry"],
+    molecularWeight: 338.00,
+    elasticModulus: 145,
+  },
+  {
+    name: "Zamak 5 (Zinc Die-Casting Alloy, Zn-4Al-1Cu-0.04Mg)",
+    type: "Metals & Alloys",
+    pattern:
+      "36.29, 52, 0, 0, 2\n38.52, 13, 1, 1, 1\n38.99, 40, 1, 0, 0\n43.22, 100, 1, 0, 1\n44.77, 7, 2, 0, 0\n54.32, 28, 1, 0, 2\n70.08, 25, 1, 0, 3\n70.63, 21, 1, 1, 0\n82.09, 23, 1, 1, 2\n86.54, 17, 2, 0, 1",
+    description:
+      "Copper-strengthened zinc die-casting alloy Zamak 5 (ASTM AC41A, Zn-4wt%Al-1wt%Cu-0.04wt%Mg) offering higher hardness, tensile strength, and creep resistance than Zamak 3. Primary HCP η-Zn matrix (P63/mmc, a = 2.665 Å, c = 4.947 Å) with FCC α-Al eutectic reflections (38.52°, 44.77°).",
+    formula: "Zn-4Al-1Cu-0.04Mg",
+    elements: ["Zn","Al","Cu","Mg"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 6.7,
+    applications: ["Automotive Precision Die Castings","Heavy-Duty Hardware & Locks","Thin-Wall Structural Housings"],
+    molecularWeight: 63.82,
+    elasticModulus: 96,
+  },
+  {
+    name: "ZA-8 (Zinc-Aluminum Foundry Alloy, Zn-8.4Al-1Cu)",
+    type: "Metals & Alloys",
+    pattern:
+      "36.29, 48, 0, 0, 2\n38.52, 28, 1, 1, 1\n38.99, 36, 1, 0, 0\n43.22, 100, 1, 0, 1\n44.77, 14, 2, 0, 0\n54.32, 26, 1, 0, 2\n65.18, 9, 2, 2, 0\n70.08, 24, 1, 0, 3\n70.63, 20, 1, 1, 0\n82.09, 22, 1, 1, 2",
+    description:
+      "Hot-chamber die-castable hypereutectic zinc-aluminum alloy ZA-8 (Zn-8.4wt%Al-1.0wt%Cu-0.02wt%Mg) with higher strength and bearing wear resistance than Zamak grades. Dual-phase HCP η-Zn (P63/mmc) + FCC α-Al (Fm-3m) dendritic microstructure.",
+    formula: "Zn-8.4Al-1Cu",
+    elements: ["Zn","Al","Cu","Mg"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 6.3,
+    applications: ["Hot-Chamber High-Strength Die Castings","Permanent Mold Bearings","Electrical & Marine Components"],
+    molecularWeight: 62.14,
+    elasticModulus: 86,
+  },
+  {
+    name: "ZA-27 (High-Strength Zinc-Aluminum Alloy, Zn-27Al-2Cu)",
+    type: "Metals & Alloys",
+    pattern:
+      "36.29, 44, 0, 0, 2\n38.52, 68, 1, 1, 1\n38.99, 35, 1, 0, 0\n43.22, 100, 1, 0, 1\n44.77, 32, 2, 0, 0\n54.32, 25, 1, 0, 2\n65.18, 20, 2, 2, 0\n70.08, 22, 1, 0, 3\n70.63, 18, 1, 1, 0\n78.34, 18, 3, 1, 1\n82.09, 20, 1, 1, 2",
+    description:
+      "Highest-strength commercial zinc-aluminum alloy ZA-27 (Zn-27wt%Al-2.2wt%Cu-0.015wt%Mg), rivaling cast iron and bronze in load-bearing bushings and gears. Dual-phase HCP η-Zn (P63/mmc, 43.22° (101)) and prominent FCC α-Al solid solution (Fm-3m, 38.52° (111), 44.77° (200)).",
+    formula: "Zn-27Al-2Cu",
+    elements: ["Zn","Al","Cu","Mg"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 5,
+    applications: ["Heavy-Duty Journal Bearings & Bushings","High-Strength Cold-Chamber Castings","Vibration-Damping Structural Frames"],
+    molecularWeight: 54.96,
+    elasticModulus: 78,
+  },
+  {
+    name: "Beta-Brass (CuZn, Ordered B2 CsCl-Type Phase)",
+    type: "Metals & Alloys",
+    pattern:
+      "30.23, 8, 1, 0, 0\n43.28, 100, 1, 1, 0\n53.70, 4, 1, 1, 1\n62.87, 18, 2, 0, 0\n71.34, 5, 2, 1, 0\n79.40, 32, 2, 1, 1\n95.05, 10, 2, 2, 0\n111.10, 14, 3, 1, 0",
+    description:
+      "Archetypal Hume-Rothery 3/2 electron compound β'-CuZn crystallizing in the ordered B2 (CsCl-type) body-centered cubic structure below 468 °C (diagnostic superlattice (100) at 30.23° and (111) at 53.70°). Basis for shape-memory Cu-Zn-Al alloys and high-strength duplex brasses. Cubic Pm-3m (No. 221), a = 2.9539 Å, Z = 1, PDF 00-002-1231.",
+    formula: "CuZn",
+    elements: ["Cu","Zn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Pm-3m (No. 221)",
+    density: 8.32,
+    applications: ["Duplex Alpha-Beta Brasses","Shape-Memory Cu-Zn-Al Actuators","Hume-Rothery Metallurgy Standard"],
+    molecularWeight: 128.93,
+    elasticModulus: 97,
+  },
+  {
+    name: "Gamma-Brass (Cu5Zn8, Complex Cubic Electron Compound)",
+    type: "Metals & Alloys",
+    pattern:
+      "24.57, 4, 2, 1, 1\n35.02, 12, 2, 2, 2\n37.93, 6, 3, 2, 1\n43.24, 100, 3, 3, 0\n50.36, 12, 4, 2, 2\n52.57, 8, 4, 3, 1\n58.85, 6, 4, 4, 0\n62.81, 16, 6, 0, 0\n64.74, 14, 6, 1, 1\n79.32, 22, 6, 3, 3",
+    description:
+      "Classic Hume-Rothery 21/13 electron compound γ-Cu5Zn8 containing 52 atoms per unit cell in a complex 26-atom cluster body-centered cubic superstructure. Hard, brittle intermetallic phase important in Cu-Zn diffusion couples, soldering interfaces, and brass metallurgy. Cubic I-43m (No. 217), a = 8.8690 Å, Z = 4, PDF 00-025-1228.",
+    formula: "Cu5Zn8",
+    elements: ["Cu","Zn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I-43m (No. 217)",
+    density: 8.01,
+    applications: ["Intermetallic Diffusion-Couple Diagnostics","Wear-Resistant Brass Coatings","Hume-Rothery Electron-Compound Research"],
+    molecularWeight: 840.77,
+    elasticModulus: 132,
+  },
+  {
+    name: "Muntz Metal (C28000, Alpha-Beta Brass Cu60Zn40)",
+    type: "Metals & Alloys",
+    pattern:
+      "42.30, 100, 1, 1, 1\n43.28, 58, 1, 1, 0\n49.24, 44, 2, 0, 0\n62.87, 12, 2, 0, 0\n72.20, 24, 2, 2, 0\n79.40, 20, 2, 1, 1\n87.40, 22, 3, 1, 1",
+    description:
+      "Classic duplex alpha-beta brass (Muntz Metal UNS C28000, Cu-40wt%Zn) combining ductile FCC α-Cu(Zn) (a = 3.698 Å, (111) at 42.30°) with high-strength ordered BCC β'-CuZn (a = 2.954 Å, (110) at 43.28°). Widely used for marine condenser tube sheets, hot forgings, and architectural trim. Cubic Fm-3m + Pm-3m.",
+    formula: "Cu0.60Zn0.40",
+    elements: ["Cu","Zn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m + Pm-3m",
+    density: 8.39,
+    applications: ["Marine Condenser Tube Sheets","Hot-Forged Valves & Fasteners","Architectural Brass Panels"],
+    molecularWeight: 64.28,
+    elasticModulus: 105,
+  },
+  {
+    name: "Galvanized Steel Zeta Phase (ζ-FeZn13, Hot-Dip Coating Intermetallic)",
+    type: "Metals & Alloys",
+    pattern:
+      "14.28, 6, 1, 1, 0\n16.59, 8, 2, 0, 0\n17.81, 10, 2, 0, -1\n22.06, 12, 0, 0, 1\n23.37, 14, 0, 2, 0\n24.08, 16, 3, 1, -1\n27.65, 22, 3, 1, 0\n28.79, 18, 2, 2, 0\n32.35, 24, 0, 2, 1\n35.57, 36, 5, 1, -1\n35.70, 52, 4, 2, -1\n36.38, 44, 1, 3, 0\n36.93, 60, 2, 0, -2\n41.28, 100, 4, 2, 0\n41.50, 82, 3, 3, -1",
+    description:
+      "Outermost Fe-Zn intermetallic layer (ζ-FeZn13, ~5–6 wt% Fe) formed during hot-dip galvanizing and galvannealing of automotive steel sheets. Monoclinic C2/m (No. 12), a = 13.424 Å, b = 7.608 Å, c = 5.061 Å, β = 127.30°, Z = 2, PDF 00-034-1314.",
+    formula: "FeZn13",
+    elements: ["Fe","Zn"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/m (No. 12)",
+    density: 7.18,
+    applications: ["Hot-Dip Galvanized Steel QA/QC","Automotive Galvannealed Sheet Coatings","Corrosion-Barrier Intermetallic Phase ID"],
+    molecularWeight: 905.79,
+    elasticModulus: 128,
+  },
+  {
+    name: "Galvanized Steel Gamma Phase (Γ-Fe3Zn10, Interface Intermetallic)",
+    type: "Metals & Alloys",
+    pattern:
+      "34.56, 10, 2, 2, 2\n42.67, 100, 3, 3, 0\n47.44, 12, 3, 3, 2\n49.69, 14, 4, 2, 2\n51.86, 10, 4, 3, 1\n61.94, 20, 6, 0, 0\n63.83, 16, 6, 1, 1\n78.13, 24, 6, 3, 3",
+    description:
+      "Iron-rich γ-brass-type interfacial intermetallic layer (Γ-Fe3Zn10, 21–28 wt% Fe) nucleating directly adjacent to the steel substrate during hot-dip galvannealing; excessive Γ thickness causes powdering/flaking during press forming. Cubic I-43m (No. 217), a = 8.982 Å, Z = 4, PDF 00-032-0478.",
+    formula: "Fe3Zn10",
+    elements: ["Fe","Zn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I-43m (No. 217)",
+    density: 7.36,
+    applications: ["Galvannealed Steel Adhesion Control","Fe-Zn Coating Cross-Section XRD","Anti-Powdering Process Diagnostics"],
+    molecularWeight: 821.34,
+    elasticModulus: 155,
+  },
+  {
+    name: "Galvanized Steel Delta Phase (δ-FeZn10, Hexagonal Intermetallic)",
+    type: "Metals & Alloys",
+    pattern:
+      "23.25, 10, 1, 1, 12\n32.91, 18, 2, 1, 16\n34.90, 22, 3, 0, 16\n37.30, 36, 3, 0, 18\n37.54, 42, 3, 2, 8\n38.75, 48, 3, 2, 10\n40.71, 56, 5, 0, 0\n42.36, 100, 2, 2, 20\n42.38, 86, 3, 3, 0\n49.34, 24, 6, 0, 0\n58.00, 20, 3, 3, 24",
+    description:
+      "Primary palisade/compact intermediate Fe-Zn intermetallic layer (δ-FeZn10, 7–11.5 wt% Fe) dominating well-formed galvannealed automotive steel coatings due to its favorable formability and paintability. Large-cell hexagonal P63mc (No. 186), a = 12.787 Å, c = 57.222 Å, PDF 00-045-1184.",
+    formula: "FeZn10",
+    elements: ["Fe","Zn"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63mc (No. 186)",
+    density: 7.25,
+    applications: ["Automotive Galvannealed Steel Coatings","Corrosion-Resistant Sheet Metal","Fe-Zn Intermetallic Phase Quantification"],
+    molecularWeight: 709.65,
+    elasticModulus: 138,
+  },
+  {
+    name: "Biodegradable Zinc-Magnesium Alloy (Zn-1Mg, Zn + Mg2Zn11 Eutectic)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "23.24, 6, 2, 1, 0\n36.29, 52, 0, 0, 2\n38.99, 40, 1, 0, 0\n39.39, 14, 3, 2, 1\n42.24, 12, 4, 0, 0\n43.22, 100, 1, 0, 1\n43.60, 18, 4, 1, 0\n44.93, 15, 3, 3, 0\n54.32, 28, 1, 0, 2\n70.08, 25, 1, 0, 3\n70.63, 21, 1, 1, 0\n82.09, 23, 1, 1, 2",
+    description:
+      "Next-generation biodegradable vascular stent and orthopedic fixation alloy (Zn-1wt%Mg) exhibiting an ideal physiological corrosion rate (~0.02–0.1 mm/yr without H2 gas pockets) and doubled strength via HCP η-Zn dendrites reinforced by cubic Mg2Zn11 eutectic intermetallics. Hexagonal P63/mmc + Cubic Pm-3.",
+    formula: "Zn-1Mg",
+    elements: ["Zn","Mg"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 6.96,
+    applications: ["Bioresorbable Cardiovascular Stents","Biodegradable Orthopedic Bone Screws","Tissue-Engineering Metallic Scaffolds"],
+    molecularWeight: 64.97,
+    elasticModulus: 105,
+  },
+  {
+    name: "Magnesium-Zinc Laves Phase (MgZn2, C14 Strengthening Precipitate)",
+    type: "Metals & Alloys",
+    pattern:
+      "19.62, 28, 1, 0, 0\n20.72, 22, 0, 0, 2\n22.21, 14, 1, 0, 1\n28.68, 12, 1, 0, 2\n34.32, 18, 1, 1, 0\n37.21, 35, 1, 0, 3\n39.84, 52, 2, 0, 0\n40.43, 100, 1, 1, 2\n41.27, 82, 2, 0, 1\n42.16, 40, 0, 0, 4\n45.32, 24, 2, 0, 2\n46.90, 16, 1, 0, 4\n51.52, 18, 2, 0, 3\n61.47, 14, 3, 0, 0\n63.38, 22, 2, 1, 3",
+    description:
+      "Archetypal hexagonal C14 Laves phase (η-MgZn2), the principal age-hardening strengthening precipitate in both wrought Mg-Zn alloys (ZK60) and aerospace 7xxx-series Al-Zn-Mg(-Cu) alloys (7075-T6). Hexagonal P63/mmc (No. 194), a = 5.2210 Å, c = 8.5670 Å, Z = 4, PDF 00-034-0457.",
+    formula: "MgZn2",
+    elements: ["Mg","Zn"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 5.2,
+    applications: ["7xxx Aerospace Al-Zn-Mg Precipitate ID","ZK-Series Magnesium Alloy Age Hardening","C14 Laves Phase Crystallography Standard"],
+    molecularWeight: 155.07,
+    elasticModulus: 102,
+  },
+  {
+    name: "Zinc-Magnesium Intermetallic (Mg2Zn11, Cubic Eutectic Phase)",
+    type: "Metals & Alloys",
+    pattern:
+      "17.95, 10, 1, 1, 1\n23.24, 18, 2, 1, 0\n25.49, 14, 2, 1, 1\n29.52, 12, 2, 2, 0\n33.10, 16, 3, 1, 0\n39.39, 68, 3, 2, 1\n42.24, 52, 4, 0, 0\n43.60, 100, 4, 1, 0\n44.93, 84, 3, 3, 0\n47.51, 30, 4, 2, 0\n48.76, 28, 4, 2, 1\n49.98, 22, 3, 3, 2",
+    description:
+      "Primitive cubic zinc-rich intermetallic Mg2Zn11 forming the strengthening eutectic network in biodegradable Zn-Mg alloys and high-corrosion-resistance Zn-Al-Mg (ZAM) steel coatings. Cubic Pm-3 (No. 200), a = 8.5520 Å, Z = 3, PDF 00-006-0664.",
+    formula: "Mg2Zn11",
+    elements: ["Mg","Zn"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Pm-3 (No. 200)",
+    density: 6.16,
+    applications: ["Zn-Al-Mg (ZAM) Super-Corrosion Steel Coatings","Biodegradable Zn-Mg Implant Metallurgy","Zn-Mg Binary Intermetallic Reference"],
+    molecularWeight: 767.79,
+    elasticModulus: 112,
+  },
+  {
+    name: "Zinc Hydroxide (ε-Zn(OH)2, Wülfingite)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "20.09, 100, 0, 1, 1\n20.81, 48, 0, 0, 2\n20.83, 44, 1, 0, 1\n24.98, 12, 1, 1, 0\n27.10, 72, 0, 1, 2\n27.11, 88, 1, 1, 1\n32.73, 62, 1, 1, 2\n34.73, 18, 0, 2, 0\n36.47, 36, 1, 0, 3\n36.50, 32, 2, 0, 0\n40.57, 28, 1, 1, 3\n40.84, 34, 1, 2, 1\n42.01, 26, 2, 1, 1\n46.04, 18, 2, 1, 2",
+    description:
+      "Thermodynamically stable orthorhombic polymorph of zinc hydroxide (ε-Zn(OH)2, mineral wülfingite) with corner-sharing Zn(OH)4 tetrahedra. Key discharge/passivation product on alkaline Zn-air and aqueous zinc-ion battery anodes and atmospheric Zn corrosion films. Orthorhombic P212121 (No. 19), a = 4.920 Å, b = 5.162 Å, c = 8.530 Å, Z = 4, PDF 00-038-0385.",
+    formula: "Zn(OH)2",
+    elements: ["Zn","O","H"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 3.053,
+    applications: ["Zinc-Air & Aqueous Zn Battery Anode Diagnostics","Galvanized Zinc Corrosion Analysis","ZnO Precursor Synthesis"],
+    molecularWeight: 99.39,
+    elasticModulus: 48,
+  },
+  {
+    name: "Zinc Carbonate (Smithsonite, ZnCO3)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "25.06, 28, 0, 1, 2\n32.56, 100, 1, 0, 4\n35.83, 8, 0, 0, 6\n38.67, 25, 1, 1, 0\n42.83, 35, 1, 1, 3\n46.64, 14, 2, 0, 2\n51.43, 16, 0, 2, 4\n53.74, 42, 1, 1, 6\n61.11, 10, 2, 1, 1\n62.14, 12, 1, 2, 2\n66.16, 16, 2, 1, 4\n69.99, 12, 3, 0, 0",
+    description:
+      "Calcite-structure trigonal zinc carbonate (ZnCO3, smithsonite), major supergene non-sulfide zinc ore mineral and protective passive carbonate layer on weathered galvanized steel and biodegradable Zn implants. Trigonal R-3c (No. 167), a = 4.6526 Å, c = 15.0257 Å, Z = 6, PDF 00-008-0449.",
+    formula: "ZnCO3",
+    elements: ["Zn","C","O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3c (No. 167)",
+    density: 4.434,
+    applications: ["Non-Sulfide Zinc Ore Exploration","Atmospheric Zinc Patina Analysis","ZnO Calcination Precursor"],
+    molecularWeight: 125.39,
+    elasticModulus: 124,
+  },
+  {
+    name: "Hydrozincite (Zn5(CO3)2(OH)6, Zinc Patina Corrosion Product)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "13.06, 100, 2, 0, 0\n15.50, 10, 1, 1, 0\n19.96, 16, 2, 0, -1\n22.07, 24, 2, 0, 1\n24.23, 38, 3, 1, 0\n26.29, 18, 4, 0, 0\n28.31, 42, 0, 2, 0\n29.66, 22, 4, 0, -1\n30.55, 28, 3, 1, 1\n31.29, 34, 2, 2, 0\n32.59, 46, 4, 0, 1\n32.90, 58, 0, 2, 1\n36.05, 36, 5, 1, 0\n36.18, 40, 2, 2, 1\n36.20, 32, 1, 1, -2",
+    description:
+      "Basic zinc carbonate (Zn5(CO3)2(OH)6, hydrozincite), the self-healing white protective patina formed on weathered galvanized steel and architectural zinc roofing in CO2-containing air, characterized by its intense low-angle (200) reflection at 13.06° (d = 6.77 Å). Monoclinic C2/m (No. 12), a = 13.620 Å, b = 6.300 Å, c = 5.420 Å, β = 95.83°, Z = 2, PDF 00-019-1458.",
+    formula: "Zn5(CO3)2(OH)6",
+    elements: ["Zn","C","O","H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/m (No. 12)",
+    density: 4,
+    applications: ["Galvanized Steel Atmospheric Corrosion ID","Architectural Zinc Patina Diagnostics","Secondary Zinc Ore Mineralogy"],
+    molecularWeight: 548.96,
+    elasticModulus: 52,
+  },
+  {
+    name: "Simonkolleite (Zn5(OH)8Cl2·H2O, Marine Zinc Corrosion Product)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "11.22, 100, 0, 0, 3\n16.56, 18, 1, 0, 1\n17.79, 12, 0, 1, 2\n22.08, 22, 1, 0, 4\n22.54, 26, 0, 0, 6\n24.83, 30, 0, 1, 5\n28.12, 42, 1, 1, 0\n30.36, 24, 1, 1, 3\n31.06, 38, 1, 0, 7\n33.48, 46, 2, 0, 2\n34.43, 32, 0, 1, 8\n36.34, 28, 1, 1, 6\n37.86, 24, 2, 0, 5\n41.55, 16, 1, 0, 10\n44.76, 18, 1, 1, 9",
+    description:
+      "Layered zinc hydroxychloride hydrate (Zn5(OH)8Cl2·H2O, simonkolleite), the hallmark corrosion product of zinc and galvanized steel in marine/chloride salt-spray environments and zinc-chloride dry-cell cathodes, distinguished by its strong basal (003) peak at 11.22° (d = 7.88 Å). Trigonal R-3m (No. 166), a = 6.3412 Å, c = 23.646 Å, Z = 3, PDF 00-007-0155.",
+    formula: "Zn5(OH)8Cl2·H2O",
+    elements: ["Zn","O","H","Cl"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3m (No. 166)",
+    density: 3.31,
+    applications: ["Marine & Salt-Spray Galvanized Corrosion ID","Zinc-Chloride Battery Chemistry","Layered Double Hydroxide Catalysis"],
+    molecularWeight: 551.88,
+    elasticModulus: 42,
+  },
+  {
+    name: "Zinc Chloride (δ-ZnCl2, Anhydrous Orthorhombic)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "17.94, 18, 1, 1, 0\n18.50, 30, 0, 1, 1\n19.99, 25, 1, 0, 1\n23.10, 35, 0, 2, 0\n23.11, 40, 1, 1, 1\n27.67, 28, 2, 0, 0\n29.14, 100, 0, 0, 2\n30.73, 45, 1, 2, 1\n33.49, 55, 2, 1, 1\n34.43, 62, 1, 1, 2\n36.35, 22, 2, 2, 0\n37.51, 26, 0, 2, 2\n39.30, 18, 2, 2, 1\n40.61, 24, 2, 0, 2",
+    description:
+      "Hygroscopic anhydrous zinc dichloride (δ-ZnCl2) built from corner-sharing ZnCl4 tetrahedra in an HCP Cl⁻ sublattice. Used as a hot-dip galvanizing pre-flux, soldering flux, Lewis-acid organic synthesis catalyst, and water-in-salt zinc-ion battery electrolyte. Orthorhombic Pna21 (No. 33), a = 6.443 Å, b = 7.693 Å, c = 6.125 Å, Z = 4, PDF 00-042-0589.",
+    formula: "ZnCl2",
+    elements: ["Zn","Cl"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pna21 (No. 33)",
+    density: 2.98,
+    applications: ["Galvanizing & Soldering Fluxes","Water-in-Salt Zinc Battery Electrolytes","Lewis-Acid Catalysis"],
+    molecularWeight: 136.29,
+    elasticModulus: 26,
+  },
+  {
+    name: "Zinc Sulfate Anhydrous (Zinkosite, ZnSO4)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "20.67, 14, 2, 0, 0\n21.29, 75, 1, 0, 1\n22.82, 22, 0, 1, 1\n24.56, 36, 2, 1, 0\n25.09, 92, 1, 1, 1\n26.43, 28, 0, 2, 0\n30.98, 100, 2, 1, 1\n33.78, 30, 2, 2, 0\n34.18, 86, 1, 2, 1\n36.58, 72, 3, 0, 1\n37.69, 26, 0, 0, 2\n38.83, 24, 2, 2, 1\n39.02, 32, 3, 1, 1\n44.24, 20, 4, 1, 0\n45.84, 22, 1, 3, 1",
+    description:
+      "Anhydrous orthorhombic zinc sulfate (ZnSO4, mineral zinkosite) obtained by roasting sphalerite or dehydrating goslarite above 240 °C. Key intermediate in hydrometallurgical electrowinning of pure Zn and aqueous ZnSO4 zinc-ion battery electrolytes. Orthorhombic Pnma (No. 62), a = 8.588 Å, b = 6.740 Å, c = 4.770 Å, Z = 4, PDF 00-008-0491.",
+    formula: "ZnSO4",
+    elements: ["Zn","S","O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pnma (No. 62)",
+    density: 3.88,
+    applications: ["Zinc Hydrometallurgy & Electrowinning","Aqueous Zinc-Ion Battery Electrolytes","Rayon Coagulation & Agriculture"],
+    molecularWeight: 161.44,
+    elasticModulus: 62,
+  },
+  {
+    name: "Zinc Sulfate Heptahydrate (Goslarite, ZnSO4·7H2O)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "10.49, 14, 1, 1, 0\n14.69, 22, 0, 2, 0\n15.03, 18, 2, 0, 0\n16.71, 68, 1, 1, 1\n16.74, 42, 2, 1, 0\n21.05, 100, 1, 2, 1\n21.08, 45, 2, 2, 0\n21.23, 74, 2, 1, 1\n23.82, 16, 3, 1, 0\n24.82, 20, 2, 2, 1\n26.10, 26, 0, 0, 2\n26.82, 24, 1, 3, 1\n27.21, 30, 3, 1, 1\n29.92, 22, 2, 3, 1\n30.14, 25, 3, 2, 1",
+    description:
+      "Orthorhombic zinc sulfate heptahydrate (ZnSO4·7H2O, white vitriol / mineral goslarite), isostructural with epsomite (MgSO4·7H2O). Widely used as standard aqueous Zn-ion battery electrolyte salt, micronutrient fertilizer, and zinc electroplating bath reagent. Orthorhombic P212121 (No. 19), a = 11.779 Å, b = 12.050 Å, c = 6.822 Å, Z = 4, PDF 00-009-0395.",
+    formula: "ZnSO4·7H2O",
+    elements: ["Zn","S","O","H"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 1.97,
+    applications: ["Zinc Electroplating Baths","Aqueous Zinc-Ion Battery Salts","Agricultural Trace-Zinc Supplements"],
+    molecularWeight: 287.55,
+    elasticModulus: 24,
+  },
+  {
+    name: "Zinc Ferrite (Franklinite, ZnFe2O4 Normal Spinel)",
+    type: "Magnetic & Ferroelectric",
+    pattern:
+      "18.19, 10, 1, 1, 1\n29.92, 35, 2, 2, 0\n35.24, 100, 3, 1, 1\n36.86, 8, 2, 2, 2\n42.82, 20, 4, 0, 0\n53.11, 10, 4, 2, 2\n56.61, 32, 5, 1, 1\n62.16, 40, 4, 4, 0\n73.51, 10, 5, 3, 3",
+    description:
+      "Stoichiometric normal cubic spinel zinc ferrite (ZnFe2O4, mineral franklinite) with Zn²⁺ on tetrahedral A-sites and Fe³⁺ on octahedral B-sites. Paramagnetic at room temperature (antiferromagnetic below TN ≈ 10 K), major phase in electric-arc-furnace (EAF) steelmaking dust and visible-light photocatalysis. Cubic Fd-3m (No. 227), a = 8.4411 Å, Z = 8, PDF 00-022-1012.",
+    formula: "ZnFe2O4",
+    elements: ["Zn","Fe","O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 5.324,
+    applications: ["EAF Steel Dust Recycling Diagnostics","Visible-Light Photocatalysis & Gas Sensors","Soft Ferrite End-Member Reference"],
+    molecularWeight: 241.07,
+    elasticModulus: 170,
+  },
+  {
+    name: "Zinc Aluminate Spinel (Gahnite, ZnAl2O4)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "19.00, 6, 1, 1, 1\n31.27, 84, 2, 2, 0\n36.84, 100, 3, 1, 1\n38.54, 4, 2, 2, 2\n44.80, 14, 4, 0, 0\n55.65, 18, 4, 2, 2\n59.35, 40, 5, 1, 1\n65.23, 46, 4, 4, 0\n77.33, 12, 5, 3, 3",
+    description:
+      "Wide-bandgap (3.8 eV) normal cubic spinel zinc aluminate (ZnAl2O4, mineral gahnite). Distinguished from MgAl2O4 (nearly identical a = 8.085 Å) by the much stronger (220) peak (84% vs 40%) and much weaker (111)/(400) peaks due to heavy tetrahedral Zn²⁺ scattering. Cubic Fd-3m (No. 227), a = 8.0848 Å, Z = 8, PDF 00-005-0669.",
+    formula: "ZnAl2O4",
+    elements: ["Zn","Al","O"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fd-3m (No. 227)",
+    density: 4.606,
+    applications: ["High-Temperature Catalyst Supports","UV-Transparent Electroceramics","Phosphor Host & Glass-Ceramics"],
+    molecularWeight: 183.34,
+    elasticModulus: 260,
+  },
+  {
+    name: "Zinc Orthosilicate (Willemite, α-Zn2SiO4)",
+    type: "Semiconductors & Photonics",
+    pattern:
+      "12.69, 14, 1, 1, 0\n21.67, 28, 2, 1, 1\n22.07, 45, 3, 0, 0\n25.54, 80, 2, 2, 0\n31.53, 100, 1, 1, 3\n34.01, 95, 4, 1, 0\n38.73, 24, 3, 3, 0\n38.83, 46, 2, 2, 3\n45.11, 22, 4, 1, 3\n46.97, 26, 5, 2, 0\n51.23, 20, 3, 2, 4",
+    description:
+      "Phenakite-structure trigonal zinc orthosilicate (α-Zn2SiO4, mineral willemite). Mn²⁺-doped willemite (P1 phosphor) is the classic high-efficiency green cathodoluminescent and plasma-display phosphor, also prized as a low-loss microwave dielectric ceramic. Trigonal R-3 (No. 148), a = 13.938 Å, c = 9.310 Å, Z = 18, PDF 00-037-1485.",
+    formula: "Zn2SiO4",
+    elements: ["Zn","Si","O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3 (No. 148)",
+    density: 4.25,
+    applications: ["Green Luminescent P1 Phosphors (Zn2SiO4:Mn)","Low-Loss Microwave Dielectric Ceramics","Crystalline Zinc-Glaze Ceramic Art"],
+    molecularWeight: 222.84,
+    elasticModulus: 135,
+  },
+  {
+    name: "Zinc Phosphate Tetrahydrate (Hopeite, α-Zn3(PO4)2·4H2O)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "9.64, 65, 0, 2, 0\n16.67, 24, 2, 0, 0\n18.24, 32, 0, 1, 1\n19.29, 36, 2, 2, 0\n19.34, 42, 0, 4, 0\n21.77, 30, 1, 2, 1\n24.81, 28, 2, 1, 1\n25.64, 48, 2, 4, 0\n26.26, 38, 0, 4, 1\n28.42, 34, 2, 3, 1\n30.41, 22, 1, 6, 0\n31.22, 100, 3, 1, 1\n31.26, 70, 2, 4, 1\n34.21, 30, 3, 3, 1\n39.55, 24, 4, 2, 1",
+    description:
+      "Orthorhombic zinc phosphate tetrahydrate (α-Zn3(PO4)2·4H2O, mineral hopeite), the primary crystalline conversion-coating phase on zinc-phosphated automotive steel and galvanized bodies for paint adhesion and corrosion protection, as well as classic dental luting cements. Orthorhombic Pnma (No. 62), a = 10.629 Å, b = 18.339 Å, c = 5.040 Å, Z = 4, PDF 00-037-0465.",
+    formula: "Zn3(PO4)2·4H2O",
+    elements: ["Zn","P","O","H"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Pnma (No. 62)",
+    density: 3.09,
+    applications: ["Automotive Zinc-Phosphate Conversion Coatings","Dental Luting Cements","Anti-Corrosive Primer Pigments"],
+    molecularWeight: 458.14,
+    elasticModulus: 68,
+  },
+  {
+    name: "Zinc Nitride (Zn3N2, Anti-Bixbyite Semiconductor)",
+    type: "Semiconductors & Photonics",
+    pattern:
+      "22.27, 14, 2, 1, 1\n31.70, 82, 2, 2, 2\n34.32, 16, 3, 2, 1\n36.77, 100, 4, 0, 0\n39.09, 10, 4, 1, 1\n41.30, 8, 4, 2, 0\n43.41, 12, 3, 3, 2\n47.41, 14, 4, 3, 1\n52.98, 56, 4, 4, 0\n58.16, 10, 6, 1, 1\n63.07, 36, 6, 2, 2",
+    description:
+      "Earth-abundant cubic anti-bixbyite zinc nitride (Zn3N2) with high electron mobility (>100 cm²/V·s) and tunable direct optical bandgap (~1.2–1.5 eV), investigated for thin-film transistors, p-type ZnO doping, and Li-ion conversion anodes. Cubic Ia-3 (No. 206), a = 9.7691 Å, Z = 16, PDF 00-035-0762.",
+    formula: "Zn3N2",
+    elements: ["Zn","N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Ia-3 (No. 206)",
+    density: 6.22,
+    applications: ["High-Mobility Oxide-Nitride TFTs","Earth-Abundant Photovoltaics","Conversion-Type Battery Anodes"],
+    molecularWeight: 224.15,
+    elasticModulus: 130,
+  },
+  {
+    name: "Magnesium Alloy AZ91D (Mg-9Al-1Zn Die-Casting Alloy)",
+    type: "Metals & Alloys",
+    pattern:
+      "32.44, 26, 1, 0, 0\n34.65, 36, 0, 0, 2\n36.11, 24, 4, 1, 1\n36.91, 100, 1, 0, 1\n40.08, 9, 3, 3, 2\n41.94, 7, 4, 2, 2\n43.74, 8, 4, 3, 1\n48.19, 15, 1, 0, 2\n57.88, 18, 1, 1, 0\n63.58, 16, 1, 0, 3\n69.24, 13, 1, 1, 2\n70.65, 10, 2, 0, 1",
+    description:
+      "World's most widely produced cast magnesium alloy (AZ91D: Mg-9wt%Al-0.7wt%Zn-0.2wt%Mn). Consists of Al-supersaturated HCP α-Mg matrix (a = 3.184 Å, c = 5.174 Å, P63/mmc) plus prominent interdendritic cubic β-Mg17Al12 precipitates (36.11° (411/330), 40.08° (332), 43.74° (431)).",
+    formula: "Mg-9Al-1Zn-0.2Mn",
+    elements: ["Mg","Al","Zn","Mn"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 1.81,
+    applications: ["Automotive Transmission & Clutch Housings","Power-Tool & Laptop Die Castings","Lightweight Structural Components"],
+    molecularWeight: 24.88,
+    elasticModulus: 45,
+  },
+  {
+    name: "Magnesium Alloy AM60B (Mg-6Al-0.4Mn Automotive Alloy)",
+    type: "Metals & Alloys",
+    pattern:
+      "32.38, 26, 1, 0, 0\n34.59, 36, 0, 0, 2\n36.11, 12, 4, 1, 1\n36.84, 100, 1, 0, 1\n48.11, 15, 1, 0, 2\n57.76, 18, 1, 1, 0\n63.46, 16, 1, 0, 3\n67.79, 4, 2, 0, 0\n69.10, 13, 1, 1, 2\n70.50, 10, 2, 0, 1\n72.97, 4, 0, 0, 4",
+    description:
+      "High-ductility, crash-energy-absorbing automotive die-casting magnesium alloy (AM60B: Mg-6wt%Al-0.4wt%Mn) with reduced β-Mg17Al12 fraction relative to AZ91D for superior elongation and impact toughness. HCP α-Mg matrix (a = 3.190 Å, c = 5.182 Å, P63/mmc) with minor β-Mg17Al12 (36.11°).",
+    formula: "Mg-6Al-0.4Mn",
+    elements: ["Mg","Al","Mn"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 1.79,
+    applications: ["Automotive Steering-Wheel Armatures","Seat Frames & Instrument Panels","Energy-Absorbing Crash Structures"],
+    molecularWeight: 24.54,
+    elasticModulus: 45,
+  },
+  {
+    name: "Magnesium Alloy ZK60 (Mg-5.5Zn-0.5Zr High-Strength Wrought Alloy)",
+    type: "Metals & Alloys",
+    pattern:
+      "32.30, 25, 1, 0, 0\n34.50, 36, 0, 0, 2\n36.74, 100, 1, 0, 1\n40.43, 8, 1, 1, 2\n41.27, 6, 2, 0, 1\n47.98, 15, 1, 0, 2\n57.60, 18, 1, 1, 0\n63.29, 16, 1, 0, 3\n67.60, 4, 2, 0, 0\n68.90, 13, 1, 1, 2\n70.30, 10, 2, 0, 1\n72.76, 4, 0, 0, 4",
+    description:
+      "High-strength wrought magnesium extrusion and forging alloy (ZK60-T5: Mg-5.5wt%Zn-0.5wt%Zr) where Zr provides potent grain refinement and Zn forms age-hardening β1'-MgZn2/Mg4Zn7 rod precipitates (40.43°, 41.27°). Also extensively studied for biodegradable load-bearing orthopedic implants. Hexagonal P63/mmc (No. 194), a = 3.198 Å, c = 5.195 Å.",
+    formula: "Mg-5.5Zn-0.5Zr",
+    elements: ["Mg","Zn","Zr"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 1.83,
+    applications: ["Aerospace High-Strength Forgings & Extrusions","Motorsport Wheels & Chassis Components","Bioresorbable Orthopedic Implants"],
+    molecularWeight: 25.44,
+    elasticModulus: 45,
+  },
+  {
+    name: "Magnesium Alloy ZE41 (Mg-4.2Zn-1.2RE-0.7Zr Sand-Cast Alloy)",
+    type: "Metals & Alloys",
+    pattern:
+      "32.24, 25, 1, 0, 0\n34.45, 36, 0, 0, 2\n36.68, 100, 1, 0, 1\n47.90, 15, 1, 0, 2\n57.48, 18, 1, 1, 0\n63.18, 16, 1, 0, 3\n67.45, 4, 2, 0, 0\n68.77, 13, 1, 1, 2\n70.15, 10, 2, 0, 1\n72.64, 4, 0, 0, 4",
+    description:
+      "Aerospace-grade sand-casting magnesium alloy (ZE41A-T5: Mg-4.2wt%Zn-1.2wt%RE-0.7wt%Zr) with excellent pressure-tightness, weldability, and elevated-temperature creep resistance up to 150 °C via grain-boundary T-phase (Mg7Zn3RE) networks. Hexagonal P63/mmc (No. 194), a = 3.204 Å, c = 5.202 Å.",
+    formula: "Mg-4.2Zn-1.2RE-0.7Zr",
+    elements: ["Mg","Zn","Ce","Zr"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 1.84,
+    applications: ["Helicopter & Aircraft Gearbox Housings","Pressure-Tight Aerospace Castings","Elevated-Temperature Engine Casings"],
+    molecularWeight: 25.6,
+    elasticModulus: 45,
+  },
+  {
+    name: "Magnesium Alloy Elektron 21 (Mg-2.8Nd-1.3Gd-0.4Zn-0.4Zr)",
+    type: "Metals & Alloys",
+    pattern:
+      "32.12, 25, 1, 0, 0\n34.37, 36, 0, 0, 2\n36.56, 100, 1, 0, 1\n47.75, 15, 1, 0, 2\n57.27, 18, 1, 1, 0\n62.99, 16, 1, 0, 3\n67.19, 4, 2, 0, 0\n68.52, 13, 1, 1, 2\n69.88, 10, 2, 0, 1\n72.43, 4, 0, 0, 4",
+    description:
+      "Advanced yttrium-free rare-earth aerospace casting alloy Elektron 21 (EV31A: Mg-2.8wt%Nd-1.3wt%Gd-0.4wt%Zn-0.4wt%Zr) delivering high corrosion resistance, castability, and creep strength to 200 °C. Nd/Gd solutes slightly expand the HCP α-Mg lattice (a = 3.215 Å, c = 5.215 Å). Hexagonal P63/mmc (No. 194).",
+    formula: "Mg-2.8Nd-1.3Gd-0.4Zn-0.4Zr",
+    elements: ["Mg","Nd","Gd","Zn","Zr"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 1.82,
+    applications: ["Military & Commercial Aerospace Gearboxes","Motorsport Engine Blocks","High-Temperature Corrosion-Resistant Castings"],
+    molecularWeight: 25.4,
+    elasticModulus: 44,
+  },
+  {
+    name: "Magnesium-Aluminum Intermetallic (β-Mg17Al12, Alpha-Mn Type)",
+    type: "Metals & Alloys",
+    pattern:
+      "20.62, 6, 2, 1, 1\n23.85, 4, 2, 2, 0\n31.73, 10, 3, 2, 1\n36.11, 100, 4, 1, 1\n40.08, 32, 3, 3, 2\n41.94, 20, 4, 2, 2\n43.74, 28, 4, 3, 1\n52.00, 16, 6, 0, 0\n53.53, 12, 5, 3, 2\n57.97, 8, 6, 2, 2\n64.94, 22, 6, 3, 3",
+    description:
+      "Complex 58-atom α-Mn-type cubic intermetallic β-Mg17Al12 (γ-phase in Mg-Al diagram), the defining secondary phase in AZ91, AZ61, and AM60 magnesium alloys. Controls age hardening, creep softening above 120 °C, and micro-galvanic corrosion kinetics. Cubic I-43m (No. 217), a = 10.5438 Å, Z = 2, PDF 00-001-1128.",
+    formula: "Mg17Al12",
+    elements: ["Mg","Al"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I-43m (No. 217)",
+    density: 2.09,
+    applications: ["AZ/AM Magnesium Alloy Microstructure Quantification","Corrosion Barrier vs Galvanic Cathode Studies","Solid-State Hydrogen Storage Catalysis"],
+    molecularWeight: 736.96,
+    elasticModulus: 76,
+  },
+  {
+    name: "Magnesium-Calcium Laves Phase (Mg2Ca, C14 Biomedical Alloy Phase)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "16.39, 18, 1, 0, 0\n17.47, 14, 0, 0, 2\n18.59, 12, 1, 0, 1\n24.04, 10, 1, 0, 2\n28.59, 26, 1, 1, 0\n31.17, 45, 1, 0, 3\n33.14, 58, 2, 0, 0\n33.70, 100, 1, 1, 2\n34.32, 86, 2, 0, 1\n35.36, 40, 0, 0, 4\n37.70, 22, 2, 0, 2\n39.20, 16, 1, 0, 4\n42.81, 18, 2, 0, 3",
+    description:
+      "Hexagonal C14 Laves phase Mg2Ca, the biocompatible strengthening eutectic intermetallic in bioresorbable Mg-Ca and Mg-Zn-Ca orthopedic bone implants and ignition-resistant flame-retardant magnesium alloys. Hexagonal P63/mmc (No. 194), a = 6.2386 Å, c = 10.1462 Å, Z = 4, PDF 00-013-0450.",
+    formula: "Mg2Ca",
+    elements: ["Mg","Ca"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P63/mmc (No. 194)",
+    density: 1.72,
+    applications: ["Bioresorbable Mg-Ca Bone Fixation Implants","Ignition-Resistant Aerospace Mg Alloys","C14 Laves Phase Intermetallic Reference"],
+    molecularWeight: 88.69,
+    elasticModulus: 48,
+  },
+  {
+    name: "Magnesium-Yttrium Intermetallic (Mg24Y5, Cubic WE-Series Phase)",
+    type: "Metals & Alloys",
+    pattern:
+      "19.30, 8, 2, 1, 1\n24.99, 6, 3, 1, 0\n27.42, 10, 2, 2, 2\n29.67, 16, 3, 2, 1\n33.75, 100, 4, 1, 1\n37.44, 34, 3, 3, 2\n39.17, 22, 4, 2, 2\n40.84, 30, 4, 3, 1\n45.55, 14, 4, 4, 0\n48.48, 16, 6, 0, 0\n49.90, 20, 6, 1, 1\n60.38, 24, 6, 3, 3",
+    description:
+      "Alpha-Mn-type cubic equilibrium precipitate Mg24Y5 (ε-phase) occurring in high-yttrium Mg-Y and WE-series (WE43, WE54) heat-resistant aerospace alloys and LPSO-strengthened Mg-Zn-Y alloys. Cubic I-43m (No. 217), a = 11.257 Å, Z = 2, PDF 00-031-0817.",
+    formula: "Mg24Y5",
+    elements: ["Mg","Y"],
+    crystalSystem: "Cubic",
+    spaceGroup: "I-43m (No. 217)",
+    density: 2.4,
+    applications: ["WE43 / WE54 Creep-Resistant Alloy Diagnostics","LPSO Mg-Zn-Y Alloy Metallurgy","High-Temperature Aerospace Castings"],
+    molecularWeight: 1027.85,
+    elasticModulus: 66,
+  },
+  {
+    name: "Magnesium-Copper Laves Phase (Mg2Cu, Orthorhombic Hydrogen Storage)",
+    type: "Energy & Battery Materials",
+    pattern:
+      "19.44, 16, 0, 0, 4\n20.03, 20, 1, 1, 1\n21.87, 14, 0, 2, 2\n24.36, 32, 1, 1, 3\n27.71, 24, 0, 2, 4\n29.34, 18, 0, 0, 6\n31.35, 36, 1, 1, 5\n34.50, 28, 1, 3, 1\n35.34, 54, 2, 0, 2\n37.29, 76, 1, 3, 3\n39.44, 100, 2, 2, 0\n39.47, 52, 0, 0, 8\n39.72, 68, 0, 4, 0\n42.39, 44, 1, 3, 5\n44.33, 38, 2, 2, 4",
+    description:
+      "Orthorhombic Mg2Cu intermetallic used to destabilize MgH2 thermodynamics via the reversible disproportionation reaction 2Mg2Cu + 3H2 ⇌ 3MgH2 + MgCu2, lowering H2 desorption temperature by ~50 °C. Orthorhombic Fddd (No. 70), a = 5.284 Å, b = 9.070 Å, c = 18.250 Å, Z = 16, PDF 00-013-0504.",
+    formula: "Mg2Cu",
+    elements: ["Mg","Cu"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Fddd (No. 70)",
+    density: 3.41,
+    applications: ["Thermodynamically Destabilized Hydrogen Storage","Mg-Cu Eutectic Brazing Alloys","Intermetallic Catalysis"],
+    molecularWeight: 112.16,
+    elasticModulus: 74,
+  },
+  {
+    name: "Magnesium-Nickel Intermetallic (Mg2Ni, Hydrogen Storage Alloy)",
+    type: "Energy & Battery Materials",
+    pattern:
+      "19.65, 38, 1, 0, 0\n20.09, 46, 0, 0, 3\n20.77, 18, 1, 0, 1\n23.84, 16, 1, 0, 2\n28.25, 24, 1, 0, 3\n33.53, 28, 1, 0, 4\n34.39, 36, 1, 1, 0\n37.04, 30, 1, 1, 2\n39.91, 78, 2, 0, 0\n40.15, 62, 1, 1, 3\n40.51, 100, 2, 0, 1\n40.84, 48, 0, 0, 6\n45.08, 42, 2, 0, 3\n54.42, 26, 1, 1, 6",
+    description:
+      "Benchmark hexagonal hydrogen-storage intermetallic Mg2Ni that reversibly absorbs hydrogen to form complex ternary hydride Mg2NiH4 (3.6 wt% H2) with markedly faster kinetics and lower equilibrium desorption temperature (~250 °C) than pure MgH2. Also used in Ni-MH battery negative electrodes. Hexagonal P6222 (No. 180), a = 5.212 Å, c = 13.247 Å, Z = 6, PDF 00-035-1225.",
+    formula: "Mg2Ni",
+    elements: ["Mg","Ni"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P6222 (No. 180)",
+    density: 3.44,
+    applications: ["Reversible Solid-State Hydrogen Storage (Mg2NiH4)","Ni-MH Rechargeable Battery Electrodes","Switchable Mirror Thin Films"],
+    molecularWeight: 107.3,
+    elasticModulus: 82,
+  },
+  {
+    name: "Magnesium Diboride (MgB2, 39 K Metallic Superconductor)",
+    type: "Superconductors",
+    pattern:
+      "25.25, 14, 0, 0, 1\n33.50, 24, 1, 0, 0\n42.41, 100, 1, 0, 1\n51.85, 12, 0, 0, 2\n59.90, 28, 1, 1, 0\n63.15, 22, 1, 0, 2\n66.05, 8, 1, 1, 1\n70.40, 10, 2, 0, 0\n76.12, 18, 2, 0, 1\n83.15, 16, 1, 1, 2\n92.68, 10, 2, 0, 2",
+    description:
+      "Simple layered AlB2-type binary metallic superconductor (Tc = 39 K, highest among conventional BCS phonon-mediated ambient-pressure superconductors) composed of graphite-like boron sheets intercalated by Mg²⁺ layers. Deployed in cryogen-free 20 K MRI magnets and fault-current limiters. Hexagonal P6/mmm (No. 191), a = 3.0860 Å, c = 3.5240 Å, Z = 1, PDF 00-038-1369.",
+    formula: "MgB2",
+    elements: ["Mg","B"],
+    crystalSystem: "Hexagonal",
+    spaceGroup: "P6/mmm (No. 191)",
+    density: 2.625,
+    applications: ["Cryogen-Free Liquid-H2 / 20 K MRI Magnets","Superconducting Power Transmission Cables","Two-Gap BCS Superconductivity Research"],
+    molecularWeight: 45.93,
+    elasticModulus: 270,
+  },
+  {
+    name: "Magnesium Nitride (α-Mg3N2, Anti-Bixbyite Ceramic)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "21.83, 18, 2, 1, 1\n31.06, 75, 2, 2, 2\n33.62, 16, 3, 2, 1\n36.02, 100, 4, 0, 0\n38.29, 14, 4, 1, 1\n40.45, 10, 4, 2, 0\n42.51, 14, 3, 3, 2\n46.42, 16, 4, 3, 1\n51.86, 62, 4, 4, 0\n56.91, 12, 6, 1, 1\n61.69, 34, 6, 2, 2",
+    description:
+      "Greenish-yellow cubic anti-bixbyite magnesium nitride (α-Mg3N2) widely used as a high-pressure catalyst for cubic boron nitride (c-BN) synthesis, solid-state nitride phosphor precursor, and ammonia-generation reagent. Cubic Ia-3 (No. 206), a = 9.9657 Å, Z = 16, PDF 00-035-0778.",
+    formula: "Mg3N2",
+    elements: ["Mg","N"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Ia-3 (No. 206)",
+    density: 2.712,
+    applications: ["Cubic Boron Nitride (c-BN) HPHT Catalyst","Nitride Phosphor & GaN Synthesis","Mg-Air / Nitrogen-Fixation Chemistry"],
+    molecularWeight: 100.93,
+    elasticModulus: 150,
+  },
+  {
+    name: "Magnesium Sulfate Heptahydrate (Epsomite, MgSO4·7H2O)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "10.48, 12, 1, 1, 0\n14.76, 20, 0, 2, 0\n14.92, 18, 2, 0, 0\n16.65, 65, 1, 1, 1\n21.04, 100, 1, 2, 1\n21.12, 72, 2, 1, 1\n23.66, 16, 3, 1, 0\n24.76, 22, 2, 2, 1\n25.97, 25, 0, 0, 2\n26.86, 26, 1, 3, 1\n27.04, 28, 3, 1, 1\n29.91, 24, 2, 3, 1",
+    description:
+      "Orthorhombic magnesium sulfate heptahydrate (MgSO4·7H2O, Epsom salt / mineral epsomite) composed of octahedral [Mg(H2O)6]²⁺ and SO4²⁻ hydrogen-bonded frameworks. Major evaporite mineral on Earth and Mars, thermochemical heat-storage material, and pharmaceutical/agricultural salt. Orthorhombic P212121 (No. 19), a = 11.868 Å, b = 11.996 Å, c = 6.857 Å, Z = 4, PDF 00-036-0419.",
+    formula: "MgSO4·7H2O",
+    elements: ["Mg","S","O","H"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "P212121 (No. 19)",
+    density: 1.677,
+    applications: ["Thermochemical Seasonal Heat Storage","Planetary Evaporite & Martian Geology","Pharmaceutical & Agricultural Magnesium Salt"],
+    molecularWeight: 246.47,
+    elasticModulus: 22,
+  },
+  {
+    name: "Magnesium Sulfate Monohydrate (Kieserite, MgSO4·H2O)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "18.45, 78, 1, 1, -1\n18.58, 42, 1, 1, 0\n23.32, 16, 0, 2, 0\n26.17, 100, 1, 1, -2\n26.32, 60, 0, 0, 2\n26.45, 58, 1, 1, 1\n26.82, 46, 0, 2, 1\n28.82, 34, 2, 0, -2\n29.16, 26, 2, 0, 0\n35.02, 52, 2, 2, -1\n35.45, 44, 0, 2, 2\n37.39, 32, 2, 2, -2\n37.67, 28, 2, 2, 0\n38.32, 22, 1, 3, 0\n41.36, 26, 3, 1, -2",
+    description:
+      "Monoclinic magnesium sulfate monohydrate (MgSO4·H2O, mineral kieserite), key marine potash-evaporite fertilizer mineral, prominent hydrated sulfate detected across equatorial Mars, and dehydration intermediate of epsomite. Monoclinic C2/c (No. 15), a = 6.912 Å, b = 7.624 Å, c = 7.642 Å, β = 117.70°, Z = 4, PDF 00-033-0882.",
+    formula: "MgSO4·H2O",
+    elements: ["Mg","S","O","H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/c (No. 15)",
+    density: 2.571,
+    applications: ["Marine Evaporite & Potash Mining","Mars Astrobiology Hydrated-Sulfate Standard","Magnesium Fertilizer Production"],
+    molecularWeight: 138.38,
+    elasticModulus: 48,
+  },
+  {
+    name: "Magnesium Sulfate Anhydrous (α-MgSO4)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "20.49, 26, 1, 1, 0\n22.51, 30, 0, 2, 0\n24.67, 100, 1, 1, 1\n26.39, 24, 0, 2, 1\n27.40, 20, 0, 0, 2\n34.45, 64, 1, 1, 2\n34.59, 48, 2, 0, 0\n38.34, 22, 1, 3, 0\n40.86, 46, 1, 3, 1\n41.67, 24, 2, 2, 0\n44.03, 28, 2, 2, 1\n44.68, 26, 2, 0, 2\n45.96, 18, 0, 4, 0",
+    description:
+      "Anhydrous orthorhombic α-MgSO4 (CrVO4 structure type) formed by complete dehydration of kieserite above 330 °C. Used as a rapid laboratory desiccant, magnesium oxysulfate (MOS) structural cement reagent, and rechargeable thermochemical heat-storage material. Orthorhombic Cmcm (No. 63), a = 5.182 Å, b = 7.893 Å, c = 6.506 Å, Z = 4, PDF 00-035-0776.",
+    formula: "MgSO4",
+    elements: ["Mg","S","O"],
+    crystalSystem: "Orthorhombic",
+    spaceGroup: "Cmcm (No. 63)",
+    density: 2.66,
+    applications: ["Magnesium Oxysulfate (MOS) Green Cements","Thermochemical Energy Storage","Organic Synthesis Desiccant"],
+    molecularWeight: 120.37,
+    elasticModulus: 58,
+  },
+  {
+    name: "Magnesium Chloride Hexahydrate (Bischofite, MgCl2·6H2O)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "15.37, 16, 1, 1, 0\n18.02, 24, 2, 0, 0\n20.84, 34, 1, 1, -1\n21.67, 100, 1, 1, 1\n22.50, 20, 2, 0, -1\n24.01, 22, 2, 0, 1\n25.04, 28, 0, 2, 0\n29.11, 26, 0, 2, 1\n29.45, 32, 0, 0, 2\n29.98, 42, 3, 1, 0\n31.02, 54, 2, 2, 0\n33.91, 48, 2, 2, -1\n34.31, 40, 3, 1, 1\n34.97, 36, 2, 2, 1\n36.50, 24, 4, 0, 0",
+    description:
+      "Deliquescent monoclinic magnesium chloride hexahydrate (MgCl2·6H2O, mineral bischofite) harvested from salt lakes and seawater brines. Essential precursor for magnesium oxychloride (Sorel) fireproof cements, phase-change thermal storage (Tm = 117 °C), and dust/ice control. Monoclinic C2/m (No. 12), a = 9.8607 Å, b = 7.1071 Å, c = 6.0737 Å, β = 93.76°, Z = 2, PDF 00-025-0515.",
+    formula: "MgCl2·6H2O",
+    elements: ["Mg","Cl","H","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "C2/m (No. 12)",
+    density: 1.569,
+    applications: ["Magnesium Oxychloride (Sorel) Cements","Latent-Heat Phase-Change Thermal Storage","Salt-Lake Magnesium Brine Refining"],
+    molecularWeight: 203.3,
+    elasticModulus: 18,
+  },
+  {
+    name: "Hydromagnesite (Mg5(CO3)4(OH)2·4H2O, Flame-Retardant Mineral)",
+    type: "Minerals, Ores & Geology",
+    pattern:
+      "9.61, 48, 1, 0, 0\n13.81, 68, 1, 1, 0\n15.25, 100, 1, 1, -1\n15.27, 72, 0, 1, 1\n19.29, 28, 2, 0, 0\n19.85, 34, 0, 2, 0\n20.49, 32, 2, 1, -1\n21.72, 26, 2, 1, 0\n23.04, 24, 1, 2, -1\n25.39, 22, 0, 1, 2\n26.85, 36, 2, 2, -1\n27.82, 30, 2, 2, 0\n28.78, 38, 3, 0, -2\n30.50, 74, 3, 1, -2",
+    description:
+      "Hydrated basic magnesium carbonate (Mg5(CO3)4(OH)2·4H2O, hydromagnesite), premier halogen-free endothermic polymer flame retardant (releasing H2O and CO2 across 220–550 °C), low-carbon reactive magnesia cement binder, and atmospheric corrosion product on Mg alloys. Monoclinic P21/c (No. 14), a = 10.110 Å, b = 8.940 Å, c = 8.380 Å, β = 114.58°, Z = 2, PDF 00-025-0513.",
+    formula: "Mg5(CO3)4(OH)2·4H2O",
+    elements: ["Mg","C","O","H"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/c (No. 14)",
+    density: 2.24,
+    applications: ["Halogen-Free Polymer Flame Retardants","Carbon-Negative Reactive Magnesia Cements","Mg Alloy Atmospheric Corrosion ID"],
+    molecularWeight: 467.64,
+    elasticModulus: 40,
+  },
+  {
+    name: "Magnesium Sulfide (Niningerite, MgS Rock-Salt Semiconductor)",
+    type: "Semiconductors & Photonics",
+    pattern:
+      "29.71, 6, 1, 1, 1\n34.44, 100, 2, 0, 0\n49.51, 65, 2, 2, 0\n58.81, 4, 3, 1, 1\n61.70, 20, 2, 2, 2\n72.62, 10, 4, 0, 0\n80.38, 3, 3, 3, 1\n82.91, 22, 4, 2, 0\n92.98, 16, 4, 2, 2",
+    description:
+      "Wide-bandgap (4.5 eV) cubic rock-salt magnesium sulfide (MgS, meteorite mineral niningerite). Forms as the discharge product in high-energy-density magnesium-sulfur (Mg-S) rechargeable batteries and serves as a UV-blue II-VI barrier layer in ZnSe/MgS quantum wells. Cubic Fm-3m (No. 225), a = 5.2033 Å, Z = 4, PDF 00-035-0730.",
+    formula: "MgS",
+    elements: ["Mg","S"],
+    crystalSystem: "Cubic",
+    spaceGroup: "Fm-3m (No. 225)",
+    density: 2.659,
+    applications: ["Magnesium-Sulfur (Mg-S) Battery Cathode Diagnostics","Blue-UV II-VI Semiconductor Quantum Wells","Enstatite Chondrite Meteorite Mineralogy"],
+    molecularWeight: 56.37,
+    elasticModulus: 84,
+  },
+  {
+    name: "Magnesium Titanate (Geikielite, MgTiO3 Microwave Dielectric)",
+    type: "Ceramics & Refractories",
+    pattern:
+      "19.14, 12, 0, 0, 3\n21.27, 8, 1, 0, 1\n24.01, 42, 0, 1, 2\n32.89, 100, 1, 0, 4\n35.50, 68, 1, 1, 0\n40.64, 34, 1, 1, 3\n49.16, 44, 0, 2, 4\n53.63, 52, 1, 1, 6\n56.99, 10, 0, 1, 8\n62.09, 32, 2, 1, 4\n63.74, 28, 3, 0, 0",
+    description:
+      "Ilmenite-structure trigonal magnesium titanate (MgTiO3, mineral geikielite) prized for ultra-high quality factor (Q×f > 160,000 GHz) and low dielectric loss in 5G/satellite microwave dielectric resonators and temperature-compensated capacitors (MgTiO3-CaTiO3). Trigonal R-3 (No. 148), a = 5.0540 Å, c = 13.898 Å, Z = 6, PDF 00-006-0494.",
+    formula: "MgTiO3",
+    elements: ["Mg","Ti","O"],
+    crystalSystem: "Trigonal",
+    spaceGroup: "R-3 (No. 148)",
+    density: 3.895,
+    applications: ["5G & Satellite Microwave Dielectric Resonators","Temperature-Compensated MLCC Capacitors","Refractory Ceramic Pigments"],
+    molecularWeight: 120.17,
+    elasticModulus: 235,
+  },
+  {
+    name: "Magnesium Phosphate (Farringtonite, Mg3(PO4)2 Biocement Phase)",
+    type: "Biomaterials & Pharmaceuticals",
+    pattern:
+      "15.89, 14, 1, 1, 0\n20.37, 26, 1, 0, -1\n20.57, 34, 0, 1, 1\n21.58, 22, 0, 2, 0\n21.77, 28, 1, 0, 1\n23.09, 52, 1, 1, -1\n23.46, 48, 2, 0, 0\n24.33, 24, 1, 1, 1\n24.60, 44, 1, 2, 0\n25.87, 100, 2, 1, 0\n27.91, 32, 0, 2, 1\n29.85, 38, 1, 2, -1\n30.43, 30, 2, 1, -1\n30.84, 36, 1, 2, 1\n32.09, 26, 2, 2, 0\n32.35, 34, 2, 1, 1",
+    description:
+      "Anhydrous monoclinic trimagnesium orthophosphate (Mg3(PO4)2, mineral farringtonite), high-strength bioresorbable bone-void filler and fast-setting magnesium phosphate cement (MPC) precursor that cures rapidly into struvite/newberyite. Monoclinic P21/n (No. 14), a = 7.5957 Å, b = 8.2305 Å, c = 5.0775 Å, β = 94.05°, Z = 2, PDF 00-033-0876.",
+    formula: "Mg3(PO4)2",
+    elements: ["Mg","P","O"],
+    crystalSystem: "Monoclinic",
+    spaceGroup: "P21/n (No. 14)",
+    density: 2.756,
+    applications: ["Fast-Setting Bioresorbable Bone Cements","Rapid-Repair Structural Magnesium Phosphate Cements","3D-Printed Osteogenic Ceramic Scaffolds"],
+    molecularWeight: 262.86,
+    elasticModulus: 98,
   }
 ];
 

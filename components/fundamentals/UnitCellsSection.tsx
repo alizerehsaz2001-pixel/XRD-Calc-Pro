@@ -25,7 +25,10 @@ import {
   Camera,
   FileCode,
   ShieldCheck,
-  Plus
+  Plus,
+  Database,
+  Search,
+  GitMerge
 } from 'lucide-react';
 import { playSynthTone } from '../../utils/sound';
 import { MillerPlanesVisualizer } from './MillerPlanesVisualizer';
@@ -33,7 +36,7 @@ import { MetallicStructuresVisualizer } from './MetallicStructuresVisualizer';
 import { CrystalSystemsGallery } from './CrystalSystemsGallery';
 import { PythonCrystallographyStudio } from './PythonCrystallographyStudio';
 import { APFMathematicsSection } from './APFMathematicsSection';
-import { Interactive3DGeometryVisualizer } from './Interactive3DGeometryVisualizer';
+import { Interactive3DGeometryVisualizer, type External3DPhasePayload } from './Interactive3DGeometryVisualizer';
 import { StereographicWulffExplorer } from './StereographicWulffExplorer';
 import {
   CrystalSystemMiniSchematic,
@@ -41,6 +44,13 @@ import {
   UnitCellHeroSchematic
 } from './UnitCellGraphics';
 import { computeUnitCellVolume, useCustomMaterialApply } from '../CustomMaterialContext';
+import {
+  buildBravaisDatabaseIndex,
+  computeLiveBravaisPowderPattern,
+  type IndexedDbBravaisMaterial
+} from './bravaisPhysics';
+import { BravaisReductionProofLab } from './BravaisReductionProofLab';
+import { WignerSeitzBrillouinPanel } from './WignerSeitzBrillouinPanel';
 
 export type CrystalSystemId = 
   | 'cubic' 
@@ -429,8 +439,8 @@ export const BRAVAIS_14_CATALOG: Bravais14Entry[] = [
     bzType: 'hex_prism',
     coordinationNumber: 'CN = 12 (Ideal c/a = 1.633)',
     maxApf: '74.05% (with 2-atom HCP basis)',
-    prototype: 'Mg, α-Ti, Zn, Graphite, ZnO (B4)',
-    sgCount: 27,
+    prototype: 'Mg, α-Ti, Zn, Graphite, Hydroxyapatite',
+    sgCount: 45,
     basisCoords: [[0, 0, 0]],
     primMatrix: [[1, 0, 0], [0, 1, 0], [0, 0, 1]],
     primVectorsFormula: ['a_p = a', 'b_p = b (γ = 120°)', 'c_p = c (⊥ basal)']
@@ -449,7 +459,7 @@ export const BRAVAIS_14_CATALOG: Bravais14Entry[] = [
     coordinationNumber: 'CN = 6 (Rhombohedral)',
     maxApf: '52.36%–74.05% (α-dependent)',
     prototype: 'α-Al₂O₃ Corundum, CaCO₃ Calcite, Bi',
-    sgCount: 25,
+    sgCount: 7,
     basisCoords: [[0, 0, 0], [0.6667, 0.3333, 0.3333], [0.3333, 0.6667, 0.6667]],
     primMatrix: [[0.6667, 0.3333, 0.3333], [-0.3333, 0.3333, 0.3333], [-0.3333, -0.6667, 0.3333]],
     primVectorsFormula: ['a_R = ⅓(2a_H + b_H + c_H)', 'b_R = ⅓(-a_H + b_H + c_H)', 'c_R = ⅓(-a_H - 2b_H + c_H)']
@@ -524,7 +534,7 @@ export const BRAVAIS_14_CATALOG: Bravais14Entry[] = [
     bzType: 'rhomb_dodec',
     coordinationNumber: 'CN = 8 (Body Diagonal)',
     maxApf: '68.02%',
-    prototype: 'Ga, I₂, α-Np',
+    prototype: 'γ-Sn (Immm), SiS₂ (Ibam), La₂NiO₄',
     sgCount: 9,
     basisCoords: [[0, 0, 0], [0.5, 0.5, 0.5]],
     primMatrix: [[-0.5, 0.5, 0.5], [0.5, -0.5, 0.5], [0.5, 0.5, -0.5]],
@@ -543,7 +553,7 @@ export const BRAVAIS_14_CATALOG: Bravais14Entry[] = [
     bzType: 'trunc_oct',
     coordinationNumber: 'CN = 4–12',
     maxApf: '74.05%',
-    prototype: 'α-S₈ (Fddd), γ-Pu',
+    prototype: 'α-S₈ (Fddd), γ-Pu, UO₃',
     sgCount: 5,
     basisCoords: [[0, 0, 0], [0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]],
     primMatrix: [[0, 0.5, 0.5], [0.5, 0, 0.5], [0.5, 0.5, 0]],
@@ -562,7 +572,7 @@ export const BRAVAIS_14_CATALOG: Bravais14Entry[] = [
     bzType: 'hex_prism',
     coordinationNumber: 'CN = 4–6 (Basal Rhombus)',
     maxApf: '60.46%',
-    prototype: 'α-U (Cmcm), Aragonite',
+    prototype: 'α-U (Cmcm), Ga (Cmce), Boehmite',
     sgCount: 15,
     basisCoords: [[0, 0, 0], [0.5, 0.5, 0]],
     primMatrix: [[0.5, -0.5, 0], [0.5, 0.5, 0], [0, 0, 1]],
@@ -632,9 +642,20 @@ export const UnitCellsSection: React.FC = () => {
   const [activeCentering, setActiveCentering] = useState<CenteringType>('P');
   const [viewMode, setViewMode] = useState<UnitCellsViewMode>('3d');
   const [showAll14Matrix, setShowAll14Matrix] = useState<boolean>(true);
+  const [bravaisAtlasTab, setBravaisAtlasTab] = useState<'metrology' | 'proofs' | 'db_phases'>('metrology');
   const [bravaisTestHkl, setBravaisTestHkl] = useState<[number, number, number]>([1, 1, 1]);
+  const [bravaisDbSearch, setBravaisDbSearch] = useState<string>('');
+  const [loaded3DPhase, setLoaded3DPhase] = useState<External3DPhasePayload | null>(null);
+  const [isWsBzExpanded, setIsWsBzExpanded] = useState<boolean>(false);
+
+  // Live 1,454-phase MATERIAL_DB indexed by all 14 Bravais lattices & 7 Crystal Systems
+  const bravaisDbIndex = useMemo(() => buildBravaisDatabaseIndex(), []);
 
   // Materials filter state
+  const [materialCatalogSource, setMaterialCatalogSource] = useState<'live_db' | 'curated'>('live_db');
+  const [catalogDbSearch, setCatalogDbSearch] = useState<string>('');
+  const [catalogBravaisScope, setCatalogBravaisScope] = useState<'active_bravais' | 'active_system' | 'all_14'>('active_bravais');
+  const [catalogVisibleCount, setCatalogVisibleCount] = useState<number>(24);
   const [materialCategoryFilter, setMaterialCategoryFilter] = useState<'All' | 'Metal' | 'Ceramic' | 'Mineral' | 'Semiconductor' | 'Geological'>('All');
   const [showAllSystemsMaterials, setShowAllSystemsMaterials] = useState<boolean>(false);
 
@@ -781,6 +802,40 @@ export const UnitCellsSection: React.FC = () => {
   }, [selectedSystemId, activeCentering]);
 
   const activePearsonSymbol = activeBravaisEntry.pearson;
+
+  // Canonical crystallographic cell parameters per Pearson symbol (overridden when a live DB phase is loaded in 3D)
+  const activeWsLatticeParams = useMemo(() => {
+    if (loaded3DPhase) {
+      return {
+        a: loaded3DPhase.a,
+        b: loaded3DPhase.b,
+        c: loaded3DPhase.c,
+        alpha: loaded3DPhase.alpha,
+        beta: loaded3DPhase.beta,
+        gamma: loaded3DPhase.gamma,
+      };
+    }
+    const REFERENCE_CELLS: Record<
+      string,
+      { a: number; b: number; c: number; alpha: number; beta: number; gamma: number }
+    > = {
+      cP: { a: 3.35, b: 3.35, c: 3.35, alpha: 90, beta: 90, gamma: 90 },
+      cI: { a: 2.866, b: 2.866, c: 2.866, alpha: 90, beta: 90, gamma: 90 },
+      cF: { a: 4.05, b: 4.05, c: 4.05, alpha: 90, beta: 90, gamma: 90 },
+      hP: { a: 3.209, b: 3.209, c: 5.211, alpha: 90, beta: 90, gamma: 120 },
+      hR: { a: 4.759, b: 4.759, c: 12.991, alpha: 90, beta: 90, gamma: 120 },
+      tP: { a: 4.594, b: 4.594, c: 2.959, alpha: 90, beta: 90, gamma: 90 },
+      tI: { a: 5.832, b: 5.832, c: 3.182, alpha: 90, beta: 90, gamma: 90 },
+      oP: { a: 4.756, b: 10.207, c: 5.98, alpha: 90, beta: 90, gamma: 90 },
+      oI: { a: 3.89, b: 4.62, c: 6.12, alpha: 90, beta: 90, gamma: 90 },
+      oF: { a: 8.25, b: 4.78, c: 8.54, alpha: 90, beta: 90, gamma: 90 },
+      oC: { a: 2.854, b: 5.869, c: 4.955, alpha: 90, beta: 90, gamma: 90 },
+      mP: { a: 5.148, b: 5.212, c: 5.315, alpha: 90, beta: 99.23, gamma: 90 },
+      mC: { a: 5.679, b: 15.202, c: 6.522, alpha: 90, beta: 118.43, gamma: 90 },
+      aP: { a: 6.141, b: 10.715, c: 5.955, alpha: 97.63, beta: 107.26, gamma: 77.47 },
+    };
+    return REFERENCE_CELLS[activePearsonSymbol] || REFERENCE_CELLS.cF;
+  }, [activePearsonSymbol, loaded3DPhase]);
 
   // Analytical 3x3 Metric Tensor Engine (Direct G_ij & Reciprocal G^ij)
   const computeMetricTensorData = (
@@ -974,75 +1029,35 @@ export const UnitCellsSection: React.FC = () => {
     }
   };
 
-  // Compute real allowed Bragg reflections & theoretical density for Custom Crystal Builder
+  // Compute real allowed Bragg reflections (including negative indices for oblique/trigonal cells) & theoretical density
   const customMaterialPreview = useMemo(() => {
-    const { Ginv, V } = computeMetricTensorData(cmA, cmB, cmC, cmAlpha, cmBeta, cmGamma);
+    const { V } = computeMetricTensorData(cmA, cmB, cmC, cmAlpha, cmBeta, cmGamma);
     const NA = 6.02214076e23;
     const densityGcm3 = (cmZ * cmMolarMass) / (NA * V * 1e-24);
 
-    // Check Bravais centering extinction law
-    const isAllowed = (h: number, k: number, l: number, cent: CenteringType) => {
-      if (cent === 'P') return true;
-      if (cent === 'I') return Math.abs(h + k + l) % 2 === 0;
-      if (cent === 'F') {
-        const pH = Math.abs(h) % 2;
-        const pK = Math.abs(k) % 2;
-        const pL = Math.abs(l) % 2;
-        return pH === pK && pK === pL;
-      }
-      if (cent === 'C') return Math.abs(h + k) % 2 === 0;
-      if (cent === 'R') return Math.abs(-h + k + l) % 3 === 0;
-      return true;
-    };
+    const { allowedPeaks } = computeLiveBravaisPowderPattern({
+      a: cmA,
+      b: cmB,
+      c: cmC,
+      alpha: cmAlpha,
+      beta: cmBeta,
+      gamma: cmGamma,
+      centering: cmCentering,
+      wavelength: 1.540598,
+      twoThetaMin: 12,
+      twoThetaMax: 88,
+      maxIndex: 3,
+    });
 
-    const reflections: { label: string; dA: number; twoTheta: number; mult: number }[] = [];
-    const seenD = new Map<string, { label: string; dA: number; twoTheta: number; mult: number }>();
-
-    for (let h = 0; h <= 3; h++) {
-      for (let k = 0; k <= 3; k++) {
-        for (let l = 0; l <= 3; l++) {
-          if (h === 0 && k === 0 && l === 0) continue;
-          if (!isAllowed(h, k, l, cmCentering)) continue;
-          const invD2 =
-            h * h * Ginv[0][0] +
-            k * k * Ginv[1][1] +
-            l * l * Ginv[2][2] +
-            2 * h * k * Ginv[0][1] +
-            2 * h * l * Ginv[0][2] +
-            2 * k * l * Ginv[1][2];
-          if (invD2 <= 1e-6) continue;
-          const dA = 1 / Math.sqrt(invD2);
-          const sinTh = 1.540598 / (2 * dA);
-          if (sinTh >= 0.995 || sinTh <= 0.08) continue;
-          const twoTheta = (2 * Math.asin(sinTh) * 180) / Math.PI;
-          if (twoTheta < 12 || twoTheta > 88) continue;
-
-          const key = twoTheta.toFixed(1);
-          const existing = seenD.get(key);
-          if (existing) {
-            existing.mult += 1;
-          } else {
-            seenD.set(key, { label: `${h}${k}${l}`, dA, twoTheta, mult: 1 });
-          }
-        }
-      }
-    }
-
-    Array.from(seenD.values())
-      .sort((a, b) => a.twoTheta - b.twoTheta)
-      .slice(0, 6)
-      .forEach(r => reflections.push(r));
-
-    const computedPeaks = reflections.map((r, i) => {
-      // Map twoTheta [15..85] to SVG x [16..156]
+    const computedPeaks = allowedPeaks.slice(0, 7).map((r) => {
       const x = Math.max(16, Math.min(156, 18 + ((r.twoTheta - 20) / 60) * 126));
-      const h = Math.max(12, Math.min(30, 16 + (r.mult % 4) * 4 - i * 1.2));
+      const h = Math.max(10, Math.min(30, Math.round((r.relativeIntensity / 100) * 30)));
       return {
         x,
         h,
         label: r.label,
         twoTheta: r.twoTheta,
-        dA: r.dA,
+        dA: r.dSpacing,
         color: cmCentering === 'I' || cmCentering === 'R' ? '#f59e0b' : '#38bdf8',
       };
     });
@@ -1088,6 +1103,7 @@ export const UnitCellsSection: React.FC = () => {
   // Adjust default centering when system changes
   const handleSelectSystem = (id: CrystalSystemId) => {
     playSynthTone('tick');
+    setLoaded3DPhase(null);
     setSelectedSystemId(id);
     const sys = CRYSTAL_SYSTEMS_CATALOG.find(s => s.id === id);
     if (sys && !sys.bravaisLattices.some(b => b.type === activeCentering)) {
@@ -1097,8 +1113,30 @@ export const UnitCellsSection: React.FC = () => {
 
   const handleSelectBravais14 = (systemId: CrystalSystemId, centering: CenteringType) => {
     playSynthTone('tick');
+    setLoaded3DPhase(null);
     setSelectedSystemId(systemId);
     setActiveCentering(centering);
+  };
+
+  const handleInspectDbPhaseIn3D = (phase: IndexedDbBravaisMaterial) => {
+    playSynthTone('chime');
+    setSelectedSystemId(phase.systemId);
+    setActiveCentering(phase.centering);
+    setLoaded3DPhase({
+      name: phase.name,
+      formula: phase.formula,
+      spaceGroup: phase.spaceGroup,
+      a: phase.parsedLattice.a,
+      b: phase.parsedLattice.b,
+      c: phase.parsedLattice.c,
+      alpha: phase.parsedLattice.alpha,
+      beta: phase.parsedLattice.beta,
+      gamma: phase.parsedLattice.gamma,
+      molarMass: phase.molecularWeight || 100,
+      density: phase.density,
+      isParsedFromText: phase.parsedLattice.isParsedFromText,
+    });
+    setViewMode('3d');
   };
 
   // Filtered materials for Materials tab (including Custom Synthesized Crystals)
@@ -1121,6 +1159,28 @@ export const UnitCellsSection: React.FC = () => {
     if (materialCategoryFilter === 'All') return combined;
     return combined.filter(m => m.category === materialCategoryFilter);
   }, [activeSystem, showAllSystemsMaterials, materialCategoryFilter, customMaterials]);
+
+  // Live 1,454-phase MATERIAL_DB filtered by active Bravais lattice, crystal system, or all 14 + instant search
+  const liveDbCatalogPhases = useMemo(() => {
+    const basePool =
+      catalogBravaisScope === 'active_bravais'
+        ? bravaisDbIndex.byPearson[activePearsonSymbol] || []
+        : catalogBravaisScope === 'active_system'
+        ? bravaisDbIndex.bySystem[activeSystem.id] || []
+        : bravaisDbIndex.allPhases;
+
+    const q = catalogDbSearch.trim().toLowerCase();
+    if (!q) return basePool;
+    return basePool.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) ||
+        p.formula.toLowerCase().includes(q) ||
+        p.spaceGroup.toLowerCase().includes(q) ||
+        p.pearson.toLowerCase().includes(q) ||
+        p.type.toLowerCase().includes(q) ||
+        p.description.toLowerCase().includes(q)
+    );
+  }, [bravaisDbIndex, catalogBravaisScope, activePearsonSymbol, activeSystem.id, catalogDbSearch]);
 
   // Helper to infer centering from material latticeType string
   const inferCenteringFromLatticeType = (latticeType: string, systemId: CrystalSystemId): CenteringType => {
@@ -1457,27 +1517,65 @@ export const UnitCellsSection: React.FC = () => {
                 <div className="flex items-center justify-between flex-wrap gap-2 border-b border-slate-800/80 pb-2.5">
                   <div className="flex items-center gap-2 flex-wrap">
                     <span className="text-[10px] font-mono uppercase tracking-widest text-cyan-400 font-bold">
-                      Complete 14 Bravais Lattices Master Atlas (Pearson cP → aP · 230 Space Groups)
+                      Complete 14 Bravais Lattices Master Atlas (cP → aP · 230 Space Groups · {bravaisDbIndex.allPhases.length} Live DB Phases)
                     </span>
                     <span className="text-slate-700">·</span>
                     <span className="text-[10px] font-mono text-amber-400">
                       Active: {activeBravaisEntry.pearson} ({activeBravaisEntry.label}) · {activeBravaisEntry.reciprocalDual}
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400">
-                    Select any of the 14 Bravais lattices to inspect Primitive Transformation Matrix P, Wigner-Seitz BZ &amp; F_hkl Phasors
-                  </span>
+
+                  {/* 3-Tab Bravais Workbench Switcher */}
+                  <div className="flex items-center gap-1 bg-[#070A12] p-1 rounded-lg border border-slate-800 font-mono text-[10px]">
+                    <button
+                      type="button"
+                      onClick={() => { playSynthTone('tick'); setBravaisAtlasTab('metrology'); }}
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                        bravaisAtlasTab === 'metrology'
+                          ? 'bg-cyan-500/20 text-cyan-200 border border-cyan-500/50'
+                          : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                      }`}
+                    >
+                      P Matrix · BZ · F_hkl
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { playSynthTone('tick'); setBravaisAtlasTab('proofs'); }}
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer ${
+                        bravaisAtlasTab === 'proofs'
+                          ? 'bg-amber-500/20 text-amber-200 border border-amber-500/50'
+                          : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                      }`}
+                    >
+                      <GitMerge className="w-3 h-3" />
+                      <span>Why Only 14? Proofs</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => { playSynthTone('tick'); setBravaisAtlasTab('db_phases'); }}
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer ${
+                        bravaisAtlasTab === 'db_phases'
+                          ? 'bg-emerald-500/20 text-emerald-200 border border-emerald-500/50'
+                          : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                      }`}
+                    >
+                      <Database className="w-3 h-3" />
+                      <span>{activeBravaisEntry.pearson} DB Phases ({bravaisDbIndex.byPearson[activeBravaisEntry.pearson]?.length || 0})</span>
+                    </button>
+                  </div>
                 </div>
 
                 {/* 14 Bravais Lattices CAD Isometric Grid */}
                 <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2">
                   {BRAVAIS_14_CATALOG.map((item) => {
                     const isCurrent = item.systemId === selectedSystemId && item.centering === activeCentering;
+                    const dbCount = bravaisDbIndex.byPearson[item.pearson]?.length || 0;
                     return (
                       <button
                         key={item.pearson}
+                        type="button"
                         onClick={() => handleSelectBravais14(item.systemId, item.centering)}
-                        className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between relative overflow-hidden ${
+                        className={`p-2.5 rounded-lg border text-left transition-all flex flex-col justify-between relative overflow-hidden cursor-pointer ${
                           isCurrent
                             ? 'bg-[#0B1324] border-cyan-500/70 text-white shadow-md'
                             : 'bg-[#070A12] border-slate-800/90 text-slate-300 hover:border-slate-700'
@@ -1504,8 +1602,9 @@ export const UnitCellsSection: React.FC = () => {
                         <div className="text-[10px] font-bold text-slate-200 truncate mt-1">
                           {item.label}
                         </div>
-                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 truncate mt-0.5">
+                        <div className="flex items-center justify-between text-[9px] font-mono text-slate-400 gap-1 mt-0.5">
                           <span className="text-cyan-400/90 truncate">{item.extinctionRule}</span>
+                          <span className="text-emerald-400 tabular-nums shrink-0 font-bold">{dbCount} DB</span>
                         </div>
                         <div className="text-[8.5px] font-mono text-slate-500 truncate">
                           {item.prototype}
@@ -1518,8 +1617,114 @@ export const UnitCellsSection: React.FC = () => {
                   })}
                 </div>
 
-                {/* Active Bravais Lattice Deep Metrology: Primitive Matrix P + Wigner-Seitz/Brillouin Zone + F_hkl Phasors */}
-                {(() => {
+                {/* Sub-Console View 2: Why Only 14? Forbidden Bravais Centering Reduction Proofs */}
+                {bravaisAtlasTab === 'proofs' && (
+                  <BravaisReductionProofLab
+                    onJumpToBravais={(pearson) => {
+                      const target = BRAVAIS_14_CATALOG.find((b) => b.pearson === pearson);
+                      if (target) {
+                        handleSelectBravais14(target.systemId, target.centering);
+                        setBravaisAtlasTab('metrology');
+                      }
+                    }}
+                  />
+                )}
+
+                {/* Sub-Console View 3: Live 1,454-Phase DB Real Materials in Active Bravais Lattice */}
+                {bravaisAtlasTab === 'db_phases' && (() => {
+                  const pool = bravaisDbIndex.byPearson[activeBravaisEntry.pearson] || [];
+                  const q = bravaisDbSearch.trim().toLowerCase();
+                  const filtered = q
+                    ? pool.filter(
+                        (p) =>
+                          p.name.toLowerCase().includes(q) ||
+                          p.formula.toLowerCase().includes(q) ||
+                          p.spaceGroup.toLowerCase().includes(q) ||
+                          p.type.toLowerCase().includes(q)
+                      )
+                    : pool;
+
+                  return (
+                    <div className="space-y-3 pt-2 border-t border-slate-800/80 font-mono text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="text-[10.5px] text-slate-300">
+                          <span className="text-emerald-400 font-bold">{filtered.length}</span> real phases in{' '}
+                          <span className="text-cyan-300 font-bold">
+                            {activeBravaisEntry.pearson} ({activeBravaisEntry.label})
+                          </span>{' '}
+                          from the live {bravaisDbIndex.totalDbCount}-phase XRD library
+                        </div>
+                        <div className="relative w-full sm:w-64">
+                          <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2" />
+                          <input
+                            type="text"
+                            value={bravaisDbSearch}
+                            onChange={(e) => setBravaisDbSearch(e.target.value)}
+                            placeholder={`Filter ${activeBravaisEntry.pearson} phases (name, formula, SG)...`}
+                            className="w-full pl-8 pr-3 py-1.5 rounded-lg bg-[#070A12] border border-slate-800 text-[11px] text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/60 outline-none"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2 max-h-[250px] overflow-y-auto pr-1">
+                        {filtered.slice(0, 24).map((phase, idx) => (
+                          <div
+                            key={`${phase.name}-${idx}`}
+                            className="bg-[#070A12] border border-slate-800 hover:border-cyan-500/50 rounded-xl p-3 flex flex-col justify-between gap-2 transition-colors"
+                          >
+                            <div className="space-y-1">
+                              <div className="flex items-center justify-between gap-1 text-[9.5px]">
+                                <span className="text-cyan-300 font-bold truncate">{phase.spaceGroup}</span>
+                                <span className="text-slate-400 tabular-nums shrink-0">
+                                  ρ={phase.density.toFixed(2)}
+                                </span>
+                              </div>
+                              <div className="text-xs font-sans font-bold text-slate-100 line-clamp-1" title={phase.name}>
+                                {phase.name}
+                              </div>
+                              <div className="text-[10px] text-amber-300 truncate">
+                                {phase.formula || phase.type}
+                              </div>
+                              <div className="text-[9.5px] text-slate-400 tabular-nums truncate">
+                                a={phase.parsedLattice.a.toFixed(2)}
+                                {phase.systemId !== 'cubic' ? ` c=${phase.parsedLattice.c.toFixed(2)}` : ''} Å ·{' '}
+                                {phase.peaks.length} peaks
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => handleInspectDbPhaseIn3D(phase)}
+                              className="w-full py-1 px-2 rounded-md bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-200 border border-cyan-500/40 text-[10px] font-bold flex items-center justify-center gap-1 transition-colors cursor-pointer"
+                            >
+                              <Rotate3d className="w-3 h-3" />
+                              <span>Inspect in 3D Cell</span>
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                      {filtered.length > 24 && (
+                        <div className="flex items-center justify-between text-[10px] text-slate-400 pt-1">
+                          <span>Showing 24 of {filtered.length} matching phases.</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              playSynthTone('tick');
+                              setMaterialCatalogSource('live_db');
+                              setCatalogBravaisScope('active_bravais');
+                              setViewMode('materials');
+                            }}
+                            className="text-cyan-400 hover:text-cyan-300 font-bold underline cursor-pointer"
+                          >
+                            Browse all {filtered.length} in Material Catalog →
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })()}
+
+                {/* Sub-Console View 1: Active Bravais Lattice Deep Metrology: Primitive Matrix P + Wigner-Seitz/Brillouin Zone + F_hkl Phasors */}
+                {bravaisAtlasTab === 'metrology' && (() => {
                   const [th, tk, tl] = bravaisTestHkl;
                   const P = activeBravaisEntry.primMatrix;
                   const hp = P[0][0] * th + P[0][1] * tk + P[0][2] * tl;
@@ -1562,50 +1767,72 @@ export const UnitCellsSection: React.FC = () => {
                   ];
 
                   return (
-                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 pt-2 border-t border-slate-800/80 font-mono text-xs">
-                      {/* Column 1 (4 Cols): Primitive ↔ Conventional Matrix P & Basis Coordinates */}
-                      <div className="lg:col-span-4 bg-[#070A12] border border-slate-800 rounded-xl p-3.5 space-y-2.5">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                          <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
-                            1. Primitive ↔ Conventional Matrix P
-                          </span>
-                          <span className="text-[10px] text-slate-400 tabular-nums">
-                            det(P) = 1/Z = {(1 / activeBravaisEntry.Z).toFixed(3)}
-                          </span>
-                        </div>
+                    <div className="grid grid-cols-1 lg:grid-cols-12 gap-3.5 pt-2.5 border-t border-slate-800/80 font-mono text-xs">
+                      {/* Column 2: Interactive 3D Wigner–Seitz & 1st Brillouin Zone Workbench (promotes to Row 1 full-width when expanded) */}
+                      <div className={isWsBzExpanded ? 'lg:col-span-12 order-1' : 'lg:col-span-7 order-2'}>
+                        <WignerSeitzBrillouinPanel
+                          pearson={activePearsonSymbol}
+                          Z={activeBravaisEntry.Z}
+                          coordinationNumber={activeBravaisEntry.coordinationNumber}
+                          maxApf={activeBravaisEntry.maxApf}
+                          latticeParams={activeWsLatticeParams}
+                          isExpanded={isWsBzExpanded}
+                          onToggleExpand={() => {
+                            playSynthTone('tick');
+                            setIsWsBzExpanded((prev) => !prev);
+                          }}
+                        />
+                      </div>
 
-                        <div className="grid grid-cols-12 gap-2 items-center">
-                          <div className="col-span-6 bg-[#0B0F19] border border-slate-800 rounded-lg p-2">
-                            <div className="text-[9px] text-slate-500 mb-1 text-center">P (a_p = P · a_conv)</div>
-                            <div className="grid grid-cols-3 gap-1 text-center text-[10px] tabular-nums">
-                              {P.flatMap((row, rI) =>
-                                row.map((val, cI) => (
-                                  <div
-                                    key={`${rI}-${cI}`}
-                                    className={`py-0.5 rounded ${
-                                      Math.abs(val) > 0.01 ? 'bg-emerald-500/10 text-emerald-300 font-bold' : 'text-slate-500'
-                                    }`}
-                                  >
-                                    {val === 0.6667 ? '+⅔' : val === -0.6667 ? '−⅔' : val === 0.3333 ? '+⅓' : val === -0.3333 ? '−⅓' : val === 0.5 ? '+½' : val === -0.5 ? '−½' : val}
-                                  </div>
-                                ))
-                              )}
+                      {/* Column 1: Primitive ↔ Conventional Matrix P & Basis Coordinates */}
+                      <div
+                        className={`${
+                          isWsBzExpanded ? 'lg:col-span-5 order-2' : 'lg:col-span-5 order-1'
+                        } bg-[#070A12] border border-slate-800 rounded-xl p-3.5 flex flex-col justify-between gap-2.5`}
+                      >
+                        <div className="space-y-2.5">
+                          <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
+                            <span className="text-[10px] uppercase tracking-wider text-emerald-400 font-bold">
+                              1. Primitive ↔ Conventional Matrix P
+                            </span>
+                            <span className="text-[10px] text-slate-400 tabular-nums">
+                              det(P) = 1/Z = {(1 / activeBravaisEntry.Z).toFixed(3)}
+                            </span>
+                          </div>
+
+                          <div className="grid grid-cols-12 gap-2.5 items-center">
+                            <div className="col-span-6 bg-[#0B0F19] border border-slate-800 rounded-lg p-2.5">
+                              <div className="text-[9px] text-slate-500 mb-1.5 text-center">P (a_p = P · a_conv)</div>
+                              <div className="grid grid-cols-3 gap-1 text-center text-[10.5px] tabular-nums">
+                                {P.flatMap((row, rI) =>
+                                  row.map((val, cI) => (
+                                    <div
+                                      key={`${rI}-${cI}`}
+                                      className={`py-1 rounded ${
+                                        Math.abs(val) > 0.01 ? 'bg-emerald-500/10 text-emerald-300 font-bold' : 'text-slate-500'
+                                      }`}
+                                    >
+                                      {val === 0.6667 ? '+⅔' : val === -0.6667 ? '−⅔' : val === 0.3333 ? '+⅓' : val === -0.3333 ? '−⅓' : val === 0.5 ? '+½' : val === -0.5 ? '−½' : val}
+                                    </div>
+                                  ))
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="col-span-6 space-y-1.5 text-[10px]">
+                              {activeBravaisEntry.primVectorsFormula.map((line, idx) => (
+                                <div key={idx} className="text-slate-300 bg-[#0B0F19] px-2.5 py-1.5 rounded border border-slate-800/80 truncate">
+                                  {line}
+                                </div>
+                              ))}
                             </div>
                           </div>
-
-                          <div className="col-span-6 space-y-1 text-[10px]">
-                            {activeBravaisEntry.primVectorsFormula.map((line, idx) => (
-                              <div key={idx} className="text-slate-300 bg-[#0B0F19] px-2 py-1 rounded border border-slate-800/80 truncate">
-                                {line}
-                              </div>
-                            ))}
-                          </div>
                         </div>
 
-                        <div className="space-y-1 pt-1 border-t border-slate-800/70">
-                          <div className="flex items-center justify-between text-[10px]">
-                            <span className="text-slate-400">Basis Sites (Z = {activeBravaisEntry.Z}):</span>
-                            <span className="text-amber-300 truncate max-w-[190px]">
+                        <div className="space-y-1.5 pt-2 border-t border-slate-800/70">
+                          <div className="flex items-center justify-between gap-2 text-[10px]">
+                            <span className="text-slate-400 shrink-0">Basis Sites (Z = {activeBravaisEntry.Z}):</span>
+                            <span className="text-amber-300 truncate">
                               {activeBravaisEntry.basisCoords
                                 .map(([u, v, w]) => `(${u === 0.6667 ? '⅔' : u === 0.3333 ? '⅓' : u},${v === 0.6667 ? '⅔' : v === 0.3333 ? '⅓' : v},${w === 0.6667 ? '⅔' : w === 0.3333 ? '⅓' : w})`)
                                 .join(' ')}
@@ -1620,148 +1847,100 @@ export const UnitCellsSection: React.FC = () => {
                         </div>
                       </div>
 
-                      {/* Column 2 (4 Cols): Wigner-Seitz Proximity Cell & 1st Brillouin Zone Dual SVG */}
-                      <div className="lg:col-span-4 bg-[#070A12] border border-slate-800 rounded-xl p-3.5 space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                          <span className="text-[10px] uppercase tracking-wider text-cyan-400 font-bold">
-                            2. Wigner–Seitz &amp; 1st Brillouin Zone
-                          </span>
-                          <span className="text-[10px] text-amber-400 font-bold">{activeBravaisEntry.reciprocalDual}</span>
-                        </div>
-
-                        <div className="grid grid-cols-12 gap-2 items-center">
-                          <div className="col-span-5 bg-[#050811] border border-slate-800/90 rounded-lg p-1.5 flex items-center justify-center">
-                            <svg viewBox="0 0 110 92" className="w-full h-22 select-none overflow-visible">
-                              {activeBravaisEntry.bzType === 'trunc_oct' && (
-                                <g>
-                                  {/* Truncated Octahedron (14 Faces: 8 Hexagons + 6 Squares) */}
-                                  <polygon points="38,10 72,10 94,30 94,62 72,82 38,82 16,62 16,30" fill="rgba(14,165,233,0.12)" stroke="#38bdf8" strokeWidth="1.3" />
-                                  <polygon points="44,24 66,24 76,38 66,56 44,56 34,38" fill="rgba(56,189,248,0.18)" stroke="#7dd3fc" strokeWidth="1.1" />
-                                  <line x1="38" y1="10" x2="44" y2="24" stroke="#38bdf8" strokeWidth="1" />
-                                  <line x1="72" y1="10" x2="66" y2="24" stroke="#38bdf8" strokeWidth="1" />
-                                  <line x1="94" y1="30" x2="76" y2="38" stroke="#38bdf8" strokeWidth="1" />
-                                  <line x1="16" y1="30" x2="34" y2="38" stroke="#38bdf8" strokeWidth="1" />
-                                  <line x1="72" y1="82" x2="66" y2="56" stroke="#38bdf8" strokeWidth="1" />
-                                  <line x1="38" y1="82" x2="44" y2="56" stroke="#38bdf8" strokeWidth="1" />
-                                  {/* High-symmetry k-space vectors */}
-                                  <circle cx="55" cy="46" r="2.5" fill="#fbbf24" />
-                                  <line x1="55" y1="46" x2="94" y2="46" stroke="#f59e0b" strokeWidth="1.2" strokeDasharray="2 1.5" />
-                                  <line x1="55" y1="46" x2="55" y2="38" stroke="#34d399" strokeWidth="1.2" />
-                                  <text x="51" y="44" fill="#fef08a" fontSize="7.5" fontWeight="bold">Γ</text>
-                                  <text x="96" y="48" fill="#fbbf24" fontSize="7.5" fontWeight="bold">X</text>
-                                  <text x="58" y="36" fill="#34d399" fontSize="7.5" fontWeight="bold">L</text>
-                                </g>
-                              )}
-                              {activeBravaisEntry.bzType === 'rhomb_dodec' && (
-                                <g>
-                                  {/* Rhombic Dodecahedron (12 Rhombic Faces) */}
-                                  <polygon points="55,8 92,28 92,64 55,84 18,64 18,28" fill="rgba(245,158,11,0.12)" stroke="#f59e0b" strokeWidth="1.3" />
-                                  <polygon points="55,22 78,46 55,70 32,46" fill="rgba(251,191,36,0.18)" stroke="#fbbf24" strokeWidth="1.15" />
-                                  <line x1="55" y1="8" x2="55" y2="22" stroke="#f59e0b" strokeWidth="1" />
-                                  <line x1="92" y1="28" x2="78" y2="46" stroke="#f59e0b" strokeWidth="1" />
-                                  <line x1="92" y1="64" x2="78" y2="46" stroke="#f59e0b" strokeWidth="1" />
-                                  <line x1="55" y1="84" x2="55" y2="70" stroke="#f59e0b" strokeWidth="1" />
-                                  <line x1="18" y1="64" x2="32" y2="46" stroke="#f59e0b" strokeWidth="1" />
-                                  <line x1="18" y1="28" x2="32" y2="46" stroke="#f59e0b" strokeWidth="1" />
-                                  <circle cx="55" cy="46" r="2.5" fill="#38bdf8" />
-                                  <line x1="55" y1="46" x2="55" y2="8" stroke="#38bdf8" strokeWidth="1.2" strokeDasharray="2 1.5" />
-                                  <line x1="55" y1="46" x2="78" y2="46" stroke="#34d399" strokeWidth="1.2" />
-                                  <text x="46" y="50" fill="#bae6fd" fontSize="7.5" fontWeight="bold">Γ</text>
-                                  <text x="60" y="13" fill="#38bdf8" fontSize="7.5" fontWeight="bold">H</text>
-                                  <text x="80" y="49" fill="#34d399" fontSize="7.5" fontWeight="bold">N</text>
-                                </g>
-                              )}
-                              {activeBravaisEntry.bzType === 'hex_prism' && (
-                                <g>
-                                  <polygon points="55,10 86,20 86,34 55,44 24,34 24,20" fill="rgba(56,189,248,0.18)" stroke="#38bdf8" strokeWidth="1.2" />
-                                  <polygon points="55,48 86,58 86,72 55,82 24,72 24,58" fill="rgba(14,165,233,0.10)" stroke="#0284c7" strokeWidth="1" strokeDasharray="2 1.5" />
-                                  <line x1="24" y1="20" x2="24" y2="58" stroke="#38bdf8" strokeWidth="1.1" />
-                                  <line x1="24" y1="34" x2="24" y2="72" stroke="#38bdf8" strokeWidth="1.1" />
-                                  <line x1="55" y1="44" x2="55" y2="82" stroke="#38bdf8" strokeWidth="1.2" />
-                                  <line x1="86" y1="34" x2="86" y2="72" stroke="#38bdf8" strokeWidth="1.1" />
-                                  <line x1="86" y1="20" x2="86" y2="58" stroke="#38bdf8" strokeWidth="1.1" />
-                                  <circle cx="55" cy="46" r="2.5" fill="#fbbf24" />
-                                  <line x1="55" y1="46" x2="55" y2="27" stroke="#f59e0b" strokeWidth="1.2" />
-                                  <line x1="55" y1="46" x2="86" y2="51" stroke="#34d399" strokeWidth="1.2" />
-                                  <text x="45" y="50" fill="#fef08a" fontSize="7.5" fontWeight="bold">Γ</text>
-                                  <text x="58" y="25" fill="#fbbf24" fontSize="7.5" fontWeight="bold">A</text>
-                                  <text x="89" y="54" fill="#34d399" fontSize="7.5" fontWeight="bold">K</text>
-                                </g>
-                              )}
-                              {(activeBravaisEntry.bzType === 'cube' || activeBravaisEntry.bzType === 'tet_prism' || activeBravaisEntry.bzType === 'rhombohedron' || activeBravaisEntry.bzType === 'oblique') && (
-                                <g>
-                                  <rect x="22" y="26" width="46" height="46" fill="rgba(56,189,248,0.14)" stroke="#38bdf8" strokeWidth="1.2" />
-                                  <polygon points="22,26 38,12 84,12 68,26" fill="rgba(56,189,248,0.22)" stroke="#38bdf8" strokeWidth="1.1" />
-                                  <polygon points="68,26 84,12 84,58 68,72" fill="rgba(2,132,199,0.18)" stroke="#0284c7" strokeWidth="1.1" />
-                                  <circle cx="53" cy="42" r="2.5" fill="#fbbf24" />
-                                  <line x1="53" y1="42" x2="76" y2="35" stroke="#f59e0b" strokeWidth="1.2" />
-                                  <line x1="53" y1="42" x2="84" y2="12" stroke="#34d399" strokeWidth="1.2" strokeDasharray="2 1.5" />
-                                  <text x="43" y="46" fill="#fef08a" fontSize="7.5" fontWeight="bold">Γ</text>
-                                  <text x="78" y="39" fill="#fbbf24" fontSize="7.5" fontWeight="bold">X</text>
-                                  <text x="86" y="14" fill="#34d399" fontSize="7.5" fontWeight="bold">R</text>
-                                </g>
-                              )}
-                            </svg>
+                      {/* Column 3: Live Structure Factor Phasor F_hkl & Custom Extinction Tester */}
+                      <div
+                        className={`${
+                          isWsBzExpanded ? 'lg:col-span-7 order-3' : 'lg:col-span-12 order-3'
+                        } bg-[#070A12] border border-slate-800 rounded-xl p-3.5 space-y-2.5`}
+                      >
+                        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-2">
+                          <div className="flex items-center gap-2.5">
+                            <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">
+                              3. F_hkl = Σ exp[2πi(hu+kv+lw)] Phasor Tester
+                            </span>
+                            <span className="text-[10px] text-cyan-300 font-bold">{activeBravaisEntry.extinctionRule}</span>
                           </div>
 
-                          <div className="col-span-7 space-y-1.5 text-[10px]">
-                            <div className="bg-[#0B0F19] p-2 rounded-lg border border-slate-800">
-                              <span className="text-[9px] text-slate-500 block">Proximity / Brillouin Polyhedron</span>
-                              <span className="text-slate-200 font-semibold leading-snug block mt-0.5">
-                                {activeBravaisEntry.wignerSeitzPolyhedron}
-                              </span>
-                            </div>
-                            <div className="bg-[#0B0F19] p-2 rounded-lg border border-slate-800">
-                              <span className="text-[9px] text-slate-500 block">High-Symmetry k-Space Points</span>
-                              <span className="text-cyan-300 font-semibold block mt-0.5 truncate">
-                                {activeBravaisEntry.bzKPoints}
-                              </span>
-                            </div>
-                            <div className="flex justify-between text-[10px] text-slate-400 px-0.5">
-                              <span>{activeBravaisEntry.coordinationNumber}</span>
-                              <span className="text-amber-300 font-bold">APF ≤ {activeBravaisEntry.maxApf.split(' ')[0]}</span>
-                            </div>
-                          </div>
+                          {/* Interactive Custom (h, k, l) Input Supporting Negative Indices */}
+                          {(() => {
+                            const customRes = evalReflection(th, tk, tl);
+                            return (
+                              <div className="flex items-center gap-2 bg-[#0B0F19] border border-slate-800 rounded-lg px-2.5 py-1">
+                                <div className="flex items-center gap-1.5">
+                                  {(['h', 'k', 'l'] as const).map((lbl, idx) => (
+                                    <label key={lbl} className="flex items-center gap-1 text-[10px] text-slate-400">
+                                      <span>{lbl}:</span>
+                                      <input
+                                        type="number"
+                                        min={-6}
+                                        max={6}
+                                        value={bravaisTestHkl[idx]}
+                                        onChange={(e) => {
+                                          const v = Math.max(-6, Math.min(6, parseInt(e.target.value, 10) || 0));
+                                          const next: [number, number, number] = [...bravaisTestHkl] as [number, number, number];
+                                          next[idx] = v;
+                                          setBravaisTestHkl(next);
+                                        }}
+                                        className="w-10 text-center bg-slate-950 border border-slate-700 rounded py-0.5 text-[10.5px] font-bold text-white outline-none focus:border-cyan-500 tabular-nums"
+                                      />
+                                    </label>
+                                  ))}
+                                </div>
+                                <span
+                                  className={`px-2 py-0.5 rounded text-[9.5px] font-bold tabular-nums whitespace-nowrap shrink-0 ${
+                                    th === 0 && tk === 0 && tl === 0
+                                      ? 'bg-slate-800 text-slate-400'
+                                      : customRes.allowed
+                                      ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                      : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
+                                  }`}
+                                >
+                                  {th === 0 && tk === 0 && tl === 0
+                                    ? '(000)'
+                                    : customRes.allowed
+                                    ? `|F|²=${Math.round(customRes.fSq)}f²`
+                                    : 'Extinct (0)'}
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </div>
-                      </div>
 
-                      {/* Column 3 (4 Cols): Live Structure Factor Phasor F_hkl & Extinction Ladder */}
-                      <div className="lg:col-span-4 bg-[#070A12] border border-slate-800 rounded-xl p-3.5 space-y-2">
-                        <div className="flex items-center justify-between border-b border-slate-800 pb-1.5">
-                          <span className="text-[10px] uppercase tracking-wider text-amber-400 font-bold">
-                            3. F_hkl = Σ exp[2πi(hu+kv+lw)] Phasor Ladder
-                          </span>
-                          <span className="text-[10px] text-cyan-300 font-bold">{activeBravaisEntry.extinctionRule}</span>
-                        </div>
-
-                        <div className="grid grid-cols-2 gap-1.5 max-h-[146px] overflow-y-auto pr-0.5">
+                        <div
+                          className={`grid gap-1.5 ${
+                            isWsBzExpanded
+                              ? 'grid-cols-2 sm:grid-cols-4'
+                              : 'grid-cols-2 sm:grid-cols-4 lg:grid-cols-8'
+                          }`}
+                        >
                           {testPlanes.map(([ph, pk, pl]) => {
                             const res = evalReflection(ph, pk, pl);
                             const isTestActive = th === ph && tk === pk && tl === pl;
                             return (
                               <button
                                 key={`${ph}${pk}${pl}`}
+                                type="button"
                                 onClick={() => {
                                   playSynthTone('tick');
                                   setBravaisTestHkl([ph, pk, pl]);
                                 }}
-                                className={`p-1.5 rounded-lg border text-left transition-all flex items-center justify-between ${
+                                className={`p-2 rounded-lg border text-left transition-all flex items-center justify-between gap-1 cursor-pointer ${
                                   isTestActive
                                     ? 'bg-cyan-500/15 border-cyan-500/60 text-white'
                                     : 'bg-[#0B0F19] border-slate-800/90 hover:border-slate-700'
                                 }`}
                               >
-                                <div>
+                                <div className="min-w-0">
                                   <div className="flex items-center gap-1.5">
                                     <span className="font-bold text-slate-100 text-[11px]">({ph}{pk}{pl})</span>
                                     <span className="text-[9px] text-slate-500">s={ph * ph + pk * pk + pl * pl}</span>
                                   </div>
-                                  <div className="text-[8.5px] text-slate-400 truncate max-w-[100px]">
+                                  <div className="text-[8.5px] text-slate-400 truncate">
                                     {res.phasesStr}
                                   </div>
                                 </div>
                                 <span
-                                  className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold tabular-nums ${
+                                  className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold tabular-nums shrink-0 ${
                                     res.allowed
                                       ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
                                       : 'bg-rose-500/15 text-rose-400 border border-rose-500/30'
@@ -1894,6 +2073,8 @@ export const UnitCellsSection: React.FC = () => {
           onSelectSystem={handleSelectSystem}
           activeCentering={activeCentering}
           setActiveCentering={setActiveCentering}
+          loadedDbPhase={loaded3DPhase}
+          onClearLoadedPhase={() => setLoaded3DPhase(null)}
         />
       )}
 
@@ -3006,17 +3187,56 @@ export const UnitCellsSection: React.FC = () => {
       {/* TAB 3: REAL-WORLD MATERIALS & MINERALOGICAL EXAMPLES */}
       {viewMode === 'materials' && (
         <div className="space-y-6">
-          <div className="flex justify-between items-center flex-wrap gap-4">
+          <div className="flex justify-between items-start lg:items-center flex-wrap gap-4">
             <div>
               <span className="text-[11px] font-bold text-cyan-400 uppercase tracking-widest font-mono">
-                Crystallographic Reference Database
+                Crystallographic Reference Database · {bravaisDbIndex.allPhases.length} Classified Crystalline Phases
               </span>
               <h2 className="text-xl sm:text-2xl font-bold text-slate-100 tracking-tight mt-0.5">
-                {showAllSystemsMaterials ? 'Complete 7-System Materials Catalog' : `Reference Crystals for ${activeSystem.name}`}
+                {materialCatalogSource === 'live_db'
+                  ? catalogBravaisScope === 'active_bravais'
+                    ? `Live XRD Library — ${activePearsonSymbol} (${activeBravaisEntry.label})`
+                    : catalogBravaisScope === 'active_system'
+                    ? `Live XRD Library — ${activeSystem.name}`
+                    : 'Live XRD Library — All 14 Bravais Lattices'
+                  : showAllSystemsMaterials
+                  ? 'Curated 7-System Prototype Crystals'
+                  : `Curated Prototypes for ${activeSystem.name}`}
               </h2>
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
+              {/* Source Mode Toggle: Live DB vs Curated Prototypes */}
+              <div className="flex items-center gap-1 bg-[#070A12] p-1 rounded-lg border border-slate-800 text-[11px] font-mono">
+                <button
+                  onClick={() => {
+                    playSynthTone('tick');
+                    setMaterialCatalogSource('live_db');
+                  }}
+                  className={`px-2.5 py-1 rounded-md font-bold transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
+                    materialCatalogSource === 'live_db'
+                      ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                      : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                  }`}
+                >
+                  <Database className="w-3 h-3" />
+                  <span>Live DB ({bravaisDbIndex.allPhases.length})</span>
+                </button>
+                <button
+                  onClick={() => {
+                    playSynthTone('tick');
+                    setMaterialCatalogSource('curated');
+                  }}
+                  className={`px-2.5 py-1 rounded-md font-bold transition-all whitespace-nowrap shrink-0 ${
+                    materialCatalogSource === 'curated'
+                      ? 'bg-amber-500/20 text-amber-300 border border-amber-500/40'
+                      : 'text-slate-400 hover:text-slate-200 border border-transparent'
+                  }`}
+                >
+                  Curated &amp; Custom ({displayedMaterials.length})
+                </button>
+              </div>
+
               <button
                 onClick={() => {
                   playSynthTone('tick');
@@ -3024,7 +3244,7 @@ export const UnitCellsSection: React.FC = () => {
                   setCmCentering(activeCentering);
                   setShowCustomMatModal(prev => !prev);
                 }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all flex items-center gap-1.5 ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all whitespace-nowrap shrink-0 flex items-center gap-1.5 ${
                   showCustomMatModal
                     ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
                     : 'bg-[#070A12] text-amber-400 border-amber-500/40 hover:border-amber-500/70'
@@ -3033,40 +3253,16 @@ export const UnitCellsSection: React.FC = () => {
                 <Plus className="w-3.5 h-3.5" />
                 <span>Synthesize Custom Crystal</span>
               </button>
-
-              <button
-                onClick={() => { playSynthTone('tick'); setShowAllSystemsMaterials(prev => !prev); }}
-                className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all ${
-                  showAllSystemsMaterials
-                    ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/50'
-                    : 'bg-[#0B0F19] text-slate-300 border-slate-800 hover:border-slate-700'
-                }`}
-              >
-                {showAllSystemsMaterials ? 'Showing All 7 Systems' : `Showing ${activeSystem.name.split(' ')[0]} Only`}
-              </button>
-
-              <div className="flex items-center gap-1 bg-[#070A12] p-1 rounded-lg border border-slate-800 text-[11px] font-mono">
-                {(['All', 'Metal', 'Ceramic', 'Mineral', 'Semiconductor', 'Geological'] as const).map(cat => (
-                  <button
-                    key={cat}
-                    onClick={() => { playSynthTone('tick'); setMaterialCategoryFilter(cat); }}
-                    className={`px-2.5 py-1 rounded-md font-bold transition-all ${
-                      materialCategoryFilter === cat
-                        ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
             </div>
           </div>
 
           {/* Interactive Custom Crystal Material Synthesizer Drawer */}
           {showCustomMatModal && (
             <form
-              onSubmit={handleAddCustomCrystalMaterial}
+              onSubmit={(e) => {
+                handleAddCustomCrystalMaterial(e);
+                setMaterialCatalogSource('curated');
+              }}
               className="bg-[#0B0F19] border border-amber-500/40 rounded-xl p-5 space-y-4 font-mono"
             >
               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 pb-3">
@@ -3270,173 +3466,493 @@ export const UnitCellsSection: React.FC = () => {
             </form>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {displayedMaterials.map((mat, idx) => {
-              const customMat = 'isCustom' in mat && mat.isCustom ? (mat as CustomMaterialEntry) : null;
-              const targetCentering = customMat
-                ? customMat.centering
-                : inferCenteringFromLatticeType(mat.latticeType, mat.systemId);
-              const stickPeaks = customMat && customMat.computedPeaks.length > 0
-                ? customMat.computedPeaks
-                : targetCentering === 'F'
-                  ? [
-                      { x: 34, h: 30, label: '111', color: '#38bdf8' },
-                      { x: 48, h: 18, label: '200', color: '#38bdf8' },
-                      { x: 78, h: 24, label: '220', color: '#38bdf8' },
-                      { x: 104, h: 20, label: '311', color: '#38bdf8' },
-                      { x: 116, h: 11, label: '222', color: '#38bdf8' },
-                      { x: 146, h: 14, label: '400', color: '#38bdf8' },
-                    ]
-                  : targetCentering === 'I'
-                  ? [
-                      { x: 38, h: 30, label: '110', color: '#f59e0b' },
-                      { x: 64, h: 16, label: '200', color: '#f59e0b' },
-                      { x: 88, h: 25, label: '211', color: '#f59e0b' },
-                      { x: 114, h: 14, label: '220', color: '#f59e0b' },
-                      { x: 140, h: 18, label: '310', color: '#f59e0b' },
-                    ]
-                  : targetCentering === 'R'
-                  ? [
-                      { x: 28, h: 22, label: '012', color: '#f59e0b' },
-                      { x: 48, h: 30, label: '104', color: '#f59e0b' },
-                      { x: 64, h: 23, label: '110', color: '#f59e0b' },
-                      { x: 88, h: 27, label: '116', color: '#f59e0b' },
-                      { x: 118, h: 16, label: '024', color: '#f59e0b' },
-                      { x: 144, h: 19, label: '300', color: '#f59e0b' },
-                    ]
-                  : targetCentering === 'C'
-                  ? [
-                      { x: 26, h: 25, label: '110', color: '#38bdf8' },
-                      { x: 44, h: 30, label: '020', color: '#38bdf8' },
-                      { x: 60, h: 20, label: '111', color: '#38bdf8' },
-                      { x: 84, h: 23, label: '200', color: '#38bdf8' },
-                      { x: 114, h: 18, label: '131', color: '#38bdf8' },
-                      { x: 142, h: 15, label: '221', color: '#38bdf8' },
-                    ]
-                  : mat.systemId === 'hexagonal'
-                  ? [
-                      { x: 30, h: 21, label: '100', color: '#38bdf8' },
-                      { x: 40, h: 19, label: '002', color: '#f59e0b' },
-                      { x: 52, h: 30, label: '101', color: '#38bdf8' },
-                      { x: 80, h: 18, label: '102', color: '#38bdf8' },
-                      { x: 108, h: 22, label: '110', color: '#38bdf8' },
-                      { x: 138, h: 19, label: '103', color: '#38bdf8' },
-                    ]
-                  : [
-                      { x: 24, h: 26, label: '100', color: '#38bdf8' },
-                      { x: 44, h: 30, label: '101', color: '#38bdf8' },
-                      { x: 66, h: 21, label: '110', color: '#38bdf8' },
-                      { x: 90, h: 24, label: '200', color: '#38bdf8' },
-                      { x: 116, h: 18, label: '211', color: '#38bdf8' },
-                      { x: 144, h: 16, label: '220', color: '#38bdf8' },
-                    ];
-
-              return (
-                <div
-                  key={`${mat.name}-${idx}`}
-                  className="bg-[#0B0F19] border border-slate-800 rounded-xl p-5 space-y-4 hover:border-slate-700 transition-all flex flex-col justify-between"
-                >
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-wider">
-                      <span className="text-slate-400 font-bold">
-                        {mat.category} <span className="text-slate-700">·</span>{' '}
-                        <span className="text-cyan-400">{mat.spaceGroup}</span>
-                      </span>
-                      <CrystalSystemMiniSchematic
-                        systemId={mat.systemId}
-                        centering={targetCentering}
-                        isSelected={true}
-                        size="sm"
-                      />
-                    </div>
-
-                    <div>
-                      <h3 className="text-base font-bold text-slate-100">{mat.name}</h3>
-                      <div className="text-xs font-mono font-bold text-amber-400 mt-0.5">{mat.formula}</div>
-                    </div>
-
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      {mat.description}
-                    </p>
-
-                    {/* Calibrated Powder XRD Diffractogram & Stick Fingerprint */}
-                    <div className="bg-[#070A12] border border-slate-800/90 rounded-lg p-2.5 space-y-1">
-                      <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
-                        <span className="uppercase tracking-wider font-bold text-slate-300">
-                          Powder XRD Fingerprint ({targetCentering}-Lattice)
-                        </span>
-                        <span className="text-cyan-400/80">Cu Kα₁ · 1.5406 Å</span>
-                      </div>
-                      <svg viewBox="0 0 170 52" className="w-full h-12 overflow-visible select-none">
-                        <line x1="8" y1="14" x2="164" y2="14" stroke="#0f172a" strokeWidth="0.7" />
-                        <line x1="8" y1="26" x2="164" y2="26" stroke="#0f172a" strokeWidth="0.7" />
-                        <line x1="8" y1="38" x2="164" y2="38" stroke="#334155" strokeWidth="1" />
-                        {[20, 40, 60, 80].map((deg, tIdx) => {
-                          const tx = 18 + tIdx * 42;
-                          return (
-                            <g key={deg}>
-                              <line x1={tx} y1="38" x2={tx} y2="41" stroke="#475569" strokeWidth="0.8" />
-                              <text x={tx} y="48" textAnchor="middle" fill="#64748b" fontSize="6" fontFamily="monospace">
-                                {deg}°
-                              </text>
-                            </g>
-                          );
-                        })}
-                        {stickPeaks.map((pk, pIdx) => (
-                          <g key={pIdx}>
-                            <path
-                              d={`M ${pk.x - 6} 38 Q ${pk.x} ${38 - pk.h * 1.15} ${pk.x + 6} 38`}
-                              fill={pk.color}
-                              fillOpacity="0.14"
-                              stroke={pk.color}
-                              strokeWidth="0.7"
-                              strokeOpacity="0.45"
-                            />
-                            <line
-                              x1={pk.x}
-                              y1={38}
-                              x2={pk.x}
-                              y2={38 - pk.h}
-                              stroke={pk.color}
-                              strokeWidth="1.8"
-                            />
-                            <circle cx={pk.x} cy={38 - pk.h} r="1.6" fill="#f8fafc" stroke={pk.color} strokeWidth="0.9" />
-                            <text
-                              x={pk.x}
-                              y={38 - pk.h - 3.5}
-                              textAnchor="middle"
-                              fill="#e2e8f0"
-                              fontSize="6.5"
-                              fontFamily="monospace"
-                              fontWeight="bold"
-                            >
-                              {pk.label}
-                            </text>
-                          </g>
-                        ))}
-                      </svg>
-                    </div>
-                  </div>
-
-                  <div className="pt-3 border-t border-slate-800/80 flex justify-between items-center gap-2 text-[11px] font-mono text-slate-400">
-                    <span className="truncate">{mat.latticeType}</span>
+          {materialCatalogSource === 'live_db' ? (
+            <div className="space-y-4">
+              {/* Live DB Filter Bar */}
+              <div className="bg-[#0B0F19] border border-slate-800 rounded-xl p-3.5 space-y-3">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                  <div className="flex items-center gap-1.5 flex-wrap font-mono text-[11px]">
                     <button
                       onClick={() => {
                         playSynthTone('tick');
-                        setSelectedSystemId(mat.systemId);
-                        setActiveCentering(targetCentering);
-                        setViewMode('3d');
+                        setCatalogBravaisScope('active_bravais');
+                        setCatalogVisibleCount(24);
                       }}
-                      className="px-2.5 py-1 rounded-md bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-bold text-[10px] shrink-0 flex items-center gap-1 transition-all"
+                      className={`px-2.5 py-1.5 rounded-lg border font-bold whitespace-nowrap shrink-0 transition-all ${
+                        catalogBravaisScope === 'active_bravais'
+                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                          : 'bg-[#070A12] text-slate-400 border-slate-800 hover:text-slate-200'
+                      }`}
                     >
-                      <Rotate3d className="w-3 h-3" />
-                      <span>Inspect 3D</span>
+                      Active Bravais: {activePearsonSymbol} ({(bravaisDbIndex.byPearson[activePearsonSymbol] || []).length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        playSynthTone('tick');
+                        setCatalogBravaisScope('active_system');
+                        setCatalogVisibleCount(24);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg border font-bold whitespace-nowrap shrink-0 transition-all ${
+                        catalogBravaisScope === 'active_system'
+                          ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50'
+                          : 'bg-[#070A12] text-slate-400 border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      {activeSystem.name.split(' ')[0]} System ({(bravaisDbIndex.bySystem[activeSystem.id] || []).length})
+                    </button>
+                    <button
+                      onClick={() => {
+                        playSynthTone('tick');
+                        setCatalogBravaisScope('all_14');
+                        setCatalogVisibleCount(24);
+                      }}
+                      className={`px-2.5 py-1.5 rounded-lg border font-bold whitespace-nowrap shrink-0 transition-all ${
+                        catalogBravaisScope === 'all_14'
+                          ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                          : 'bg-[#070A12] text-slate-400 border-slate-800 hover:text-slate-200'
+                      }`}
+                    >
+                      All 14 Lattices ({bravaisDbIndex.allPhases.length})
                     </button>
                   </div>
+
+                  {/* Instant Search Input */}
+                  <div className="relative flex-1 max-w-md">
+                    <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    <input
+                      type="text"
+                      value={catalogDbSearch}
+                      onChange={(e) => {
+                        setCatalogDbSearch(e.target.value);
+                        setCatalogVisibleCount(24);
+                      }}
+                      placeholder="Filter by phase name, formula, space group, or Pearson..."
+                      className="w-full pl-8 pr-16 py-1.5 rounded-lg bg-[#070A12] border border-slate-800 text-xs font-mono text-slate-100 placeholder:text-slate-500 focus:border-cyan-500/60 focus:outline-none"
+                    />
+                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[10px] font-mono tabular-nums text-cyan-400">
+                      {liveDbCatalogPhases.length}
+                    </span>
+                  </div>
                 </div>
-              );
-            })}
-          </div>
+
+                {/* Quick 14-Bravais Jump Bar */}
+                <div className="flex items-center gap-1.5 flex-wrap pt-2 border-t border-slate-800/80 font-mono text-[10px]">
+                  <span className="text-slate-500 uppercase tracking-wider font-bold mr-1">Bravais Jump:</span>
+                  {BRAVAIS_14_CATALOG.map((b) => {
+                    const cnt = (bravaisDbIndex.byPearson[b.pearson] || []).length;
+                    const isSelected = catalogBravaisScope === 'active_bravais' && b.pearson === activePearsonSymbol;
+                    return (
+                      <button
+                        key={b.pearson}
+                        onClick={() => {
+                          handleSelectBravais14(b.systemId, b.centering);
+                          setCatalogBravaisScope('active_bravais');
+                          setCatalogVisibleCount(24);
+                        }}
+                        className={`px-2 py-0.5 rounded border tabular-nums transition-all whitespace-nowrap shrink-0 ${
+                          isSelected
+                            ? 'bg-cyan-500/20 text-cyan-300 border-cyan-500/50 font-bold'
+                            : 'bg-[#070A12] text-slate-400 border-slate-800 hover:border-slate-700 hover:text-slate-200'
+                        }`}
+                      >
+                        {b.pearson} <span className="text-slate-500">{cnt}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Live DB Material Cards Grid */}
+              {liveDbCatalogPhases.length === 0 ? (
+                <div className="bg-[#0B0F19] border border-slate-800 rounded-xl p-8 text-center font-mono space-y-2">
+                  <div className="text-sm font-bold text-slate-200">No matching crystalline phases found</div>
+                  <p className="text-xs text-slate-400">
+                    Try clearing the search query or switching scope to All 14 Lattices.
+                  </p>
+                </div>
+              ) : (
+                <>
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {liveDbCatalogPhases.slice(0, catalogVisibleCount).map((phase, idx) => {
+                      const topPeaks = phase.peaks
+                        .filter((pk) => pk.twoTheta >= 5 && pk.twoTheta <= 95)
+                        .slice(0, 12);
+                      const maxIntensity = topPeaks.reduce((m, p) => Math.max(m, p.intensity), 1);
+                      const primaryPeak = [...phase.peaks].sort((a, b) => b.intensity - a.intensity)[0];
+                      const accentHex =
+                        phase.centering === 'I' || phase.centering === 'R' ? '#f59e0b' : '#38bdf8';
+
+                      return (
+                        <div
+                          key={`${phase.name}-${phase.pearson}-${idx}`}
+                          className="bg-[#0B0F19] border border-slate-800 rounded-xl p-4 space-y-3 hover:border-slate-700 transition-all flex flex-col justify-between"
+                        >
+                          <div className="space-y-2.5">
+                            <div className="flex justify-between items-center gap-2 text-[10px] font-mono uppercase tracking-wider">
+                              <div className="flex items-center gap-1.5 min-w-0">
+                                <span className="px-1.5 py-0.5 rounded bg-cyan-500/15 text-cyan-300 border border-cyan-500/35 font-bold shrink-0">
+                                  {phase.pearson}
+                                </span>
+                                <span className="text-amber-300 font-bold truncate">{phase.spaceGroup}</span>
+                                <span className="text-slate-700">·</span>
+                                <span className="text-slate-400 truncate">{phase.type}</span>
+                              </div>
+                              <CrystalSystemMiniSchematic
+                                systemId={phase.systemId}
+                                centering={phase.centering}
+                                isSelected={true}
+                                size="sm"
+                              />
+                            </div>
+
+                            <div>
+                              <h3 className="text-sm font-bold text-slate-100 leading-snug line-clamp-1" title={phase.name}>
+                                {phase.name}
+                              </h3>
+                              <div className="flex items-center justify-between gap-2 mt-0.5 text-[11px] font-mono">
+                                <span className="font-bold text-amber-400 truncate">{phase.formula}</span>
+                                {phase.density > 0 && (
+                                  <span className="text-slate-400 tabular-nums shrink-0">
+                                    ρ = {phase.density.toFixed(2)} g/cm³
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <div className="text-[10px] font-mono tabular-nums text-slate-400 bg-[#070A12] border border-slate-800/80 rounded-lg px-2.5 py-1.5 flex items-center justify-between gap-2">
+                              <span className="truncate">
+                                a={phase.parsedLattice.a.toFixed(2)} b={phase.parsedLattice.b.toFixed(2)} c={phase.parsedLattice.c.toFixed(2)} Å
+                              </span>
+                              <span
+                                className={`text-[9px] font-bold shrink-0 ${
+                                  phase.parsedLattice.isParsedFromText ? 'text-emerald-400' : 'text-slate-500'
+                                }`}
+                              >
+                                {phase.parsedLattice.isParsedFromText ? 'EXACT CELL' : 'PROTOTYPE CELL'}
+                              </span>
+                            </div>
+
+                            {phase.description && (
+                              <p className="text-[11px] text-slate-400 leading-relaxed line-clamp-2">
+                                {phase.description}
+                              </p>
+                            )}
+
+                            {/* Real Parsed Powder XRD Stick Fingerprint from MATERIAL_DB */}
+                            <div className="bg-[#070A12] border border-slate-800/90 rounded-lg p-2.5 space-y-1">
+                              <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
+                                <span className="uppercase tracking-wider font-bold text-slate-300">
+                                  Measured XRD Fingerprint ({phase.peaks.length} lines)
+                                </span>
+                                <span className="text-cyan-400/80">Cu Kα₁ · 10°–90°</span>
+                              </div>
+                              <svg viewBox="0 0 170 52" className="w-full h-12 overflow-visible select-none">
+                                <line x1="8" y1="14" x2="164" y2="14" stroke="#0f172a" strokeWidth="0.7" />
+                                <line x1="8" y1="26" x2="164" y2="26" stroke="#0f172a" strokeWidth="0.7" />
+                                <line x1="8" y1="38" x2="164" y2="38" stroke="#334155" strokeWidth="1" />
+                                {[20, 40, 60, 80].map((deg) => {
+                                  const tx = 10 + ((deg - 10) / 80) * 152;
+                                  return (
+                                    <g key={deg}>
+                                      <line x1={tx} y1="38" x2={tx} y2="41" stroke="#475569" strokeWidth="0.8" />
+                                      <text x={tx} y="48" textAnchor="middle" fill="#64748b" fontSize="6" fontFamily="monospace">
+                                        {deg}°
+                                      </text>
+                                    </g>
+                                  );
+                                })}
+                                {topPeaks.map((pk, pIdx) => {
+                                  const clampedTheta = Math.max(10, Math.min(90, pk.twoTheta));
+                                  const x = 10 + ((clampedTheta - 10) / 80) * 152;
+                                  const h = Math.max(4, (pk.intensity / maxIntensity) * 28);
+                                  const isPrimary = primaryPeak && pk.twoTheta === primaryPeak.twoTheta;
+                                  const col = isPrimary ? '#f59e0b' : accentHex;
+                                  const showLabel = isPrimary || (pIdx < 3 && pk.intensity >= maxIntensity * 0.45);
+                                  return (
+                                    <g key={`${pk.twoTheta}-${pIdx}`}>
+                                      <path
+                                        d={`M ${x - 4.5} 38 Q ${x} ${38 - h * 1.12} ${x + 4.5} 38`}
+                                        fill={col}
+                                        fillOpacity="0.14"
+                                        stroke={col}
+                                        strokeWidth="0.6"
+                                        strokeOpacity="0.4"
+                                      />
+                                      <line x1={x} y1={38} x2={x} y2={38 - h} stroke={col} strokeWidth={isPrimary ? '1.8' : '1.3'} />
+                                      {showLabel && (
+                                        <text
+                                          x={x}
+                                          y={Math.max(7, 38 - h - 2.5)}
+                                          textAnchor="middle"
+                                          fill="#e2e8f0"
+                                          fontSize="5.8"
+                                          fontFamily="monospace"
+                                          fontWeight="bold"
+                                        >
+                                          {pk.label || `${pk.twoTheta.toFixed(1)}°`}
+                                        </text>
+                                      )}
+                                    </g>
+                                  );
+                                })}
+                              </svg>
+                            </div>
+                          </div>
+
+                          <div className="pt-2.5 border-t border-slate-800/80 flex justify-between items-center gap-2 text-[10px] font-mono text-slate-400">
+                            <span className="truncate tabular-nums">
+                              {primaryPeak
+                                ? `I₁₀₀: 2θ=${primaryPeak.twoTheta.toFixed(2)}°${primaryPeak.label ? ` (${primaryPeak.label})` : ''}`
+                                : phase.crystalSystem}
+                            </span>
+                            <button
+                              onClick={() => handleInspectDbPhaseIn3D(phase)}
+                              className="px-2.5 py-1 rounded-md bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-bold text-[10px] whitespace-nowrap shrink-0 flex items-center gap-1 transition-all"
+                            >
+                              <Rotate3d className="w-3 h-3" />
+                              <span>Inspect 3D</span>
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+
+                  {liveDbCatalogPhases.length > catalogVisibleCount && (
+                    <div className="flex justify-center pt-2">
+                      <button
+                        onClick={() => {
+                          playSynthTone('tick');
+                          setCatalogVisibleCount((prev) => prev + 24);
+                        }}
+                        className="px-4 py-2 rounded-lg bg-[#0B0F19] hover:bg-slate-900 text-cyan-300 border border-cyan-500/40 font-mono font-bold text-xs tabular-nums transition-all"
+                      >
+                        Load More Phases ({liveDbCatalogPhases.length - catalogVisibleCount} remaining)
+                      </button>
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {/* Curated Prototypes Filter Bar */}
+              <div className="flex items-center justify-between flex-wrap gap-2">
+                <button
+                  onClick={() => { playSynthTone('tick'); setShowAllSystemsMaterials(prev => !prev); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold border transition-all whitespace-nowrap shrink-0 ${
+                    showAllSystemsMaterials
+                      ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/50'
+                      : 'bg-[#0B0F19] text-slate-300 border-slate-800 hover:border-slate-700'
+                  }`}
+                >
+                  {showAllSystemsMaterials ? 'Showing All 7 Systems' : `Showing ${activeSystem.name.split(' ')[0]} Only`}
+                </button>
+
+                <div className="flex items-center gap-1 bg-[#070A12] p-1 rounded-lg border border-slate-800 text-[11px] font-mono flex-wrap">
+                  {(['All', 'Metal', 'Ceramic', 'Mineral', 'Semiconductor', 'Geological'] as const).map(cat => (
+                    <button
+                      key={cat}
+                      onClick={() => { playSynthTone('tick'); setMaterialCategoryFilter(cat); }}
+                      className={`px-2.5 py-1 rounded-md font-bold transition-all whitespace-nowrap shrink-0 ${
+                        materialCategoryFilter === cat
+                          ? 'bg-cyan-500/20 text-cyan-300 border border-cyan-500/40'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      {cat}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {displayedMaterials.map((mat, idx) => {
+                  const customMat = 'isCustom' in mat && mat.isCustom ? (mat as CustomMaterialEntry) : null;
+                  const targetCentering = customMat
+                    ? customMat.centering
+                    : inferCenteringFromLatticeType(mat.latticeType, mat.systemId);
+                  const stickPeaks = customMat && customMat.computedPeaks.length > 0
+                    ? customMat.computedPeaks
+                    : targetCentering === 'F'
+                      ? [
+                          { x: 34, h: 30, label: '111', color: '#38bdf8' },
+                          { x: 48, h: 18, label: '200', color: '#38bdf8' },
+                          { x: 78, h: 24, label: '220', color: '#38bdf8' },
+                          { x: 104, h: 20, label: '311', color: '#38bdf8' },
+                          { x: 116, h: 11, label: '222', color: '#38bdf8' },
+                          { x: 146, h: 14, label: '400', color: '#38bdf8' },
+                        ]
+                      : targetCentering === 'I'
+                      ? [
+                          { x: 38, h: 30, label: '110', color: '#f59e0b' },
+                          { x: 64, h: 16, label: '200', color: '#f59e0b' },
+                          { x: 88, h: 25, label: '211', color: '#f59e0b' },
+                          { x: 114, h: 14, label: '220', color: '#f59e0b' },
+                          { x: 140, h: 18, label: '310', color: '#f59e0b' },
+                        ]
+                      : targetCentering === 'R'
+                      ? [
+                          { x: 28, h: 22, label: '012', color: '#f59e0b' },
+                          { x: 48, h: 30, label: '104', color: '#f59e0b' },
+                          { x: 64, h: 23, label: '110', color: '#f59e0b' },
+                          { x: 88, h: 27, label: '116', color: '#f59e0b' },
+                          { x: 118, h: 16, label: '024', color: '#f59e0b' },
+                          { x: 144, h: 19, label: '300', color: '#f59e0b' },
+                        ]
+                      : targetCentering === 'C'
+                      ? [
+                          { x: 26, h: 25, label: '110', color: '#38bdf8' },
+                          { x: 44, h: 30, label: '020', color: '#38bdf8' },
+                          { x: 60, h: 20, label: '111', color: '#38bdf8' },
+                          { x: 84, h: 23, label: '200', color: '#38bdf8' },
+                          { x: 114, h: 18, label: '131', color: '#38bdf8' },
+                          { x: 142, h: 15, label: '221', color: '#38bdf8' },
+                        ]
+                      : mat.systemId === 'hexagonal'
+                      ? [
+                          { x: 30, h: 21, label: '100', color: '#38bdf8' },
+                          { x: 40, h: 19, label: '002', color: '#f59e0b' },
+                          { x: 52, h: 30, label: '101', color: '#38bdf8' },
+                          { x: 80, h: 18, label: '102', color: '#38bdf8' },
+                          { x: 108, h: 22, label: '110', color: '#38bdf8' },
+                          { x: 138, h: 19, label: '103', color: '#38bdf8' },
+                        ]
+                      : [
+                          { x: 24, h: 26, label: '100', color: '#38bdf8' },
+                          { x: 44, h: 30, label: '101', color: '#38bdf8' },
+                          { x: 66, h: 21, label: '110', color: '#38bdf8' },
+                          { x: 90, h: 24, label: '200', color: '#38bdf8' },
+                          { x: 116, h: 18, label: '211', color: '#38bdf8' },
+                          { x: 144, h: 16, label: '220', color: '#38bdf8' },
+                        ];
+
+                  return (
+                    <div
+                      key={`${mat.name}-${idx}`}
+                      className="bg-[#0B0F19] border border-slate-800 rounded-xl p-5 space-y-4 hover:border-slate-700 transition-all flex flex-col justify-between"
+                    >
+                      <div className="space-y-3">
+                        <div className="flex justify-between items-center text-[10px] font-mono uppercase tracking-wider">
+                          <span className="text-slate-400 font-bold">
+                            {mat.category} <span className="text-slate-700">·</span>{' '}
+                            <span className="text-cyan-400">{mat.spaceGroup}</span>
+                          </span>
+                          <CrystalSystemMiniSchematic
+                            systemId={mat.systemId}
+                            centering={targetCentering}
+                            isSelected={true}
+                            size="sm"
+                          />
+                        </div>
+
+                        <div>
+                          <h3 className="text-base font-bold text-slate-100">{mat.name}</h3>
+                          <div className="text-xs font-mono font-bold text-amber-400 mt-0.5">{mat.formula}</div>
+                        </div>
+
+                        <p className="text-xs text-slate-400 leading-relaxed">
+                          {mat.description}
+                        </p>
+
+                        {/* Calibrated Powder XRD Diffractogram & Stick Fingerprint */}
+                        <div className="bg-[#070A12] border border-slate-800/90 rounded-lg p-2.5 space-y-1">
+                          <div className="flex items-center justify-between text-[9px] font-mono text-slate-400">
+                            <span className="uppercase tracking-wider font-bold text-slate-300">
+                              Powder XRD Fingerprint ({targetCentering}-Lattice)
+                            </span>
+                            <span className="text-cyan-400/80">Cu Kα₁ · 1.5406 Å</span>
+                          </div>
+                          <svg viewBox="0 0 170 52" className="w-full h-12 overflow-visible select-none">
+                            <line x1="8" y1="14" x2="164" y2="14" stroke="#0f172a" strokeWidth="0.7" />
+                            <line x1="8" y1="26" x2="164" y2="26" stroke="#0f172a" strokeWidth="0.7" />
+                            <line x1="8" y1="38" x2="164" y2="38" stroke="#334155" strokeWidth="1" />
+                            {[20, 40, 60, 80].map((deg, tIdx) => {
+                              const tx = 18 + tIdx * 42;
+                              return (
+                                <g key={deg}>
+                                  <line x1={tx} y1="38" x2={tx} y2="41" stroke="#475569" strokeWidth="0.8" />
+                                  <text x={tx} y="48" textAnchor="middle" fill="#64748b" fontSize="6" fontFamily="monospace">
+                                    {deg}°
+                                  </text>
+                                </g>
+                              );
+                            })}
+                            {stickPeaks.map((pk, pIdx) => (
+                              <g key={pIdx}>
+                                <path
+                                  d={`M ${pk.x - 6} 38 Q ${pk.x} ${38 - pk.h * 1.15} ${pk.x + 6} 38`}
+                                  fill={pk.color}
+                                  fillOpacity="0.14"
+                                  stroke={pk.color}
+                                  strokeWidth="0.7"
+                                  strokeOpacity="0.45"
+                                />
+                                <line
+                                  x1={pk.x}
+                                  y1={38}
+                                  x2={pk.x}
+                                  y2={38 - pk.h}
+                                  stroke={pk.color}
+                                  strokeWidth="1.8"
+                                />
+                                <circle cx={pk.x} cy={38 - pk.h} r="1.6" fill="#f8fafc" stroke={pk.color} strokeWidth="0.9" />
+                                <text
+                                  x={pk.x}
+                                  y={38 - pk.h - 3.5}
+                                  textAnchor="middle"
+                                  fill="#e2e8f0"
+                                  fontSize="6.5"
+                                  fontFamily="monospace"
+                                  fontWeight="bold"
+                                >
+                                  {pk.label}
+                                </text>
+                              </g>
+                            ))}
+                          </svg>
+                        </div>
+                      </div>
+
+                      <div className="pt-3 border-t border-slate-800/80 flex justify-between items-center gap-2 text-[11px] font-mono text-slate-400">
+                        <span className="truncate">{mat.latticeType}</span>
+                        <button
+                          onClick={() => {
+                            playSynthTone('tick');
+                            setSelectedSystemId(mat.systemId);
+                            setActiveCentering(targetCentering);
+                            if (customMat) {
+                              setLoaded3DPhase({
+                                name: customMat.name,
+                                formula: customMat.formula,
+                                spaceGroup: customMat.spaceGroup,
+                                a: customMat.a,
+                                b: customMat.b,
+                                c: customMat.c,
+                                alpha: customMat.alpha,
+                                beta: customMat.beta,
+                                gamma: customMat.gamma,
+                                molarMass: customMat.molarMass,
+                                density: customMat.densityGcm3,
+                                isParsedFromText: true,
+                              });
+                            } else {
+                              setLoaded3DPhase(null);
+                            }
+                            setViewMode('3d');
+                          }}
+                          className="px-2.5 py-1 rounded-md bg-cyan-500/15 hover:bg-cyan-500/25 text-cyan-300 border border-cyan-500/40 font-bold text-[10px] whitespace-nowrap shrink-0 flex items-center gap-1 transition-all"
+                        >
+                          <Rotate3d className="w-3 h-3" />
+                          <span>Inspect 3D</span>
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Key Insights Panel */}
           <div className="bg-[#0B0F19] border border-slate-800 rounded-xl p-5 space-y-3">
@@ -3513,6 +4029,24 @@ export const UnitCellsSection: React.FC = () => {
                         </defs>
                         {qIdx === 0 && (
                           <g>
+                            {/* Isometric cube with highlighted [111] 3-fold triad body diagonal */}
+                            <polygon points="14,18 38,18 48,10 24,10" fill="#1e293b" fillOpacity="0.65" stroke="#475569" strokeWidth="1" />
+                            <rect x="14" y="18" width="24" height="28" fill="#0c192c" stroke="#38bdf8" strokeWidth="1.3" />
+                            <polygon points="38,18 48,10 48,38 38,46" fill="#091322" stroke="#475569" strokeWidth="1" />
+                            <line x1="14" y1="46" x2="48" y2="10" stroke="#f59e0b" strokeWidth="1.8" />
+                            <polygon points="31,22 36,30 26,30" fill="#f59e0b" fillOpacity="0.28" stroke="#fbbf24" strokeWidth="1.1" />
+                            <circle cx="14" cy="46" r="2.7" fill={`url(#qzAm-${qIdx})`} />
+                            <circle cx="48" cy="10" r="2.7" fill={`url(#qzAm-${qIdx})`} />
+                            <text x="94" y="23" textAnchor="middle" fill="#f59e0b" fontSize="8" fontFamily="monospace" fontWeight="bold">
+                              4 × ⟨111⟩
+                            </text>
+                            <text x="94" y="37" textAnchor="middle" fill="#cbd5e1" fontSize="7.5" fontFamily="monospace">
+                              3-fold Triads
+                            </text>
+                          </g>
+                        )}
+                        {qIdx === 1 && (
+                          <g>
                             <rect x="12" y="8" width="40" height="40" fill="#0f172a" fillOpacity="0.6" stroke="#475569" strokeWidth="1.1" strokeDasharray="2.5 2" />
                             <polygon points="32,8 52,28 32,48 12,28" fill="#0891b2" fillOpacity="0.22" stroke="#38bdf8" strokeWidth="1.5" />
                             {[[32, 8], [52, 28], [32, 48], [12, 28]].map(([cx, cy], i) => (
@@ -3527,7 +4061,7 @@ export const UnitCellsSection: React.FC = () => {
                             </text>
                           </g>
                         )}
-                        {qIdx === 1 && (
+                        {qIdx === 2 && (
                           <g>
                             <polygon points="10,16 34,16 42,10 18,10" fill="#1e293b" stroke="#64748b" strokeWidth="1" />
                             <rect x="10" y="16" width="24" height="32" fill="#0c192c" stroke="#38bdf8" strokeWidth="1.3" />
@@ -3545,7 +4079,7 @@ export const UnitCellsSection: React.FC = () => {
                             </text>
                           </g>
                         )}
-                        {qIdx === 2 && (
+                        {qIdx === 3 && (
                           <g>
                             <rect x="12" y="10" width="36" height="36" fill="#0c192c" stroke="#38bdf8" strokeWidth="1.4" />
                             {[[12, 10], [48, 10], [12, 46], [48, 46]].map(([cx, cy], i) => (
@@ -3560,7 +4094,7 @@ export const UnitCellsSection: React.FC = () => {
                             </text>
                           </g>
                         )}
-                        {qIdx === 3 && (
+                        {qIdx === 4 && (
                           <g>
                             <polygon points="28,6 48,17 48,39 28,50 8,39 8,17" fill="#0c192c" stroke="#38bdf8" strokeWidth="1.3" />
                             <circle cx="28" cy="28" r="3.2" fill={`url(#qzTi-${qIdx})`} />
@@ -3574,7 +4108,7 @@ export const UnitCellsSection: React.FC = () => {
                             </text>
                           </g>
                         )}
-                        {qIdx === 4 && (
+                        {qIdx === 5 && (
                           <g>
                             <polygon points="18,12 52,12 42,44 8,44" fill="#0c192c" stroke="#38bdf8" strokeWidth="1.4" />
                             <line x1="18" y1="12" x2="42" y2="44" stroke="#f59e0b" strokeWidth="1.6" />
@@ -3587,7 +4121,7 @@ export const UnitCellsSection: React.FC = () => {
                             </text>
                           </g>
                         )}
-                        {qIdx === 5 && (
+                        {qIdx === 6 && (
                           <g>
                             <line x1="8" y1="44" x2="126" y2="44" stroke="#334155" strokeWidth="1" />
                             <line x1="22" y1="44" x2="22" y2="12" stroke="#38bdf8" strokeWidth="2.4" />

@@ -6,6 +6,15 @@ import { ScientificMathControl } from "./ScientificMathControl";
 import { StructureFactorPhasorDiagram } from "./StructureFactorPhasorDiagram";
 import { DiffractionRingVisualizer } from "./DiffractionRingVisualizer";
 import { ReciprocalSpaceProbe3D } from "./ReciprocalSpaceProbe3D";
+import { SpaceGroupExtinctionLab } from "./selection/SpaceGroupExtinctionLab";
+import { BasisContrastExplorer } from "./selection/BasisContrastExplorer";
+import {
+  computeExactDSpacing,
+  DEFAULT_LATTICE_BY_SYSTEM,
+  GeneralLatticeParams,
+} from "./selection/selectionRulesPhysics";
+import { XRAY_ANODES, XRAY_ANODE_LIST } from "./periodic/xrayAnodePhysics";
+import { buildBravaisDatabaseIndex, IndexedDbBravaisMaterial } from "./fundamentals/bravaisPhysics";
 import { motion, AnimatePresence } from "motion/react";
 import {
   CheckCircle2,
@@ -43,6 +52,8 @@ import {
   Radio,
   Eye,
   EyeOff,
+  Search,
+  Database,
 } from "lucide-react";
 
 const Symmetry3DVisualizer = ({
@@ -97,10 +108,10 @@ const Symmetry3DVisualizer = ({
     setIsDragging(false);
   };
 
-  const isHex = system === "Hexagonal";
-  const isMono = system === "Monoclinic";
+  const isHex = system === "Hexagonal" || system === "Rhombohedral";
+  const isMono = system === "Monoclinic" || system === "Monoclinic_C";
   const isTri = system === "Triclinic";
-  const isOrth = ["Orthorhombic", "Orthorhombic_F", "Orthorhombic_C"].includes(
+  const isOrth = ["Orthorhombic", "Orthorhombic_I", "Orthorhombic_F", "Orthorhombic_C"].includes(
     system,
   );
   const isTet = ["Tetragonal", "Tetragonal_I"].includes(system);
@@ -1000,12 +1011,9 @@ const Symmetry3DVisualizer = ({
         {/* Dynamic Coordinates Overlay */}
         <div className="absolute top-4 left-5 flex items-start flex-col gap-1.5 z-20 pointer-events-none">
           <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500 shadow-[0_0_8px_rgba(16,185,129,0.8)]"></span>
-            </span>
-            <span className="text-[10px] font-mono font-black text-emerald-400 uppercase tracking-[0.2em] drop-shadow-md">
-              Live Matrix
+            <span className="inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            <span className="text-[10px] font-mono font-bold text-emerald-400 uppercase tracking-[0.18em]">
+              3D Lattice Frame
             </span>
           </div>
           <div className="flex flex-col gap-0.5 ml-4">
@@ -1108,35 +1116,72 @@ const calculateDSpacingForProbe = (
   h: number,
   k: number,
   l: number,
-  system: string,
+  system: CrystalSystem,
   a: number,
+  latticeOverride?: GeneralLatticeParams,
 ) => {
   if (h === 0 && k === 0 && l === 0) return 0;
-
-  // Set representative cell constants based on the system to showcase realistic non-cubic physics
-  let b = a;
-  let c = a;
-
-  if (system.startsWith("Tetragonal")) {
-    c = a * 1.35; // realistic Tetragonal c/a ratio
-    const dInvSq = (h * h + k * k) / (a * a) + (l * l) / (c * c);
-    return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
-  } else if (system.startsWith("Orthorhombic")) {
-    b = a * 1.15;
-    c = a * 1.45;
-    const dInvSq = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
-    return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
-  } else if (system === "Hexagonal") {
-    c = a * 1.633; // ideal HCP c/a packing ratio
-    const dInvSq =
-      ((4 / 3) * (h * h + k * k + h * k)) / (a * a) + (l * l) / (c * c);
-    return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
-  } else {
-    // Cubic systems: SC, BCC, FCC, Diamond, etc.
-    const dInvSq = (h * h + k * k + l * l) / (a * a);
-    return dInvSq > 0 ? 1 / Math.sqrt(dInvSq) : 0;
+  if (latticeOverride) {
+    return computeExactDSpacing(h, k, l, latticeOverride);
   }
+  const base = DEFAULT_LATTICE_BY_SYSTEM[system] ?? DEFAULT_LATTICE_BY_SYSTEM.FCC;
+  const scale = base.a > 0 ? a / base.a : 1;
+  return computeExactDSpacing(h, k, l, {
+    a,
+    b: base.b * scale,
+    c: base.c * scale,
+    alpha: base.alpha,
+    beta: base.beta,
+    gamma: base.gamma,
+  });
 };
+
+function mapDbMaterialToCrystalSystem(mat: IndexedDbBravaisMaterial): CrystalSystem {
+  const { systemId, centering, spaceGroup } = mat;
+  if (spaceGroup.includes("Fd-3m") || spaceGroup.includes("227")) return "Diamond";
+  if (systemId === "cubic") {
+    if (centering === "F") return "FCC";
+    if (centering === "I") return "BCC";
+    return "SC";
+  }
+  if (systemId === "hexagonal") return "Hexagonal";
+  if (systemId === "trigonal") return centering === "R" ? "Rhombohedral" : "Hexagonal";
+  if (systemId === "tetragonal") return centering === "I" ? "Tetragonal_I" : "Tetragonal";
+  if (systemId === "orthorhombic") {
+    if (centering === "I") return "Orthorhombic_I";
+    if (centering === "F") return "Orthorhombic_F";
+    if (centering === "C") return "Orthorhombic_C";
+    return "Orthorhombic";
+  }
+  if (systemId === "monoclinic") return centering === "C" ? "Monoclinic_C" : "Monoclinic";
+  return "Triclinic";
+}
+
+function extractHklsFromDbPeaks(mat: IndexedDbBravaisMaterial): [number, number, number][] {
+  const out: [number, number, number][] = [];
+  const seen = new Set<string>();
+  for (const pk of mat.peaks) {
+    const cleaned = pk.label.replace(/[()[\]]/g, " ").trim();
+    let triple: [number, number, number] | null = null;
+    const spaced = cleaned.match(/(-?\d+)\s+(-?\d+)\s+(-?\d+)/);
+    if (spaced) {
+      triple = [parseInt(spaced[1], 10), parseInt(spaced[2], 10), parseInt(spaced[3], 10)];
+    } else {
+      const compact = cleaned.match(/^(\d)(\d)(\d)$/);
+      if (compact) {
+        triple = [parseInt(compact[1], 10), parseInt(compact[2], 10), parseInt(compact[3], 10)];
+      }
+    }
+    if (triple && !(triple[0] === 0 && triple[1] === 0 && triple[2] === 0)) {
+      const key = triple.join("_");
+      if (!seen.has(key)) {
+        seen.add(key);
+        out.push(triple);
+      }
+    }
+  }
+  return out;
+}
 
 export const SelectionRulesModule: React.FC = () => {
   const [system, setSystem] = useState<CrystalSystem>("FCC");
@@ -1148,7 +1193,12 @@ export const SelectionRulesModule: React.FC = () => {
   const [filter, setFilter] = useState<"All" | "Allowed" | "Forbidden">("All");
   const [maxIndex, setMaxIndex] = useState<number>(3);
   const [resultsGraphicTab, setResultsGraphicTab] = useState<
-    "DIFFRACTION_RINGS" | "PHASOR_ARGAND" | "VALIDATION_MATRIX" | "CROSS_LATTICE_MATRIX"
+    | "DIFFRACTION_RINGS"
+    | "PHASOR_ARGAND"
+    | "VALIDATION_MATRIX"
+    | "CROSS_LATTICE_MATRIX"
+    | "SPACE_GROUP_LAB"
+    | "BASIS_CONTRAST"
   >("VALIDATION_MATRIX");
   const menuRef = useRef<HTMLDivElement>(null);
 
@@ -1172,26 +1222,106 @@ export const SelectionRulesModule: React.FC = () => {
 
   const [manualProbe, setManualProbe] = useState<[number, number, number]>([1, 1, 1]);
   const [wavelength, setWavelength] = useState<number>(1.5406); // Cu-Ka1 wavelength in Angstroms
-  const [latticeParameter, setLatticeParameter] = useState<number>(4.05); // Lattice constant 'a' in Angstroms
+  const [latticeParams, setLatticeParams] = useState<GeneralLatticeParams>(
+    DEFAULT_LATTICE_BY_SYSTEM.FCC,
+  );
+  const latticeParameter = latticeParams.a;
+
+  // Live MATERIAL_DB Phase Loader
+  const dbPhases = useMemo(() => buildBravaisDatabaseIndex().allPhases, []);
+  const [dbSearchQuery, setDbSearchQuery] = useState<string>("");
+  const [loadedPhaseBanner, setLoadedPhaseBanner] = useState<{
+    name: string;
+    formula: string;
+    spaceGroup: string;
+  } | null>(null);
+
+  const filteredDbPhases = useMemo(() => {
+    const q = dbSearchQuery.trim().toLowerCase();
+    if (!q) return [];
+    return dbPhases
+      .filter(
+        (m) =>
+          m.name.toLowerCase().includes(q) ||
+          m.formula.toLowerCase().includes(q) ||
+          m.spaceGroup.toLowerCase().includes(q),
+      )
+      .slice(0, 8);
+  }, [dbPhases, dbSearchQuery]);
+
+  const selectSystemWithDefaults = (nextSys: CrystalSystem) => {
+    setSystem(nextSys);
+    setLatticeParams({ ...DEFAULT_LATTICE_BY_SYSTEM[nextSys] });
+    setLoadedPhaseBanner(null);
+  };
+
+  const updateLatticeField = (field: keyof GeneralLatticeParams, value: number) => {
+    setLatticeParams((prev) => {
+      const next = { ...prev, [field]: value };
+      if (field === "a") {
+        if (["SC", "BCC", "FCC", "Diamond", "Cubic"].includes(system)) {
+          next.b = value;
+          next.c = value;
+        } else if (["Tetragonal", "Tetragonal_I", "Hexagonal", "Rhombohedral"].includes(system)) {
+          next.b = value;
+        }
+      }
+      return next;
+    });
+  };
+
+  const handleLoadDbPhase = (mat: IndexedDbBravaisMaterial) => {
+    const mapped = mapDbMaterialToCrystalSystem(mat);
+    setSystem(mapped);
+    setLatticeParams({
+      a: mat.parsedLattice.a,
+      b: mat.parsedLattice.b,
+      c: mat.parsedLattice.c,
+      alpha: mat.parsedLattice.alpha,
+      beta: mat.parsedLattice.beta,
+      gamma: mat.parsedLattice.gamma,
+    });
+    const extracted = extractHklsFromDbPeaks(mat);
+    if (extracted.length > 0) {
+      setHklInput(extracted.slice(0, 16).map((p) => p.join(" ")).join(", "));
+      const first = extracted[0];
+      syncActiveProbe(first[0], first[1], first[2]);
+    }
+    setLoadedPhaseBanner({
+      name: mat.name,
+      formula: mat.formula,
+      spaceGroup: mat.spaceGroup,
+    });
+    setDbSearchQuery("");
+  };
 
   useCustomMaterialApply('selection', (mat) => {
     const mapped: CrystalSystem =
       mat.crystalSystem === 'Cubic'
         ? (mat.centering === 'F' ? 'FCC' : mat.centering === 'I' ? 'BCC' : 'SC')
-        : mat.crystalSystem === 'Hexagonal' || mat.crystalSystem === 'Trigonal'
+        : mat.crystalSystem === 'Trigonal'
+        ? (mat.centering === 'R' ? 'Rhombohedral' : 'Hexagonal')
+        : mat.crystalSystem === 'Hexagonal'
         ? 'Hexagonal'
         : mat.crystalSystem === 'Tetragonal'
         ? (mat.centering === 'I' ? 'Tetragonal_I' : 'Tetragonal')
         : mat.crystalSystem === 'Orthorhombic'
-        ? (mat.centering === 'F' ? 'Orthorhombic_F' : mat.centering === 'C' ? 'Orthorhombic_C' : 'Orthorhombic')
+        ? (mat.centering === 'I' ? 'Orthorhombic_I' : mat.centering === 'F' ? 'Orthorhombic_F' : mat.centering === 'C' ? 'Orthorhombic_C' : 'Orthorhombic')
         : mat.crystalSystem === 'Monoclinic'
-        ? 'Monoclinic'
+        ? (mat.centering === 'C' ? 'Monoclinic_C' : 'Monoclinic')
         : mat.crystalSystem === 'Triclinic'
         ? 'Triclinic'
         : 'SC';
     setSystem(mapped);
-    setLatticeParameter(mat.lattice.a);
-    setWavelength(mat.wavelength || 1.54056);
+    setLatticeParams({
+      a: mat.lattice.a,
+      b: mat.lattice.b,
+      c: mat.lattice.c,
+      alpha: mat.lattice.alpha,
+      beta: mat.lattice.beta,
+      gamma: mat.lattice.gamma,
+    });
+    setWavelength(mat.wavelength || 1.5406);
     if (mat.peaks.length > 0) {
       setHklInput(mat.peaks.map((p) => `${p.h} ${p.k} ${p.l}`).join(', '));
       const first = mat.peaks[0];
@@ -1236,7 +1366,7 @@ export const SelectionRulesModule: React.FC = () => {
     phaseDeg: number;
   } => {
     let basis: [number, number, number][] = [[0, 0, 0]];
-    if (sys === "BCC" || sys === "Tetragonal_I") {
+    if (sys === "BCC" || sys === "Tetragonal_I" || sys === "Orthorhombic_I") {
       basis = [
         [0, 0, 0],
         [0.5, 0.5, 0.5],
@@ -1266,7 +1396,13 @@ export const SelectionRulesModule: React.FC = () => {
         [0, 0, 0],
         [2 / 3, 1 / 3, 0.5],
       ];
-    } else if (sys === "Orthorhombic_C") {
+    } else if (sys === "Rhombohedral") {
+      basis = [
+        [0, 0, 0],
+        [2 / 3, 1 / 3, 1 / 3],
+        [1 / 3, 2 / 3, 2 / 3],
+      ];
+    } else if (sys === "Orthorhombic_C" || sys === "Monoclinic_C") {
       basis = [
         [0, 0, 0],
         [0.5, 0.5, 0],
@@ -1345,84 +1481,45 @@ export const SelectionRulesModule: React.FC = () => {
       label: "Cubic",
       icon: <Box className="w-4 h-4" />,
       options: [
-        {
-          value: "SC",
-          label: "Simple Cubic",
-          badge: "P",
-          color: "text-emerald-400",
-        },
-        {
-          value: "BCC",
-          label: "Body-Centered",
-          badge: "I",
-          color: "text-emerald-400",
-        },
-        {
-          value: "FCC",
-          label: "Face-Centered",
-          badge: "F",
-          color: "text-emerald-400",
-        },
-        {
-          value: "Diamond",
-          label: "Diamond",
-          badge: "Fd-3m",
-          color: "text-emerald-400",
-        },
+        { value: "SC", label: "Simple Cubic (cP)", badge: "cP", color: "text-emerald-400" },
+        { value: "BCC", label: "Body-Centered (cI)", badge: "cI", color: "text-emerald-400" },
+        { value: "FCC", label: "Face-Centered (cF)", badge: "cF", color: "text-emerald-400" },
+        { value: "Diamond", label: "Diamond Cubic", badge: "Fd-3m", color: "text-emerald-400" },
       ],
     },
     {
-      label: "Hexagonal",
+      label: "Hexagonal & Trigonal",
       icon: <Hexagon className="w-4 h-4" />,
       options: [
-        {
-          value: "Hexagonal",
-          label: "Hexagonal",
-          badge: "HCP",
-          color: "text-amber-400",
-        },
+        { value: "Hexagonal", label: "Hexagonal HCP (hP)", badge: "hP", color: "text-amber-400" },
+        { value: "Rhombohedral", label: "Rhombohedral Obverse (hR)", badge: "hR", color: "text-amber-400" },
       ],
     },
     {
       label: "Tetragonal",
       icon: <Pyramid className="w-4 h-4" />,
       options: [
-        {
-          value: "Tetragonal",
-          label: "Primitive",
-          badge: "P",
-          color: "text-blue-400",
-        },
-        {
-          value: "Tetragonal_I",
-          label: "Body-Centered",
-          badge: "I",
-          color: "text-blue-400",
-        },
+        { value: "Tetragonal", label: "Primitive (tP)", badge: "tP", color: "text-blue-400" },
+        { value: "Tetragonal_I", label: "Body-Centered (tI)", badge: "tI", color: "text-blue-400" },
       ],
     },
     {
       label: "Orthorhombic",
       icon: <Cuboid className="w-4 h-4" />,
       options: [
-        {
-          value: "Orthorhombic",
-          label: "Primitive",
-          badge: "P",
-          color: "text-rose-400",
-        },
-        {
-          value: "Orthorhombic_F",
-          label: "Face-Centered",
-          badge: "F",
-          color: "text-rose-400",
-        },
-        {
-          value: "Orthorhombic_C",
-          label: "Base-Centered",
-          badge: "C",
-          color: "text-rose-400",
-        },
+        { value: "Orthorhombic", label: "Primitive (oP)", badge: "oP", color: "text-rose-400" },
+        { value: "Orthorhombic_I", label: "Body-Centered (oI)", badge: "oI", color: "text-rose-400" },
+        { value: "Orthorhombic_F", label: "Face-Centered (oF)", badge: "oF", color: "text-rose-400" },
+        { value: "Orthorhombic_C", label: "Base-Centered (oC)", badge: "oC", color: "text-rose-400" },
+      ],
+    },
+    {
+      label: "Monoclinic & Triclinic",
+      icon: <Component className="w-4 h-4" />,
+      options: [
+        { value: "Monoclinic", label: "Monoclinic Primitive (mP)", badge: "mP", color: "text-violet-400" },
+        { value: "Monoclinic_C", label: "Monoclinic Base-Centered (mC)", badge: "mC", color: "text-violet-400" },
+        { value: "Triclinic", label: "Triclinic Primitive (aP)", badge: "aP", color: "text-slate-300" },
       ],
     },
   ];
@@ -1462,7 +1559,7 @@ export const SelectionRulesModule: React.FC = () => {
         const [h, k, l] = res.hkl;
         const sf = computeStructureFactorMetrics(system, h, k, l);
         const mult = generateEquivalentPlanes(h, k, l, system).length;
-        const dVal = calculateDSpacingForProbe(h, k, l, system, latticeParameter);
+        const dVal = calculateDSpacingForProbe(h, k, l, system, latticeParameter, latticeParams);
         const sinTheta = dVal > 0 ? wavelength / (2 * dVal) : 2;
         const twoThetaStr =
           sinTheta <= 1 ? ((2 * Math.asin(sinTheta) * 180) / Math.PI).toFixed(2) : "Out of Ewald";
@@ -1490,85 +1587,137 @@ export const SelectionRulesModule: React.FC = () => {
     return results.filter((r) => r.status === filter);
   }, [results, filter]);
 
-  const systemDetails = {
+  const systemDetails: Record<
+    CrystalSystem,
+    { title: string; rule: string; origin: string; formula: string; examples: string }
+  > = {
     SC: {
-      title: "Simple Cubic (SC)",
-      rule: "All (h k l) are allowed.",
+      title: "Simple Cubic (cP)",
+      rule: "All non-zero (h k l) are allowed.",
       origin:
-        "The primitive unit cell has only one lattice point at (0,0,0). No destructive interference occurs between basis atoms.",
+        "The primitive unit cell has only one lattice point at (0,0,0). No destructive centering interference occurs between lattice translations.",
       formula: "F(hkl) = f",
-      examples: "Polonium (Po), Pyrite (FeS2 - Pa3)",
+      examples: "α-Polonium (Po), CsCl (ordered B2), SrTiO₃, Pyrite (FeS₂)",
+    },
+    Cubic: {
+      title: "Cubic Primitive (cP)",
+      rule: "All non-zero (h k l) are allowed.",
+      origin:
+        "General primitive cubic cell with one lattice point per cell at (0,0,0).",
+      formula: "F(hkl) = f",
+      examples: "α-Polonium (Po), Perovskite (ABO₃)",
     },
     BCC: {
-      title: "Body-Centered Cubic (BCC)",
-      rule: "h + k + l must be even.",
+      title: "Body-Centered Cubic (cI)",
+      rule: "h + k + l must be even (h + k + l = 2n).",
       origin:
-        "Lattice points at (0,0,0) and (½,½,½). Destructive interference occurs when the phase difference is π (odd sum).",
+        "Lattice points at (0,0,0) and (½,½,½). Destructive interference occurs whenever h + k + l is odd (phase shift π).",
       formula: "F(hkl) = f[1 + exp(πi(h+k+l))]",
-      examples: "Iron (α-Fe), Chromium (Cr), Tungsten (W), Sodium (Na)",
+      examples: "α-Iron (Fe), Chromium (Cr), Tungsten (W), β-Titanium (β-Ti)",
     },
     FCC: {
-      title: "Face-Centered Cubic (FCC)",
-      rule: "h, k, l must be all even or all odd.",
+      title: "Face-Centered Cubic (cF)",
+      rule: "h, k, l must be unmixed (all even or all odd).",
       origin:
-        "Lattice points at (0,0,0), (½,½,0), (½,0,½), (0,½,½). Mixed parity leads to total destructive interference.",
+        "Lattice points at (0,0,0), (½,½,0), (½,0,½), (0,½,½). Mixed parity causes exact pairwise cancellation to zero.",
       formula: "F(hkl) = f[1 + e^{πi(h+k)} + e^{πi(h+l)} + e^{πi(k+l)}]",
-      examples:
-        "Aluminum (Al), Copper (Cu), Gold (Au), Silver (Ag), Nickel (Ni)",
+      examples: "Aluminum (Al), Copper (Cu), Gold (Au), Silver (Ag), γ-Fe, UO₂",
     },
     Diamond: {
-      title: "Diamond Cubic",
-      rule: "FCC rules + if all even, h+k+l must be divisible by 4.",
+      title: "Diamond Cubic (Fd-3m)",
+      rule: "FCC unmixed parity + if all even, h + k + l = 4n.",
       origin:
-        "Basis of two atoms at (0,0,0) and (¼,¼,¼) combined with FCC lattice. This adds extra extinctions (e.g., 200 forbidden).",
-      formula: "F(hkl) = F_{FCC} [1 + exp(πi/2(h+k+l))]",
-      examples: "Silicon (Si), Germanium (Ge), Diamond (C)",
+        "Two-atom basis at (0,0,0) and (¼,¼,¼) on an FCC lattice introduces a diamond d-glide extinguishing (200), (222), and (420).",
+      formula: "F(hkl) = F_{FCC} · [1 + exp(πi(h+k+l)/2)]",
+      examples: "Silicon (Si), Germanium (Ge), Diamond (C), α-Tin (Grey Sn)",
     },
     Hexagonal: {
-      title: "Hexagonal Close Packed (HCP)",
+      title: "Hexagonal Close Packed (hP / HCP)",
       rule: "Forbidden if l is odd AND (h + 2k) is divisible by 3.",
       origin:
-        "Basis of two atoms at (0,0,0) and (2/3, 1/3, 1/2) in a primitive hexagonal cell.",
-      formula: "F(hkl) = f[1 + exp(2πi(h/3 + 2k/3 + l/2))]",
-      examples: "Magnesium (Mg), Titanium (Ti), Zinc (Zn)",
+        "Two-atom HCP basis at (0,0,0) and (⅔,⅓,½) in space group P6₃/mmc creates 6₃ screw and c-glide absences such as (001) and (111).",
+      formula: "F(hkl) = f[1 + exp(2πi((2h+k)/3 + l/2))]",
+      examples: "Magnesium (Mg), α-Titanium (α-Ti), Zinc (Zn), α-Zirconium (α-Zr)",
+    },
+    Rhombohedral: {
+      title: "Rhombohedral Obverse Hexagonal Setting (hR)",
+      rule: "−h + k + l = 3n (Obverse R-centering).",
+      origin:
+        "Rhombohedral centering translations at (0,0,0), (⅔,⅓,⅓), and (⅓,⅔,⅔) in the hexagonal setting cancel all reflections unless −h + k + l = 3n.",
+      formula: "F(hkl) = f[1 + e^{2πi(2h+k+l)/3} + e^{2πi(h+2k+2l)/3}]",
+      examples: "Corundum (α-Al₂O₃), Hematite (α-Fe₂O₃), Calcite (CaCO₃), Bismuth (Bi)",
     },
     Tetragonal: {
-      title: "Tetragonal (Primitive)",
-      rule: "All (h k l) are allowed.",
+      title: "Tetragonal Primitive (tP)",
+      rule: "All non-zero (h k l) allowed by Bravais centering.",
       origin:
-        "Primitive cell with lattice points only at corners. No centering to cause destructive interference.",
+        "Primitive tetragonal cell (a = b ≠ c) has lattice points only at corners; additional zonal/serial absences arise from glide/screw space groups like P4₂/mnm.",
       formula: "F(hkl) = f",
-      examples: "Rutile (TiO2), Stishovite (SiO2)",
+      examples: "Rutile (TiO₂), Cassiterite (SnO₂), t-ZrO₂ (P4₂/nmc)",
     },
     Tetragonal_I: {
-      title: "Tetragonal (Body Centered)",
-      rule: "h + k + l must be even.",
+      title: "Tetragonal Body-Centered (tI)",
+      rule: "h + k + l must be even (h + k + l = 2n).",
       origin:
-        "Lattice points at (0,0,0) and (½,½,½). Same extinction condition as BCC.",
+        "Lattice points at (0,0,0) and (½,½,½) enforce identical integral absences as BCC while splitting d-spacings along c*.",
       formula: "F(hkl) = f[1 + exp(πi(h+k+l))]",
-      examples: "Anatase (TiO2), Tin (White Sn)",
+      examples: "Anatase (TiO₂), White Tin (β-Sn), Indium (In), Martensite (α'-Fe)",
     },
     Orthorhombic: {
-      title: "Orthorhombic (Primitive)",
-      rule: "All (h k l) are allowed.",
-      origin: "Primitive cell with lattice points only at corners.",
+      title: "Orthorhombic Primitive (oP)",
+      rule: "All non-zero (h k l) allowed by Bravais centering.",
+      origin:
+        "Primitive orthorhombic cell (a ≠ b ≠ c) has no integral centering absences; space groups like Pnma add zonal/serial absences.",
       formula: "F(hkl) = f",
-      examples: "Topaz, Aragonite (CaCO3), Sulfur (α-S)",
+      examples: "Olivine (Mg₂SiO₄), Aragonite (CaCO₃), Cementite (Fe₃C), Topaz",
+    },
+    Orthorhombic_I: {
+      title: "Orthorhombic Body-Centered (oI)",
+      rule: "h + k + l must be even (h + k + l = 2n).",
+      origin:
+        "Body-centered orthorhombic translation (½,½,½) extinguishes every reflection with odd h + k + l.",
+      formula: "F(hkl) = f[1 + exp(πi(h+k+l))]",
+      examples: "α-Manganese alloys, U₃Si₂-type intermetallics, Immm oxides",
     },
     Orthorhombic_F: {
-      title: "Orthorhombic (Face Centered)",
-      rule: "h, k, l must be all even or all odd.",
-      origin: "Lattice points at faces. Same extinction condition as FCC.",
+      title: "Orthorhombic Face-Centered (oF)",
+      rule: "h, k, l must be unmixed (all even or all odd).",
+      origin:
+        "All-face centering translations at (½,½,0), (½,0,½), and (0,½,½) extinguish all mixed-parity reflections.",
       formula: "F(hkl) = f[1 + e^{πi(h+k)} + e^{πi(h+l)} + e^{πi(k+l)}]",
-      examples: "Gallium (Ga - pseudo-orthorhombic)",
+      examples: "α-Sulfur (Fddd), γ-Plutonium (Fddd), Orthorhombic TiSi₂",
     },
     Orthorhombic_C: {
-      title: "Orthorhombic (Base Centered C)",
-      rule: "h + k must be even.",
+      title: "Orthorhombic Base-Centered (oC)",
+      rule: "h + k must be even (h + k = 2n).",
       origin:
-        "Lattice points at (0,0,0) and (½,½,0). Centering on C-face causes extinction when h+k is odd.",
+        "C-face centering at (0,0,0) and (½,½,0) extinguishes all reflections with odd h + k regardless of l.",
       formula: "F(hkl) = f[1 + exp(πi(h+k))]",
-      examples: "Alpha-Uranium (α-U)",
+      examples: "α-Uranium (α-U, Cmcm), α-Gallium (Cmce), CrB borides",
+    },
+    Monoclinic: {
+      title: "Monoclinic Primitive (mP)",
+      rule: "All non-zero (h k l) allowed by P-centering (P2₁/c adds h0l: l=2n, 0k0: k=2n).",
+      origin:
+        "Primitive monoclinic cell (β ≠ 90°) has no general centering absence; oblique β couples h and l in 1/d² and splits (hkl) vs (-h k l).",
+      formula: "F(hkl) = f  (space-group glides/screws inspectable in Space Group Lab)",
+      examples: "Baddeleyite (m-ZrO₂, P2₁/c), α-Plutonium (P2₁/m), Monoclinic Sulfur",
+    },
+    Monoclinic_C: {
+      title: "Monoclinic Base-Centered (mC)",
+      rule: "h + k must be even (h + k = 2n).",
+      origin:
+        "C-centered monoclinic translation (½,½,0) extinguishes all reflections with odd h + k; space group C2/c further enforces h0l: l = 2n.",
+      formula: "F(hkl) = f[1 + exp(πi(h+k))]",
+      examples: "β-Ga₂O₃ (C2/m), Gypsum (CaSO₄·2H₂O, C2/c), Clinopyroxene, β-Pu",
+    },
+    Triclinic: {
+      title: "Triclinic Primitive (aP)",
+      rule: "All non-zero (h k l) are allowed (no systematic absences).",
+      origin:
+        "Lowest-symmetry Bravais lattice (a ≠ b ≠ c, α ≠ β ≠ γ ≠ 90°) contains no translational centering, glide planes, or screw axes.",
+      formula: "F(hkl) = f",
+      examples: "Plagioclase Feldspar (Anorthite), Turquoise, Kyanite (Al₂SiO₅)",
     },
   };
 
@@ -1650,6 +1799,18 @@ export const SelectionRulesModule: React.FC = () => {
       description:
         "Hexagonal symmetry requires a 6-fold rotation axis. Characteristic of close-packed HCP.",
     },
+    Rhombohedral: {
+      group: "-3m (D3d)",
+      laueClass: "-3m",
+      bravais: "Rhombohedral (R)",
+      operations: 12,
+      rotation: ["1 x 3-fold rotoinversion (-3 along c)", "3 x 2-fold (basal)"],
+      reflection: "3 Diagonal Mirror / Glide Planes",
+      inversion: true,
+      identity: "1",
+      description:
+        "Trigonal holohedry with rhombohedral Obverse centering translations (⅔,⅓,⅓) and (⅓,⅔,⅔) in the hexagonal setting.",
+    },
     Tetragonal: {
       group: "4/mmm (D4h)",
       laueClass: "4/mmm",
@@ -1685,6 +1846,18 @@ export const SelectionRulesModule: React.FC = () => {
       identity: "1",
       description:
         "Three mutually perpendicular 2-fold axes. Low symmetry relative to cubic.",
+    },
+    Orthorhombic_I: {
+      group: "mmm (D2h)",
+      laueClass: "mmm",
+      bravais: "Body-Centered (I)",
+      operations: 8,
+      rotation: ["3 x 2-fold (Orthogonal)"],
+      reflection: "3 Symmetry Planes",
+      inversion: true,
+      identity: "1",
+      description:
+        "Body-centered orthorhombic lattice (oI) enforcing h + k + l = 2n across all reflections.",
     },
     Orthorhombic_F: {
       group: "mmm (D2h)",
@@ -1723,14 +1896,26 @@ export const SelectionRulesModule: React.FC = () => {
     Monoclinic: {
       group: "2/m (C2h)",
       laueClass: "2/m",
-      bravais: "Primitive (P) / Base-Centered (C)",
+      bravais: "Primitive (P)",
       operations: 4,
-      rotation: ["1 x 2-fold (b-axis)"],
-      reflection: "1 Mirror Plane",
+      rotation: ["1 x 2-fold (unique b-axis)"],
+      reflection: "1 Mirror Plane (⊥ b)",
       inversion: true,
       identity: "1",
       description:
-        "Symmetry follows reaching a single 2-fold axis and a perpendicular mirror plane.",
+        "Unique 2-fold axis along b with oblique β ≠ 90° splitting (hkl) from (−h k l) reflections.",
+    },
+    Monoclinic_C: {
+      group: "2/m (C2h)",
+      laueClass: "2/m",
+      bravais: "Base-Centered (C)",
+      operations: 4,
+      rotation: ["1 x 2-fold (unique b-axis)"],
+      reflection: "1 Mirror / Glide Plane (⊥ b)",
+      inversion: true,
+      identity: "1",
+      description:
+        "Base-centered monoclinic lattice (mC) enforcing h + k = 2n with unique monoclinic angle β ≠ 90°.",
     },
     Triclinic: {
       group: "-1 (Ci)",
@@ -1850,6 +2035,22 @@ export const SelectionRulesModule: React.FC = () => {
         { site: "4f", mult: 4, symmetry: "3m.", coords: "(1/3, 2/3, z)" },
       ],
     },
+    Rhombohedral: {
+      symbol: "R-3c",
+      number: 167,
+      centering: "Rhombohedral Obverse (R)",
+      extinctions: {
+        centeringCondition: "−h + k + l = 3n (Obverse hexagonal setting)",
+        glidePlanes: "c-glide: (h −h 0 l) l = 2n",
+        screwAxes: "000l: l = 6n (combined R + c-glide)",
+        generalRule: "R-centering enforces −h + k + l = 3n across all reflections",
+      },
+      wyckoffPositions: [
+        { site: "6a", mult: 6, symmetry: "32", coords: "(0, 0, 1/4)" },
+        { site: "6b", mult: 6, symmetry: "-3", coords: "(0, 0, 0)" },
+        { site: "12c", mult: 12, symmetry: "3.", coords: "(0, 0, z)" },
+      ],
+    },
     Tetragonal: {
       symbol: "P4/mmm",
       number: 123,
@@ -1898,6 +2099,21 @@ export const SelectionRulesModule: React.FC = () => {
         { site: "1c", mult: 1, symmetry: "mmm", coords: "(0, 1/2, 0)" },
       ],
     },
+    Orthorhombic_I: {
+      symbol: "Immm",
+      number: 71,
+      centering: "Body-Centered Orthorhombic (I)",
+      extinctions: {
+        centeringCondition: "h + k + l = 2n (even)",
+        glidePlanes: "None",
+        screwAxes: "None",
+        generalRule: "Sum h + k + l must be even",
+      },
+      wyckoffPositions: [
+        { site: "2a", mult: 2, symmetry: "mmm", coords: "(0, 0, 0)" },
+        { site: "2b", mult: 2, symmetry: "mmm", coords: "(0, 1/2, 1/2)" },
+      ],
+    },
     Orthorhombic_F: {
       symbol: "Fmmm",
       number: 69,
@@ -1943,18 +2159,34 @@ export const SelectionRulesModule: React.FC = () => {
       ],
     },
     Monoclinic: {
-      symbol: "P2/m",
-      number: 10,
+      symbol: "P2_1/c",
+      number: 14,
       centering: "Primitive Monoclinic (P)",
       extinctions: {
         centeringCondition: "None",
-        glidePlanes: "None (for P2/m); c-glide in P2_1/c requires h0l: l=2n",
-        screwAxes: "2_1 screw axis along b requires 0k0: k=2n",
-        generalRule: "Axial or zone restrictions apply for glide/screw variants",
+        glidePlanes: "c-glide ⊥ b: (h 0 l) l = 2n",
+        screwAxes: "2_1 screw axis || b: (0 k 0) k = 2n",
+        generalRule: "P-centering unrestricted; glide/screw absences in P2₁/c",
       },
       wyckoffPositions: [
-        { site: "1a", mult: 1, symmetry: "2/m", coords: "(0, 0, 0)" },
-        { site: "1b", mult: 1, symmetry: "2/m", coords: "(0, 1/2, 0)" },
+        { site: "2a", mult: 2, symmetry: "-1", coords: "(0, 0, 0)" },
+        { site: "4e", mult: 4, symmetry: "1", coords: "(x, y, z)" },
+      ],
+    },
+    Monoclinic_C: {
+      symbol: "C2/c",
+      number: 15,
+      centering: "Base-Centered Monoclinic (C)",
+      extinctions: {
+        centeringCondition: "h + k = 2n (even)",
+        glidePlanes: "c-glide ⊥ b: (h 0 l) h, l = 2n",
+        screwAxes: "None (0k0: k=2n from C-centering)",
+        generalRule: "C-centering requires h + k = 2n across all reflections",
+      },
+      wyckoffPositions: [
+        { site: "4a", mult: 4, symmetry: "-1", coords: "(0, 0, 0)" },
+        { site: "4e", mult: 4, symmetry: "2", coords: "(0, y, 1/4)" },
+        { site: "8f", mult: 8, symmetry: "1", coords: "(x, y, z)" },
       ],
     },
     Triclinic: {
@@ -2141,6 +2373,18 @@ export const SelectionRulesModule: React.FC = () => {
         { name: "L", coord: "(1/2, 0, 1/2)", desc: "Top edge center" },
       ],
     },
+    Rhombohedral: {
+      aStar: "4π / (a√3)",
+      bStar: "4π / (a√3)",
+      cStar: "2π / c",
+      dFormula: "1/d² = 4/3·(h² + hk + k²)/a² + l²/c²  (−h+k+l = 3n)",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "Z", coord: "(1/2, 1/2, 1/2)", desc: "Rhombohedral 3-fold vertex" },
+        { name: "L", coord: "(1/2, 0, 0)", desc: "Hexagonal face center" },
+        { name: "F", coord: "(1/2, 1/2, 0)", desc: "Side face center" },
+      ],
+    },
     Tetragonal: {
       aStar: "2π/a",
       bStar: "2π/a",
@@ -2179,6 +2423,17 @@ export const SelectionRulesModule: React.FC = () => {
         { name: "T", coord: "(0, 1/2, 1/2)", desc: "yz-face center" },
         { name: "S", coord: "(1/2, 1/2, 0)", desc: "xy-face center" },
         { name: "R", coord: "(1/2, 1/2, 1/2)", desc: "Corner point" },
+      ],
+    },
+    Orthorhombic_I: {
+      aStar: "2π/a",
+      bStar: "2π/b",
+      cStar: "2π/c",
+      dFormula: "1/d² = h²/a² + k²/b² + l²/c²  (h+k+l = 2n)",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "X", coord: "(1/2, 0, 0)", desc: "a-axis boundary" },
+        { name: "W", coord: "(1/4, 1/4, 1/4)", desc: "Body-centered vertex" },
       ],
     },
     Orthorhombic_F: {
@@ -2223,6 +2478,17 @@ export const SelectionRulesModule: React.FC = () => {
         { name: "Y", coord: "(0, 1/2, 0)", desc: "b-axis boundary" },
         { name: "Z", coord: "(0, 0, 1/2)", desc: "c-axis boundary" },
         { name: "B", coord: "(1/2, 0, 0)", desc: "a-axis boundary" },
+      ],
+    },
+    Monoclinic_C: {
+      aStar: "2π / (a·sinβ)",
+      bStar: "2π / b",
+      cStar: "2π / (c·sinβ)",
+      dFormula: "1/d² = (1/sin²β)[h²/a² + k²sin²β/b² + l²/c² - 2hl·cosβ/(ac)]  (h+k = 2n)",
+      bzPoints: [
+        { name: "Γ", coord: "(0, 0, 0)", desc: "Zone center" },
+        { name: "Y", coord: "(1/2, 1/2, 0)", desc: "Base-centered boundary" },
+        { name: "A", coord: "(0, 0, 1/2)", desc: "c-axis boundary" },
       ],
     },
     Triclinic: {
@@ -2332,13 +2598,13 @@ export const SelectionRulesModule: React.FC = () => {
       cubicPermutations(h, k, l);
     } else if (["Tetragonal", "Tetragonal_I"].includes(system)) {
       tetragonalPermutations(h, k, l);
-    } else if (system === "Hexagonal") {
+    } else if (system === "Hexagonal" || system === "Rhombohedral") {
       hexagonalPermutations(h, k, l);
     } else if (
-      ["Orthorhombic", "Orthorhombic_F", "Orthorhombic_C"].includes(system)
+      ["Orthorhombic", "Orthorhombic_I", "Orthorhombic_F", "Orthorhombic_C"].includes(system)
     ) {
       orthorhombicPermutations(h, k, l);
-    } else if (system === "Monoclinic") {
+    } else if (system === "Monoclinic" || system === "Monoclinic_C") {
       monoclinicPermutations(h, k, l);
     } else {
       triclinicPermutations(h, k, l);
@@ -2450,7 +2716,7 @@ export const SelectionRulesModule: React.FC = () => {
                             <button
                               key={`opt-${option.value}-${oIdx}`}
                               onClick={() => {
-                                setSystem(option.value as CrystalSystem);
+                                selectSystemWithDefaults(option.value as CrystalSystem);
                                 setIsSystemMenuOpen(false);
                               }}
                               className={`w-full px-4 py-3 rounded-none flex items-center justify-between transition-all group/item
@@ -2476,7 +2742,7 @@ export const SelectionRulesModule: React.FC = () => {
                                     {option.label}
                                   </span>
                                   <span className="text-[9px] text-slate-500 font-mono uppercase">
-                                    Selection Logic: {option.badge}-centering
+                                    Bravais Pearson: {option.badge}
                                   </span>
                                 </div>
                               </div>
@@ -2493,6 +2759,65 @@ export const SelectionRulesModule: React.FC = () => {
                   </motion.div>
                 )}
               </AnimatePresence>
+            </div>
+
+            {/* 1-Click Live XRD Database Phase Loader */}
+            <div className="bg-[#0B1221] p-4 rounded-xl border border-slate-800/90 space-y-2.5">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold text-sky-300 uppercase tracking-wider">
+                  <Database className="w-3.5 h-3.5 text-sky-400 shrink-0" />
+                  <span>Load Phase from XRD Library</span>
+                </div>
+                <span className="text-[9px] font-mono text-slate-500 tabular-nums">
+                  {dbPhases.length} phases
+                </span>
+              </div>
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-2.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                <input
+                  type="text"
+                  value={dbSearchQuery}
+                  onChange={(e) => setDbSearchQuery(e.target.value)}
+                  placeholder="Search Si, TiO₂, α-Al₂O₃, ZrO₂, UO₂, Mg..."
+                  className="w-full pl-8 pr-3 py-1.5 bg-[#050B14] border border-slate-700/80 rounded-lg text-xs font-mono text-white placeholder:text-slate-600 focus:outline-none focus:border-sky-500/60"
+                />
+              </div>
+              {filteredDbPhases.length > 0 && (
+                <div className="space-y-1 max-h-44 overflow-y-auto custom-scrollbar pt-1">
+                  {filteredDbPhases.map((mat) => (
+                    <button
+                      key={`${mat.name}-${mat.spaceGroup}`}
+                      type="button"
+                      onClick={() => handleLoadDbPhase(mat)}
+                      className="w-full px-2.5 py-1.5 rounded-md bg-[#050B14] hover:bg-slate-800/90 border border-slate-800 text-left flex items-center justify-between gap-2 transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <div className="text-[11px] font-bold text-white truncate">{mat.name}</div>
+                        <div className="text-[9.5px] font-mono text-slate-400 truncate">
+                          {mat.formula} · {mat.spaceGroup}
+                        </div>
+                      </div>
+                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-sky-500/15 text-sky-300 border border-sky-500/30 shrink-0">
+                        {mat.pearson}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+              {loadedPhaseBanner && (
+                <div className="px-2.5 py-1.5 rounded-md bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-between gap-2 text-[10px] font-mono">
+                  <span className="text-emerald-300 truncate">
+                    Loaded: {loadedPhaseBanner.name} ({loadedPhaseBanner.spaceGroup})
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setLoadedPhaseBanner(null)}
+                    className="text-slate-400 hover:text-white shrink-0"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              )}
             </div>
 
             <div className="p-5 bg-[#050B14] rounded-none border border-[#1e293b] group/rule transition-all hover:border-emerald-500/30">
@@ -2570,13 +2895,13 @@ export const SelectionRulesModule: React.FC = () => {
             />
 
             {/* Quick manual entry helper */}
-            <div className="space-y-2 p-4 bg-[#050B14]/40 rounded-none border border-[#1e293b]">
+            <div className="space-y-2 p-4 bg-[#050B14]/40 rounded-xl border border-slate-800/90">
               <div className="flex items-center justify-between text-left">
-                <div className="text-[9px] font-black font-mono text-slate-400 uppercase tracking-widest">
+                <div className="text-[10px] font-bold font-mono text-slate-300 uppercase tracking-wider">
                   Quick-Append Plane (h k l)
                 </div>
-                <span className="text-[8px] font-black text-[#10b981] bg-[#10b981]/10 border border-[#10b981]/20 px-1.5 py-0.5 rounded font-mono">
-                  SYNTHESIS_PROMPT
+                <span className="text-[9px] font-mono text-slate-500">
+                  Supports negative indices
                 </span>
               </div>
               <div className="flex gap-2 items-center">
@@ -2641,50 +2966,126 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
             </div>
 
-            {/* Lattice Constant a & X-ray Wavelength Controls for Live d_hkl and 2Theta */}
-            <div className="bg-[#0B1221] p-4 rounded-none border border-[#1e293b] space-y-3">
+            {/* Unit Cell Parameters & 6-Anode X-ray Radiation Controls */}
+            <div className="bg-[#0B1221] p-4 rounded-xl border border-slate-800/90 space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest font-mono">
-                  Kinematic Parameters (d & 2θ)
+                <span className="text-[10px] font-bold text-slate-300 uppercase tracking-wider font-mono">
+                  Unit Cell & X-Ray Anode
                 </span>
-                <span className="text-[9px] font-mono text-emerald-400 font-bold">
-                  a = {latticeParameter.toFixed(2)} Å | λ = {wavelength.toFixed(4)} Å
+                <span className="text-[10px] font-mono text-sky-300 font-bold tabular-nums">
+                  λ = {wavelength.toFixed(4)} Å
                 </span>
               </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="bg-[#050B14] p-2.5 border border-[#1e293b]">
-                  <label className="block text-[8px] font-mono font-bold text-slate-500 uppercase mb-1">
-                    Lattice Parameter a (Å)
+
+              {/* 6-Anode Quick Selector */}
+              <div className="grid grid-cols-6 gap-1">
+                {XRAY_ANODE_LIST.map((spec) => {
+                  const isActive = Math.abs(wavelength - spec.wavelengthKa1) < 0.005;
+                  return (
+                    <button
+                      key={spec.id}
+                      type="button"
+                      onClick={() => setWavelength(spec.wavelengthKa1)}
+                      className={`py-1 rounded text-[10px] font-mono font-bold border transition-colors ${
+                        isActive
+                          ? "bg-sky-500/20 text-sky-200 border-sky-500/50"
+                          : "bg-[#050B14] text-slate-400 border-slate-800 hover:text-white"
+                      }`}
+                      title={spec.label}
+                    >
+                      {spec.id}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Dynamic Lattice Edge / Angle Inputs */}
+              <div className="grid grid-cols-2 gap-2 font-mono">
+                <div className="bg-[#050B14] p-2 rounded-lg border border-slate-800">
+                  <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                    a (Å)
                   </label>
                   <input
                     type="number"
                     step="0.05"
-                    min="2.0"
-                    max="15.0"
-                    value={latticeParameter}
+                    min="1.5"
+                    max="25"
+                    value={Number(latticeParams.a.toFixed(3))}
                     onChange={(e) =>
-                      setLatticeParameter(
-                        Math.max(1.5, Math.min(20, parseFloat(e.target.value) || 4.05)),
+                      updateLatticeField(
+                        "a",
+                        Math.max(1.5, Math.min(25, parseFloat(e.target.value) || 4.05)),
                       )
                     }
-                    className="w-full bg-transparent font-mono font-bold text-xs text-emerald-400 outline-none tabular-nums"
+                    className="w-full bg-transparent font-bold text-xs text-emerald-400 outline-none tabular-nums"
                   />
                 </div>
-                <div className="bg-[#050B14] p-2.5 border border-[#1e293b]">
-                  <label className="block text-[8px] font-mono font-bold text-slate-500 uppercase mb-1">
-                    X-Ray Anode λ (Å)
-                  </label>
-                  <select
-                    value={wavelength}
-                    onChange={(e) => setWavelength(parseFloat(e.target.value))}
-                    className="w-full bg-[#050B14] font-mono font-bold text-xs text-sky-400 outline-none tabular-nums"
-                  >
-                    <option value={1.5406}>Cu Kα₁ (1.5406 Å)</option>
-                    <option value={1.78897}>Co Kα₁ (1.7890 Å)</option>
-                    <option value={0.7093}>Mo Kα₁ (0.7093 Å)</option>
-                    <option value={2.2897}>Cr Kα₁ (2.2897 Å)</option>
-                  </select>
-                </div>
+
+                {["Orthorhombic", "Orthorhombic_I", "Orthorhombic_F", "Orthorhombic_C", "Monoclinic", "Monoclinic_C", "Triclinic"].includes(system) && (
+                  <div className="bg-[#050B14] p-2 rounded-lg border border-slate-800">
+                    <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                      b (Å)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="1.5"
+                      max="25"
+                      value={Number(latticeParams.b.toFixed(3))}
+                      onChange={(e) =>
+                        updateLatticeField(
+                          "b",
+                          Math.max(1.5, Math.min(25, parseFloat(e.target.value) || 5.0)),
+                        )
+                      }
+                      className="w-full bg-transparent font-bold text-xs text-emerald-400 outline-none tabular-nums"
+                    />
+                  </div>
+                )}
+
+                {!["SC", "BCC", "FCC", "Diamond", "Cubic"].includes(system) && (
+                  <div className="bg-[#050B14] p-2 rounded-lg border border-slate-800">
+                    <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                      c (Å)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.05"
+                      min="1.5"
+                      max="30"
+                      value={Number(latticeParams.c.toFixed(3))}
+                      onChange={(e) =>
+                        updateLatticeField(
+                          "c",
+                          Math.max(1.5, Math.min(30, parseFloat(e.target.value) || 5.0)),
+                        )
+                      }
+                      className="w-full bg-transparent font-bold text-xs text-emerald-400 outline-none tabular-nums"
+                    />
+                  </div>
+                )}
+
+                {["Monoclinic", "Monoclinic_C", "Triclinic"].includes(system) && (
+                  <div className="bg-[#050B14] p-2 rounded-lg border border-slate-800">
+                    <label className="block text-[9px] font-bold text-slate-500 uppercase mb-0.5">
+                      β (deg)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.5"
+                      min="60"
+                      max="135"
+                      value={Number(latticeParams.beta.toFixed(2))}
+                      onChange={(e) =>
+                        updateLatticeField(
+                          "beta",
+                          Math.max(60, Math.min(135, parseFloat(e.target.value) || 99.2)),
+                        )
+                      }
+                      className="w-full bg-transparent font-bold text-xs text-amber-300 outline-none tabular-nums"
+                    />
+                  </div>
+                )}
               </div>
             </div>
 
@@ -2741,49 +3142,27 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
             )}
 
-            <div className="space-y-3">
+            <div className="space-y-2.5">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <div className="p-1 bg-emerald-500/20 rounded border border-emerald-500/30">
+                  <div className="p-1 bg-emerald-500/15 rounded border border-emerald-500/30">
                     <Binary className="w-3 h-3 text-emerald-400" />
                   </div>
-                  <label className="text-[10px] font-black text-slate-500 uppercase tracking-[0.2em]">
-                    Raw Sequence Sequence
+                  <label className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">
+                    Raw (h k l) Sequence
                   </label>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div className="h-1 w-8 bg-[#1e293b] rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ x: "-100%" }}
-                      animate={{ x: "100%" }}
-                      transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: "linear",
-                      }}
-                      className="h-full w-full bg-emerald-500/50"
-                    />
-                  </div>
-                  <span className="text-[8px] font-mono text-slate-600">
-                    INPUT_ACTIVE
-                  </span>
-                </div>
+                <span className="text-[9px] font-mono text-slate-500 tabular-nums">
+                  {parsedHKLList.length} planes
+                </span>
               </div>
-              <div className="relative group/indices">
-                <div className="absolute top-2 right-3 z-10 flex gap-1">
-                  <div className="w-1.5 h-1.5 rounded-full bg-red-500/30" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-amber-500/30" />
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/30" />
-                </div>
-                <div className="absolute inset-y-0 left-0 w-1 bg-emerald-500/30 rounded-full my-4 scale-y-0 group-focus-within/indices:scale-y-100 transition-transform duration-500" />
-                <textarea
-                  value={hklInput}
-                  onChange={(e) => setHklInput(e.target.value)}
-                  placeholder="e.g. 1 0 0, 1 1 0, 1 1 1"
-                  className="w-full h-24 px-4 py-4 bg-[#050B14] text-emerald-400 border-2 border-[#1e293b] rounded-none focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500/40 outline-none transition-all font-mono text-[11px] leading-relaxed resize-none shadow-[inset_0_2px_10px_rgba(0,0,0,0.5)] custom-scrollbar"
-                  spellCheck={false}
-                />
-              </div>
+              <textarea
+                value={hklInput}
+                onChange={(e) => setHklInput(e.target.value)}
+                placeholder="e.g. 1 0 0, 1 1 0, 1 1 1, -1 1 1"
+                className="w-full h-24 px-3.5 py-3 bg-[#050B14] text-emerald-400 border border-slate-700/80 rounded-xl focus:border-emerald-500/60 outline-none transition-colors font-mono text-[11px] leading-relaxed resize-none custom-scrollbar"
+                spellCheck={false}
+              />
             </div>
 
             <button
@@ -2815,24 +3194,25 @@ export const SelectionRulesModule: React.FC = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 relative z-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 relative z-10">
             {[
-              { id: "P", label: "Primitive", desc: "Points at Corners" },
-              { id: "I", label: "Body-Centered", desc: "Corners + Center" },
-              { id: "F", label: "Face-Centered", desc: "Corners + Faces" },
-              { id: "C", label: "Base-Centered", desc: "Corners + Pair" },
+              { id: "P", label: "Primitive", desc: "All h,k,l allowed" },
+              { id: "I", label: "Body-Centered", desc: "h+k+l = 2n" },
+              { id: "F", label: "Face-Centered", desc: "h,k,l unmixed" },
+              { id: "C", label: "Base-Centered", desc: "h+k = 2n" },
+              { id: "R", label: "Rhombohedral", desc: "−h+k+l = 3n" },
             ].map((type) => (
               <div
                 key={type.id}
-                className="bg-[#0B1221] p-3 rounded-none border border-[#1e293b] flex flex-col items-center text-center hover:bg-[#070D18] transition-all"
+                className="bg-[#0B1221] p-2.5 rounded-lg border border-slate-800/90 flex flex-col items-center text-center"
               >
-                <span className="text-sm font-black text-emerald-400 mb-1">
+                <span className="text-sm font-mono font-bold text-emerald-400 mb-0.5">
                   {type.id}
                 </span>
                 <span className="text-[9px] font-bold text-slate-300 uppercase leading-none mb-1">
                   {type.label}
                 </span>
-                <span className="text-[8px] text-slate-500 leading-tight">
+                <span className="text-[9px] font-mono text-slate-400 leading-tight">
                   {type.desc}
                 </span>
               </div>
@@ -2881,7 +3261,7 @@ export const SelectionRulesModule: React.FC = () => {
               </div>
               <div className="bg-[#050B14] p-4 rounded-none font-mono text-sm text-emerald-400 overflow-x-auto border border-[#1e293b]">
                 <div className="flex items-center gap-3">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500/50 animate-pulse shrink-0" />
+                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
                   <span className="whitespace-normal break-words drop-shadow-sm">
                     {
                       systemDetails[system as keyof typeof systemDetails]
@@ -2919,7 +3299,7 @@ export const SelectionRulesModule: React.FC = () => {
               const probeRule = validateSelectionRule(system, [ph, pk, pl]);
               const probeSf = computeStructureFactorMetrics(system, ph, pk, pl);
               const probeMult = generateEquivalentPlanes(ph, pk, pl, system).length;
-              const probeD = calculateDSpacingForProbe(ph, pk, pl, system, latticeParameter);
+              const probeD = calculateDSpacingForProbe(ph, pk, pl, system, latticeParameter, latticeParams);
               const sinTheta = probeD > 0 ? wavelength / (2 * probeD) : 2;
               const twoTheta =
                 sinTheta <= 1 ? (2 * Math.asin(sinTheta) * 180) / Math.PI : null;
@@ -3459,7 +3839,7 @@ export const SelectionRulesModule: React.FC = () => {
                         </span>
                       </div>
                       <div className="bg-[#050B14] p-3.5 rounded-none font-mono text-[11px] text-sky-300 border border-[#1e293b] flex gap-2.5 items-start">
-                        <div className="w-1.5 h-1.5 rounded-full bg-sky-500 animate-pulse mt-1 shrink-0" />
+                        <div className="w-1.5 h-1.5 rounded-full bg-sky-500 mt-1 shrink-0" />
                         <p className="leading-relaxed">
                           "{currentSymmetry.description}"
                         </p>
@@ -3476,6 +3856,7 @@ export const SelectionRulesModule: React.FC = () => {
                     visualizerL,
                     system,
                     latticeParameter,
+                    latticeParams,
                   );
                   const sampleQ = sampleD > 0 ? (2 * Math.PI) / sampleD : 0;
 
@@ -3656,63 +4037,93 @@ export const SelectionRulesModule: React.FC = () => {
         {/* Results Section (Properly housed inside lg:col-span-8 for full desktop width) */}
         <div className="space-y-6">
           {/* Graphic Suite Mode Selection Tabs */}
-          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#050B14]/90 p-2.5 rounded-2xl border border-[#1e293b] backdrop-blur-md">
-            <div className="flex flex-wrap items-center gap-1.5 p-1">
+          <div className="flex flex-wrap items-center justify-between gap-3 bg-[#050B14] p-2 rounded-xl border border-slate-800/90">
+            <div className="flex flex-wrap items-center gap-1.5">
               <button
+                type="button"
                 onClick={() => setResultsGraphicTab("VALIDATION_MATRIX")}
-                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 border ${
                   resultsGraphicTab === "VALIDATION_MATRIX"
-                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-lg shadow-emerald-500/20"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    ? "bg-emerald-500/20 text-emerald-200 border-emerald-500/45"
+                    : "text-slate-400 hover:text-white border-transparent hover:bg-slate-800/60"
                 }`}
               >
-                <CheckCircle2 className="w-3.5 h-3.5" />
-                <span>Systematic Absences & |F_hkl| Table</span>
-                <span className="text-[10px] bg-black/40 px-1.5 py-0.5 rounded text-slate-200 font-mono">
+                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                <span>Validation Table</span>
+                <span className="text-[10px] bg-black/40 px-1.5 py-0.5 rounded text-slate-200 font-mono tabular-nums">
                   {results.length}
                 </span>
               </button>
 
               <button
+                type="button"
+                onClick={() => setResultsGraphicTab("SPACE_GROUP_LAB")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 border ${
+                  resultsGraphicTab === "SPACE_GROUP_LAB"
+                    ? "bg-violet-500/20 text-violet-200 border-violet-500/45"
+                    : "text-slate-400 hover:text-white border-transparent hover:bg-slate-800/60"
+                }`}
+              >
+                <Compass className="w-3.5 h-3.5 shrink-0" />
+                <span>Space Groups & Glides</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setResultsGraphicTab("BASIS_CONTRAST")}
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 border ${
+                  resultsGraphicTab === "BASIS_CONTRAST"
+                    ? "bg-amber-500/20 text-amber-200 border-amber-500/45"
+                    : "text-slate-400 hover:text-white border-transparent hover:bg-slate-800/60"
+                }`}
+              >
+                <Atom className="w-3.5 h-3.5 shrink-0" />
+                <span>Superlattice & Basis</span>
+              </button>
+
+              <button
+                type="button"
                 onClick={() => setResultsGraphicTab("PHASOR_ARGAND")}
-                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 border ${
                   resultsGraphicTab === "PHASOR_ARGAND"
-                    ? "bg-gradient-to-r from-sky-600 to-indigo-600 text-white shadow-lg shadow-sky-500/20"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    ? "bg-sky-500/20 text-sky-200 border-sky-500/45"
+                    : "text-slate-400 hover:text-white border-transparent hover:bg-slate-800/60"
                 }`}
               >
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>F(hkl) Phasor Argand Diagram</span>
+                <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                <span>Phasor Argand</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setResultsGraphicTab("DIFFRACTION_RINGS")}
-                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 border ${
                   resultsGraphicTab === "DIFFRACTION_RINGS"
-                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-lg shadow-purple-500/20"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    ? "bg-indigo-500/20 text-indigo-200 border-indigo-500/45"
+                    : "text-slate-400 hover:text-white border-transparent hover:bg-slate-800/60"
                 }`}
               >
-                <Radio className="w-3.5 h-3.5" />
-                <span>2D Detector & Debye Rings</span>
+                <Radio className="w-3.5 h-3.5 shrink-0" />
+                <span>2D Detector & Rings</span>
               </button>
 
               <button
+                type="button"
                 onClick={() => setResultsGraphicTab("CROSS_LATTICE_MATRIX")}
-                className={`flex items-center gap-2 px-3.5 py-2 text-xs font-bold rounded-xl transition-all whitespace-nowrap ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors whitespace-nowrap shrink-0 border ${
                   resultsGraphicTab === "CROSS_LATTICE_MATRIX"
-                    ? "bg-gradient-to-r from-amber-600 to-orange-600 text-white shadow-lg shadow-amber-500/20"
-                    : "text-slate-400 hover:text-white hover:bg-slate-800/60"
+                    ? "bg-orange-500/20 text-orange-200 border-orange-500/45"
+                    : "text-slate-400 hover:text-white border-transparent hover:bg-slate-800/60"
                 }`}
               >
-                <Layers className="w-3.5 h-3.5" />
-                <span>Cross-Lattice Extinction Matrix</span>
+                <Layers className="w-3.5 h-3.5 shrink-0" />
+                <span>Cross-Lattice Matrix</span>
               </button>
             </div>
 
-            <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 px-3">
+            <div className="flex items-center gap-2 text-[10px] font-mono text-slate-400 px-2 tabular-nums shrink-0">
               <span className="flex items-center gap-1 text-emerald-400">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
                 {results.filter((r) => r.status === "Allowed").length} Allowed
               </span>
               <span className="text-slate-600">|</span>
@@ -3724,11 +4135,39 @@ export const SelectionRulesModule: React.FC = () => {
           </div>
 
           {/* Dynamic Graphic View based on selected tab */}
+          {resultsGraphicTab === "SPACE_GROUP_LAB" && (
+            <SpaceGroupExtinctionLab
+              wavelength={wavelength}
+              currentAllowedHkls={results
+                .filter((r) => r.status === "Allowed")
+                .map((r) => r.hkl)}
+              onSyncToWorkbench={({ system: nextSys, lattice, hklText, probeHkl }) => {
+                setSystem(nextSys);
+                setLatticeParams(lattice);
+                setHklInput(hklText);
+                if (probeHkl) {
+                  syncActiveProbe(probeHkl[0], probeHkl[1], probeHkl[2]);
+                }
+              }}
+              onSelectProbeHkl={(h, k, l) => syncActiveProbe(h, k, l)}
+            />
+          )}
+
+          {resultsGraphicTab === "BASIS_CONTRAST" && (
+            <BasisContrastExplorer
+              wavelength={wavelength}
+              onSelectProbeHkl={(h, k, l) => syncActiveProbe(h, k, l)}
+            />
+          )}
+
           {resultsGraphicTab === "DIFFRACTION_RINGS" && (
             <DiffractionRingVisualizer
               results={results}
               system={system}
               latticeParameter={latticeParameter}
+              latticeParams={latticeParams}
+              wavelength={wavelength}
+              onWavelengthChange={setWavelength}
               onSelectHkl={(h, k, l) => {
                 syncActiveProbe(h, k, l);
               }}
@@ -3763,6 +4202,8 @@ export const SelectionRulesModule: React.FC = () => {
               [4, 0, 0],
               [0, 0, 1],
               [0, 0, 2],
+              [0, 1, 2],
+              [1, 0, 4],
             ];
             const comparisonSystems: {
               id: CrystalSystem;
@@ -3770,12 +4211,13 @@ export const SelectionRulesModule: React.FC = () => {
               sg: string;
               ruleSummary: string;
             }[] = [
-              { id: "SC", short: "SC (P)", sg: "Pm-3m", ruleSummary: "All h,k,l allowed" },
-              { id: "BCC", short: "BCC (I)", sg: "Im-3m", ruleSummary: "h+k+l = 2n" },
-              { id: "FCC", short: "FCC (F)", sg: "Fm-3m", ruleSummary: "h,k,l unmixed" },
+              { id: "SC", short: "SC (cP)", sg: "Pm-3m", ruleSummary: "All h,k,l allowed" },
+              { id: "BCC", short: "BCC (cI)", sg: "Im-3m", ruleSummary: "h+k+l = 2n" },
+              { id: "FCC", short: "FCC (cF)", sg: "Fm-3m", ruleSummary: "h,k,l unmixed" },
               { id: "Diamond", short: "Diamond", sg: "Fd-3m", ruleSummary: "FCC + even sum=4n" },
-              { id: "Hexagonal", short: "HCP", sg: "P6₃/mmc", ruleSummary: "!(l odd & h+2k=3n)" },
-              { id: "Orthorhombic_C", short: "Base-C", sg: "Cmmm", ruleSummary: "h+k = 2n" },
+              { id: "Hexagonal", short: "HCP (hP)", sg: "P6₃/mmc", ruleSummary: "!(l odd & h+2k=3n)" },
+              { id: "Rhombohedral", short: "Rhomb (hR)", sg: "R-3c", ruleSummary: "−h+k+l = 3n" },
+              { id: "Orthorhombic_C", short: "Base-C (oC)", sg: "Cmmm", ruleSummary: "h+k = 2n" },
             ];
 
             return (
@@ -4063,6 +4505,7 @@ export const SelectionRulesModule: React.FC = () => {
                                 rl,
                                 system,
                                 latticeParameter,
+                                latticeParams,
                               );
                               const sinTheta = dVal > 0 ? wavelength / (2 * dVal) : 2;
                               const twoTheta =

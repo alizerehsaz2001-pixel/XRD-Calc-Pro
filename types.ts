@@ -99,7 +99,7 @@ export interface AIResponse {
   sources?: GroundingSource[];
 }
 
-export type CrystalSystem = 'SC' | 'BCC' | 'FCC' | 'Diamond' | 'Cubic' | 'Tetragonal' | 'Tetragonal_I' | 'Orthorhombic' | 'Orthorhombic_F' | 'Orthorhombic_C' | 'Hexagonal' | 'Monoclinic' | 'Triclinic';
+export type CrystalSystem = 'SC' | 'BCC' | 'FCC' | 'Diamond' | 'Cubic' | 'Tetragonal' | 'Tetragonal_I' | 'Orthorhombic' | 'Orthorhombic_I' | 'Orthorhombic_F' | 'Orthorhombic_C' | 'Hexagonal' | 'Rhombohedral' | 'Monoclinic' | 'Monoclinic_C' | 'Triclinic';
 
 export interface HKLPlaneSuggestion {
   twoTheta: number;

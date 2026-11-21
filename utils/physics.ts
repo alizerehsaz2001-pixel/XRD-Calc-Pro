@@ -1583,60 +1583,95 @@ export const parseHKLString = (input: string): [number, number, number][] => {
 
 export const validateSelectionRule = (system: CrystalSystem, hkl: [number, number, number]): SelectionRuleResult => {
   const [h, k, l] = hkl;
+  if (h === 0 && k === 0 && l === 0) {
+    return { hkl, status: 'Forbidden', reason: 'Direct forward beam (0 0 0) — not a diffracted Bragg plane' };
+  }
   const sum = h + k + l;
   const ah = Math.abs(h);
   const ak = Math.abs(k);
   const al = Math.abs(l);
+  const modPos = (n: number, m: number) => ((n % m) + m) % m;
 
   switch (system) {
     case 'SC':
     case 'Cubic':
-      return { hkl, status: 'Allowed', reason: 'Simple Cubic allows all reflections' };
+      return { hkl, status: 'Allowed', reason: 'Primitive Cubic (cP) allows all (h k l) reflections' };
     case 'BCC':
-      return sum % 2 === 0 
-        ? { hkl, status: 'Allowed', reason: 'Sum is even' }
-        : { hkl, status: 'Forbidden', reason: 'Sum is odd (h+k+l must be even)' };
-    case 'FCC':
+      return modPos(sum, 2) === 0
+        ? { hkl, status: 'Allowed', reason: `Body-centered (cI): h+k+l = ${sum} (even) → |F| = 2f` }
+        : { hkl, status: 'Forbidden', reason: `Body-centered (cI) extinction: h+k+l = ${sum} (odd) → F = 0` };
+    case 'FCC': {
       const isAllEven = (ah % 2 === 0) && (ak % 2 === 0) && (al % 2 === 0);
       const isAllOdd = (ah % 2 !== 0) && (ak % 2 !== 0) && (al % 2 !== 0);
       return (isAllEven || isAllOdd)
-        ? { hkl, status: 'Allowed', reason: 'Unmixed parity' }
-        : { hkl, status: 'Forbidden', reason: 'Mixed parity' };
-    case 'Diamond':
+        ? { hkl, status: 'Allowed', reason: 'Face-centered (cF): unmixed parity (all even or all odd) → |F| = 4f' }
+        : { hkl, status: 'Forbidden', reason: 'Face-centered (cF) extinction: mixed odd/even parity → F = 0' };
+    }
+    case 'Diamond': {
       const dIsAllEven = (ah % 2 === 0) && (ak % 2 === 0) && (al % 2 === 0);
       const dIsAllOdd = (ah % 2 !== 0) && (ak % 2 !== 0) && (al % 2 !== 0);
-      if (!dIsAllEven && !dIsAllOdd) return { hkl, status: 'Forbidden', reason: 'Mixed parity' };
-      if (dIsAllOdd) return { hkl, status: 'Allowed', reason: 'All odd allowed' };
-      return sum % 4 === 0 
-        ? { hkl, status: 'Allowed', reason: 'All even & sum divisible by 4' }
-        : { hkl, status: 'Forbidden', reason: 'All even but sum not divisible by 4' };
-    case 'Hexagonal':
-      // HCP Rule: Forbidden if l is odd AND (h + 2k) is divisible by 3
-      if (l % 2 !== 0) {
-        if ((h + 2 * k) % 3 === 0) {
-          return { hkl, status: 'Forbidden', reason: 'l is odd and h+2k is divisible by 3' };
-        }
+      if (!dIsAllEven && !dIsAllOdd) {
+        return { hkl, status: 'Forbidden', reason: 'FCC centering extinction: mixed parity → F = 0' };
       }
-      return { hkl, status: 'Allowed', reason: 'HCP allowed condition met' };
+      if (dIsAllOdd) {
+        return { hkl, status: 'Allowed', reason: 'Diamond (Fd-3m): all odd allowed → |F| = 4√2 f' };
+      }
+      return modPos(sum, 4) === 0
+        ? { hkl, status: 'Allowed', reason: `Diamond (Fd-3m): all even & h+k+l = ${sum} = 4n → |F| = 8f` }
+        : { hkl, status: 'Forbidden', reason: `Diamond d-glide extinction: all even but h+k+l = ${sum} ≠ 4n → F = 0` };
+    }
+    case 'Hexagonal':
+      // HCP (P6_3/mmc) Rule: Forbidden if l is odd AND (h + 2k) is divisible by 3
+      if (modPos(l, 2) !== 0 && modPos(h + 2 * k, 3) === 0) {
+        return { hkl, status: 'Forbidden', reason: `HCP (P6₃/mmc) extinction: l = ${l} (odd) and h+2k = ${h + 2 * k} (3n) → F = 0` };
+      }
+      return {
+        hkl,
+        status: 'Allowed',
+        reason: modPos(h + 2 * k, 3) === 0
+          ? 'HCP allowed (h+2k = 3n, l even) → |F| = 2f'
+          : `HCP allowed (h+2k ≠ 3n) → |F| = ${modPos(l, 2) === 0 ? 'f' : '√3 f'}`
+      };
+    case 'Rhombohedral': {
+      // Trigonal R-centered (hR) in standard Hexagonal Obverse axes: -h + k + l = 3n
+      const obverseSum = -h + k + l;
+      return modPos(obverseSum, 3) === 0
+        ? { hkl, status: 'Allowed', reason: `Rhombohedral Obverse (hR): −h+k+l = ${obverseSum} = 3n → |F| = 3f` }
+        : { hkl, status: 'Forbidden', reason: `Rhombohedral Obverse (hR) extinction: −h+k+l = ${obverseSum} ≠ 3n → F = 0` };
+    }
     case 'Tetragonal':
-    case 'Orthorhombic':
-      return { hkl, status: 'Allowed', reason: 'Primitive cell allows all reflections' };
+      return { hkl, status: 'Allowed', reason: 'Primitive Tetragonal (tP) allows all (h k l) reflections' };
     case 'Tetragonal_I':
-      return sum % 2 === 0
-        ? { hkl, status: 'Allowed', reason: 'Body centered: sum is even' }
-        : { hkl, status: 'Forbidden', reason: 'Body centered: sum is odd' };
-    case 'Orthorhombic_F':
+      return modPos(sum, 2) === 0
+        ? { hkl, status: 'Allowed', reason: `Body-centered Tetragonal (tI): h+k+l = ${sum} (even) → |F| = 2f` }
+        : { hkl, status: 'Forbidden', reason: `Body-centered Tetragonal (tI) extinction: h+k+l = ${sum} (odd) → F = 0` };
+    case 'Orthorhombic':
+      return { hkl, status: 'Allowed', reason: 'Primitive Orthorhombic (oP) allows all (h k l) reflections' };
+    case 'Orthorhombic_I':
+      return modPos(sum, 2) === 0
+        ? { hkl, status: 'Allowed', reason: `Body-centered Orthorhombic (oI): h+k+l = ${sum} (even) → |F| = 2f` }
+        : { hkl, status: 'Forbidden', reason: `Body-centered Orthorhombic (oI) extinction: h+k+l = ${sum} (odd) → F = 0` };
+    case 'Orthorhombic_F': {
       const oIsAllEven = (ah % 2 === 0) && (ak % 2 === 0) && (al % 2 === 0);
       const oIsAllOdd = (ah % 2 !== 0) && (ak % 2 !== 0) && (al % 2 !== 0);
       return (oIsAllEven || oIsAllOdd)
-        ? { hkl, status: 'Allowed', reason: 'Face centered: unmixed parity' }
-        : { hkl, status: 'Forbidden', reason: 'Face centered: mixed parity' };
+        ? { hkl, status: 'Allowed', reason: 'Face-centered Orthorhombic (oF): unmixed parity → |F| = 4f' }
+        : { hkl, status: 'Forbidden', reason: 'Face-centered Orthorhombic (oF) extinction: mixed parity → F = 0' };
+    }
     case 'Orthorhombic_C':
-      return (h + k) % 2 === 0
-        ? { hkl, status: 'Allowed', reason: 'Base centered (C): h+k is even' }
-        : { hkl, status: 'Forbidden', reason: 'Base centered (C): h+k is odd' };
+      return modPos(h + k, 2) === 0
+        ? { hkl, status: 'Allowed', reason: `Base-centered Orthorhombic (oC): h+k = ${h + k} (even) → |F| = 2f` }
+        : { hkl, status: 'Forbidden', reason: `Base-centered Orthorhombic (oC) extinction: h+k = ${h + k} (odd) → F = 0` };
+    case 'Monoclinic':
+      return { hkl, status: 'Allowed', reason: 'Primitive Monoclinic (mP) centering allows all (h k l); check P2₁/c for glide/screw absences' };
+    case 'Monoclinic_C':
+      return modPos(h + k, 2) === 0
+        ? { hkl, status: 'Allowed', reason: `Base-centered Monoclinic (mC): h+k = ${h + k} (even) → |F| = 2f` }
+        : { hkl, status: 'Forbidden', reason: `Base-centered Monoclinic (mC) extinction: h+k = ${h + k} (odd) → F = 0` };
+    case 'Triclinic':
+      return { hkl, status: 'Allowed', reason: 'Primitive Triclinic (aP) allows all (h k l) reflections (no centering or glides)' };
     default:
-      return { hkl, status: 'Allowed', reason: 'Complex system rules not implemented' };
+      return { hkl, status: 'Allowed', reason: 'Primitive lattice centering allows all (h k l) reflections' };
   }
 };
 

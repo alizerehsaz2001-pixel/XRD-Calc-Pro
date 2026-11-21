@@ -12,8 +12,9 @@ import {
   Orbit,
   Filter
 } from 'lucide-react';
-import { CrystalElement, CrystalStructureType } from './types';
+import { CrystalElement, CrystalStructureType, XRayAnodeType } from './types';
 import { MicroLatticeGlyph } from './PeriodicGraphics';
+import { XRAY_ANODES, XRAY_ANODE_LIST } from './xrayAnodePhysics';
 
 export interface ElementAllotrope {
   id: string;
@@ -1352,9 +1353,11 @@ export const ElementCrystallographyAndAllotropesPanel: React.FC<{
   onOpenFullAtlas?: () => void;
 }> = ({ element, hkl, onHklChange, onApplyAllotropeOverride, onOpenFullAtlas }) => {
   const [h, k, l] = hkl;
+  const [anodeId, setAnodeId] = useState<XRayAnodeType>('Cu');
+  const activeAnode = XRAY_ANODES[anodeId];
   const metrics = useMemo(
-    () => calculateExactElementMetrics(element, h, k, l),
-    [element, h, k, l]
+    () => calculateExactElementMetrics(element, h, k, l, activeAnode.wavelengthKa1),
+    [element, h, k, l, activeAnode.wavelengthKa1]
   );
 
   const allotropes = useMemo<ElementAllotrope[]>(() => {
@@ -1452,14 +1455,31 @@ export const ElementCrystallographyAndAllotropesPanel: React.FC<{
 
       {/* Exact Symmetry-Aware (hkl) Metric Tensor & Systematic Absence Inspector */}
       <div className="bg-[#0B0F19] border border-white/5 rounded-2xl p-4 space-y-3">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-2">
           <span className="text-[10px] font-mono font-bold uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
             <Orbit className="w-3.5 h-3.5 text-amber-400" />
-            Symmetry-Exact (hkl) Metric & Extinction Rule
+            Symmetry-Exact (hkl) Metric &amp; Extinction Rule
           </span>
-          <span className="text-[9.5px] font-mono text-slate-400">
-            λ = 1.5406 Å (Cu Kα₁)
-          </span>
+          <div className="flex items-center gap-1 flex-wrap">
+            {XRAY_ANODE_LIST.map((an) => (
+              <button
+                key={an.id}
+                type="button"
+                onClick={() => setAnodeId(an.id)}
+                className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold transition-colors cursor-pointer border whitespace-nowrap shrink-0 ${
+                  anodeId === an.id
+                    ? 'bg-amber-500/20 text-amber-300 border-amber-500/50'
+                    : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                }`}
+                title={`${an.label} (λ = ${an.wavelengthKa1.toFixed(4)} Å)`}
+              >
+                {an.id}
+              </button>
+            ))}
+            <span className="text-[9.5px] font-mono text-slate-400 tabular-nums ml-1">
+              λ = {activeAnode.wavelengthKa1.toFixed(4)} Å
+            </span>
+          </div>
         </div>
 
         {/* Miller Indices Inputs + Quick Presets */}
@@ -1474,16 +1494,17 @@ export const ElementCrystallographyAndAllotropesPanel: React.FC<{
                   </span>
                   <input
                     type="number"
-                    min="0"
+                    min="-9"
                     max="9"
                     value={String(val) === 'NaN' ? '' : val}
                     onChange={(e) => {
-                      const next = Math.max(0, Math.min(9, parseInt(e.target.value) || 0));
+                      const parsed = parseInt(e.target.value, 10);
+                      const next = Number.isNaN(parsed) ? 0 : Math.max(-9, Math.min(9, parsed));
                       const updated: [number, number, number] = [...hkl] as [number, number, number];
                       updated[idx] = next;
                       onHklChange(updated[0], updated[1], updated[2]);
                     }}
-                    className="w-9 text-center text-xs font-mono font-bold bg-slate-950 border border-slate-700 text-white rounded-lg py-1 focus:border-cyan-500 outline-none"
+                    className="w-10 text-center text-xs font-mono font-bold tabular-nums bg-slate-950 border border-slate-700 text-white rounded-lg py-1 focus:border-cyan-500 outline-none"
                   />
                 </div>
               );
@@ -1521,7 +1542,7 @@ export const ElementCrystallographyAndAllotropesPanel: React.FC<{
         </div>
 
         {/* Calculated d_hkl, Q, 2Theta, and Structure Factor Status */}
-        <div className="grid grid-cols-3 gap-2 font-mono text-center">
+        <div className="grid grid-cols-3 gap-2 font-mono text-center tabular-nums">
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2">
             <div className="text-[8px] text-slate-500 uppercase">d_({h}{k}{l}) Spacing</div>
             <div className="text-xs font-black text-cyan-300 mt-0.5">
@@ -1535,7 +1556,7 @@ export const ElementCrystallographyAndAllotropesPanel: React.FC<{
             </div>
           </div>
           <div className="bg-slate-900/90 border border-slate-800 rounded-xl p-2">
-            <div className="text-[8px] text-slate-500 uppercase">Bragg 2θ (Cu Kα)</div>
+            <div className="text-[8px] text-slate-500 uppercase">Bragg 2θ ({activeAnode.id} Kα₁)</div>
             <div className="text-xs font-black text-amber-300 mt-0.5">
               {metrics.twoTheta !== null ? `${metrics.twoTheta.toFixed(2)}°` : 'Out of Ewald'}
             </div>

@@ -1,6 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { Activity, X, ArrowUpRight, BarChart3, ScatterChart } from 'lucide-react';
-import { HeatmapMode, CrystalElement } from './types';
+import { HeatmapMode, CrystalElement, XRayAnodeType } from './types';
+import {
+  XRAY_ANODES,
+  getAnodeFluorescenceAssessment,
+  getElementMuRhoForAnode
+} from './xrayAnodePhysics';
 
 interface PeriodicHeatmapLegendProps {
   mode: HeatmapMode;
@@ -8,6 +13,8 @@ interface PeriodicHeatmapLegendProps {
   elements: CrystalElement[];
   selectedElement?: number;
   onSelectElement?: (num: number) => void;
+  selectedAnode?: XRayAnodeType;
+  dbPhaseCounts?: Record<string, number>;
 }
 
 export interface HeatmapConfig {
@@ -15,7 +22,7 @@ export interface HeatmapConfig {
   shortLabel: string;
   unit: string;
   description: string;
-  getValue: (el: CrystalElement) => number;
+  getValue: (el: CrystalElement, ctx?: { anode?: XRayAnodeType; dbPhaseCounts?: Record<string, number> }) => number;
   format: (val: number) => string;
 }
 
@@ -78,6 +85,14 @@ export function getCuFluorescenceScore(el: CrystalElement): number {
 
 export const HEATMAP_CONFIGS: Record<HeatmapMode, HeatmapConfig | null> = {
   none: null,
+  dbPhaseCount: {
+    label: 'XRD Database Phase Coverage',
+    shortLabel: 'DB Phases',
+    unit: 'phases',
+    description: 'Number of crystalline phases, alloys, oxides, and compounds in the built-in XRD library containing each element.',
+    getValue: (el, ctx) => ctx?.dbPhaseCounts?.[el.symbol] || 0,
+    format: v => `${Math.round(v)} ph`
+  },
   latticeA: {
     label: 'Lattice Constant (a₀)',
     shortLabel: 'a₀ (Å)',
@@ -167,11 +182,11 @@ export const HEATMAP_CONFIGS: Record<HeatmapMode, HeatmapConfig | null> = {
     format: v => `${v.toFixed(0)} e⁻`
   },
   massAttenuation: {
-    label: 'Cu-Kα Mass Attenuation (μ/ρ)',
-    shortLabel: 'μ/ρ Cu-Kα',
+    label: 'X-Ray Mass Attenuation (μ/ρ)',
+    shortLabel: 'μ/ρ Anode',
     unit: 'cm²/g',
-    description: 'Total photoelectric absorption and scattering cross-section per unit mass for 8.048 keV X-rays.',
-    getValue: el => getElementMuRhoCu(el),
+    description: 'Photoelectric absorption and scattering cross-section per unit mass recalculated dynamically for the selected X-ray tube anode.',
+    getValue: (el, ctx) => getElementMuRhoForAnode(el, ctx?.anode || 'Cu'),
     format: v => `${v.toFixed(1)} cm²/g`
   },
   kEdgeKeV: {
@@ -191,11 +206,11 @@ export const HEATMAP_CONFIGS: Record<HeatmapMode, HeatmapConfig | null> = {
     format: v => (v >= 1 ? `${v.toFixed(2)} keV` : `${(v * 1000).toFixed(0)} eV`)
   },
   cuFluorescenceRisk: {
-    label: 'Cu-Kα Secondary Fluorescence Index',
-    shortLabel: 'Cu Fluo. Index',
+    label: 'Anode Secondary Fluorescence Index',
+    shortLabel: 'Fluo. Risk',
     unit: '%',
-    description: 'Relative background fluorescence severity under Cu-Kα (8.048 keV); peaks in 3d metals Sc–Co (Z=21–27).',
-    getValue: el => getCuFluorescenceScore(el),
+    description: 'Relative K/L-edge fluorescence background severity under the active X-ray tube anode. Switch anodes (Cu/Co/Mo/Cr/Fe/Ag) to eliminate fluorescence.',
+    getValue: (el, ctx) => getAnodeFluorescenceAssessment(el, ctx?.anode || 'Cu').score,
     format: v => `${v.toFixed(0)}%`
   },
   thermalConductivity: {
@@ -239,6 +254,7 @@ export function getHeatmapColor(value: number, min: number, max: number): string
 }
 
 const HEATMAP_MODE_KEYS: Exclude<HeatmapMode, 'none'>[] = [
+  'dbPhaseCount',
   'latticeA',
   'unitCellVolume',
   'molarVolume',
@@ -273,13 +289,19 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
   onSelectMode,
   elements,
   selectedElement,
-  onSelectElement
+  onSelectElement,
+  selectedAnode = 'Cu',
+  dbPhaseCounts
 }) => {
   const [hoveredSparkEl, setHoveredSparkEl] = useState<CrystalElement | null>(null);
   const [chartView, setChartView] = useState<'sparkbar' | 'correlation'>('sparkbar');
   const [corrPreset, setCorrPreset] = useState<CorrelationPreset>('metric_vs_z');
 
   const config = HEATMAP_CONFIGS[mode];
+  const valueCtx = useMemo(
+    () => ({ anode: selectedAnode, dbPhaseCounts }),
+    [selectedAnode, dbPhaseCounts]
+  );
 
   const sortedElements = useMemo(
     () => [...elements].sort((a, b) => a.number - b.number),
@@ -292,7 +314,7 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
     const pts = sortedElements
       .map(el => {
         let x = el.number;
-        let y = activeCfg.getValue(el);
+        let y = activeCfg.getValue(el, valueCtx);
         if (corrPreset === 'moseley_law') {
           x = el.number;
           y = Math.sqrt(Math.max(0, getElementKEdgeKeV(el)));
@@ -334,12 +356,12 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
     }
 
     return { pts, minX, maxX, minY, maxY, xLabel, yLabel };
-  }, [sortedElements, config, corrPreset]);
+  }, [sortedElements, config, corrPreset, valueCtx]);
 
   if (!config) return null;
 
   const validPairs = sortedElements
-    .map(el => ({ el, val: config.getValue(el) }))
+    .map(el => ({ el, val: config.getValue(el, valueCtx) }))
     .filter(p => p.val !== undefined && !isNaN(p.val) && p.val !== 0);
 
   const validValues = validPairs.map(p => p.val);
@@ -351,7 +373,7 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
   const maxPair = validPairs.reduce((prev, curr) => (curr.val > prev.val ? curr : prev), validPairs[0]);
 
   const activeEl = hoveredSparkEl || sortedElements.find(e => e.number === selectedElement) || sortedElements[13];
-  const activeVal = activeEl ? config.getValue(activeEl) : 0;
+  const activeVal = activeEl ? config.getValue(activeEl, valueCtx) : 0;
 
   // Period start atomic numbers for visual shell markers
   const periodStarts = new Set([1, 3, 11, 19, 37, 55, 87]);
@@ -468,7 +490,7 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
           </div>
           <div className="h-14 w-full bg-[#060911] border border-slate-800/90 rounded-xl px-2 pt-2.5 pb-1 flex items-end gap-[1.5px] overflow-x-auto relative">
             {sortedElements.map(el => {
-              const val = config.getValue(el);
+              const val = config.getValue(el, valueCtx);
               const norm = Math.max(0.08, Math.min(1, (val - min) / (max - min || 1)));
               const color = getHeatmapColor(val, min, max);
               const isSel = selectedElement === el.number;
@@ -589,29 +611,30 @@ export const PeriodicHeatmapLegend: React.FC<PeriodicHeatmapLegendProps> = ({
                 );
               })}
 
-              {/* Cu K-alpha 8.048 keV Threshold Marker in Moseley Law view */}
+              {/* Active Anode Energy Threshold Marker in Moseley Law view */}
               {corrPreset === 'moseley_law' && (() => {
-                const sqrtCu = Math.sqrt(8.048);
-                if (sqrtCu < scatterData.minY || sqrtCu > scatterData.maxY) return null;
-                const yCu = mapY(sqrtCu);
+                const tube = XRAY_ANODES[selectedAnode];
+                const sqrtTube = Math.sqrt(tube.energyKeV);
+                if (sqrtTube < scatterData.minY || sqrtTube > scatterData.maxY) return null;
+                const yTube = mapY(sqrtTube);
                 return (
                   <g>
                     <line
                       x1={pad.l}
-                      y1={yCu}
+                      y1={yTube}
                       x2={svgW - pad.r}
-                      y2={yCu}
+                      y2={yTube}
                       stroke="#f43f5e"
                       strokeWidth="1.2"
                       strokeDasharray="4 3"
                     />
                     <text
                       x={svgW - pad.r - 4}
-                      y={yCu - 4}
+                      y={yTube - 4}
                       textAnchor="end"
                       className="fill-rose-400 font-mono text-[8px] font-bold"
                     >
-                      Cu Kα = 8.048 keV (Fluorescence boundary)
+                      {tube.shortLabel} = {tube.energyKeV.toFixed(3)} keV (Fluorescence boundary)
                     </text>
                   </g>
                 );

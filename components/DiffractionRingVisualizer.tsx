@@ -1,88 +1,160 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import { CrystalSystem, SelectionRuleResult } from "../types";
-import { motion, AnimatePresence } from "motion/react";
 import {
   Activity,
-  Layers,
-  Sparkles,
-  Maximize2,
-  Minimize2,
   Eye,
   EyeOff,
   Radio,
-  Sliders,
   ZoomIn,
   ZoomOut,
   RotateCw,
-  Info,
-  CheckCircle2,
-  XCircle,
 } from "lucide-react";
+import { XRAY_ANODES, XRAY_ANODE_LIST } from "./periodic/xrayAnodePhysics";
+import type { XRayAnodeType } from "./periodic/types";
+import {
+  computeExactDSpacing,
+  DEFAULT_LATTICE_BY_SYSTEM,
+  GeneralLatticeParams,
+} from "./selection/selectionRulesPhysics";
 
 interface DiffractionRingVisualizerProps {
   system: CrystalSystem;
   results: SelectionRuleResult[];
   latticeParameter?: number;
+  latticeParams?: GeneralLatticeParams;
+  wavelength?: number;
+  onWavelengthChange?: (wl: number) => void;
   onSelectHkl?: (h: number, k: number, l: number) => void;
 }
 
-const ANODES = [
-  { name: "Cu Kα", wavelength: 1.5406, color: "#38bdf8" },
-  { name: "Mo Kα", wavelength: 0.7107, color: "#a855f7" },
-  { name: "Co Kα", wavelength: 1.7890, color: "#f59e0b" },
-  { name: "Cr Kα", wavelength: 2.2897, color: "#ec4899" },
-];
+function getBasisForSystem(system: CrystalSystem): [number, number, number][] {
+  switch (system) {
+    case "BCC":
+    case "Tetragonal_I":
+    case "Orthorhombic_I":
+      return [
+        [0, 0, 0],
+        [0.5, 0.5, 0.5],
+      ];
+    case "FCC":
+    case "Orthorhombic_F":
+      return [
+        [0, 0, 0],
+        [0.5, 0.5, 0],
+        [0.5, 0, 0.5],
+        [0, 0.5, 0.5],
+      ];
+    case "Diamond":
+      return [
+        [0, 0, 0],
+        [0.5, 0.5, 0],
+        [0.5, 0, 0.5],
+        [0, 0.5, 0.5],
+        [0.25, 0.25, 0.25],
+        [0.75, 0.75, 0.25],
+        [0.75, 0.25, 0.75],
+        [0.25, 0.75, 0.75],
+      ];
+    case "Hexagonal":
+      return [
+        [0, 0, 0],
+        [2 / 3, 1 / 3, 0.5],
+      ];
+    case "Rhombohedral":
+      return [
+        [0, 0, 0],
+        [2 / 3, 1 / 3, 1 / 3],
+        [1 / 3, 2 / 3, 2 / 3],
+      ];
+    case "Orthorhombic_C":
+    case "Monoclinic_C":
+      return [
+        [0, 0, 0],
+        [0.5, 0.5, 0],
+      ];
+    default:
+      return [[0, 0, 0]];
+  }
+}
+
+function computeUnitF2(system: CrystalSystem, h: number, k: number, l: number): number {
+  const basis = getBasisForSystem(system);
+  let re = 0;
+  let im = 0;
+  for (const [x, y, z] of basis) {
+    const phi = 2 * Math.PI * (h * x + k * y + l * z);
+    re += Math.cos(phi);
+    im += Math.sin(phi);
+  }
+  const f2 = re * re + im * im;
+  return f2 < 1e-6 ? 0 : f2;
+}
+
+function matchAnodeByWavelength(wl: number): XRayAnodeType {
+  let best: XRayAnodeType = "Cu";
+  let bestDiff = Infinity;
+  for (const spec of XRAY_ANODE_LIST) {
+    const diff = Math.abs(spec.wavelengthKa1 - wl);
+    if (diff < bestDiff) {
+      bestDiff = diff;
+      best = spec.id;
+    }
+  }
+  return best;
+}
 
 export const DiffractionRingVisualizer: React.FC<DiffractionRingVisualizerProps> = ({
   system,
   results,
-  latticeParameter = 5.431, // Default Silicon / representative lattice in Å
+  latticeParameter = 5.431,
+  latticeParams,
+  wavelength: externalWavelength,
+  onWavelengthChange,
   onSelectHkl,
 }) => {
-  const [selectedAnodeIndex, setSelectedAnodeIndex] = useState<number>(0);
+  const [selectedAnode, setSelectedAnode] = useState<XRayAnodeType>(() =>
+    externalWavelength ? matchAnodeByWavelength(externalWavelength) : "Cu"
+  );
   const [detectorDistance, setDetectorDistance] = useState<number>(120); // mm
   const [showForbiddenRings, setShowForbiddenRings] = useState<boolean>(true);
   const [hoveredRing, setHoveredRing] = useState<any | null>(null);
   const [activeTab, setActiveTab] = useState<"2D_RING" | "1D_PATTERN">("2D_RING");
   const [zoomLevel, setZoomLevel] = useState<number>(1.0);
 
-  const wavelength = ANODES[selectedAnodeIndex].wavelength;
+  useEffect(() => {
+    if (externalWavelength) {
+      setSelectedAnode(matchAnodeByWavelength(externalWavelength));
+    }
+  }, [externalWavelength]);
 
-  // Calculate d-spacing and 2theta for each reflection in results
+  const wavelength = externalWavelength ?? XRAY_ANODES[selectedAnode].wavelengthKa1;
+
+  const effectiveLattice: GeneralLatticeParams = useMemo(() => {
+    if (latticeParams) return latticeParams;
+    const base = DEFAULT_LATTICE_BY_SYSTEM[system] ?? DEFAULT_LATTICE_BY_SYSTEM.FCC;
+    const scale = base.a > 0 ? latticeParameter / base.a : 1;
+    return {
+      a: latticeParameter,
+      b: base.b * scale,
+      c: base.c * scale,
+      alpha: base.alpha,
+      beta: base.beta,
+      gamma: base.gamma,
+    };
+  }, [latticeParams, system, latticeParameter]);
+
+  // Calculate exact d-spacing, 2theta, and |F|^2 * mult * LP intensity for each reflection
   const reflectionsWithPhysics = useMemo(() => {
-    return results
+    const raw = results
       .map((res) => {
         const [h, k, l] = res.hkl;
         if (h === 0 && k === 0 && l === 0) return null;
 
-        // Calculate d-spacing based on crystal system
-        let d = 0;
-        const a = latticeParameter;
-        if (system.startsWith("Tetragonal")) {
-          const c = a * 1.35;
-          const invSq = (h * h + k * k) / (a * a) + (l * l) / (c * c);
-          d = invSq > 0 ? 1 / Math.sqrt(invSq) : 0;
-        } else if (system.startsWith("Orthorhombic")) {
-          const b = a * 1.15;
-          const c = a * 1.45;
-          const invSq = (h * h) / (a * a) + (k * k) / (b * b) + (l * l) / (c * c);
-          d = invSq > 0 ? 1 / Math.sqrt(invSq) : 0;
-        } else if (system === "Hexagonal") {
-          const c = a * 1.633;
-          const invSq = ((4 / 3) * (h * h + k * k + h * k)) / (a * a) + (l * l) / (c * c);
-          d = invSq > 0 ? 1 / Math.sqrt(invSq) : 0;
-        } else {
-          // Cubic
-          const invSq = (h * h + k * k + l * l) / (a * a);
-          d = invSq > 0 ? 1 / Math.sqrt(invSq) : 0;
-        }
-
+        const d = computeExactDSpacing(h, k, l, effectiveLattice);
         if (d <= 0) return null;
 
-        // Bragg's law: lambda = 2 * d * sin(theta) => sin(theta) = lambda / (2*d)
         const sinTheta = wavelength / (2 * d);
         if (sinTheta > 1.0) {
-          // Reflection is beyond the limiting sphere (not physically observable with this wavelength)
           return {
             ...res,
             d,
@@ -91,6 +163,8 @@ export const DiffractionRingVisualizer: React.FC<DiffractionRingVisualizerProps>
             ringRadiusMm: 0,
             isObservable: false,
             multiplicity: 1,
+            fSq: 0,
+            rawIntensity: 0,
             relativeIntensity: 0,
           };
         }
@@ -98,24 +172,35 @@ export const DiffractionRingVisualizer: React.FC<DiffractionRingVisualizerProps>
         const thetaRad = Math.asin(sinTheta);
         const twoThetaRad = 2 * thetaRad;
         const twoThetaDeg = (twoThetaRad * 180) / Math.PI;
-
-        // Ring radius on flat plate detector: R = D * tan(2theta)
         const ringRadiusMm = detectorDistance * Math.tan(twoThetaRad);
 
-        // Approximate peak multiplicity for intensity scaling
+        // Multiplicity approximation by lattice symmetry
         const numZero = (h === 0 ? 1 : 0) + (k === 0 ? 1 : 0) + (l === 0 ? 1 : 0);
         const allEqual = Math.abs(h) === Math.abs(k) && Math.abs(k) === Math.abs(l);
+        const isCubicLike = ["SC", "BCC", "FCC", "Diamond", "Cubic"].includes(system);
         let mult = 6;
-        if (allEqual && numZero === 0) mult = 8;
-        else if (numZero === 2) mult = 6;
-        else if (numZero === 1) mult = 12;
-        else if (!allEqual && numZero === 0) mult = 24;
+        if (isCubicLike) {
+          if (allEqual && numZero === 0) mult = 8;
+          else if (numZero === 2) mult = 6;
+          else if (numZero === 1) mult = Math.abs(h) === Math.abs(k) || Math.abs(k) === Math.abs(l) || Math.abs(h) === Math.abs(l) ? 12 : 24;
+          else mult = 24;
+        } else if (system === "Hexagonal" || system === "Rhombohedral") {
+          mult = numZero === 2 && l !== 0 ? 2 : l === 0 ? 6 : 12;
+        } else if (system.startsWith("Tetragonal")) {
+          mult = numZero === 2 && l !== 0 ? 2 : numZero === 2 ? 4 : 8;
+        } else if (system.startsWith("Orthorhombic")) {
+          mult = numZero === 2 ? 2 : numZero === 1 ? 4 : 8;
+        } else if (system.startsWith("Monoclinic")) {
+          mult = k === 0 || (h === 0 && l === 0) ? 2 : 4;
+        } else {
+          mult = 2;
+        }
 
-        // Lorentz-polarization factor approximation: LP = (1 + cos^2(2theta)) / (sin^2(theta) * cos(theta))
         const lp =
           (1 + Math.cos(twoThetaRad) ** 2) /
-          (Math.sin(thetaRad) ** 2 * Math.cos(thetaRad) + 1e-5);
-        const relIntensity = res.status === "Allowed" ? Math.min(100, Math.max(15, (mult * lp) / 15)) : 0;
+          (Math.sin(thetaRad) ** 2 * Math.cos(thetaRad) + 1e-4);
+        const fSq = res.status === "Allowed" ? computeUnitF2(system, h, k, l) : 0;
+        const rawIntensity = res.status === "Allowed" ? fSq * mult * lp : 0;
 
         return {
           ...res,
@@ -125,12 +210,24 @@ export const DiffractionRingVisualizer: React.FC<DiffractionRingVisualizerProps>
           ringRadiusMm,
           isObservable: true,
           multiplicity: mult,
-          relativeIntensity: relIntensity,
+          fSq,
+          rawIntensity,
+          relativeIntensity: 0,
         };
       })
-      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .filter((r): r is NonNullable<typeof r> => r !== null);
+
+    const maxRaw = Math.max(1e-6, ...raw.map((r) => r.rawIntensity));
+    return raw
+      .map((r) => ({
+        ...r,
+        relativeIntensity:
+          r.status === "Allowed" && r.isObservable
+            ? Math.max(8, (r.rawIntensity / maxRaw) * 100)
+            : 0,
+      }))
       .sort((a, b) => a.twoThetaDeg - b.twoThetaDeg);
-  }, [results, system, latticeParameter, wavelength, detectorDistance]);
+  }, [results, system, effectiveLattice, wavelength, detectorDistance]);
 
   const detectorSize = 360;
   const detectorCenter = detectorSize / 2;
@@ -138,36 +235,33 @@ export const DiffractionRingVisualizer: React.FC<DiffractionRingVisualizerProps>
   const scaleMmToPx = ((detectorSize / 2 - 25) / maxDetectorRadiusMm) * zoomLevel;
 
   return (
-    <div className="bg-[#050B14]/90 backdrop-blur-md rounded-2xl border border-white/10 p-5 space-y-5 shadow-2xl relative overflow-hidden text-left font-sans">
-      {/* Glow */}
-      <div className="absolute top-0 right-0 w-96 h-96 bg-cyan-500/5 rounded-full blur-3xl pointer-events-none -mr-20 -mt-20" />
-      <div className="absolute bottom-0 left-0 w-96 h-96 bg-emerald-500/5 rounded-full blur-3xl pointer-events-none -ml-20 -mb-20" />
-
+    <div className="bg-[#050B14] rounded-xl border border-slate-800/90 p-5 space-y-5 relative overflow-hidden text-left font-sans">
       {/* Header Controls */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-white/10 pb-4 relative z-10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/90 pb-4 relative z-10">
         <div>
           <div className="flex items-center gap-2">
             <div className="p-1.5 bg-sky-500/10 border border-sky-500/30 rounded-lg text-sky-400">
               <Radio className="w-4 h-4" />
             </div>
-            <h3 className="text-base font-black text-white tracking-wide">
-              Debye-Scherrer Diffraction Pattern Graphic
+            <h3 className="text-base font-bold text-white tracking-tight">
+              Debye-Scherrer 2D Area Detector & 1D Diffractogram
             </h3>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            Simulated 2D Area Detector & 1D Bragg Diffractogram for <span className="text-sky-300 font-mono font-bold">{system}</span>
+            Exact metric-tensor kinematics & |F_hkl|²·p·LP weighted intensities for{" "}
+            <span className="text-sky-300 font-mono font-bold">{system}</span>
           </p>
         </div>
 
         {/* Mode Switcher */}
-        <div className="flex items-center gap-2 bg-[#0B1221] p-1 rounded-xl border border-white/10">
+        <div className="flex items-center gap-1.5 bg-[#0B1221] p-1 rounded-lg border border-slate-800 shrink-0">
           <button
             type="button"
             onClick={() => setActiveTab("2D_RING")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-mono font-semibold whitespace-nowrap shrink-0 transition-colors ${
               activeTab === "2D_RING"
-                ? "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-md"
-                : "text-slate-400 hover:text-white"
+                ? "bg-sky-500/20 text-sky-300 border border-sky-500/40"
+                : "text-slate-400 hover:text-white border border-transparent"
             }`}
           >
             2D Area Detector
@@ -175,10 +269,10 @@ export const DiffractionRingVisualizer: React.FC<DiffractionRingVisualizerProps>
           <button
             type="button"
             onClick={() => setActiveTab("1D_PATTERN")}
-            className={`px-3 py-1.5 rounded-lg text-xs font-mono font-bold transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-mono font-semibold whitespace-nowrap shrink-0 transition-colors ${
               activeTab === "1D_PATTERN"
-                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-md"
-                : "text-slate-400 hover:text-white"
+                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
+                : "text-slate-400 hover:text-white border border-transparent"
             }`}
           >
             1D Diffractogram
@@ -186,31 +280,43 @@ export const DiffractionRingVisualizer: React.FC<DiffractionRingVisualizerProps>
         </div>
       </div>
 
-      {/* Toolbar Options: Anode source, Detector Distance & Zoom */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-[#0B1221] p-3 rounded-xl border border-white/10 text-xs font-mono relative z-10">
-        {/* Anode X-ray Target */}
+      {/* Toolbar Options: 6-Anode X-ray Target, Detector Distance & Zoom */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 bg-[#0B1221] p-3 rounded-xl border border-slate-800/90 text-xs font-mono relative z-10">
+        {/* 6-Anode X-ray Target */}
         <div className="flex flex-col gap-1.5">
-          <span className="text-[9px] text-slate-400 uppercase tracking-wider font-bold">
-            Radiation Source (λ)
-          </span>
-          <div className="grid grid-cols-4 gap-1">
-            {ANODES.map((anode, idx) => (
-              <button
-                key={anode.name}
-                type="button"
-                onClick={() => setSelectedAnodeIndex(idx)}
-                className={`px-2 py-1 rounded text-[10px] font-bold border transition-all ${
-                  selectedAnodeIndex === idx
-                    ? "bg-sky-500/20 text-sky-300 border-sky-500/50"
-                    : "bg-black/50 text-slate-400 border-white/5 hover:text-white"
-                }`}
-              >
-                {anode.name}
-              </button>
-            ))}
+          <div className="flex items-center justify-between">
+            <span className="text-[9.5px] text-slate-400 uppercase tracking-wider font-bold">
+              Radiation Anode (Kα₁)
+            </span>
+            <span className="text-[10px] text-sky-300 tabular-nums font-bold">
+              λ = {wavelength.toFixed(4)} Å
+            </span>
           </div>
-          <span className="text-[8.5px] text-slate-500">
-            λ = {wavelength.toFixed(4)} Å
+          <div className="grid grid-cols-6 gap-1">
+            {XRAY_ANODE_LIST.map((spec) => {
+              const isSelected = selectedAnode === spec.id;
+              return (
+                <button
+                  key={spec.id}
+                  type="button"
+                  onClick={() => {
+                    setSelectedAnode(spec.id);
+                    onWavelengthChange?.(spec.wavelengthKa1);
+                  }}
+                  className={`px-1.5 py-1 rounded text-[10px] font-bold border whitespace-nowrap transition-colors ${
+                    isSelected
+                      ? "bg-sky-500/20 text-sky-200 border-sky-500/50"
+                      : "bg-[#050B14] text-slate-400 border-slate-800 hover:text-white"
+                  }`}
+                  title={spec.label}
+                >
+                  {spec.id}
+                </button>
+              );
+            })}
+          </div>
+          <span className="text-[9px] text-slate-500 truncate">
+            {XRAY_ANODES[selectedAnode].shortLabel} · {XRAY_ANODES[selectedAnode].energyKeV.toFixed(2)} keV
           </span>
         </div>
 

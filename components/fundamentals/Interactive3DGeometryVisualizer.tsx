@@ -20,7 +20,9 @@ import {
   Calculator,
   CheckCircle2,
   XCircle,
-  Sparkles
+  Sparkles,
+  Activity,
+  X
 } from 'lucide-react';
 import { playSynthTone } from '../../utils/sound';
 import { 
@@ -28,12 +30,32 @@ import {
   CenteringType, 
   CRYSTAL_SYSTEMS_CATALOG
 } from './UnitCellsSection';
+import { computeLiveBravaisPowderPattern } from './bravaisPhysics';
+import { XRAY_ANODES, XRAY_ANODE_LIST } from '../periodic/xrayAnodePhysics';
+import type { XRayAnodeType } from '../periodic/types';
+
+export interface External3DPhasePayload {
+  name: string;
+  formula: string;
+  spaceGroup: string;
+  a: number;
+  b: number;
+  c: number;
+  alpha: number;
+  beta: number;
+  gamma: number;
+  molarMass: number;
+  density?: number;
+  isParsedFromText?: boolean;
+}
 
 interface Interactive3DGeometryVisualizerProps {
   selectedSystemId: CrystalSystemId;
   onSelectSystem: (id: CrystalSystemId) => void;
   activeCentering: CenteringType;
   setActiveCentering: (c: CenteringType) => void;
+  loadedDbPhase?: External3DPhasePayload | null;
+  onClearLoadedPhase?: () => void;
 }
 
 export type AtomStyle = 'ball-and-stick' | 'wireframe-node' | 'space-filling';
@@ -62,7 +84,9 @@ interface AtomHoverInfo {
 export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisualizerProps> = ({
   selectedSystemId,
   activeCentering,
-  setActiveCentering
+  setActiveCentering,
+  loadedDbPhase,
+  onClearLoadedPhase
 }) => {
   const activeSystem = useMemo(() => {
     return CRYSTAL_SYSTEMS_CATALOG.find(s => s.id === selectedSystemId) || CRYSTAL_SYSTEMS_CATALOG[0];
@@ -103,8 +127,9 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
   // Symmetry lock toggle
   const [symmetryLocked, setSymmetryLocked] = useState<boolean>(true);
 
-  // Synchronize params when system changes
+  // Synchronize params when system changes (unless externally overridden by a loaded DB phase)
   useEffect(() => {
+    if (loadedDbPhase) return;
     setParams({
       a: activeSystem.defaultParams.a,
       b: activeSystem.defaultParams.b,
@@ -116,7 +141,24 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
     if (activeSystem.id === 'trigonal') {
       setTrigonalSetting('hexagonal_obverse');
     }
-  }, [activeSystem]);
+  }, [activeSystem, loadedDbPhase]);
+
+  // Sync external MATERIAL_DB phase payload into 3D visualizer
+  useEffect(() => {
+    if (!loadedDbPhase) return;
+    setParams({
+      a: loadedDbPhase.a,
+      b: loadedDbPhase.b,
+      c: loadedDbPhase.c,
+      alpha: loadedDbPhase.alpha,
+      beta: loadedDbPhase.beta,
+      gamma: loadedDbPhase.gamma
+    });
+    setMolarMass(loadedDbPhase.molarMass || 100);
+    if (activeSystem.id === 'trigonal') {
+      setTrigonalSetting(Math.abs(loadedDbPhase.gamma - 120) < 1 ? 'hexagonal_obverse' : 'rhombohedral_primitive');
+    }
+  }, [loadedDbPhase, activeSystem.id]);
 
   // Handle switching Trigonal between Hexagonal Obverse (a=b!=c, gamma=120) and Primitive Rhombohedral (a=b=c, alpha=beta=gamma)
   const handleTrigonalSettingChange = (nextSetting: TrigonalSetting) => {
@@ -177,11 +219,25 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
   const [hklK, setHklK] = useState<number>(1);
   const [hklL, setHklL] = useState<number>(1);
 
-  // X-ray Radiation Source
-  const [radiation, setRadiation] = useState<{ name: string; wavelength: number }>({
-    name: 'Cu Kα',
-    wavelength: 1.5406
-  });
+  // X-ray Radiation Source (All 6 standard lab anodes)
+  const [selectedAnode, setSelectedAnode] = useState<XRayAnodeType>('Cu');
+  const radiation = useMemo(() => {
+    const a = XRAY_ANODES[selectedAnode];
+    return { name: a.label, wavelength: a.wavelengthKa1 };
+  }, [selectedAnode]);
+
+  // Live Simulated 1D Powder XRD Pattern synced to real-time 3D cell params, centering & anode
+  const livePowderPattern = useMemo(() => {
+    return computeLiveBravaisPowderPattern({
+      ...params,
+      centering: activeCentering,
+      wavelength: radiation.wavelength,
+      isRhombohedralPrimitive: activeSystem.id === 'trigonal' && trigonalSetting === 'rhombohedral_primitive',
+      twoThetaMin: 10,
+      twoThetaMax: 90,
+      maxIndex: 3,
+    });
+  }, [params, activeCentering, radiation.wavelength, activeSystem.id, trigonalSetting]);
 
   // Hovered atom tooltip state
   const [hoveredAtom, setHoveredAtom] = useState<AtomHoverInfo | null>(null);
@@ -1306,6 +1362,26 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
             <p className="text-xs font-mono text-slate-400 mt-0.5">
               {activeSystem.axialRelation} · {activeSystem.angleRelation}
             </p>
+            {loadedDbPhase && (
+              <div className="mt-1.5 inline-flex items-center gap-2 px-2.5 py-0.5 rounded-md bg-cyan-500/15 border border-cyan-500/40 text-[10.5px] font-mono text-cyan-200">
+                <span className="font-bold text-white">DB Phase: {loadedDbPhase.name}</span>
+                {loadedDbPhase.formula && <span className="text-amber-300">{loadedDbPhase.formula}</span>}
+                <span className="text-cyan-400">{loadedDbPhase.spaceGroup}</span>
+                {onClearLoadedPhase && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      playSynthTone('tick');
+                      onClearLoadedPhase();
+                    }}
+                    className="ml-1 text-slate-400 hover:text-white cursor-pointer"
+                    title="Clear loaded DB phase"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
@@ -2193,6 +2269,165 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
               </span>
             </div>
           </div>
+
+          {/* Live Coupled 1D Powder XRD Pattern (Updates Real-Time as You Morph a,b,c,α,β,γ or Centering) */}
+          <div className="bg-[#0B0F19] border border-slate-800 rounded-2xl p-4 space-y-2.5 font-mono">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Activity className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                <span className="text-[10.5px] font-bold uppercase tracking-wider text-cyan-300">
+                  Live Coupled Powder XRD ({activeCentering}-Lattice · {livePowderPattern.allowedPeaks.length} Allowed · {livePowderPattern.extinctPositions.length} Extinct)
+                </span>
+              </div>
+              <div className="flex items-center gap-1">
+                {XRAY_ANODE_LIST.map((an) => (
+                  <button
+                    key={an.id}
+                    type="button"
+                    onClick={() => {
+                      playSynthTone('tick');
+                      setSelectedAnode(an.id);
+                    }}
+                    className={`px-1.5 py-0.5 rounded text-[9.5px] font-bold border transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                      selectedAnode === an.id
+                        ? 'bg-cyan-500/20 text-cyan-200 border-cyan-500/60'
+                        : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-slate-200'
+                    }`}
+                    title={`${an.label} (λ = ${an.wavelengthKa1} Å)`}
+                  >
+                    {an.id}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {(() => {
+              const ttMin = 10;
+              const ttMax = 90;
+              const mapX = (tt: number) => 24 + ((tt - ttMin) / (ttMax - ttMin)) * 472;
+              const curvePts: string[] = [];
+              for (let i = 0; i <= 160; i++) {
+                const tt = ttMin + (i / 160) * (ttMax - ttMin);
+                let y = 0;
+                for (const pk of livePowderPattern.allowedPeaks) {
+                  const dx = (tt - pk.twoTheta) / 0.55;
+                  y += (pk.relativeIntensity / 100) * (0.65 * Math.exp(-dx * dx) + 0.35 / (1 + dx * dx));
+                }
+                const px = mapX(tt);
+                const py = 74 - Math.min(1.04, y) * 56;
+                curvePts.push(`${px.toFixed(1)},${py.toFixed(1)}`);
+              }
+
+              return (
+                <div className="bg-[#050811] border border-slate-800/90 rounded-xl p-2">
+                  <svg viewBox="0 0 516 96" className="w-full h-24 select-none overflow-visible">
+                    <line x1="24" y1="74" x2="496" y2="74" stroke="#334155" strokeWidth="1" />
+                    {[10, 20, 30, 40, 50, 60, 70, 80, 90].map((deg) => {
+                      const gx = mapX(deg);
+                      return (
+                        <g key={deg}>
+                          <line x1={gx} y1="14" x2={gx} y2="74" stroke="#0f172a" strokeWidth="0.8" />
+                          <line x1={gx} y1="74" x2={gx} y2="78" stroke="#475569" strokeWidth="0.9" />
+                          <text x={gx} y="89" textAnchor="middle" fill="#64748b" fontSize="8" fontFamily="monospace">
+                            {deg}°
+                          </text>
+                        </g>
+                      );
+                    })}
+
+                    {/* Pseudo-Voigt continuous powder trace */}
+                    <polygon
+                      points={`24,74 ${curvePts.join(' ')} 496,74`}
+                      fill="rgba(56, 189, 248, 0.12)"
+                    />
+                    <polyline
+                      fill="none"
+                      stroke="#38bdf8"
+                      strokeWidth="1.4"
+                      points={curvePts.join(' ')}
+                    />
+
+                    {/* Systematically Extinguished Positions (Bottom Rose Ticks) */}
+                    {livePowderPattern.extinctPositions.map((ex, idx) => {
+                      const exX = mapX(ex.twoTheta);
+                      return (
+                        <g key={`ex-${idx}`}>
+                          <line x1={exX} y1="74" x2={exX} y2="80" stroke="#f43f5e" strokeWidth="1.2" opacity="0.7" />
+                        </g>
+                      );
+                    })}
+
+                    {/* Clickable Bragg Sticks -> Click any peak to slice its (hkl) plane in 3D! */}
+                    {livePowderPattern.allowedPeaks.map((pk, idx) => {
+                      const px = mapX(pk.twoTheta);
+                      const py = 74 - (pk.relativeIntensity / 100) * 56;
+                      const isActiveHkl =
+                        showMillerPlane &&
+                        Math.abs(hklH) === Math.abs(pk.h) &&
+                        Math.abs(hklK) === Math.abs(pk.k) &&
+                        Math.abs(hklL) === Math.abs(pk.l);
+                      return (
+                        <g
+                          key={`pk-${idx}`}
+                          className="cursor-pointer"
+                          onClick={() => {
+                            playSynthTone('tick');
+                            setHklH(pk.h);
+                            setHklK(pk.k);
+                            setHklL(pk.l);
+                            setShowMillerPlane(true);
+                            setActiveControlTab('miller');
+                          }}
+                        >
+                          <line
+                            x1={px}
+                            y1="74"
+                            x2={px}
+                            y2={py}
+                            stroke={isActiveHkl ? '#fbbf24' : '#38bdf8'}
+                            strokeWidth={isActiveHkl ? '2.4' : '1.4'}
+                          />
+                          <circle
+                            cx={px}
+                            cy={py}
+                            r={isActiveHkl ? '3' : '2'}
+                            fill={isActiveHkl ? '#fef08a' : '#e0f2fe'}
+                            stroke={isActiveHkl ? '#f59e0b' : '#0284c7'}
+                            strokeWidth="0.9"
+                          />
+                          {(idx < 7 || isActiveHkl) && (
+                            <text
+                              x={px}
+                              y={Math.max(11, py - 4)}
+                              textAnchor="middle"
+                              fill={isActiveHkl ? '#fbbf24' : '#cbd5e1'}
+                              fontSize="7.5"
+                              fontFamily="monospace"
+                              fontWeight="bold"
+                            >
+                              {pk.label}
+                            </text>
+                          )}
+                          <title>
+                            ({pk.h} {pk.k} {pk.l}) · 2θ = {pk.twoTheta.toFixed(2)}° · d = {pk.dSpacing.toFixed(4)} Å · Click to slice in 3D
+                          </title>
+                        </g>
+                      );
+                    })}
+                  </svg>
+                  <div className="flex items-center justify-between text-[9.5px] text-slate-400 px-1 pt-0.5">
+                    <span>Click any peak to slice its (hkl) Miller plane in 3D</span>
+                    <span className="flex items-center gap-3 tabular-nums">
+                      <span className="text-cyan-300">λ = {radiation.wavelength.toFixed(4)} Å ({radiation.name})</span>
+                      {livePowderPattern.extinctPositions.length > 0 && (
+                        <span className="text-rose-400">▏ Rose ticks = {activeCentering}-extinct</span>
+                      )}
+                    </span>
+                  </div>
+                </div>
+              );
+            })()}
+          </div>
         </div>
 
         {/* Control Inspector Panel (5 Cols) */}
@@ -2980,24 +3215,22 @@ export const Interactive3DGeometryVisualizer: React.FC<Interactive3DGeometryVisu
                 );
               })()}
 
-              {/* Radiation source picker */}
+              {/* Radiation source picker (All 6 standard lab anodes) */}
               <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 pt-1">
                 <span>Radiation Source:</span>
                 <select
-                  value={radiation.name}
+                  value={selectedAnode}
                   onChange={(e) => {
-                    const val = e.target.value;
-                    if (val === 'Cu Kα') setRadiation({ name: 'Cu Kα', wavelength: 1.5406 });
-                    else if (val === 'Mo Kα') setRadiation({ name: 'Mo Kα', wavelength: 0.7107 });
-                    else if (val === 'Co Kα') setRadiation({ name: 'Co Kα', wavelength: 1.7890 });
-                    else if (val === 'Cr Kα') setRadiation({ name: 'Cr Kα', wavelength: 2.2897 });
+                    playSynthTone('tick');
+                    setSelectedAnode(e.target.value as XRayAnodeType);
                   }}
                   className="bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-slate-200 outline-none"
                 >
-                  <option value="Cu Kα">Cu Kα (1.5406 Å)</option>
-                  <option value="Mo Kα">Mo Kα (0.7107 Å)</option>
-                  <option value="Co Kα">Co Kα (1.7890 Å)</option>
-                  <option value="Cr Kα">Cr Kα (2.2897 Å)</option>
+                  {XRAY_ANODE_LIST.map((an) => (
+                    <option key={an.id} value={an.id}>
+                      {an.label} ({an.wavelengthKa1.toFixed(4)} Å)
+                    </option>
+                  ))}
                 </select>
               </div>
             </div>

@@ -14,6 +14,7 @@ import {
   ResponsiveContainer, Legend, Tooltip as RechartsTooltip
 } from 'recharts';
 import { playSynthTone } from '../utils/sound';
+import { getActiveMaterials } from '../utils/materialsHelper';
 import { getFactualProperties, getElectronConfig, ScientificProperties } from './ChemicalPhysicalPropertiesDb';
 import { ScientificMathControl } from './ScientificMathControl';
 import { FormFactorChart } from './FormFactorChart';
@@ -28,8 +29,7 @@ import { COMPLETE_PERIODIC_TABLE } from './periodic/elementsData';
 import { PeriodicFilterToolbar } from './periodic/PeriodicFilterToolbar';
 import {
   PeriodicHeatmapLegend,
-  getElementKEdgeKeV,
-  getElementMuRhoCu
+  getElementKEdgeKeV
 } from './periodic/PeriodicHeatmapLegend';
 import { PeriodicTableGrid } from './periodic/PeriodicTableGrid';
 import {
@@ -44,7 +44,25 @@ import {
   calculateExactElementMetrics,
   CRYSTAL_FAMILIES_METADATA
 } from './periodic/PeriodicCrystalSystemsAtlas';
-import { HeatmapMode, ColorMode, QuickPreset, CrystalElement, FamousCompound } from './periodic/types';
+import {
+  HeatmapMode,
+  ColorMode,
+  QuickPreset,
+  CrystalElement,
+  FamousCompound,
+  XRayAnodeType
+} from './periodic/types';
+import {
+  XRAY_ANODES,
+  XRAY_ANODE_LIST,
+  buildElementPhaseIndex,
+  computeElementBraggSticks,
+  matchesSmartPeriodicQuery,
+  isRadioactiveElement,
+  getElementMuRhoForAnode,
+  getAnodeFluorescenceAssessment,
+  DbPhaseSummary
+} from './periodic/xrayAnodePhysics';
 
 export type { FamousCompound, CrystalElement };
 
@@ -2538,6 +2556,15 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
   const [structureFilter, setStructureFilter] = useState<string>('all');
   const [activePreset, setActivePreset] = useState<QuickPreset | null>(null);
   const [layoutMode, setLayoutMode] = useState<'split' | 'expanded'>('split');
+  const [selectedAnode, setSelectedAnode] = useState<XRayAnodeType>('Cu');
+  const [composerSymbols, setComposerSymbols] = useState<string[]>([]);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Live 1,454-phase XRD library element-to-phase index
+  const dbPhaseIndex = useMemo(() => {
+    const validSymbols = new Set(COMPLETE_PERIODIC_TABLE.map(e => e.symbol));
+    return buildElementPhaseIndex(getActiveMaterials(), validSymbols);
+  }, []);
 
   // Overrides for editing element/material properties
   const [customOverrides, setCustomOverrides] = useState<Record<number, Partial<CrystalElement>>>(() => {
@@ -2612,67 +2639,33 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
     setTimeout(() => setLoadedBanner(null), 3500);
   };
 
+  const handleLoadDbPhase = (phase: DbPhaseSummary) => {
+    if (!onLoadPeaks || !phase.peaks.length) return;
+    const peaksStr = phase.peaks
+      .slice(0, 12)
+      .map(p => `${p.twoTheta.toFixed(2)}:${Math.round(p.intensity)}`)
+      .join(', ');
+    const hklStr = phase.peaks
+      .slice(0, 12)
+      .map((p, idx) => p.hkl || `P${idx + 1}`)
+      .join(', ');
+    onLoadPeaks(peaksStr, hklStr, `${phase.name} (${phase.formula})`);
+    playSynthTone('success');
+    setLoadedBanner(`${phase.name} [${phase.formula}]`);
+    setTimeout(() => setLoadedBanner(null), 3500);
+  };
+
   const handleLoadElementDiffractionPeaks = (element: CrystalElement) => {
     if (!onLoadPeaks) return;
-    const lambda = 1.5406; // Cu Ka in Angstroms
-    const a = element.a || 3.61;
-    const isFCC = element.crystalStructure === 'FCC';
-    const isBCC = element.crystalStructure === 'BCC';
-    const isDiamond = element.crystalStructure === 'Diamond';
-
-    let planes: Array<{ h: number; k: number; l: number; relI: number }> = [];
-    if (isFCC) {
-      planes = [
-        { h: 1, k: 1, l: 1, relI: 100 },
-        { h: 2, k: 0, l: 0, relI: 46 },
-        { h: 2, k: 2, l: 0, relI: 20 },
-        { h: 3, k: 1, l: 1, relI: 17 },
-        { h: 2, k: 2, l: 2, relI: 5 }
-      ];
-    } else if (isBCC) {
-      planes = [
-        { h: 1, k: 1, l: 0, relI: 100 },
-        { h: 2, k: 0, l: 0, relI: 18 },
-        { h: 2, k: 1, l: 1, relI: 30 },
-        { h: 2, k: 2, l: 0, relI: 8 },
-        { h: 3, k: 1, l: 0, relI: 12 }
-      ];
-    } else if (isDiamond) {
-      planes = [
-        { h: 1, k: 1, l: 1, relI: 100 },
-        { h: 2, k: 2, l: 0, relI: 55 },
-        { h: 3, k: 1, l: 1, relI: 30 },
-        { h: 4, k: 0, l: 0, relI: 6 },
-        { h: 3, k: 3, l: 1, relI: 11 }
-      ];
-    } else {
-      planes = [
-        { h: 1, k: 0, l: 0, relI: 100 },
-        { h: 0, k: 0, l: 2, relI: 40 },
-        { h: 1, k: 0, l: 1, relI: 80 },
-        { h: 1, k: 0, l: 2, relI: 25 },
-        { h: 1, k: 1, l: 0, relI: 35 }
-      ];
-    }
-
-    const calculatedPeaks: Array<{ twoTheta: number; relI: number; hkl: string }> = [];
-    for (const p of planes) {
-      const exactMetrics = calculateExactElementMetrics(element, p.h, p.k, p.l, lambda);
-      if (exactMetrics.twoTheta !== null && exactMetrics.twoTheta > 5 && exactMetrics.twoTheta < 150) {
-        calculatedPeaks.push({
-          twoTheta: Number(exactMetrics.twoTheta.toFixed(2)),
-          relI: p.relI,
-          hkl: `(${p.h} ${p.k} ${p.l})`
-        });
-      }
-    }
+    const calculatedPeaks = computeElementBraggSticks(element, selectedAnode, 5, 145);
 
     if (calculatedPeaks.length > 0) {
       const peaksStr = calculatedPeaks.map((p) => `${p.twoTheta}:${p.relI}`).join(', ');
       const hklStr = calculatedPeaks.map((p) => p.hkl).join(', ');
-      onLoadPeaks(peaksStr, hklStr, `${element.name} (${element.symbol})`);
+      const anodeSpec = XRAY_ANODES[selectedAnode];
+      onLoadPeaks(peaksStr, hklStr, `${element.name} (${element.symbol} · ${anodeSpec.shortLabel})`);
       playSynthTone('success');
-      setLoadedBanner(`${element.symbol} Pure Crystal Standard`);
+      setLoadedBanner(`${element.symbol} Pure Crystal (${anodeSpec.shortLabel}, λ=${anodeSpec.wavelengthKa1} Å)`);
       setTimeout(() => setLoadedBanner(null), 3500);
     }
   };
@@ -2764,14 +2757,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
   const filteredElements = useMemo(() => {
     return fullElementsGrid.filter(el => {
-      // 1. Search filter
+      // 1. Smart scientific query filter (symbol, name, Z, space group, d>10, mp>2000, radioactive, etc.)
       if (searchQuery.trim()) {
-        const q = searchQuery.toLowerCase().trim();
-        const matchSym = el.symbol.toLowerCase().includes(q);
-        const matchName = el.name.toLowerCase().includes(q);
-        const matchNum = el.number.toString() === q;
-        const matchStruct = (el.crystalStructure || '').toLowerCase().includes(q);
-        if (!matchSym && !matchName && !matchNum && !matchStruct) return false;
+        if (!matchesSmartPeriodicQuery(el, searchQuery, temperature)) return false;
       }
 
       // 2. Quick Preset filter
@@ -2796,7 +2784,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
       return true;
     });
-  }, [fullElementsGrid, searchQuery, activePreset, categoryFilter, blockFilter, structureFilter]);
+  }, [fullElementsGrid, searchQuery, temperature, activePreset, categoryFilter, blockFilter, structureFilter]);
 
   const matchedElementNumbers = useMemo(() => {
     return new Set(filteredElements.map(e => e.number));
@@ -3264,6 +3252,12 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
             activePreset={activePreset}
             onSelectPreset={setActivePreset}
             elements={fullElementsGrid}
+            selectedAnode={selectedAnode}
+            onSelectAnode={(anode) => {
+              setSelectedAnode(anode);
+              playSynthTone('tick');
+            }}
+            searchInputRef={searchInputRef}
           />
 
           {/* Interactive 118-Element Crystal Systems & Bravais Distribution Strip */}
@@ -3289,28 +3283,38 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
               setSelectedElement(num);
               playSynthTone('switch');
             }}
+            selectedAnode={selectedAnode}
+            dbPhaseCounts={dbPhaseIndex.countsBySymbol}
           />
 
           {/* Quiet Telemetry Summary Strip */}
           <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400 font-mono px-1">
-            <div className="flex items-center gap-2 tabular-nums">
+            <div className="flex flex-wrap items-center gap-2 tabular-nums">
               <span>
                 Showing <strong className="text-white">{filteredElements.length}</strong> / 118 elements
+              </span>
+              <span className="text-slate-600">·</span>
+              <span>
+                Anode <strong className="text-amber-300">{XRAY_ANODES[selectedAnode].shortLabel}</strong> ({XRAY_ANODES[selectedAnode].wavelengthKa1} Å)
+              </span>
+              <span className="text-slate-600">·</span>
+              <span>
+                Library <strong className="text-emerald-300">{dbPhaseIndex.phases.length.toLocaleString()}</strong> phases
               </span>
               {filteredElements.length < 118 && (
                 <>
                   <span className="text-slate-600">·</span>
-                  <span className="text-amber-400">Active filter applied</span>
+                  <span className="text-amber-400">Filter active</span>
                 </>
               )}
-              <span className="hidden md:inline text-slate-600">·</span>
-              <span className="hidden md:inline text-slate-500 text-[11px]">
-                Tip: Use keyboard ← ↑ ↓ → arrows to navigate elements
+              <span className="hidden xl:inline text-slate-600">·</span>
+              <span className="hidden xl:inline text-slate-500 text-[11px]">
+                Keys: ← ↑ ↓ → navigate · / search · P pin · Shift+Click combine DB phases
               </span>
             </div>
             {activeElementInfo && (
               <div className="flex items-center gap-1.5 text-xs text-slate-300 tabular-nums">
-                <span className="text-slate-500">Active Specimen:</span>
+                <span className="text-slate-500">Active:</span>
                 <strong className="text-cyan-300 font-bold">
                   Z={activeElementInfo.number} {activeElementInfo.symbol}
                 </strong>
@@ -3344,6 +3348,23 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                   onToggleStructureFilter={setStructureFilter}
                   activeBlockFilter={blockFilter}
                   onToggleBlockFilter={setBlockFilter}
+                  selectedAnode={selectedAnode}
+                  dbPhaseCounts={dbPhaseIndex.countsBySymbol}
+                  dbPhases={dbPhaseIndex.phases}
+                  composerSymbols={composerSymbols}
+                  onToggleComposerSymbol={(sym) => {
+                    setComposerSymbols(prev =>
+                      prev.includes(sym) ? prev.filter(s => s !== sym) : [...prev, sym]
+                    );
+                    playSynthTone('tick');
+                  }}
+                  onClearComposerSymbols={() => {
+                    setComposerSymbols([]);
+                    playSynthTone('tick');
+                  }}
+                  onLoadDbPhase={handleLoadDbPhase}
+                  onSimulateElementXrd={handleLoadElementDiffractionPeaks}
+                  onFocusSearch={() => searchInputRef.current?.focus()}
                 />
               </div>
             </div>
@@ -3363,14 +3384,18 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                     {/* Element Profiler Header (Clean Unboxed Metadata) */}
                     <div className="flex items-center justify-between border-b border-slate-800/80 pb-4 gap-3">
                       <div className="space-y-1 min-w-0">
-                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 uppercase tracking-wider">
+                        <div className="flex items-center gap-1.5 text-[10px] font-mono text-slate-400 uppercase tracking-wider flex-wrap">
                           <span className="text-indigo-400 font-bold">
                             {activeElementInfo.category.replace('_', ' ')}
                           </span>
                           <span className="text-slate-600">·</span>
-                          <span>Group {activeElementInfo.group}</span>
-                          <span className="text-slate-600">·</span>
-                          <span>Period {activeElementInfo.period}</span>
+                          <span>G{activeElementInfo.group} · P{activeElementInfo.period}</span>
+                          {isRadioactiveElement(activeElementInfo.number) && (
+                            <>
+                              <span className="text-slate-600">·</span>
+                              <span className="text-amber-400 font-bold">☢ Radioactive</span>
+                            </>
+                          )}
                         </div>
                         <h3 className="text-2xl font-black text-white tracking-tight truncate">
                           {activeElementInfo.name}
@@ -3380,7 +3405,9 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                           <span className="text-slate-600">·</span>
                           <span className="text-cyan-300 font-bold">{activeElementInfo.spaceGroup}</span>
                           <span className="text-slate-600">·</span>
-                          <span className="text-emerald-300">{activeElementInfo.crystalStructure}</span>
+                          <span className="text-emerald-300">
+                            {dbPhaseIndex.countsBySymbol[activeElementInfo.symbol] || 0} DB phases
+                          </span>
                         </p>
                       </div>
 
@@ -3882,48 +3909,60 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
 
                     {detailSubTab === 'xray' && (
                       <div className="space-y-5 animate-fadeIn">
-                        {/* Tube Anode Fluorescence Compatibility Matrix */}
+                        {/* Interactive Tube Anode Radiation & Fluorescence Matrix */}
                         {(() => {
                           const kEdge = getElementKEdgeKeV(activeElementInfo);
-                          const muCu = getElementMuRhoCu(activeElementInfo);
-                          const tubes = [
-                            { id: 'Cr', label: 'Cr Kα', keV: 5.415, lambda: '2.290 Å' },
-                            { id: 'Fe', label: 'Fe Kα', keV: 6.404, lambda: '1.936 Å' },
-                            { id: 'Co', label: 'Co Kα', keV: 6.930, lambda: '1.789 Å' },
-                            { id: 'Cu', label: 'Cu Kα', keV: 8.048, lambda: '1.541 Å' },
-                            { id: 'Mo', label: 'Mo Kα', keV: 17.479, lambda: '0.709 Å' }
-                          ];
+                          const muSelected = getElementMuRhoForAnode(activeElementInfo, selectedAnode);
                           return (
                             <div className="bg-[#070b14] border border-slate-800/90 rounded-2xl p-3.5 space-y-2.5 font-mono text-xs">
                               <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2">
                                 <span className="text-[10px] font-bold uppercase tracking-wider text-cyan-300 flex items-center gap-1.5">
                                   <Radio className="w-3.5 h-3.5" />
-                                  Anode Radiation Selection vs {activeElementInfo.symbol} K-Edge
+                                  Anode Target vs {activeElementInfo.symbol} K-Edge (Click to Switch)
                                 </span>
                                 <span className="text-[10px] text-slate-400 tabular-nums">
-                                  E<sub>K</sub> = <strong className="text-white">{kEdge >= 1 ? `${kEdge.toFixed(3)} keV` : `${(kEdge * 1000).toFixed(0)} eV`}</strong> · μ/ρ(Cu) = <strong className="text-cyan-300">{muCu} cm²/g</strong>
+                                  E<sub>K</sub> = <strong className="text-white">{kEdge >= 1 ? `${kEdge.toFixed(3)} keV` : `${(kEdge * 1000).toFixed(0)} eV`}</strong> · μ/ρ({selectedAnode}) = <strong className="text-cyan-300">{muSelected} cm²/g</strong>
                                 </span>
                               </div>
-                              <div className="grid grid-cols-5 gap-1.5 text-[10px] tabular-nums">
-                                {tubes.map(tube => {
-                                  const excitesK = kEdge > 1.2 && kEdge < tube.keV && (tube.keV - kEdge) < 5.2;
-                                  const aboveEdge = kEdge > tube.keV;
+                              <div className="grid grid-cols-3 sm:grid-cols-6 gap-1.5 text-[10px] tabular-nums">
+                                {XRAY_ANODE_LIST.map(tube => {
+                                  const fluo = getAnodeFluorescenceAssessment(activeElementInfo, tube.id);
+                                  const isCur = selectedAnode === tube.id;
+                                  const isSevere = fluo.severity === 'Severe K-Fluo';
+                                  const isWarn = fluo.severity === 'L-Fluo' || fluo.severity === 'Moderate';
                                   return (
-                                    <div
+                                    <button
                                       key={tube.id}
-                                      className={`p-2 rounded-lg border text-center space-y-0.5 ${
-                                        excitesK
-                                          ? 'bg-rose-950/35 border-rose-500/40 text-rose-200'
-                                          : 'bg-[#0B0F19] border-slate-800 text-slate-300'
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedAnode(tube.id);
+                                        playSynthTone('tick');
+                                      }}
+                                      className={`p-2 rounded-lg border text-center space-y-0.5 transition-all cursor-pointer ${
+                                        isCur
+                                          ? 'ring-2 ring-cyan-400 bg-cyan-950/40 border-cyan-500/60 text-white'
+                                          : isSevere
+                                          ? 'bg-rose-950/35 border-rose-500/40 text-rose-200 hover:border-rose-400'
+                                          : 'bg-[#0B0F19] border-slate-800 text-slate-300 hover:border-slate-600'
                                       }`}
-                                      title={excitesK ? `K-edge (${kEdge.toFixed(2)} keV) falls right below ${tube.label} (${tube.keV} keV): strong secondary fluorescence` : `${tube.label} avoids intense K-edge fluorescence resonance`}
+                                      title={fluo.detail}
                                     >
-                                      <div className="font-bold text-white">{tube.label}</div>
-                                      <div className="text-[8.5px] text-slate-400">{tube.lambda}</div>
-                                      <div className={`text-[8.5px] font-bold ${excitesK ? 'text-rose-400' : aboveEdge ? 'text-emerald-400' : 'text-cyan-300'}`}>
-                                        {excitesK ? 'K-Fluo!' : aboveEdge ? 'Optimal' : 'Pass'}
+                                      <div className="font-bold text-white">{tube.shortLabel}</div>
+                                      <div className="text-[8.5px] text-slate-400">{tube.wavelengthKa1.toFixed(3)}Å</div>
+                                      <div
+                                        className={`text-[8.5px] font-bold ${
+                                          isSevere
+                                            ? 'text-rose-400'
+                                            : isWarn
+                                            ? 'text-amber-300'
+                                            : fluo.severity === 'Optimal'
+                                            ? 'text-emerald-400'
+                                            : 'text-cyan-300'
+                                        }`}
+                                      >
+                                        {isSevere ? 'K-Fluo!' : fluo.severity}
                                       </div>
-                                    </div>
+                                    </button>
                                   );
                                 })}
                               </div>

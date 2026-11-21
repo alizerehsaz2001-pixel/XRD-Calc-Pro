@@ -2,7 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import {
   Search,
   Thermometer,
-  Play,
   Pause,
   RotateCcw,
   Award,
@@ -11,9 +10,11 @@ import {
   SlidersHorizontal,
   ChevronDown,
   Layers,
-  Flame
+  Flame,
+  Radio
 } from 'lucide-react';
-import { HeatmapMode, ColorMode, QuickPreset, CrystalElement } from './types';
+import { HeatmapMode, ColorMode, QuickPreset, CrystalElement, XRayAnodeType } from './types';
+import { XRAY_ANODE_LIST } from './xrayAnodePhysics';
 import { getPhysicalStateAtTemp } from './PeriodicTableGrid';
 
 interface PeriodicFilterToolbarProps {
@@ -34,6 +35,9 @@ interface PeriodicFilterToolbarProps {
   activePreset: QuickPreset | null;
   onSelectPreset: (preset: QuickPreset | null) => void;
   elements?: CrystalElement[];
+  selectedAnode?: XRayAnodeType;
+  onSelectAnode?: (anode: XRayAnodeType) => void;
+  searchInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export const QUICK_PRESETS: QuickPreset[] = [
@@ -90,6 +94,18 @@ export const QUICK_PRESETS: QuickPreset[] = [
     label: 'Battery & Ionics',
     description: 'Key intercalation alkali cations, polyanion frameworks, and redox transition metals for Li/Na-ion cathodes & solid electrolytes.',
     elementNumbers: [3, 11, 15, 16, 22, 25, 26, 27, 28, 40, 57]
+  },
+  {
+    id: 'biomedical_implants',
+    label: 'Biomedical & Implants',
+    description: 'Orthopedic, dental, and biodegradable implant metals plus bone-mineral constituents (Ti, Co, Cr, Zr, Mg, Zn, Ca, P, Ta, Nb).',
+    elementNumbers: [12, 15, 20, 22, 24, 27, 30, 40, 41, 73]
+  },
+  {
+    id: 'radioactive_actinides',
+    label: 'Radioactive & Actinides',
+    description: 'Actinide nuclear fuels and synthetic/primordial radioelements (Tc, Pm, Po, Ra, Th, Pa, U, Np, Pu, Am, Cm).',
+    elementNumbers: [43, 61, 84, 88, 90, 91, 92, 93, 94, 95, 96]
   }
 ];
 
@@ -136,7 +152,10 @@ export const PeriodicFilterToolbar: React.FC<PeriodicFilterToolbarProps> = ({
   onTemperatureChange,
   activePreset,
   onSelectPreset,
-  elements = []
+  elements = [],
+  selectedAnode = 'Cu',
+  onSelectAnode,
+  searchInputRef
 }) => {
   const [tempUnit, setTempUnit] = useState<'C' | 'K'>('C');
   const [isPlayingHeat, setIsPlayingHeat] = useState<boolean>(false);
@@ -215,15 +234,17 @@ export const PeriodicFilterToolbar: React.FC<PeriodicFilterToolbarProps> = ({
     <div className="bg-[#0B0F19] border border-slate-800/90 rounded-2xl p-3.5 space-y-2.5 shadow-lg transition-all">
       {/* Row 1: Search + Color Mode Segmented Control + Heatmap + Phase/Cohort Toggle */}
       <div className="flex flex-wrap items-center justify-between gap-2.5">
-        {/* Search Input */}
-        <div className="relative flex-1 min-w-[220px] max-w-md">
+        {/* Search Input with Smart Scientific Query Support */}
+        <div className="relative flex-1 min-w-[230px] max-w-md">
           <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
           <input
+            ref={searchInputRef}
             type="text"
-            placeholder="Search symbol (Fe), name, Z (26), space group (Fm-3m), or BCC..."
+            placeholder="Search Fe, 26, Fm-3m, d>10, mp>2000, radioactive (press /)"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             className="w-full bg-[#070b14] border border-slate-800 hover:border-slate-700 focus:border-cyan-500 rounded-xl pl-8.5 pr-7 py-1.5 text-xs font-mono text-slate-100 placeholder-slate-500 focus:outline-none transition-colors"
+            title="Supports symbol, name, atomic number, space group, crystal system, or property queries: d>10, mp>2000, a>4, z=26, radioactive, srm, Ti Al V"
           />
           {searchQuery && (
             <button
@@ -300,15 +321,16 @@ export const PeriodicFilterToolbar: React.FC<PeriodicFilterToolbarProps> = ({
             }`}
           >
             <option value="none" className="bg-[#080d1a] text-slate-300">Heatmap: Off</option>
+            <option value="dbPhaseCount" className="bg-[#080d1a] text-cyan-300">Heatmap: XRD DB Phase Count</option>
             <option value="latticeA" className="bg-[#080d1a] text-white">Heatmap: Lattice a₀ (Å)</option>
             <option value="unitCellVolume" className="bg-[#080d1a] text-white">Heatmap: Cell Volume V (Å³)</option>
             <option value="molarVolume" className="bg-[#080d1a] text-white">Heatmap: Molar Volume V_m (cm³/mol)</option>
             <option value="density" className="bg-[#080d1a] text-white">Heatmap: X-Ray Density (g/cm³)</option>
             <option value="scatteringPower" className="bg-[#080d1a] text-white">Heatmap: Form Factor f₀ (Z e⁻)</option>
-            <option value="massAttenuation" className="bg-[#080d1a] text-white">Heatmap: Cu-Kα μ/ρ (cm²/g)</option>
+            <option value="massAttenuation" className="bg-[#080d1a] text-white">Heatmap: {selectedAnode}-Kα μ/ρ (cm²/g)</option>
             <option value="kEdgeKeV" className="bg-[#080d1a] text-white">Heatmap: K-Absorption Edge (keV)</option>
             <option value="kAlpha1KeV" className="bg-[#080d1a] text-white">Heatmap: Kα₁ Emission Energy (keV)</option>
-            <option value="cuFluorescenceRisk" className="bg-[#080d1a] text-white">Heatmap: Cu-Kα Fluorescence Index</option>
+            <option value="cuFluorescenceRisk" className="bg-[#080d1a] text-white">Heatmap: {selectedAnode}-Kα Fluorescence Risk</option>
             <option value="atomicRadius" className="bg-[#080d1a] text-white">Heatmap: Atomic Radius (pm)</option>
             <option value="electronegativity" className="bg-[#080d1a] text-white">Heatmap: Electronegativity (χ)</option>
             <option value="ionizationEnergy" className="bg-[#080d1a] text-white">Heatmap: 1st Ionization (eV)</option>
@@ -393,23 +415,53 @@ export const PeriodicFilterToolbar: React.FC<PeriodicFilterToolbarProps> = ({
           })}
         </div>
 
-        {/* Orbital Subshell Block Segmented Filter */}
-        <div className="flex items-center gap-1 bg-[#070b14] p-0.5 rounded-lg border border-slate-800">
-          <span className="text-[9px] font-mono uppercase font-bold text-slate-500 px-1.5">Block:</span>
-          {(['all', 's', 'p', 'd', 'f'] as const).map(blk => (
-            <button
-              key={blk}
-              type="button"
-              onClick={() => onBlockFilterChange(blockFilter === blk && blk !== 'all' ? 'all' : blk)}
-              className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
-                blockFilter === blk
-                  ? 'bg-indigo-600 text-white'
-                  : 'text-slate-400 hover:text-white'
-              }`}
+        <div className="flex flex-wrap items-center gap-2">
+          {/* X-Ray Tube Anode Target Selector */}
+          {onSelectAnode && (
+            <div
+              className="flex items-center gap-0.5 bg-[#070b14] p-0.5 rounded-lg border border-slate-800"
+              title="Select laboratory X-ray tube anode to dynamically update Bragg reflections, mass attenuation μ/ρ, and fluorescence risk"
             >
-              {blk === 'all' ? 'All' : `${blk}-blk`}
-            </button>
-          ))}
+              <span className="text-[9px] font-mono uppercase font-bold text-amber-400 px-1.5 flex items-center gap-1 whitespace-nowrap shrink-0">
+                <Radio className="w-2.5 h-2.5" />
+                Anode:
+              </span>
+              {XRAY_ANODE_LIST.map(anode => (
+                <button
+                  key={anode.id}
+                  type="button"
+                  onClick={() => onSelectAnode(anode.id)}
+                  className={`px-1.5 py-0.5 rounded text-[10px] font-mono font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                    selectedAnode === anode.id
+                      ? 'bg-amber-500/25 text-amber-200 border border-amber-500/50'
+                      : 'text-slate-400 hover:text-white border border-transparent'
+                  }`}
+                  title={`${anode.label} · ${anode.energyKeV.toFixed(2)} keV · β-filter: ${anode.betaFilter} — ${anode.summary}`}
+                >
+                  {anode.id}
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Orbital Subshell Block Segmented Filter */}
+          <div className="flex items-center gap-1 bg-[#070b14] p-0.5 rounded-lg border border-slate-800">
+            <span className="text-[9px] font-mono uppercase font-bold text-slate-500 px-1.5">Block:</span>
+            {(['all', 's', 'p', 'd', 'f'] as const).map(blk => (
+              <button
+                key={blk}
+                type="button"
+                onClick={() => onBlockFilterChange(blockFilter === blk && blk !== 'all' ? 'all' : blk)}
+                className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
+                  blockFilter === blk
+                    ? 'bg-indigo-600 text-white'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                {blk === 'all' ? 'All' : `${blk}-blk`}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
