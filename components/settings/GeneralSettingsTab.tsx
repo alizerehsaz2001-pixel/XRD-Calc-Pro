@@ -54,7 +54,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
   setPySelectedScript,
 }) => {
   const { t, i18n } = useTranslation();
-  const isFa = i18n.language === 'fa';
+  const isFa = (i18n.language || '').toLowerCase().startsWith('fa');
   const [converterInput, setConverterInput] = useState<number>(1.5406);
   const [soundTestTone, setSoundTestTone] = useState<string | null>(null);
 
@@ -262,7 +262,7 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
                         <div className={`w-3.5 h-3.5 rounded-full ${tOption.cardBg} border border-white/20`} />
                         <div className={`w-3.5 h-3.5 rounded-full ${tOption.accentBg}`} />
                       </div>
-                      <span className={`text-[10px] font-mono font-bold ${tOption.textCol}`}>Aa</span>
+                      <span className={`text-xs font-serif font-bold tracking-normal ${tOption.textCol}`}>Aa</span>
                     </div>
 
                     <div className="flex items-center justify-between">

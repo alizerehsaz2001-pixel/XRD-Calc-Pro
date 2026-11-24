@@ -8,7 +8,11 @@ import convolutionalEngineBg from '../src/assets/images/convolutional_engine_bg_
 
 import { DLPhaseResult, DLPhaseCandidate, DLAiDiagnosticReview, DLExplainabilityReport } from "../types";
 import { identifyPhasesDL, parseXYData, applySavitzkyGolay } from "../utils/physics";
-import { computeDLExplainabilityReport } from "../utils/dlPhysicsNeuralEngine";
+import {
+  computeDLExplainabilityReport,
+  analyzeAndAutoTuneEngine,
+  EmpiricalSpectralDiagnostics,
+} from "../utils/dlPhysicsNeuralEngine";
 import { playSynthTone } from "../utils/sound";
 import { analyzePhaseID } from "../services/geminiService";
 import { PhaseIDCoreControlStrip } from "./deeplearning/PhaseIDCoreControlStrip";
@@ -717,10 +721,12 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
     }
   }, [engineConfig]);
 
-  // AI Auto-Tuning Optimizer simulated states
+  // Empirical signal-aware auto-tuner & benchmark states
   const [isAutoTuning, setIsAutoTuning] = useState(false);
   const [autoTuneProgress, setAutoTuneProgress] = useState(0);
   const [autoTuneLogs, setAutoTuneLogs] = useState<string[]>([]);
+  const [empiricalSignalDiag, setEmpiricalSignalDiag] = useState<EmpiricalSpectralDiagnostics | null>(null);
+  const [activeBenchmarkId, setActiveBenchmarkId] = useState<string>("quartz");
   const [activePreset, setActivePreset] = useState<string>("Standard");
   const [showConfigImportExport, setShowConfigImportExport] = useState(false);
   const [importJsonText, setImportJsonText] = useState("");
@@ -734,51 +740,117 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
 
   const runAutoTuner = () => {
     setIsAutoTuning(true);
-    setAutoTuneProgress(0);
-    setAutoTuneLogs(["Tuning Process Initialized: Querying GPU/TPU baseline registers..."]);
-    
-    const steps = [
-      { progress: 15, log: "Analyzing signal noise-floor & background amorphous humps..." },
-      { progress: 35, log: "Trial 1/4: Scanning Gaussian kernel of width 3. Confidence rating: 78.4%" },
-      { progress: 55, log: "Trial 2/4: Symmetrizing Multi-Scale Residual bypass links... Preserving peak bounds." },
-      { progress: 75, log: "Trial 3/4: Minimizing cross-correlation loss via GELU activation. Error: 0.012" },
-      { progress: 95, log: "Trial 4/4: Stabilising Batch-Norm scale & learning multipliers..." },
-      { progress: 100, log: "Optimization complete. Super-resolved 1D CNN configuration selected and loaded!" }
-    ];
+    setAutoTuneProgress(20);
+    setAutoTuneLogs(["Measuring diffractogram SNR, lower-envelope drift, and peak FWHM..."]);
 
-    let currentStep = 0;
-    const interval = setInterval(() => {
-      if (currentStep < steps.length) {
-        const item = steps[currentStep];
-        setAutoTuneProgress(item.progress);
-        setAutoTuneLogs(prev => [...prev, `[Optimizer] ${item.log}`]);
-        currentStep++;
-      } else {
-        clearInterval(interval);
-        setTimeout(() => {
-          setEngineConfig({
-            kernelSize: 5,
-            kernelProfile: "Pseudo-Voigt",
-            filters: 128,
-            activation: "GELU",
-            optimization: "AdamW",
-            multiScale: true,
-            dropout: 0.15,
-            pooling: "max",
-            depth: 50,
-            learningRate: 0.0015,
-            batchNorm: true,
-            confidenceThreshold: 45,
-            cagliotiCorrection: true,
-            asymmetryCorrection: true,
-            backgroundSubtraction: true,
-            shapeExponent: 3.0
-          });
-          setActivePreset("Tuned");
-          setIsAutoTuning(false);
-        }, 1000);
+    const pts = parseXYData(inputData);
+    const tuned = analyzeAndAutoTuneEngine(pts);
+
+    setTimeout(() => {
+      setAutoTuneProgress(65);
+      setAutoTuneLogs(tuned.rationaleLogs.slice(0, 2));
+    }, 120);
+
+    setTimeout(() => {
+      setAutoTuneProgress(100);
+      setAutoTuneLogs(tuned.rationaleLogs);
+      setEmpiricalSignalDiag(tuned.diagnostics);
+      setEngineConfig(tuned.recommendedConfig);
+      setActivePreset(tuned.presetLabel);
+      setIsAutoTuning(false);
+      playSynthTone("success");
+      if (inputData.trim()) {
+        runAnalysis(inputData, isMixMode);
       }
-    }, 1200);
+    }, 320);
+  };
+
+  const quickBenchmarks = [
+    {
+      id: "quartz",
+      label: "α-SiO₂ Quartz",
+      mix: false,
+      matchKeys: ["quartz"],
+      fallback: "20.85, 35 (100)\n26.64, 100 (101)\n36.54, 12 (110)\n39.46, 10 (102)\n50.14, 18 (112)\n59.96, 11 (211)\n68.14, 9 (203)",
+    },
+    {
+      id: "silicon",
+      label: "Si SRM 640",
+      mix: false,
+      matchKeys: ["silicon", "srm 640"],
+      fallback: "28.44, 100 (111)\n47.30, 55 (220)\n56.12, 30 (311)\n69.13, 6 (400)\n76.38, 11 (331)\n88.03, 12 (422)",
+    },
+    {
+      id: "corundum",
+      label: "α-Al₂O₃ Corundum",
+      mix: false,
+      matchKeys: ["corundum", "srm 1976"],
+      fallback: "25.58, 55 (012)\n35.15, 92 (104)\n37.78, 42 (110)\n43.36, 100 (113)\n52.55, 45 (024)\n57.50, 82 (116)\n66.52, 32 (214)\n68.21, 50 (300)",
+    },
+    {
+      id: "tio2_p25",
+      label: "TiO₂ P25 (Mix)",
+      mix: true,
+      matchKeys: ["anatase", "rutile"],
+      fallback: "25.28, 100\n27.45, 42\n36.09, 22\n37.80, 20\n41.23, 11\n48.05, 35\n53.89, 20\n54.32, 26\n55.06, 20\n62.69, 14\n68.98, 9",
+    },
+    {
+      id: "iron_oxides",
+      label: "Fe₃O₄ + Fe₂O₃ (Mix)",
+      mix: true,
+      matchKeys: ["magnetite", "hematite"],
+      fallback: "24.14, 18\n30.10, 30\n33.15, 65\n35.42, 100\n40.86, 16\n43.05, 20\n49.48, 24\n54.09, 28\n56.94, 30\n62.52, 42\n63.99, 18",
+    },
+  ] as const;
+
+  const handleLoadQuickBenchmark = (benchmarkId: string) => {
+    const spec = quickBenchmarks.find((b) => b.id === benchmarkId);
+    if (!spec) return;
+    setActiveBenchmarkId(spec.id);
+    setRadiationWavelength(1.54056);
+
+    let patternText: string = spec.fallback;
+    if (!spec.mix) {
+      const mat = activeMaterialDb.find((m) =>
+        spec.matchKeys.some((k) => String(m.name || "").toLowerCase().includes(k))
+      );
+      if (mat?.pattern && mat.pattern.trim().length > 10) {
+        patternText = mat.pattern;
+      }
+    } else {
+      const combinedLines: Array<{ t: number; i: number }> = [];
+      spec.matchKeys.forEach((k, idx) => {
+        const mat = activeMaterialDb.find((m) =>
+          String(m.name || "").toLowerCase().includes(k)
+        );
+        if (mat?.pattern) {
+          const weight = idx === 0 ? 1.0 : 0.55;
+          parseXYData(mat.pattern)
+            .slice(0, 8)
+            .forEach((pt) => {
+              combinedLines.push({
+                t: Number(pt.twoTheta.toFixed(3)),
+                i: Number((pt.intensity * weight).toFixed(1)),
+              });
+            });
+        }
+      });
+      if (combinedLines.length >= 6) {
+        combinedLines.sort((a, b) => a.t - b.t);
+        const maxI = Math.max(1, ...combinedLines.map((p) => p.i));
+        patternText = combinedLines
+          .map((p) => `${p.t.toFixed(2)}, ${((p.i / maxI) * 100).toFixed(1)}`)
+          .join("\n");
+      }
+    }
+
+    setInputData(patternText);
+    setSearchTerm(spec.label);
+    setIsMixMode(spec.mix);
+    setActiveInputTool("preview");
+    setActiveWorkbenchTab("phase_id");
+    playSynthTone("switch");
+    runAnalysis(patternText, spec.mix, { wavelength: 1.54056 });
   };
 
   const applyPreset = (presetName: string) => {
@@ -2310,7 +2382,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
                 const topP = pythonCandidates[0];
                 const dSpacings = (topP.matched_peaks || []).slice(0, 3).map(p => {
                   const thetaRad = (p.obsT / 2) * (Math.PI / 180);
-                  return 1.5406 / (2 * Math.sin(thetaRad));
+                  return effLambda / (2 * Math.sin(thetaRad));
                 });
                 
                 const newRun = {
@@ -2368,7 +2440,7 @@ export const DeepLearningModule: React.FC<{ pythonFeaturesEnabled?: boolean }> =
             const topPeaks = topCand.matched_peaks || [];
             const dSpacings = topPeaks.slice(0, 3).map(p => {
               const thetaRad = (p.obsT / 2) * (Math.PI / 180);
-              return 1.5406 / (2 * Math.sin(thetaRad));
+              return effLambda / (2 * Math.sin(thetaRad));
             });
 
             const newRun = {
@@ -3262,6 +3334,53 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             </div>
           )}
         </div>
+
+        {/* 1-Click Benchmark Standards & Multi-Phase Mixtures Strip */}
+        <div className="mt-3 pt-2.5 border-t border-slate-200/80 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2">
+          <div className="flex items-center gap-2 overflow-x-auto pb-0.5">
+            <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400 whitespace-nowrap shrink-0">
+              Benchmarks:
+            </span>
+            {quickBenchmarks.map((b) => {
+              const isSelected = activeBenchmarkId === b.id;
+              return (
+                <button
+                  key={b.id}
+                  type="button"
+                  onClick={() => handleLoadQuickBenchmark(b.id)}
+                  className={`px-2.5 py-1 rounded-sm text-[11px] font-mono transition-colors border whitespace-nowrap shrink-0 cursor-pointer ${
+                    isSelected
+                      ? 'bg-cyan-600 text-white border-cyan-500 font-semibold'
+                      : 'bg-slate-50 dark:bg-[#0B0F19] text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 hover:text-cyan-700 dark:hover:text-cyan-200'
+                  }`}
+                >
+                  {b.label}
+                </button>
+              );
+            })}
+          </div>
+
+          <button
+            type="button"
+            onClick={runAutoTuner}
+            disabled={isAutoTuning || !inputData.trim()}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-sm bg-slate-50 dark:bg-[#0B0F19] hover:bg-indigo-50 dark:hover:bg-indigo-950/40 border border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 text-indigo-700 dark:text-indigo-300 text-[11px] font-mono font-semibold transition-colors disabled:opacity-50 whitespace-nowrap shrink-0 cursor-pointer"
+            title="Measure active diffractogram SNR, baseline drift, and peak FWHM to auto-select optimal 1D-CNN hyperparameters"
+          >
+            {isAutoTuning ? (
+              <Loader2 className="w-3 h-3 animate-spin" />
+            ) : (
+              <SlidersHorizontal className="w-3 h-3" />
+            )}
+            <span>
+              {isAutoTuning
+                ? 'Analyzing Signal...'
+                : empiricalSignalDiag
+                ? `Auto-Tuned (${empiricalSignalDiag.estimatedSnrDb} dB · ${activePreset})`
+                : 'Signal Auto-Tune'}
+            </span>
+          </button>
+        </div>
       </div>
 
       {/* PhaseID Neural Core Screening Bar: Visible on Ingest & Phase ID tabs */}
@@ -3357,76 +3476,88 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
         {/* Advanced Engine Configuration (Train Tab) */}
         {activeWorkbenchTab === 'train' && (
           !showAdvancedHyperparameters && viewMode === 'standard' ? (
-          <div className="bg-[#070A12] p-4 rounded-sm border border-slate-800 hover:border-slate-700 transition-all flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+          <div className="bg-white dark:bg-[#070A12] p-4 rounded-sm border border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 transition-colors flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-sm bg-[#0B0F19] border border-slate-800 flex items-center justify-center text-indigo-400 flex-shrink-0">
+              <div className="w-9 h-9 rounded-sm bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 flex items-center justify-center text-indigo-600 dark:text-indigo-400 flex-shrink-0">
                 <Settings2 className="w-4 h-4" />
               </div>
               <div>
                 <div className="flex items-center gap-2.5 flex-wrap">
-                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-white">Engine Hyperparameters & Calibration</h3>
-                  <span className="text-[11px] font-mono font-bold text-indigo-400">
-                    ● Auto-Tuned ({activePreset})
+                  <h3 className="text-xs font-mono font-bold uppercase tracking-wider text-slate-900 dark:text-white">Engine Hyperparameters &amp; Calibration</h3>
+                  <span className="text-[11px] font-mono font-bold text-indigo-600 dark:text-indigo-400">
+                    ● {activePreset}
                   </span>
                 </div>
-                <p className="text-xs font-mono tabular-nums text-slate-400 mt-0.5">
-                  ResNet-{engineConfig.depth} · {engineConfig.activation} · Kernel K={engineConfig.kernelSize} · LR {engineConfig.learningRate} · Caglioti Broadening Active
+                <p className="text-xs font-mono tabular-nums text-slate-600 dark:text-slate-400 mt-0.5">
+                  ResNet-{engineConfig.depth} · {engineConfig.activation} · Kernel K={engineConfig.kernelSize} · LR {engineConfig.learningRate} · Caglioti {engineConfig.cagliotiCorrection ? 'ON' : 'OFF'}
                 </p>
               </div>
             </div>
             <div className="flex items-center gap-2 self-end sm:self-auto">
               <button
+                type="button"
                 onClick={runAutoTuner}
                 disabled={isAutoTuning}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 text-xs font-mono font-bold transition-all disabled:opacity-50 cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-indigo-50 dark:bg-indigo-500/15 hover:bg-indigo-100 dark:hover:bg-indigo-500/25 border border-indigo-300 dark:border-indigo-500/40 text-indigo-700 dark:text-indigo-300 text-xs font-mono font-bold transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0"
               >
-                <Sparkles className="w-3.5 h-3.5 text-indigo-300 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "4s" }} />
-                <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
+                {isAutoTuning ? (
+                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                ) : (
+                  <SlidersHorizontal className="w-3.5 h-3.5" />
+                )}
+                <span>{isAutoTuning ? "Analyzing..." : "Signal Auto-Tune"}</span>
               </button>
               <button
+                type="button"
                 onClick={() => setShowAdvancedHyperparameters(true)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-[#0B0F19] hover:bg-slate-900 text-slate-200 hover:text-white border border-slate-800 text-xs font-mono font-bold transition-all cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm bg-slate-50 dark:bg-[#0B0F19] hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-200 border border-slate-200 dark:border-slate-800 text-xs font-mono font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
               >
                 <span>Customize Parameters</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
               </button>
             </div>
           </div>
         ) : (
-          <div className="bg-[#070A12] p-5 rounded-sm border border-slate-800 relative overflow-hidden group transition-all">
+          <div className="bg-white dark:bg-[#070A12] p-5 rounded-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden group transition-colors">
             {/* Header */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 relative z-10 pb-3 border-b border-slate-800">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 relative z-10 pb-3 border-b border-slate-200 dark:border-slate-800">
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 bg-[#0B0F19] rounded-sm border border-slate-800 flex items-center justify-center">
-                  <Settings className="w-4 h-4 text-indigo-400" />
+                <div className="w-9 h-9 bg-slate-50 dark:bg-[#0B0F19] rounded-sm border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                  <Settings className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
                 </div>
                 <div>
-                  <h3 className="font-mono font-bold text-white text-sm uppercase tracking-wider">
-                    Engine Hyperparameters & Neural Convolution Stencil
+                  <h3 className="font-mono font-bold text-slate-900 dark:text-white text-sm uppercase tracking-wider">
+                    Engine Hyperparameters &amp; Neural Convolution Stencil
                   </h3>
-                  <p className="text-[11px] text-slate-400 font-mono">
+                  <p className="text-[11px] text-slate-600 dark:text-slate-400 font-mono">
                     Configure kernel width, activation non-linearity, Caglioti dispersion, and optimizer schedule
                   </p>
                 </div>
               </div>
               <div className="flex items-center gap-2">
                 <button
+                  type="button"
                   onClick={runAutoTuner}
                   disabled={isAutoTuning}
-                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold uppercase text-xs px-3 py-1.5 rounded-sm transition-all disabled:opacity-50 cursor-pointer"
+                  className="flex items-center gap-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-mono font-bold uppercase text-xs px-3 py-1.5 rounded-sm transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap shrink-0"
                 >
-                  <Sparkles className="w-3.5 h-3.5 animate-spin" style={{ animationDuration: isAutoTuning ? "2s" : "3s" }} />
-                  <span>{isAutoTuning ? "Tuning..." : "Auto-Tune"}</span>
+                  {isAutoTuning ? (
+                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                  ) : (
+                    <SlidersHorizontal className="w-3.5 h-3.5" />
+                  )}
+                  <span>{isAutoTuning ? "Analyzing..." : "Signal Auto-Tune"}</span>
                 </button>
-                <span className="text-xs font-mono font-bold text-emerald-400 px-2">
+                <span className="text-xs font-mono font-bold text-emerald-700 dark:text-emerald-400 px-2 whitespace-nowrap">
                   ● {isSimulating ? "Running" : isAutoTuning ? "Optimizing" : "Ready"}
                 </span>
                 <button
+                  type="button"
                   onClick={() => setShowAdvancedHyperparameters(false)}
-                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm bg-[#0B0F19] hover:bg-slate-900 text-slate-300 hover:text-white border border-slate-800 text-xs font-mono font-bold transition-all cursor-pointer"
+                  className="flex items-center gap-1 px-2.5 py-1.5 rounded-sm bg-slate-50 dark:bg-[#0B0F19] hover:bg-slate-100 dark:hover:bg-slate-900 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-800 text-xs font-mono font-bold transition-colors cursor-pointer whitespace-nowrap shrink-0"
                 >
                   <span>Hide</span>
-                  <ChevronUp className="w-3.5 h-3.5 text-slate-400" />
+                  <ChevronUp className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
                 </button>
               </div>
             </div>
@@ -3760,27 +3891,45 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             </div>
           </div>
 
-          {/* Simulated Auto-Tuner Progress Section */}
-          {isAutoTuning && (
-            <div className="mb-6 p-4 bg-[#03060C]/80 rounded-2xl border border-violet-500/30 relative z-10 animate-in zoom-in duration-300">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-xs text-violet-400 font-bold uppercase tracking-widest flex items-center gap-1">
-                  <Cpu className="w-3.5 h-3.5 animate-bounce" /> Auto-tuning hyperparameter grid
+          {/* Empirical Signal-Aware Auto-Tuner Telemetry Section */}
+          {(isAutoTuning || empiricalSignalDiag) && (
+            <div className="mb-6 p-4 bg-slate-50 dark:bg-[#0B0F19] rounded-sm border border-indigo-200 dark:border-indigo-500/30 relative z-10 space-y-3">
+              <div className="flex flex-wrap justify-between items-center gap-2">
+                <span className="text-xs text-indigo-700 dark:text-indigo-300 font-mono font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  {isAutoTuning ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Activity className="w-3.5 h-3.5" />}
+                  <span>Empirical Signal Auto-Tuner Telemetry</span>
                 </span>
-                <span className="text-xs text-indigo-400 font-mono font-bold">{autoTuneProgress}%</span>
-              </div>
-              
-              <div className="w-full bg-[#050A14] h-2 rounded-full overflow-hidden mb-3 border border-slate-800/80">
-                <div 
-                  className="bg-gradient-to-r from-indigo-500 to-violet-500 h-full transition-all duration-300 shadow-[0_0_8px_rgba(99,102,241,0.5)]" 
-                  style={{ width: `${autoTuneProgress}%` }}
-                />
+                <span className="text-xs text-indigo-600 dark:text-indigo-400 font-mono font-bold tabular-nums">
+                  {isAutoTuning ? `${autoTuneProgress}%` : activePreset}
+                </span>
               </div>
 
-              {/* Terminal Logs */}
-              <div className="bg-[#03060C] p-3 rounded-lg border border-slate-855 h-28 overflow-y-auto space-y-1 font-mono text-xs text-emerald-400">
+              {empiricalSignalDiag && (
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs font-mono tabular-nums">
+                  <div className="p-2 rounded-sm bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800">
+                    <div className="text-[10px] text-slate-500 uppercase">Measured SNR</div>
+                    <div className="font-bold text-slate-900 dark:text-white">{empiricalSignalDiag.estimatedSnrDb} dB</div>
+                  </div>
+                  <div className="p-2 rounded-sm bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800">
+                    <div className="text-[10px] text-slate-500 uppercase">Baseline Drift</div>
+                    <div className="font-bold text-slate-900 dark:text-white">{empiricalSignalDiag.baselineDriftPct}%</div>
+                  </div>
+                  <div className="p-2 rounded-sm bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800">
+                    <div className="text-[10px] text-slate-500 uppercase">Mean Peak FWHM</div>
+                    <div className="font-bold text-slate-900 dark:text-white">{empiricalSignalDiag.meanFwhmDeg}°</div>
+                  </div>
+                  <div className="p-2 rounded-sm bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800">
+                    <div className="text-[10px] text-slate-500 uppercase">Detected Peaks</div>
+                    <div className="font-bold text-slate-900 dark:text-white">
+                      {empiricalSignalDiag.detectedPeakCount} ({empiricalSignalDiag.peakDensityPer10Deg}/10°)
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="bg-white dark:bg-[#050811] p-3 rounded-sm border border-slate-200 dark:border-slate-800 max-h-28 overflow-y-auto space-y-1 font-mono text-xs text-slate-700 dark:text-emerald-400">
                 {autoTuneLogs.map((log, idx) => (
-                  <div key={idx} className="leading-relaxed border-l-2 border-indigo-700 pl-2">
+                  <div key={idx} className="leading-relaxed border-l-2 border-indigo-500 pl-2">
                     {log}
                   </div>
                 ))}
@@ -4458,12 +4607,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                         setTimeout(() => setCloudSyncFeedback(null), 4500);
                      }
                   }}
-                  className="flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-emerald-600 to-teal-500 hover:from-emerald-500 hover:to-teal-400 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg hover:shadow-emerald-500/20 hover:-translate-y-0.5 active:translate-y-0"
+                  className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-mono font-bold uppercase tracking-wider rounded-sm transition-colors cursor-pointer"
                >
-                  <div className="w-4 h-4 rounded-full bg-white/20 flex items-center justify-center">
-                     <div className="w-1.5 h-1.5 bg-white rounded-full animate-pulse" />
-                  </div>
-                  Save Config to Cloud
+                  <Database className="w-3.5 h-3.5" />
+                  <span>Save Config to Cloud</span>
                </button>
              </div>
           </div>
@@ -4471,24 +4618,24 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
         ))}
 
         {activeWorkbenchTab === 'ingest' && (
-        <div className="bg-[#070A12] p-6 rounded-sm border border-slate-800 relative">
-          <div className="flex flex-wrap justify-between items-center gap-3 mb-5 pb-4 border-b border-slate-800">
+        <div className="bg-white dark:bg-[#070A12] p-6 rounded-sm border border-slate-200 dark:border-slate-800 relative">
+          <div className="flex flex-wrap justify-between items-center gap-3 mb-5 pb-4 border-b border-slate-200 dark:border-slate-800">
             <div className="flex items-center gap-3">
-              <div className="bg-violet-500/10 p-2 rounded-sm border border-violet-500/30">
-                <Brain className="w-5 h-5 text-violet-400 flex-shrink-0" />
+              <div className="bg-violet-50 dark:bg-violet-500/10 p-2 rounded-sm border border-violet-200 dark:border-violet-500/30">
+                <Brain className="w-5 h-5 text-violet-600 dark:text-violet-400 flex-shrink-0" />
               </div>
               <div>
-                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight uppercase font-mono">
+                <h2 className="text-base sm:text-lg font-bold text-slate-900 dark:text-white tracking-tight uppercase font-mono">
                   PhaseID Neural Core
                 </h2>
-                <p className="text-[11px] font-mono tabular-nums text-slate-400 flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-indigo-400" />
+                <p className="text-[11px] font-mono tabular-nums text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   {activeMaterialDb.length} PDF-2 / COD / Custom Crystal Standards Indexed
                 </p>
               </div>
             </div>
             {isSimulating && (
-              <span className="text-[11px] uppercase tracking-wider font-mono font-bold text-violet-300 bg-violet-500/10 px-2.5 py-1 rounded-sm border border-violet-500/30 flex items-center gap-1.5 whitespace-nowrap">
+              <span className="text-[11px] uppercase tracking-wider font-mono font-bold text-violet-700 dark:text-violet-300 bg-violet-50 dark:bg-violet-500/10 px-2.5 py-1 rounded-sm border border-violet-200 dark:border-violet-500/30 flex items-center gap-1.5 whitespace-nowrap">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" />
                 Indexing...
               </span>
@@ -4499,10 +4646,10 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
             {/* Material Search */}
             <div className="relative" ref={searchRef}>
               <div className="flex flex-wrap items-center justify-between gap-2 mb-2">
-                <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-300">
+                <label className="text-xs font-mono font-bold uppercase tracking-wider text-slate-700 dark:text-slate-300">
                   Unified Crystal Standard Search
                 </label>
-                <span className="text-[11px] font-mono text-emerald-400">
+                <span className="text-[11px] font-mono text-emerald-700 dark:text-emerald-400">
                   COD · Materials Project · User Custom Library
                 </span>
               </div>
@@ -4521,32 +4668,34 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     }
                   }}
                   placeholder="Search local database by formula, name, or peaks (e.g. 28.4, 47.3)..."
-                  className="w-full px-5 py-4 pl-12 pr-32 bg-slate-800/80 border border-slate-700 hover:border-violet-500/50 rounded-2xl text-sm text-slate-200 focus:ring-4 focus:ring-violet-500/20 focus:border-violet-500/80 outline-none transition-all placeholder:text-slate-500 font-medium"
+                  className="w-full px-5 py-3.5 pl-12 pr-32 bg-slate-50 dark:bg-slate-900/80 border border-slate-300 dark:border-slate-700 hover:border-violet-500/50 rounded-sm text-sm text-slate-900 dark:text-slate-200 focus:ring-2 focus:ring-violet-500/20 focus:border-violet-500 outline-none transition-colors placeholder:text-slate-400 dark:placeholder:text-slate-500 font-medium"
                 />
-                <Search className="w-5 h-5 absolute left-4 top-4 text-slate-400" />
+                <Search className="w-5 h-5 absolute left-4 top-3.5 text-slate-400" />
 
                 <button
+                  type="button"
                   onClick={handleSmartSearch}
                   disabled={!searchTerm.trim()}
-                  className="absolute right-2 top-2 bottom-2 px-6 bg-violet-600 hover:bg-violet-500 text-white text-xs font-black uppercase tracking-widest rounded-xl transition-all shadow-lg hover:shadow-violet-500/20 active:translate-y-0.5 disabled:bg-slate-700 disabled:text-slate-500 disabled:shadow-none flex items-center gap-2 group w-auto justify-center"
+                  className="absolute right-2 top-2 bottom-2 px-5 bg-violet-600 hover:bg-violet-500 text-white text-xs font-mono font-bold uppercase tracking-wider rounded-sm transition-colors disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 flex items-center gap-2 w-auto justify-center cursor-pointer"
                 >
-                  <Database className="w-4 h-4 group-hover:-translate-y-0.5 transition-transform" />
+                  <Database className="w-3.5 h-3.5" />
                   <span>Search DB</span>
                 </button>
               </div>
 
-              <div className="flex justify-between items-center mt-3 pt-2 border-t border-slate-700/40">
-                <span className="text-sm text-slate-400 font-medium flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-indigo-400" />
+              <div className="flex flex-wrap justify-between items-center gap-2 mt-3 pt-2 border-t border-slate-200 dark:border-slate-800">
+                <span className="text-xs text-slate-600 dark:text-slate-400 font-mono flex items-center gap-1.5">
+                  <Database className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
                   <span>Local database contains standard crystallographic references</span>
                 </span>
                 <button
+                  type="button"
                   onClick={() => setShowGeminiSearch(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-cyan-600/30 via-indigo-600/30 to-purple-600/30 hover:from-cyan-600/50 hover:via-indigo-600/50 hover:to-purple-600/50 border border-cyan-500/40 hover:border-cyan-400/80 rounded-xl text-xs font-black uppercase tracking-wider text-cyan-200 hover:text-white transition-all shadow-lg hover:shadow-cyan-500/20 active:scale-95 group cursor-pointer"
-                  title="Search 500,000+ open-access crystal structures in COD and ICDD with Gemini Flash"
+                  className="flex items-center gap-2 px-3.5 py-1.5 bg-cyan-50 dark:bg-cyan-950/40 hover:bg-cyan-100 dark:hover:bg-cyan-950/70 border border-cyan-300 dark:border-cyan-500/40 rounded-sm text-xs font-mono font-bold uppercase tracking-wider text-cyan-800 dark:text-cyan-200 transition-colors cursor-pointer whitespace-nowrap"
+                  title="Search 500,000+ open-access crystal structures in COD and ICDD with Gemini"
                 >
-                  <Sparkles className="w-4 h-4 text-cyan-300 group-hover:scale-125 transition-transform animate-pulse" />
-                  <span>Search Global Databases (COD/ICDD) via Gemini Flash</span>
+                  <Search className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
+                  <span>Search Global Databases (COD/ICDD)</span>
                 </button>
               </div>
 
@@ -7195,6 +7344,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           isSimulating={isSimulating}
           scanPos={scanPos}
           pythonRAGResults={pythonRAGResults}
+          wavelengthA={radiationWavelength}
         />
 
         {/* Hybrid Physics-Informed + Gemini Crystallographic Diagnostic Review */}
@@ -7222,18 +7372,18 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
           {selectedCandidate && (
             <motion.div
               key={selectedCandidate.phase_name}
-              initial={{ opacity: 0, y: 20 }}
+              initial={{ opacity: 0, y: 12 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
+              exit={{ opacity: 0, y: -12 }}
               className="space-y-6 pt-4"
             >
-              <div className="bg-[#070A12] text-white p-6 sm:p-8 rounded-sm border border-slate-800 relative overflow-hidden">
+              <div className="bg-white dark:bg-[#070A12] text-slate-900 dark:text-white p-6 sm:p-8 rounded-sm border border-slate-200 dark:border-slate-800 relative overflow-hidden">
                 {/* Warning Status Bar */}
-                <div className="flex flex-wrap items-center justify-between gap-2 mb-5 pb-3 border-b border-slate-800 text-xs font-mono">
-                  <span className="text-indigo-400 font-bold uppercase tracking-wider">
+                <div className="flex flex-wrap items-center justify-between gap-2 mb-5 pb-3 border-b border-slate-200 dark:border-slate-800 text-xs font-mono">
+                  <span className="text-indigo-700 dark:text-indigo-400 font-bold uppercase tracking-wider">
                     CRYSTALLOGRAPHIC PHASE DOSSIER · {selectedCandidate.card_id || 'ICDD-REF'}
                   </span>
-                  <span className="text-amber-400 font-bold flex items-center gap-1.5">
+                  <span className="text-amber-700 dark:text-amber-400 font-bold flex items-center gap-1.5">
                     <ShieldAlert className="w-3.5 h-3.5" />
                     <span>LABORATORY RIETVELD VERIFICATION RECOMMENDED</span>
                   </span>
@@ -7241,15 +7391,15 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
 
                 {/* Mixture Candidates Selector */}
                 {result?.candidates && result.candidates.length > 1 && (
-                  <div className="flex flex-col gap-2 mb-6 relative z-10 p-4 bg-[#0B0F19] rounded-sm border border-slate-800">
-                    <div className="w-full mb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-800 pb-2.5 gap-2">
+                  <div className="flex flex-col gap-2 mb-6 relative z-10 p-4 bg-slate-50 dark:bg-[#0B0F19] rounded-sm border border-slate-200 dark:border-slate-800">
+                    <div className="w-full mb-2 flex flex-col sm:flex-row items-start sm:items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-2.5 gap-2">
                       <div className="flex items-center gap-2">
-                        <Layers className="w-4 h-4 text-indigo-400" />
-                        <span className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider">
+                        <Layers className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                        <span className="text-xs font-mono font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider">
                           Identified Mixture Components ({result.candidates.length} Phases)
                         </span>
                       </div>
-                      <span className="text-[11px] font-mono text-slate-400">
+                      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
                         Click phase tab to switch active crystallographic dossier
                       </span>
                     </div>
@@ -7257,11 +7407,12 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     {result.candidates.map((candidate, idx) => (
                       <button
                         key={candidate.phase_name + idx}
+                        type="button"
                         onClick={() => setSelectedCandidate(candidate)}
                         className={`px-3.5 py-2 rounded-sm border text-xs font-mono font-bold uppercase transition-colors flex items-center gap-2 cursor-pointer ${
                           selectedCandidate.phase_name === candidate.phase_name
                             ? 'bg-indigo-600 border-indigo-500 text-white'
-                            : 'bg-[#070A12] border-slate-800 text-slate-400 hover:bg-slate-900 hover:text-white'
+                            : 'bg-white dark:bg-[#070A12] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-400 hover:border-slate-400 dark:hover:bg-slate-900 dark:hover:text-white'
                         }`}
                       >
                         <span>{candidate.phase_name}</span>
@@ -7269,7 +7420,7 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           {candidate.confidence_score.toFixed(0)}%
                         </span>
                         {candidate.mlValidationScore !== undefined && (
-                          <span className="text-[10px] font-mono text-emerald-300 tabular-nums" title="Phys-ML Validation Match">
+                          <span className={`text-[10px] font-mono tabular-nums ${selectedCandidate.phase_name === candidate.phase_name ? 'text-emerald-200' : 'text-emerald-700 dark:text-emerald-300'}`} title="Phys-ML Validation Match">
                             · ML:{candidate.mlValidationScore.toFixed(0)}%
                           </span>
                         )}
@@ -7279,46 +7430,46 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                   </div>
                 )}
 
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 mb-8 p-5 sm:p-6 bg-[#0B0F19] rounded-sm border border-slate-800 relative z-10">
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-5 mb-8 p-5 sm:p-6 bg-slate-50 dark:bg-[#0B0F19] rounded-sm border border-slate-200 dark:border-slate-800 relative z-10">
                   <div className="flex items-start sm:items-center gap-4">
-                    <div className="w-14 h-14 bg-[#070A12] rounded-sm border border-slate-800 flex items-center justify-center shrink-0 text-indigo-400">
-                      <Brain className="w-7 h-7" />
+                    <div className="w-12 h-12 bg-white dark:bg-[#070A12] rounded-sm border border-slate-200 dark:border-slate-800 flex items-center justify-center shrink-0 text-indigo-600 dark:text-indigo-400">
+                      <Brain className="w-6 h-6" />
                     </div>
 
                     <div>
-                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono tabular-nums text-slate-400 mb-1">
-                        <span className="text-emerald-400 font-semibold">● Neural Characterization Active</span>
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-mono tabular-nums text-slate-600 dark:text-slate-400 mb-1">
+                        <span className="text-emerald-700 dark:text-emerald-400 font-semibold">● Neural Characterization Active</span>
                         <span aria-hidden="true">·</span>
                         <span>
                           {t("Algorithm C-Score:", "Algorithm C-Score:")}{" "}
-                          <strong className="text-white">{selectedCandidate.confidence_score.toFixed(1)}%</strong>
+                          <strong className="text-slate-900 dark:text-white">{selectedCandidate.confidence_score.toFixed(1)}%</strong>
                         </span>
                         {selectedCandidate.mlValidationScore !== undefined && (
                           <>
                             <span aria-hidden="true">·</span>
                             <span>
                               {t("Phys-ML Validation:", "Phys-ML Validation:")}{" "}
-                              <strong className="text-emerald-300">{selectedCandidate.mlValidationScore.toFixed(1)}%</strong>
+                              <strong className="text-emerald-700 dark:text-emerald-300">{selectedCandidate.mlValidationScore.toFixed(1)}%</strong>
                             </span>
                           </>
                         )}
                         <span aria-hidden="true">·</span>
-                        <span className="text-amber-300">Laboratory Verification Recommended</span>
+                        <span className="text-amber-700 dark:text-amber-300">Laboratory Verification Recommended</span>
                       </div>
 
-                      <h3 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
+                      <h3 className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white tracking-tight">
                         {t("Synthesis Intelligence & Material Metrology", "Synthesis Intelligence & Material Metrology")}
                       </h3>
                     </div>
                   </div>
 
-                  <div className="flex flex-wrap items-center gap-2.5 w-full lg:w-auto">
+                  <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto">
                     <button
                       type="button"
                       onClick={() => {
                         document.getElementById("synthesis-intelligence-studio")?.scrollIntoView({ behavior: "smooth" });
                       }}
-                      className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                      className="px-3 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-sm text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                     >
                       <FlaskConical className="w-3.5 h-3.5" />
                       <span>Synthesis Reactor Studio</span>
@@ -7326,35 +7477,35 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                     <button
                       type="button"
                       onClick={handleLatticeEstimation}
-                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                      className="px-3 py-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-sm text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      <Calculator className="w-3.5 h-3.5 text-emerald-400" />
+                      <Calculator className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
                       <span>{t("Structural AI", "Structural AI")}</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleGenerateReport}
-                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                      className="px-3 py-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-sm text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      <FileText className="w-3.5 h-3.5 text-violet-400" />
+                      <FileText className="w-3.5 h-3.5 text-violet-600 dark:text-violet-400" />
                       <span>{t("Export Logic", "Export Logic")}</span>
                     </button>
                     {pythonFeaturesEnabled && (
                       <button
                         type="button"
                         onClick={handleExportPythonML}
-                        className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                        className="px-3 py-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-sm text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                       >
-                        <Cpu className="w-3.5 h-3.5 text-fuchsia-400" />
+                        <Cpu className="w-3.5 h-3.5 text-fuchsia-600 dark:text-fuchsia-400" />
                         <span>{t("Export ML Script", "Export ML Script")}</span>
                       </button>
                     )}
                     <button
                       type="button"
                       onClick={handleRunExpertAI}
-                      className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
+                      className="px-3 py-2 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 border border-slate-200 dark:border-slate-700 text-slate-700 dark:text-slate-200 rounded-sm text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      <Brain className="w-3.5 h-3.5 text-cyan-400" />
+                      <Brain className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
                       <span>{t("AI Phase Analysis", "AI Phase Analysis")}</span>
                     </button>
                   </div>
@@ -7363,18 +7514,18 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                 <div className="grid grid-cols-1 md:grid-cols-12 gap-6 auto-rows-fr">
                   {/* Identity Card */}
                   <div className="md:col-span-12">
-                    <div className="bg-[#070B14] p-6 sm:p-8 rounded-2xl border border-slate-800 h-full flex flex-col relative overflow-hidden">
+                    <div className="bg-slate-50 dark:bg-[#0B0F19] p-6 sm:p-7 rounded-sm border border-slate-200 dark:border-slate-800 h-full flex flex-col relative overflow-hidden">
                       <div className="flex flex-wrap items-baseline justify-between gap-4 mb-3 relative z-10">
                         <div className="flex flex-wrap items-baseline gap-3">
-                          <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
+                          <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white tracking-tight">
                             {selectedCandidate.phase_name}
                           </h2>
-                          <span className="text-lg font-mono font-bold text-indigo-400">
+                          <span className="text-lg font-mono font-bold text-indigo-700 dark:text-indigo-400">
                             {selectedCandidate.formula}
                           </span>
                         </div>
-                        <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-                          <span className="text-emerald-400 font-semibold">
+                        <div className="flex items-center gap-2 text-xs font-mono text-slate-600 dark:text-slate-400">
+                          <span className="text-emerald-700 dark:text-emerald-400 font-semibold">
                             {selectedCandidate.materialType || "Crystalline Phase"}
                           </span>
                           {selectedCandidate.crystalSystem && (
@@ -7386,18 +7537,18 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           {selectedCandidate.spaceGroup && (
                             <>
                               <span>·</span>
-                              <span className="text-indigo-300">SG {selectedCandidate.spaceGroup}</span>
+                              <span className="text-indigo-700 dark:text-indigo-300">SG {selectedCandidate.spaceGroup}</span>
                             </>
                           )}
                         </div>
                       </div>
 
-                      <p className="text-sm text-slate-300 leading-relaxed max-w-3xl relative z-10 mb-6">
+                      <p className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed max-w-3xl relative z-10 mb-6">
                         {selectedCandidate.description ||
                           "Phase identification complete. Detailed morphological synthesis and mechanical property mapping for this specific lattice configuration are being processed by the intelligence engine."}
                       </p>
 
-                      <div className="mt-auto pt-5 border-t border-slate-800 grid grid-cols-2 md:grid-cols-6 gap-4 relative z-10">
+                      <div className="mt-auto pt-5 border-t border-slate-200 dark:border-slate-800 grid grid-cols-2 md:grid-cols-6 gap-4 relative z-10">
                         {[
                           {
                             label: "Molecular Wt",
@@ -7441,21 +7592,21 @@ ${selectedCandidate.applications?.join(", ") || "N/A"}
                           .map((item, i) => (
                             <div
                               key={`item-${i}`}
-                              className="flex flex-col group/item p-3 -m-3 rounded-xl hover:bg-white/[0.02] transition-colors"
+                              className="flex flex-col group/item p-2.5 rounded-sm bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800 transition-colors"
                             >
-                              <div className="flex items-center gap-2 mb-2">
-                                <item.icon className="w-3.5 h-3.5 text-slate-600 group-hover/item:text-violet-400 transition-colors" />
-                                <span className="text-xs text-slate-500 font-serif italic tracking-wider group-hover/item:text-slate-400 transition-colors">
+                              <div className="flex items-center gap-1.5 mb-1.5">
+                                <item.icon className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400" />
+                                <span className="text-[11px] font-mono uppercase tracking-wider text-slate-500 dark:text-slate-400">
                                   {item.label}
                                 </span>
                               </div>
                               <span
-                                className="text-lg md:text-xl font-black font-mono text-slate-200 capitalize truncate"
+                                className="text-base md:text-lg font-bold font-mono tabular-nums text-slate-900 dark:text-slate-100 capitalize truncate"
                                 title={String(item.val)}
                               >
                                 {item.val}{" "}
                                 {item.unit && (
-                                  <span className="text-indigo-400/60 text-xs md:text-xs ml-1 font-sans">
+                                  <span className="text-indigo-600 dark:text-indigo-400 text-xs ml-0.5 font-mono font-normal">
                                     {item.unit}
                                   </span>
                                 )}

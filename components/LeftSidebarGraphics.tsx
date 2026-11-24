@@ -52,6 +52,13 @@ export const MODULE_SCIENTIFIC_META: Record<string, ModuleScientificMeta> = {
     accentHex: '#6366f1',
     categoryCode: 'FND-06'
   },
+  xrd_curve_builder: {
+    symbol: 'Xc%',
+    formula: 'Xc = Ac / (Ac + Aa) × 100%',
+    shortTag: 'Curve · Xc%',
+    accentHex: '#4f46e5',
+    categoryCode: 'FND-07'
+  },
   scherrer: {
     symbol: 'D_hkl',
     formula: 'D = Kλ / (β·cosθ)',
@@ -520,6 +527,16 @@ export const renderScientificModuleIcon = (id: string, active: boolean): React.R
           <circle cx="6.5" cy="7.5" r="4.5" stroke="currentColor" strokeWidth="1.2" strokeDasharray="2 1.5" />
           <circle cx="6.5" cy="7.5" r="1.8" fill="currentColor" />
           <path d="M2 15.5Q4.5 10.5 6.5 15.5T11 15.5T15.5 15.5L18 15.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+        </svg>
+      );
+
+    case 'xrd_curve_builder':
+      // Sharp crystalline Bragg peaks rising above a broad amorphous diffuse halo
+      return (
+        <svg {...baseProps}>
+          <path d="M2 16Q10 8.5 18 16Z" fill="currentColor" opacity="0.22" />
+          <path d="M2 16Q10 9.5 18 16" stroke="currentColor" strokeWidth="1.15" strokeDasharray="2 1.5" opacity="0.75" />
+          <path d="M2 16H5.5L7.5 7.5L9.5 14L12 4.5L14 14.5H18" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
         </svg>
       );
 

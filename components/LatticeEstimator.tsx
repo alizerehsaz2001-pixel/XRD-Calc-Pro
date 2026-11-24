@@ -2781,8 +2781,8 @@ export const LatticeVisualizer: React.FC<LatticeVisualizerProps> = ({
                 y={origin[1] - 42}
                 textAnchor="middle"
                 fill="#94a3b8"
-                fontSize="9"
-                fontFamily="sans-serif"
+                fontSize="9.5"
+                fontFamily="'Times New Roman', 'Tinos', Georgia, serif"
               >
                 Lattice planes form depth sheets along the perpendicular {zoneAxisName}
               </text>

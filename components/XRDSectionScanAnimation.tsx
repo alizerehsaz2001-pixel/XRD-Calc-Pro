@@ -48,6 +48,7 @@ const SECTION_METADATA: Record<string, { name: string; group: string; formula: s
   unit_cells: { name: 'Unit Cells & Lattices 3D', group: 'Simulation', formula: 'V = abc√(1 - cos²α - ...)', twoTheta: 28.44, hkl: '(111)' },
   xrr: { name: 'X-Ray Reflectivity (XRR)', group: 'Simulation', formula: 'R(q) = |r_Fresnel|² · e⁻⁴q²σ²', twoTheta: 2.15, hkl: 'Kiessig' },
   compare: { name: 'Diffraction Pattern Compare', group: 'Analysis', formula: 'Experimental vs Standard COD', twoTheta: 35.15, hkl: '(104)' },
+  xrd_curve_builder: { name: 'Build Your XRD Curves', group: 'Fundamentals', formula: 'Xc = Ac / (Ac + Aa) × 100%', twoTheta: 25.85, hkl: 'Xc%' },
   dl: { name: 'PhaseID Neural Net', group: 'AI & Tools', formula: 'Deep ResNet Crystallography', twoTheta: 38.00, hkl: 'AI-Infer' },
   database: { name: 'COD Materials Database', group: 'Registry', formula: 'Crystallography Open Database', twoTheta: 28.44, hkl: 'COD-Lib' },
   periodic_table: { name: 'Periodic Table Elements', group: 'Registry', formula: 'Z, Atomic Form Factors f₀(s)', twoTheta: 44.00, hkl: 'FormFactor' },

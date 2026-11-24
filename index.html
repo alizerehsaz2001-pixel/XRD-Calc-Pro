@@ -85,6 +85,11 @@
         darkMode: 'class',
         theme: {
           extend: {
+            fontFamily: {
+              sans: ['"Times New Roman"', '"Tinos"', '"STIX Two Text"', 'Times', '"Liberation Serif"', 'Georgia', 'serif'],
+              serif: ['"Times New Roman"', '"Tinos"', '"STIX Two Text"', 'Times', '"Liberation Serif"', 'Georgia', 'serif'],
+              mono: ['"JetBrains Mono"', 'ui-monospace', 'SFMono-Regular', 'Menlo', 'Monaco', 'Consolas', 'monospace'],
+            },
             colors: {
               'cyber-bg': '#050505',
               'cyber-accent': '#00ff41',
@@ -101,11 +106,14 @@
     <link rel="dns-prefetch" href="https://fonts.gstatic.com">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=STIX+Two+Text:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Tinos:ital,wght@0,400;0,700;1,400;1,700&family=Vazirmatn:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="modulepreload" href="/index.tsx">
     <style>
       body {
-        font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji', 'Segoe UI Symbol';
+        font-family: 'Times New Roman', 'Tinos', 'STIX Two Text', Times, 'Liberation Serif', Georgia, serif;
+        font-kerning: normal;
+        font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "lnum" 1;
+        text-rendering: optimizeLegibility;
       }
       /* Custom scrollbar for sidebar */
       .custom-scrollbar::-webkit-scrollbar {
@@ -133,7 +141,7 @@
         background: radial-gradient(circle at 50% 45%, #0f172a 0%, #020617 75%, #000000 100%);
         color: #f8fafc;
         z-index: 99999;
-        font-family: 'Inter', system-ui, -apple-system, sans-serif;
+        font-family: 'Times New Roman', 'Tinos', 'STIX Two Text', Times, Georgia, serif;
         user-select: none;
       }
       .xrd-splash-card {
@@ -177,22 +185,22 @@
         animation: xrdBeamPulse 2s ease-in-out infinite alternate;
       }
       .xrd-splash-title {
-        font-size: 1.75rem;
-        font-weight: 900;
-        letter-spacing: -0.035em;
-        background: linear-gradient(135deg, #ffffff 0%, #cbd5e1 50%, #818cf8 100%);
+        font-size: 2.15rem;
+        font-weight: 700;
+        letter-spacing: 0.015em;
+        line-height: 1.15;
+        background: linear-gradient(135deg, #ffffff 0%, #e2e8f0 48%, #a5b4fc 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin: 0 0 0.4rem 0;
-        text-transform: uppercase;
+        margin: 0 0 0.45rem 0;
       }
       .xrd-splash-badge {
-        font-size: 0.65rem;
-        font-weight: 700;
-        letter-spacing: 0.18em;
-        color: #94a3b8;
+        font-size: 0.78rem;
+        font-weight: 600;
+        font-style: italic;
+        letter-spacing: 0.14em;
+        color: #cbd5e1;
         margin: 0 0 1.75rem 0;
-        text-transform: uppercase;
       }
       .xrd-bar-track {
         width: 220px;
@@ -260,22 +268,8 @@
     </style>
 
 <link rel="stylesheet" href="/index.css">
-<script type="text/javascript">
-  function googleTranslateElementInit() {
-    if (window.google && window.google.translate) {
-      new google.translate.TranslateElement({
-        pageLanguage: 'en',
-        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-        autoDisplay: false
-      }, 'google_translate_element');
-    }
-  }
-</script>
-<script type="text/javascript" src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit" defer async></script>
 </head>
   <body class="bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300">
-    <!-- Google Translate Fallback Anchor in Body -->
-    <div id="google_translate_element" style="display:none"></div>
     <div id="root" class="h-full">
       <!-- Instant 0ms Scientific Loading Splash Screen (replaced upon React mount) -->
       <div id="xrd-initial-splash">
@@ -293,7 +287,7 @@
           </div>
           <div class="xrd-splash-text">
             <h1 class="xrd-splash-title">XRD-Calc Pro</h1>
-            <p class="xrd-splash-badge">POWDER DIFFRACTION &amp; CRYSTALLOGRAPHY SUITE</p>
+            <p class="xrd-splash-badge">Powder Diffraction &amp; Crystallography Suite</p>
           </div>
           <div class="xrd-bar-track">
             <div class="xrd-bar-fill"></div>

@@ -195,23 +195,23 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
   return (
     <div
       id="dl-executive-scorecard-anchor"
-      className="bg-[#070A12] p-5 rounded-sm border border-slate-800 space-y-4"
+      className="bg-white dark:bg-[#070A12] p-5 rounded-sm border border-slate-200 dark:border-slate-800 space-y-4"
     >
-      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
+      <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-9 h-9 rounded-sm bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center text-emerald-400 shrink-0">
+          <div className="w-9 h-9 rounded-sm bg-emerald-50 dark:bg-emerald-500/10 border border-emerald-300 dark:border-emerald-500/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400 shrink-0">
             <CheckCircle2 className="w-5 h-5" />
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-2.5 flex-wrap">
-              <h2 className="text-sm sm:text-base font-bold text-white tracking-tight">
-                Executive Phase Identification & Quantitative Unmixing Scorecard
+              <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white tracking-tight">
+                Executive Phase Identification &amp; Quantitative Unmixing Scorecard
               </h2>
-              <span className="text-xs font-mono text-cyan-400">
+              <span className="text-xs font-mono text-cyan-700 dark:text-cyan-400">
                 {isMixMode ? 'Multi-Phase Deconvolution' : 'Single-Phase Screening'}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs font-mono tabular-nums text-slate-400 mt-0.5">
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono tabular-nums text-slate-600 dark:text-slate-400 mt-0.5">
               <span>{diagnostics?.radiationLabel || 'Cu Kα₁ (1.5406 Å)'}</span>
               <span aria-hidden="true">·</span>
               <span>Inference {diagnostics?.inferenceTimeMs ?? 12} ms</span>
@@ -240,16 +240,16 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
               key={dest.id}
               type="button"
               onClick={() => onNavigateModule(dest.id)}
-              className="px-2.5 py-1.5 rounded-sm bg-[#0B0F19] hover:bg-slate-900 border border-slate-800 hover:border-cyan-500/60 text-slate-300 hover:text-cyan-200 text-xs font-mono flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-sm bg-slate-50 dark:bg-[#0B0F19] hover:bg-slate-100 dark:hover:bg-slate-900 border border-slate-200 dark:border-slate-800 hover:border-cyan-500/60 text-slate-700 dark:text-slate-300 hover:text-cyan-700 dark:hover:text-cyan-200 text-xs font-mono flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
               <span>{dest.label}</span>
-              <ArrowRight className="w-3 h-3 text-cyan-400" />
+              <ArrowRight className="w-3 h-3 text-cyan-600 dark:text-cyan-400" />
             </button>
           ))}
           <button
             type="button"
             onClick={handleExportDiagnosticsJson}
-            className="px-2.5 py-1.5 rounded-sm bg-cyan-600/15 hover:bg-cyan-600/25 border border-cyan-500/40 text-cyan-200 text-xs font-mono flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="px-2.5 py-1.5 rounded-sm bg-cyan-50 dark:bg-cyan-600/15 hover:bg-cyan-100 dark:hover:bg-cyan-600/25 border border-cyan-400/50 text-cyan-800 dark:text-cyan-200 text-xs font-mono flex items-center gap-1 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             title="Download full PhaseID diagnostic JSON report"
           >
             <Download className="w-3.5 h-3.5" />
@@ -259,50 +259,52 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
       </div>
 
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
-          <div className="text-[11px] font-mono text-slate-400">Primary Confidence</div>
-          <div className="text-lg font-mono font-bold tabular-nums text-emerald-400 mt-0.5">
+        <div className="bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm p-3">
+          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Primary Confidence</div>
+          <div className="text-lg font-mono font-bold tabular-nums text-emerald-600 dark:text-emerald-400 mt-0.5">
             {primary.confidence_score.toFixed(1)}%
-            <span className="text-xs font-normal text-slate-400 ml-1">
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">
               ±{primary.epistemicUncertainty?.toFixed(1) ?? '1.2'}
             </span>
           </div>
         </div>
-        <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
-          <div className="text-[11px] font-mono text-slate-400">Explained Energy</div>
+        <div className="bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm p-3">
+          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Explained Energy</div>
           <div
             className={`text-lg font-mono font-bold tabular-nums mt-0.5 ${
-              (diagnostics?.explainedEnergyPct ?? 90) >= 85 ? 'text-cyan-300' : 'text-amber-400'
+              (diagnostics?.explainedEnergyPct ?? 90) >= 85
+                ? 'text-cyan-700 dark:text-cyan-300'
+                : 'text-amber-600 dark:text-amber-400'
             }`}
           >
             {(diagnostics?.explainedEnergyPct ?? 95).toFixed(1)}%
           </div>
         </div>
-        <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
-          <div className="text-[11px] font-mono text-slate-400">Hanawalt Top-3 FOM</div>
-          <div className="text-lg font-mono font-bold tabular-nums text-white mt-0.5">
+        <div className="bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm p-3">
+          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Hanawalt Top-3 FOM</div>
+          <div className="text-lg font-mono font-bold tabular-nums text-slate-900 dark:text-white mt-0.5">
             {primary.hanawaltFom?.toFixed(1) ?? '92.0'}
             <span className="text-xs font-normal text-slate-500 ml-1">/100</span>
           </div>
         </div>
-        <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
-          <div className="text-[11px] font-mono text-slate-400">d-Spacing RMSE</div>
-          <div className="text-lg font-mono font-bold tabular-nums text-white mt-0.5">
+        <div className="bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm p-3">
+          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">d-Spacing RMSE</div>
+          <div className="text-lg font-mono font-bold tabular-nums text-slate-900 dark:text-white mt-0.5">
             {primary.dSpacingRmseA?.toFixed(4) ?? '0.0042'}
-            <span className="text-xs font-normal text-slate-400 ml-1">Å</span>
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-1">Å</span>
           </div>
         </div>
-        <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
-          <div className="text-[11px] font-mono text-slate-400">Zero-Point Δ2θ₀</div>
-          <div className="text-lg font-mono font-bold tabular-nums text-white mt-0.5">
+        <div className="bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm p-3">
+          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Zero-Point Δ2θ₀</div>
+          <div className="text-lg font-mono font-bold tabular-nums text-slate-900 dark:text-white mt-0.5">
             {(primary.zeroShiftDeg ?? 0) >= 0 ? '+' : ''}
             {(primary.zeroShiftDeg ?? 0).toFixed(3)}
-            <span className="text-xs font-normal text-slate-400 ml-0.5">°</span>
+            <span className="text-xs font-normal text-slate-500 dark:text-slate-400 ml-0.5">°</span>
           </div>
         </div>
-        <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
-          <div className="text-[11px] font-mono text-slate-400">NNLS Pattern R_wp</div>
-          <div className="text-lg font-mono font-bold tabular-nums text-indigo-300 mt-0.5">
+        <div className="bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm p-3">
+          <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400">NNLS Pattern R_wp</div>
+          <div className="text-lg font-mono font-bold tabular-nums text-indigo-700 dark:text-indigo-300 mt-0.5">
             {qpaAnalysis.nnlsRwp.toFixed(2)}%
             <span className="text-xs font-normal text-slate-500 ml-1">
               ({qpaAnalysis.nnlsIterations} it)
@@ -312,16 +314,16 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
       </div>
 
       {unexplained.length > 0 && (
-        <div className="bg-amber-950/20 border border-amber-500/40 rounded-sm p-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+        <div className="bg-amber-50 dark:bg-amber-950/20 border border-amber-300 dark:border-amber-500/40 rounded-sm p-3.5 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
           <div className="space-y-1">
-            <div className="flex items-center gap-2 text-xs font-mono font-semibold text-amber-300">
+            <div className="flex items-center gap-2 text-xs font-mono font-semibold text-amber-800 dark:text-amber-300">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>
                 {unexplained.length} Unexplained Residual Reflection{unexplained.length > 1 ? 's' : ''} Detected
                 {diagnostics?.autoDetectedMixture ? ' — Secondary / Impurity Phase Likely Present' : ''}
               </span>
             </div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono tabular-nums text-slate-300">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs font-mono tabular-nums text-amber-900/90 dark:text-slate-300">
               {unexplained.slice(0, 5).map((pk, i) => (
                 <span key={`${pk.twoTheta}-${i}`}>
                   2θ={pk.twoTheta.toFixed(2)}° (d={pk.dSpacing.toFixed(3)} Å, I={pk.intensity.toFixed(0)}%)
@@ -343,10 +345,10 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
         </div>
       )}
 
-      <div className="p-3.5 rounded-sm bg-[#0B0F19] border border-slate-800 space-y-2.5">
+      <div className="p-3.5 rounded-sm bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 space-y-2.5">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-xs font-mono text-slate-300">
-            <Scale className="w-3.5 h-3.5 text-cyan-400" />
+          <div className="flex items-center gap-2 text-xs font-mono text-slate-700 dark:text-slate-300">
+            <Scale className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
             <span className="font-semibold">
               {qpaAnalysis.isSinglePhaseDominant
                 ? 'Single-Phase Quantitative Purity (Secondary Cards Ranked as Rival Matches)'
@@ -356,12 +358,14 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
             </span>
           </div>
 
-          <div className="flex items-center gap-1 bg-[#070A12] border border-slate-800 rounded-sm p-0.5">
+          <div className="flex items-center gap-1 bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800 rounded-sm p-0.5">
             <button
               type="button"
               onClick={() => setQpaMethod('nnls')}
               className={`px-2.5 py-1 text-[11px] font-mono rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                qpaMethod === 'nnls' ? 'bg-cyan-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                qpaMethod === 'nnls'
+                  ? 'bg-cyan-600 text-white font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               NNLS Whole-Pattern
@@ -370,7 +374,9 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
               type="button"
               onClick={() => setQpaMethod('rir')}
               className={`px-2.5 py-1 text-[11px] font-mono rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                qpaMethod === 'rir' ? 'bg-cyan-600 text-white font-semibold' : 'text-slate-400 hover:text-slate-200'
+                qpaMethod === 'rir'
+                  ? 'bg-cyan-600 text-white font-semibold'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
               }`}
             >
               Chung RIR (I/I_c)
@@ -378,7 +384,7 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
           </div>
         </div>
 
-        <div className="h-3 w-full rounded-sm bg-[#050811] border border-slate-800 overflow-hidden flex">
+        <div className="h-3 w-full rounded-sm bg-slate-200 dark:bg-[#050811] border border-slate-300 dark:border-slate-800 overflow-hidden flex">
           {barItems.map(({ cand, activeWtPct }, idx) => (
             <div
               key={cand.card_id || cand.phase_name}
@@ -386,20 +392,20 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
                 width: `${Math.max(3, activeWtPct)}%`,
                 backgroundColor: PHASE_COLORS[idx % PHASE_COLORS.length],
               }}
-              className="h-full border-r border-slate-950 last:border-r-0 transition-all duration-300"
+              className="h-full border-r border-white/60 dark:border-slate-950 last:border-r-0 transition-all duration-300"
               title={`${cand.phase_name} (${cand.formula}): ${activeWtPct.toFixed(1)} wt%`}
             />
           ))}
         </div>
 
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono tabular-nums text-slate-400">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs font-mono tabular-nums text-slate-600 dark:text-slate-400">
           {barItems.map(({ cand, rirVal, activeWtPct, nnlsSigma }, idx) => (
             <span key={cand.card_id || idx} className="flex items-center gap-1.5">
               <span
                 className="w-2.5 h-2.5 inline-block shrink-0"
                 style={{ backgroundColor: PHASE_COLORS[idx % PHASE_COLORS.length] }}
               />
-              <strong className="text-slate-200">{cand.phase_name}</strong>: {activeWtPct.toFixed(1)}
+              <strong className="text-slate-900 dark:text-slate-200">{cand.phase_name}</strong>: {activeWtPct.toFixed(1)}
               {qpaMethod === 'nnls' && nnlsSigma > 0 ? ` ± ${nnlsSigma.toFixed(1)}` : ''} wt% (I/I_c={rirVal.toFixed(2)})
             </span>
           ))}
@@ -417,35 +423,35 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
               onClick={() => onSelectCandidate(cand)}
               className={`p-3.5 rounded-sm border text-left transition-colors cursor-pointer flex flex-col justify-between ${
                 isSelected
-                  ? 'bg-cyan-950/30 border-cyan-400'
-                  : 'bg-[#0B0F19] border-slate-800 hover:border-slate-600'
+                  ? 'bg-cyan-50/70 dark:bg-cyan-950/30 border-cyan-500 dark:border-cyan-400'
+                  : 'bg-slate-50 dark:bg-[#0B0F19] border-slate-200 dark:border-slate-800 hover:border-slate-400 dark:hover:border-slate-600'
               }`}
             >
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between gap-2 font-mono text-[11px] tabular-nums">
-                  <span className="text-slate-400">
+                  <span className="text-slate-500 dark:text-slate-400">
                     #{idx + 1} · {cand.card_id}
                     {cand.isUserCustom ? ' · Custom' : ''}
                   </span>
                   <span
                     className={`font-semibold ${
                       cand.confidence_score >= 85
-                        ? 'text-emerald-400'
+                        ? 'text-emerald-600 dark:text-emerald-400'
                         : cand.confidence_score >= 65
-                        ? 'text-cyan-400'
-                        : 'text-amber-400'
+                        ? 'text-cyan-700 dark:text-cyan-400'
+                        : 'text-amber-600 dark:text-amber-400'
                     }`}
                   >
                     {cand.confidence_score.toFixed(1)}% ±{cand.epistemicUncertainty?.toFixed(1) ?? '1.5'}
                   </span>
                 </div>
 
-                <div className="text-sm font-semibold text-white truncate">{cand.phase_name}</div>
-                <div className="text-xs font-mono text-cyan-300 truncate">
+                <div className="text-sm font-semibold text-slate-900 dark:text-white truncate">{cand.phase_name}</div>
+                <div className="text-xs font-mono text-cyan-700 dark:text-cyan-300 truncate">
                   {cand.formula} · {cand.crystalSystem || 'Crystalline'} ({cand.spaceGroup || 'P1'})
                 </div>
 
-                <div className="w-full h-1.5 bg-[#050811] border border-slate-800 overflow-hidden mt-1">
+                <div className="w-full h-1.5 bg-slate-200 dark:bg-[#050811] border border-slate-300 dark:border-slate-800 overflow-hidden mt-1">
                   <div
                     className="h-full"
                     style={{
@@ -455,19 +461,19 @@ export const ExecutivePhaseScorecard: React.FC<ExecutivePhaseScorecardProps> = (
                   />
                 </div>
 
-                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 pt-1 text-[11px] font-mono tabular-nums text-slate-400">
-                  <span>FOM: <strong className="text-slate-200">{cand.hanawaltFom?.toFixed(0) ?? '—'}</strong></span>
-                  <span>S_conv: <strong className="text-slate-200">{cand.cosineSimilarity?.toFixed(0) ?? '—'}%</strong></span>
-                  <span>d-RMSE: <strong className="text-slate-200">{cand.dSpacingRmseA?.toFixed(4) ?? '—'} Å</strong></span>
-                  <span>ε: <strong className="text-slate-200">{(cand.fitted_strain_pct ?? 0).toFixed(2)}%</strong></span>
+                <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 pt-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  <span>FOM: <strong className="text-slate-800 dark:text-slate-200">{cand.hanawaltFom?.toFixed(0) ?? '—'}</strong></span>
+                  <span>S_conv: <strong className="text-slate-800 dark:text-slate-200">{cand.cosineSimilarity?.toFixed(0) ?? '—'}%</strong></span>
+                  <span>d-RMSE: <strong className="text-slate-800 dark:text-slate-200">{cand.dSpacingRmseA?.toFixed(4) ?? '—'} Å</strong></span>
+                  <span>ε: <strong className="text-slate-800 dark:text-slate-200">{(cand.fitted_strain_pct ?? 0).toFixed(2)}%</strong></span>
                 </div>
               </div>
 
-              <div className="mt-3 pt-2 border-t border-slate-800/80 flex items-center justify-between text-[11px] font-mono tabular-nums">
-                <span className="text-slate-400">
+              <div className="mt-3 pt-2 border-t border-slate-200/80 dark:border-slate-800/80 flex items-center justify-between text-[11px] font-mono tabular-nums">
+                <span className="text-slate-500 dark:text-slate-400">
                   {cand.matched_peaks?.length || 0} pks · I/I_c {rirVal.toFixed(1)}
                 </span>
-                <span className={activeWtPct > 0 ? 'text-emerald-400 font-semibold' : 'text-slate-500'}>
+                <span className={activeWtPct > 0 ? 'text-emerald-700 dark:text-emerald-400 font-semibold' : 'text-slate-500'}>
                   {activeWtPct > 0
                     ? `${activeWtPct.toFixed(1)}${qpaMethod === 'nnls' && nnlsSigma > 0 ? `±${nnlsSigma.toFixed(1)}` : ''}% wt`
                     : 'Rival match'}

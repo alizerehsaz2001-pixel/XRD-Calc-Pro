@@ -107,13 +107,13 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
     RADIATION_SOURCES.find((r) => Math.abs(r.wavelength - wavelength) < 0.002)?.id || 'custom';
 
   return (
-    <div className="bg-[#070A12] border border-slate-800 rounded-sm p-4 space-y-3">
+    <div className="bg-white dark:bg-[#070A12] border border-slate-200 dark:border-slate-800 rounded-sm p-4 space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-2">
-            <Radio className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
-            <span className="text-xs font-mono text-slate-400 whitespace-nowrap">Source λ</span>
-            <div className="flex items-center bg-[#0B0F19] border border-slate-800 rounded-sm p-0.5">
+          <div className="flex items-center gap-2 flex-wrap">
+            <Radio className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400 shrink-0" />
+            <span className="text-xs font-mono text-slate-600 dark:text-slate-400 whitespace-nowrap">Source λ</span>
+            <div className="flex items-center bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm p-0.5 overflow-x-auto">
               {RADIATION_SOURCES.map((src) => {
                 const active = activeRadiationId === src.id;
                 return (
@@ -124,7 +124,7 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
                     className={`px-2 py-1 text-[11px] font-mono tabular-nums rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                       active
                         ? 'bg-cyan-600 text-white font-semibold'
-                        : 'text-slate-400 hover:text-slate-200'
+                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                     }`}
                     title={`${src.label} (${src.wavelength} Å)`}
                   >
@@ -133,7 +133,7 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
                 );
               })}
             </div>
-            <div className="flex items-center gap-1 bg-[#0B0F19] border border-slate-800 rounded-sm px-2 py-1">
+            <div className="flex items-center gap-1 bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm px-2 py-1">
               <input
                 type="number"
                 step="0.0001"
@@ -147,24 +147,24 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
                   }
                 }}
                 aria-label="Custom X-ray wavelength in Angstroms"
-                className="w-16 bg-transparent text-xs font-mono tabular-nums text-cyan-300 outline-none text-right"
+                className="w-16 bg-transparent text-xs font-mono tabular-nums text-cyan-700 dark:text-cyan-300 outline-none text-right"
               />
               <span className="text-[11px] font-mono text-slate-500">Å</span>
             </div>
           </div>
 
-          <span className="hidden xl:inline text-slate-800">|</span>
+          <span className="hidden xl:inline text-slate-300 dark:text-slate-800">|</span>
 
           <div className="flex items-center gap-2">
-            <Layers className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-            <div className="flex items-center bg-[#0B0F19] border border-slate-800 rounded-sm p-0.5">
+            <Layers className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
+            <div className="flex items-center bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm p-0.5">
               <button
                 type="button"
                 onClick={() => onChangeMixMode(false)}
                 className={`px-2.5 py-1 text-[11px] font-mono rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   !isMixMode
                     ? 'bg-indigo-600 text-white font-semibold'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 Single Phase
@@ -175,7 +175,7 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
                 className={`px-2.5 py-1 text-[11px] font-mono rounded-sm transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
                   isMixMode
                     ? 'bg-indigo-600 text-white font-semibold'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 Multi-Phase Mix
@@ -184,12 +184,12 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
           </div>
 
           <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+            <Filter className="w-3.5 h-3.5 text-slate-500 dark:text-slate-400 shrink-0" />
             <select
               aria-label="Filter by crystal system"
               value={crystalSystemFilter}
               onChange={(e) => onChangeCrystalSystemFilter(e.target.value)}
-              className="bg-[#0B0F19] border border-slate-800 rounded-sm px-2.5 py-1.5 text-xs font-mono text-slate-200 outline-none focus:border-cyan-500 cursor-pointer"
+              className="bg-slate-50 dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-sm px-2.5 py-1.5 text-xs font-mono text-slate-800 dark:text-slate-200 outline-none focus:border-cyan-500 cursor-pointer"
             >
               {CRYSTAL_SYSTEMS.map((sys) => (
                 <option key={sys} value={sys}>
@@ -206,11 +206,11 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
             onClick={() => setShowElementMatrix((v) => !v)}
             className={`px-3 py-1.5 rounded-sm border text-xs font-mono flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
               showElementMatrix || requiredElements.length > 0 || excludedElements.length > 0
-                ? 'bg-cyan-950/50 border-cyan-500/60 text-cyan-200'
-                : 'bg-[#0B0F19] border-slate-800 text-slate-300 hover:border-slate-700 hover:text-white'
+                ? 'bg-cyan-50 dark:bg-cyan-950/50 border-cyan-500/60 text-cyan-800 dark:text-cyan-200'
+                : 'bg-slate-50 dark:bg-[#0B0F19] border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:border-slate-400 dark:hover:border-slate-600'
             }`}
           >
-            <Atom className="w-3.5 h-3.5 text-cyan-400" />
+            <Atom className="w-3.5 h-3.5 text-cyan-600 dark:text-cyan-400" />
             <span>
               EDS / XRF Chemistry
               {requiredElements.length + excludedElements.length > 0
@@ -231,7 +231,7 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
                   onlyAllowedElements: false,
                 });
               }}
-              className="px-2.5 py-1.5 rounded-sm border border-slate-800 bg-[#0B0F19] hover:border-slate-600 text-slate-400 hover:text-white text-xs font-mono flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
+              className="px-2.5 py-1.5 rounded-sm border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-[#0B0F19] hover:border-slate-400 dark:hover:border-slate-600 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white text-xs font-mono flex items-center gap-1 whitespace-nowrap shrink-0 cursor-pointer"
               title="Reset wavelength, symmetry, and elemental constraints"
             >
               <RotateCcw className="w-3 h-3" />
@@ -243,7 +243,7 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
             type="button"
             onClick={onApplyAndRun}
             disabled={isSimulating}
-            className="px-3.5 py-1.5 rounded-sm bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-800 disabled:text-slate-500 text-white text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            className="px-3.5 py-1.5 rounded-sm bg-cyan-600 hover:bg-cyan-500 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 dark:disabled:text-slate-500 text-white text-xs font-mono font-semibold flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
           >
             <SlidersHorizontal className="w-3.5 h-3.5" />
             <span>{isSimulating ? 'Screening...' : 'Run Screened ID'}</span>
@@ -251,15 +251,15 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
         </div>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/80 text-xs font-mono tabular-nums text-slate-400">
+      <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-200/80 dark:border-slate-800/80 text-xs font-mono tabular-nums text-slate-600 dark:text-slate-400">
         <div className="flex flex-wrap items-center gap-2">
           <span>
-            Reciprocal Mapping: <strong className="text-slate-200">d = λ / (2 sin θ)</strong>
+            Reciprocal Mapping: <strong className="text-slate-900 dark:text-slate-200">d = λ / (2 sin θ)</strong>
           </span>
           <span aria-hidden="true">·</span>
           <span>
             Library Pool:{' '}
-            <strong className="text-cyan-300">
+            <strong className="text-cyan-700 dark:text-cyan-300">
               {typeof screenedStandards === 'number' ? `${screenedStandards} / ${totalStandards}` : totalStandards}
             </strong>{' '}
             cards
@@ -267,7 +267,7 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
           {requiredElements.length > 0 && (
             <>
               <span aria-hidden="true">·</span>
-              <span className="text-emerald-400">
+              <span className="text-emerald-700 dark:text-emerald-400">
                 Require: {requiredElements.join(', ')}
                 {onlyAllowedElements ? ' (strict closed set)' : ''}
               </span>
@@ -276,7 +276,7 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
           {excludedElements.length > 0 && (
             <>
               <span aria-hidden="true">·</span>
-              <span className="text-rose-400">Exclude: {excludedElements.join(', ')}</span>
+              <span className="text-rose-700 dark:text-rose-400">Exclude: {excludedElements.join(', ')}</span>
             </>
           )}
         </div>
@@ -286,12 +286,12 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
       </div>
 
       {showElementMatrix && (
-        <div className="pt-3 border-t border-slate-800 space-y-2.5">
+        <div className="pt-3 border-t border-slate-200 dark:border-slate-800 space-y-2.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
-            <span className="text-xs font-medium text-slate-300">
+            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
               Elemental Chemistry Pre-Filter (EDS / XRF / ICP-OES)
             </span>
-            <label className="flex items-center gap-2 text-xs font-mono text-slate-300 cursor-pointer select-none">
+            <label className="flex items-center gap-2 text-xs font-mono text-slate-700 dark:text-slate-300 cursor-pointer select-none">
               <input
                 type="checkbox"
                 checked={onlyAllowedElements}
@@ -303,7 +303,7 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
                   })
                 }
                 disabled={requiredElements.length === 0}
-                className="accent-cyan-500"
+                className="accent-cyan-600 dark:accent-cyan-500"
               />
               <span>Closed-system filter (allow ONLY required elements)</span>
             </label>
@@ -320,10 +320,10 @@ export const PhaseIDCoreControlStrip: React.FC<PhaseIDCoreControlStripProps> = (
                   onClick={() => cycleElementState(el)}
                   className={`py-1.5 rounded-sm border text-xs font-mono font-semibold transition-colors cursor-pointer flex items-center justify-center gap-0.5 ${
                     isReq
-                      ? 'bg-emerald-950/60 border-emerald-500 text-emerald-300'
+                      ? 'bg-emerald-50 dark:bg-emerald-950/60 border-emerald-500 text-emerald-700 dark:text-emerald-300'
                       : isExc
-                      ? 'bg-rose-950/60 border-rose-500 text-rose-300 line-through'
-                      : 'bg-[#0B0F19] border-slate-800 text-slate-400 hover:border-slate-600 hover:text-slate-100'
+                      ? 'bg-rose-50 dark:bg-rose-950/60 border-rose-500 text-rose-700 dark:text-rose-300 line-through'
+                      : 'bg-slate-50 dark:bg-[#0B0F19] border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-400 dark:hover:border-slate-600 hover:text-slate-900 dark:hover:text-slate-100'
                   }`}
                   title={
                     isReq

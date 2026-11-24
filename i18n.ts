@@ -1,6 +1,6 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
-import LanguageDetector from 'i18next-browser-languagedetector';
+import { CORE_SCIENTIFIC_TRANSLATIONS } from './data/i18nCoreTranslations';
 
 const resources = {
   en: {
@@ -8292,255 +8292,382 @@ const resources = {
   },
 };
 
+// Merge core scientific & UI translations into all 12 native language bundles
+for (const [lang, entries] of Object.entries(CORE_SCIENTIFIC_TRANSLATIONS)) {
+  const bundle = (resources as Record<string, { translation: Record<string, string> }>)[lang];
+  if (bundle && bundle.translation) {
+    Object.assign(bundle.translation, entries);
+  } else {
+    (resources as Record<string, { translation: Record<string, string> }>)[lang] = {
+      translation: { ...entries },
+    };
+  }
+}
+
+export const RTL_LANGUAGES = ['fa', 'ar', 'he', 'ur', 'ps', 'yi', 'sd', 'ku', 'ug'] as const;
+
+const KNOWN_LANGUAGE_CODES = new Set<string>(Object.keys(resources));
+
+export function normalizeLanguageCode(raw: string | null | undefined): string {
+  if (!raw || typeof raw !== 'string') return 'en';
+  const cleaned = raw.trim().toLowerCase().replace(/_/g, '-');
+  if (!cleaned || cleaned === 'undefined' || cleaned === 'null') return 'en';
+  if (KNOWN_LANGUAGE_CODES.has(cleaned)) return cleaned;
+  if (cleaned.startsWith('zh')) return 'zh';
+  if (cleaned.startsWith('en')) return 'en';
+  const base = cleaned.split('-')[0];
+  if (KNOWN_LANGUAGE_CODES.has(base)) return base;
+  return /^[a-z]{2,8}$/.test(base) ? base : 'en';
+}
+
+export function isRTLLanguage(raw: string | null | undefined): boolean {
+  const code = normalizeLanguageCode(raw);
+  return (RTL_LANGUAGES as readonly string[]).includes(code);
+}
+
+function getInitialStoredLanguage(): string {
+  if (typeof window === 'undefined') return 'en';
+  try {
+    const stored = window.localStorage.getItem('i18nextLng');
+    return normalizeLanguageCode(stored);
+  } catch {
+    return 'en';
+  }
+}
+
+const initialLanguage = getInitialStoredLanguage();
+
 i18n
   .use(initReactI18next)
   .init({
     resources,
-    lng: 'en',
+    lng: initialLanguage,
     fallbackLng: 'en',
     keySeparator: false,
     nsSeparator: false,
     returnObjects: false,
-    returnedObjectHandler: (key: string, value: any, options: any) => {
+    returnedObjectHandler: (key: string, _value: any, options: any) => {
       if (options && typeof options === 'object' && typeof options.defaultValue === 'string') {
         return options.defaultValue;
       }
       return typeof key === 'string' ? key : '';
     },
     interpolation: {
-      escapeValue: false
-    }
+      escapeValue: false,
+    },
+    react: {
+      useSuspense: false,
+      bindI18n: 'languageChanged loaded',
+      bindI18nStore: 'added',
+    },
   });
 
-// Helper to preload cached translations from localStorage
-function preloadCachedTranslations(lang: string) {
-  if (typeof window === 'undefined') return;
-  try {
-    for (let i = 0; i < localStorage.length; i++) {
-      const storageKey = localStorage.key(i);
-      if (storageKey && storageKey.startsWith(`trans_${lang}_`)) {
-        const key = storageKey.slice(`trans_${lang}_`.length);
-        const val = localStorage.getItem(storageKey);
-        if (val && typeof val === 'string') {
-          // Clean up any corrupt cached entries containing error strings or objects
-          if (val.startsWith('{') || val.includes('returned an object instead of string')) {
-            localStorage.removeItem(storageKey);
-            continue;
+// Compact, quota-safe per-language localStorage cache (v2)
+const CACHE_KEY_PREFIX = 'xrd_i18n_v2_';
+const MAX_CACHED_KEYS_PER_LANG = 1500;
+const loadedCacheLangs = new Set<string>();
+const dynamicCacheMemory = new Map<string, Record<string, string>>();
+
+function isValidCachedTranslation(val: unknown): val is string {
+  return (
+    typeof val === 'string' &&
+    val.trim().length > 0 &&
+    !val.startsWith('{') &&
+    !val.includes('returned an object instead of string')
+  );
+}
+
+function readLangCacheFromStorage(lang: string): Record<string, string> {
+  const existing = dynamicCacheMemory.get(lang);
+  if (existing) return existing;
+  const map: Record<string, string> = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const raw = window.localStorage.getItem(`${CACHE_KEY_PREFIX}${lang}`);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && typeof parsed === 'object') {
+          for (const [k, v] of Object.entries(parsed)) {
+            if (isValidCachedTranslation(v)) {
+              map[k] = v;
+            }
           }
-          i18n.addResource(lang, 'translation', key, val);
         }
       }
+      // One-time cleanup/migration of legacy per-key `trans_${lang}_*` entries
+      const legacyPrefix = `trans_${lang}_`;
+      const legacyKeysToRemove: string[] = [];
+      for (let i = 0; i < window.localStorage.length; i++) {
+        const sk = window.localStorage.key(i);
+        if (sk && sk.startsWith(legacyPrefix)) {
+          legacyKeysToRemove.push(sk);
+          const origKey = sk.slice(legacyPrefix.length);
+          const legacyVal = window.localStorage.getItem(sk);
+          if (origKey && !map[origKey] && isValidCachedTranslation(legacyVal)) {
+            map[origKey] = legacyVal;
+          }
+        }
+      }
+      if (legacyKeysToRemove.length > 0) {
+        legacyKeysToRemove.forEach((sk) => {
+          try {
+            window.localStorage.removeItem(sk);
+          } catch {}
+        });
+        writeLangCacheToStorage(lang, map);
+      }
+    } catch {
+      // Ignore storage read errors in restricted iframes
     }
-  } catch (err) {
-    console.warn('Notice preloading cached translations:', err);
+  }
+  dynamicCacheMemory.set(lang, map);
+  return map;
+}
+
+function writeLangCacheToStorage(lang: string, map: Record<string, string>) {
+  if (typeof window === 'undefined' || lang === 'en') return;
+  try {
+    const entries = Object.entries(map);
+    const trimmed =
+      entries.length > MAX_CACHED_KEYS_PER_LANG
+        ? Object.fromEntries(entries.slice(entries.length - MAX_CACHED_KEYS_PER_LANG))
+        : map;
+    dynamicCacheMemory.set(lang, trimmed);
+    window.localStorage.setItem(`${CACHE_KEY_PREFIX}${lang}`, JSON.stringify(trimmed));
+  } catch {
+    // Gracefully ignore QuotaExceededError without crashing UI
   }
 }
 
-// Client-side dynamic translation engine
-const translationQueue: { [lang: string]: Set<string> } = {};
-let translationTimeout: any = null;
-let lastRequestTime = 0;
-let isProcessing = false;
+export function preloadCachedTranslations(rawLang: string) {
+  const lang = normalizeLanguageCode(rawLang);
+  if (lang === 'en' || loadedCacheLangs.has(lang)) return;
+  loadedCacheLangs.add(lang);
+  const cached = readLangCacheFromStorage(lang);
+  if (Object.keys(cached).length > 0) {
+    i18n.addResourceBundle(lang, 'translation', cached, true, false);
+  }
+}
 
-function processTranslationQueue(lang: string) {
-  if (!translationQueue[lang] || translationQueue[lang].size === 0) return;
-  if (isProcessing) {
-    if (translationTimeout) clearTimeout(translationTimeout);
-    translationTimeout = setTimeout(() => processTranslationQueue(lang), 1000);
+// Translation status listeners for subtle UI indicator
+type TranslationStatusListener = (pending: boolean) => void;
+const statusListeners = new Set<TranslationStatusListener>();
+let activeTranslationRequests = 0;
+
+function notifyTranslationStatus() {
+  const isPending = activeTranslationRequests > 0;
+  statusListeners.forEach((cb) => {
+    try {
+      cb(isPending);
+    } catch {}
+  });
+}
+
+export function getTranslationPendingState(): boolean {
+  return activeTranslationRequests > 0;
+}
+
+export function subscribeTranslationStatus(cb: TranslationStatusListener): () => void {
+  statusListeners.add(cb);
+  return () => {
+    statusListeners.delete(cb);
+  };
+}
+
+// Client-side dynamic translation queue with deduplication & zero-loop guarantee
+const translationQueue = new Map<string, Set<string>>();
+const attemptedKeysByLang = new Map<string, Set<string>>();
+const queueTimers = new Map<string, ReturnType<typeof setTimeout>>();
+let isProcessingQueue = false;
+let lastRequestTime = 0;
+
+function shouldQueueDynamicKey(key: string): boolean {
+  const trimmed = key.trim();
+  if (!trimmed || trimmed.length > 240) return false;
+  // Skip pure numbers, symbols, units, chemical/diffraction notation, or shortcuts
+  if (/^[\d\s.,:;+\-*/=<>()%°Åθλµαβγ±×÷\[\]{}()|⌘⌃⇧⌥/\\]+$/.test(trimmed)) return false;
+  if (/^(XRD|XRR|XRF|PDF|RIR|FWHM|CIF|NIST|SRM|Cu Kα|Mo Kα|Co Kα|Fe Kα|Cr Kα|Ag Kα|2θ|hkl|d-spacing|Rwp|Rp|GOF)$/i.test(trimmed)) {
+    return false;
+  }
+  return true;
+}
+
+function scheduleQueueProcessing(lang: string, delayMs: number) {
+  const existing = queueTimers.get(lang);
+  if (existing) clearTimeout(existing);
+  const timer = setTimeout(() => {
+    queueTimers.delete(lang);
+    processTranslationQueue(lang);
+  }, delayMs);
+  queueTimers.set(lang, timer);
+}
+
+function processTranslationQueue(rawLang: string) {
+  const lang = normalizeLanguageCode(rawLang);
+  if (lang === 'en') return;
+
+  const langQueue = translationQueue.get(lang);
+  if (!langQueue || langQueue.size === 0) return;
+
+  if (isProcessingQueue) {
+    scheduleQueueProcessing(lang, 350);
     return;
   }
 
   const now = Date.now();
-  const timeSinceLast = now - lastRequestTime;
-  if (timeSinceLast < 300) {
-    // High-speed cooldown: 300ms between API batch requests
-    if (translationTimeout) clearTimeout(translationTimeout);
-    translationTimeout = setTimeout(() => processTranslationQueue(lang), 300 - timeSinceLast);
+  const elapsed = now - lastRequestTime;
+  if (elapsed < 250) {
+    scheduleQueueProcessing(lang, 250 - elapsed);
     return;
   }
 
-  // Slice to a large batch size (max 150 keys per request)
-  const keysToTranslate = Array.from(translationQueue[lang]).slice(0, 150);
+  const keysToTranslate = Array.from(langQueue).slice(0, 100);
   if (keysToTranslate.length === 0) return;
 
-  // Remove the keys we are about to translate from the queue
-  keysToTranslate.forEach(k => translationQueue[lang].delete(k));
+  keysToTranslate.forEach((k) => langQueue.delete(k));
 
-  isProcessing = true;
+  isProcessingQueue = true;
   lastRequestTime = Date.now();
+  activeTranslationRequests++;
+  notifyTranslationStatus();
 
   fetch('/api/translate', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ keys: keysToTranslate, to: lang }),
   })
-    .then(res => {
-      if (!res.ok) {
-        throw new Error(`HTTP error ${res.status}`);
-      }
+    .then((res) => {
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       return res.json();
     })
-    .then(data => {
-      isProcessing = false;
-      if (data && data.success && data.translations) {
-        const translations = data.translations;
-        Object.keys(translations).forEach(key => {
-          const val = translations[key];
-          if (val) {
-            localStorage.setItem(`trans_${lang}_${key}`, val);
-            i18n.addResource(lang, 'translation', key, val);
+    .then((data) => {
+      if (data && data.success && data.translations && typeof data.translations === 'object') {
+        const incoming = data.translations as Record<string, unknown>;
+        const validMap: Record<string, string> = {};
+        const cacheMap = readLangCacheFromStorage(lang);
+        let cacheUpdated = false;
+
+        for (const [k, v] of Object.entries(incoming)) {
+          if (isValidCachedTranslation(v)) {
+            validMap[k] = v;
+            // Only persist genuine translations (skip fallback echoes so they can retry next session)
+            if (!data.fallback && v !== k) {
+              cacheMap[k] = v;
+              cacheUpdated = true;
+            }
           }
-        });
-        
-        // Refresh active language components to apply newly added resources
-        if (i18n.language === lang) {
-          i18n.emit('languageChanged', lang);
-        } else {
-          i18n.changeLanguage(lang);
+        }
+
+        if (cacheUpdated) {
+          writeLangCacheToStorage(lang, cacheMap);
+        }
+
+        if (Object.keys(validMap).length > 0) {
+          i18n.addResourceBundle(lang, 'translation', validMap, true, true);
+          // Notify react-i18next via store 'added' event (avoids recursive languageChanged loops)
+          const storeEmitter = i18n.store as unknown as { emit?: (event: string, ...args: any[]) => void };
+          if (storeEmitter && typeof storeEmitter.emit === 'function') {
+            storeEmitter.emit('added', lang, 'translation');
+          }
         }
       }
-      
-      // If there are still keys left in the queue, schedule the next batch immediately
-      if (translationQueue[lang] && translationQueue[lang].size > 0) {
-        if (translationTimeout) clearTimeout(translationTimeout);
-        translationTimeout = setTimeout(() => processTranslationQueue(lang), 100);
-      }
     })
-    .catch(err => {
-      isProcessing = false;
-      console.warn('Dynamic translation notice:', err?.message || err);
-      // Populate resources with original keys as fallback so UI remains functional
-      keysToTranslate.forEach(k => {
-        i18n.addResource(lang, 'translation', k, k);
-      });
-      if (i18n.language === lang) {
-        i18n.emit('languageChanged', lang);
+    .catch(() => {
+      // Silent graceful degradation: original English keys remain readable with zero UI disruption
+    })
+    .finally(() => {
+      isProcessingQueue = false;
+      activeTranslationRequests = Math.max(0, activeTranslationRequests - 1);
+      notifyTranslationStatus();
+
+      const remaining = translationQueue.get(lang);
+      if (remaining && remaining.size > 0) {
+        scheduleQueueProcessing(lang, 250);
       }
     });
 }
 
-function queueTranslation(key: string, lang: string) {
-  if (!key || typeof key !== 'string' || !key.trim()) return;
-  if (!translationQueue[lang]) {
-    translationQueue[lang] = new Set();
+function queueTranslation(key: string, rawLang: string) {
+  const lang = normalizeLanguageCode(rawLang);
+  if (lang === 'en' || !shouldQueueDynamicKey(key)) return;
+
+  let attempted = attemptedKeysByLang.get(lang);
+  if (!attempted) {
+    attempted = new Set<string>();
+    attemptedKeysByLang.set(lang, attempted);
   }
-  translationQueue[lang].add(key);
-  
-  if (translationTimeout) {
-    clearTimeout(translationTimeout);
+  if (attempted.has(key)) return;
+  attempted.add(key);
+
+  let langQueue = translationQueue.get(lang);
+  if (!langQueue) {
+    langQueue = new Set<string>();
+    translationQueue.set(lang, langQueue);
   }
-  
-  translationTimeout = setTimeout(() => {
-    processTranslationQueue(lang);
-  }, 100); // 100ms ultra-fast debounce to batch DOM mount keys
+  langQueue.add(key);
+
+  scheduleQueueProcessing(lang, 180);
 }
 
-// Programmatic Sync with Google Translate fallback engine
-i18n.on('languageChanged', (lng) => {
+// Synchronize document metadata & preloaded cache on language change (no Google Translate DOM mutation)
+function applyDocumentLanguageAttributes(rawLang: string) {
+  const lng = normalizeLanguageCode(rawLang);
   preloadCachedTranslations(lng);
 
-  if (typeof window === 'undefined') return;
-
-  // Set standard HTML document attributes
+  if (typeof document === 'undefined') return;
   document.documentElement.lang = lng;
-  const rtlLanguages = ['ar', 'fa', 'he', 'ur', 'ps', 'sd', 'ug', 'yi', 'ku'];
-  document.documentElement.dir = rtlLanguages.includes(lng) ? 'rtl' : 'ltr';
+  document.documentElement.dir = isRTLLanguage(lng) ? 'rtl' : 'ltr';
 
-  // Translate document title
   if (typeof i18n.t === 'function') {
-    document.title = `${i18n.t('XRD-Calc Pro')} | ${i18n.t('Diffraction Analytics')}`;
+    const appTitle = i18n.t('XRD-Calc Pro', { defaultValue: 'XRD-Calc Pro' });
+    const appSubtitle = i18n.t('Diffraction Analytics', { defaultValue: 'Diffraction Analytics' });
+    document.title = `${appTitle} | ${appSubtitle}`;
   }
+}
 
-  const customLanguages = ['pirate', 'tlh', 'sjn', 'sco', 'alc', 'min'];
-  let googleLang = lng;
-  if (lng === 'zh') googleLang = 'zh-CN';
-  if (customLanguages.includes(lng)) googleLang = 'en';
-
-  try {
-    // Set cookie for Google Translate element to pick up
-    document.cookie = `googtrans=/en/${googleLang}; path=/;`;
-    document.cookie = `googtrans=/en/${googleLang}; path=/; domain=${window.location.hostname};`;
-    
-    // Programmatically select language in Google Translate select dropdown if rendered
-    const selectEl = document.querySelector('select.goog-te-combo') as HTMLSelectElement;
-    if (selectEl) {
-      selectEl.value = googleLang;
-      selectEl.dispatchEvent(new Event('change', { bubbles: true }));
-    } else {
-      // If select isn't ready, try again shortly
-      setTimeout(() => {
-        const retryEl = document.querySelector('select.goog-te-combo') as HTMLSelectElement;
-        if (retryEl) {
-          retryEl.value = googleLang;
-          retryEl.dispatchEvent(new Event('change', { bubbles: true }));
-        }
-      }, 500);
-    }
-  } catch (err) {
-    console.warn('Google Translate sync notice:', err);
-  }
+i18n.on('languageChanged', (lng) => {
+  applyDocumentLanguageAttributes(lng);
 });
 
-// Preload translations for currently loaded language
 if (typeof window !== 'undefined') {
-  setTimeout(() => {
-    if (i18n.language) {
-      preloadCachedTranslations(i18n.language);
-      
-      // Set standard HTML document attributes on initial load
-      document.documentElement.lang = i18n.language;
-      const rtlLanguages = ['ar', 'fa', 'he', 'ur', 'ps', 'sd', 'ug', 'yi', 'ku'];
-      document.documentElement.dir = rtlLanguages.includes(i18n.language) ? 'rtl' : 'ltr';
-
-      if (typeof i18n.t === 'function') {
-        document.title = `${i18n.t('XRD-Calc Pro')} | ${i18n.t('Diffraction Analytics')}`;
-      }
-    }
-  }, 100);
+  applyDocumentLanguageAttributes(initialLanguage);
 }
 
 const originalT = i18n.t.bind(i18n);
 
-// Monkey patch i18n.t to support fallback real-time AI translations
+// Safe, non-mutating i18n.t wrapper supporting defaultValue, interpolation, and async dynamic fallback
 i18n.t = ((key: any, ...args: any[]) => {
   if (typeof key !== 'string' || !key) {
-    return key;
+    return typeof key === 'number' ? String(key) : '';
   }
-  
-  const currentLang = i18n.language;
-  const options = args[0];
-  const defaultValue = (options && typeof options === 'object' && 'defaultValue' in options) 
-    ? (options as any).defaultValue 
-    : (typeof options === 'string' ? options : key);
-  
-  if (!currentLang || currentLang === 'en' || currentLang === 'en-US') {
-    const rawRes = originalT(key, ...args);
-    if (typeof rawRes !== 'string' || rawRes.includes('returned an object instead of string')) {
-      return defaultValue || key;
-    }
-    return rawRes;
+
+  const currentLang = normalizeLanguageCode(i18n.language);
+  const firstArg = args[0];
+  const fallbackText =
+    typeof firstArg === 'string'
+      ? firstArg
+      : firstArg && typeof firstArg === 'object' && typeof firstArg.defaultValue === 'string'
+        ? firstArg.defaultValue
+        : key;
+
+  const rawResult = originalT(key, ...args);
+  const safeResult =
+    typeof rawResult === 'string' && !rawResult.includes('returned an object instead of string')
+      ? rawResult
+      : fallbackText;
+
+  if (currentLang === 'en') {
+    return safeResult;
   }
-  
-  const result = originalT(key, ...args);
-  
-  if (typeof result !== 'string' || result.includes('returned an object instead of string')) {
-    return defaultValue || key;
-  }
-  
-  if (result === key) {
-    const cached = typeof window !== 'undefined' ? localStorage.getItem(`trans_${currentLang}_${key}`) : null;
-    if (cached && typeof cached === 'string' && !cached.includes('returned an object instead of string')) {
-      i18n.addResource(currentLang, 'translation', key, cached);
-      return cached;
-    }
-    
+
+  // Check whether an explicit translation exists for the active language (without falling back to 'en')
+  const hasNativeOrCached = i18n.exists(key, { lng: currentLang, fallbackLng: false });
+  if (!hasNativeOrCached) {
     queueTranslation(key, currentLang);
-    return defaultValue || key;
   }
-  
-  return result;
+
+  return safeResult;
 }) as any;
 
 export default i18n;
+

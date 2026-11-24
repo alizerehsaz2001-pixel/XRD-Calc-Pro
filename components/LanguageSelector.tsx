@@ -1,8 +1,9 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useI18n } from './I18nProvider';
+import { normalizeLanguageCode } from '../i18n';
 import { motion, AnimatePresence } from 'motion/react';
-import { Search, Globe, Check, ChevronDown, Sparkles, BadgeCheck, Zap } from 'lucide-react';
+import { Search, Globe, Check, ChevronDown, Loader2, X } from 'lucide-react';
 
 export interface Language {
   code: string;
@@ -13,6 +14,8 @@ export interface Language {
 }
 
 export const nativeLanguageCodes = ['en', 'it', 'zh', 'ja', 'tr', 'de', 'fr', 'pt', 'es', 'ru', 'fa', 'ar'];
+
+const noveltyLanguageCodes = new Set(['pirate', 'tlh', 'sjn', 'alc', 'min']);
 
 export const languagesList: Language[] = [
   { code: 'en', name: 'English', nativeName: 'English (US)', flag: '🇺🇸', region: 'Americas/Global' },
@@ -133,25 +136,88 @@ export const languagesList: Language[] = [
   { code: 'min', name: 'Minion', nativeName: 'Banananon (Minion)', flag: '🍌', region: 'Minion Land' },
 ];
 
+type CategoryTab = 'Core' | 'Popular' | 'Europe' | 'Asia' | 'Middle East' | 'Americas' | 'Africa' | 'All';
+
+const CATEGORY_TABS: readonly CategoryTab[] = [
+  'Core',
+  'Popular',
+  'Europe',
+  'Asia',
+  'Middle East',
+  'Americas',
+  'Africa',
+  'All',
+];
+
+const POPULAR_CODES = ['en', 'fa', 'de', 'fr', 'es', 'zh', 'ja', 'ru', 'ar', 'pt', 'tr', 'it', 'hi', 'ko'];
+
 interface LanguageSelectorProps {
   onLanguageChange?: (code: string) => void;
   panelPosition?: 'up' | 'down';
   compact?: boolean;
 }
 
-export default function LanguageSelector({ onLanguageChange, panelPosition = 'down', compact = false }: LanguageSelectorProps) {
-  const { i18n } = useTranslation();
-  const { changeLanguage, language } = useI18n();
+export default function LanguageSelector({
+  onLanguageChange,
+  panelPosition = 'down',
+  compact = false,
+}: LanguageSelectorProps) {
+  const { t, i18n } = useTranslation();
+  const { changeLanguage, language, isRTL, isTranslating } = useI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<'Popular' | 'All' | 'Europe' | 'Asia' | 'Middle East' | 'Americas'>('Popular');
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [selectedCategory, setSelectedCategory] = useState<CategoryTab>('Core');
+  const [highlightedIndex, setHighlightedIndex] = useState<number>(0);
 
-  // Popular languages list (Top international lab standards)
-  const popularCodes = ['en', 'de', 'fr', 'es', 'fa', 'zh', 'ja', 'ru', 'ar', 'pt', 'tr', 'it', 'hi', 'ko'];
+  const containerRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const searchInputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  const activeLangCode = normalizeLanguageCode(language || i18n.language);
+  const currentLang = useMemo(
+    () => languagesList.find((l) => l.code === activeLangCode) || languagesList[0],
+    [activeLangCode]
+  );
+
+  const filteredLanguages = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (q) {
+      return languagesList.filter(
+        (l) =>
+          l.name.toLowerCase().includes(q) ||
+          l.nativeName.toLowerCase().includes(q) ||
+          l.code.toLowerCase().includes(q) ||
+          l.region.toLowerCase().includes(q)
+      );
+    }
+
+    if (selectedCategory === 'Core') {
+      return languagesList.filter((l) => nativeLanguageCodes.includes(l.code));
+    }
+    if (selectedCategory === 'Popular') {
+      return languagesList.filter((l) => POPULAR_CODES.includes(l.code));
+    }
+    if (selectedCategory === 'All') {
+      return languagesList.filter((l) => !noveltyLanguageCodes.has(l.code));
+    }
+    return languagesList.filter(
+      (l) =>
+        !noveltyLanguageCodes.has(l.code) &&
+        l.region.toLowerCase().includes(selectedCategory.toLowerCase())
+    );
+  }, [searchQuery, selectedCategory]);
+
+  // Reset highlight whenever filtered list changes
+  useEffect(() => {
+    if (!isOpen) return;
+    const activeIdx = filteredLanguages.findIndex((l) => l.code === activeLangCode);
+    setHighlightedIndex(activeIdx >= 0 ? activeIdx : 0);
+  }, [filteredLanguages, activeLangCode, isOpen]);
 
   // Close when clicking outside
   useEffect(() => {
+    if (!isOpen) return;
     function handleClickOutside(event: MouseEvent) {
       if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
         setIsOpen(false);
@@ -161,202 +227,278 @@ export default function LanguageSelector({ onLanguageChange, panelPosition = 'do
     return () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
-  }, []);
+  }, [isOpen]);
 
-  const activeLangCode = language || i18n.language || 'en';
-  const currentLang = languagesList.find((l) => l.code === activeLangCode) || languagesList[0];
-
-  const filteredLanguages = languagesList.filter((l) => {
-    // 1. Search Query filter
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      return (
-        l.name.toLowerCase().includes(q) ||
-        l.nativeName.toLowerCase().includes(q) ||
-        l.code.toLowerCase().includes(q) ||
-        l.region.toLowerCase().includes(q)
-      );
+  // Focus search input when opening
+  useEffect(() => {
+    if (isOpen) {
+      requestAnimationFrame(() => {
+        searchInputRef.current?.focus();
+      });
     }
-    // 2. Category Tab filter
-    if (selectedCategory === 'Popular') {
-      return popularCodes.includes(l.code);
-    }
-    if (selectedCategory === 'All') return true;
-    return l.region.toLowerCase().includes(selectedCategory.toLowerCase());
-  });
+  }, [isOpen]);
 
   const selectLanguage = (code: string) => {
+    const normalized = normalizeLanguageCode(code);
     if (changeLanguage) {
-      changeLanguage(code);
+      changeLanguage(normalized).catch(() => {});
     } else {
-      i18n.changeLanguage(code);
+      i18n.changeLanguage(normalized).catch(() => {});
     }
     if (onLanguageChange) {
-      onLanguageChange(code);
+      onLanguageChange(normalized);
     }
     setIsOpen(false);
     setSearchQuery('');
+    triggerRef.current?.focus();
   };
 
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (!isOpen) return;
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    } else if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (filteredLanguages.length === 0) return;
+      setHighlightedIndex((prev) => {
+        const next = (prev + 1) % filteredLanguages.length;
+        const el = listRef.current?.querySelector(`[data-lang-idx="${next}"]`);
+        el?.scrollIntoView({ block: 'nearest' });
+        return next;
+      });
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (filteredLanguages.length === 0) return;
+      setHighlightedIndex((prev) => {
+        const next = (prev - 1 + filteredLanguages.length) % filteredLanguages.length;
+        const el = listRef.current?.querySelector(`[data-lang-idx="${next}"]`);
+        el?.scrollIntoView({ block: 'nearest' });
+        return next;
+      });
+    } else if (e.key === 'Enter' && filteredLanguages[highlightedIndex]) {
+      e.preventDefault();
+      selectLanguage(filteredLanguages[highlightedIndex].code);
+    }
+  };
+
+  // Edge-safe anchoring prevents viewport clipping in top-right header bars and RTL mode
+  const horizontalAnchorClass = compact
+    ? isRTL
+      ? 'left-0'
+      : 'right-0'
+    : isRTL
+      ? 'right-0'
+      : 'left-0';
+
   return (
-    <div id="language-selector-root" ref={containerRef} className={`relative inline-block text-left w-full ${compact ? 'max-w-[110px]' : 'max-w-[280px]'}`}>
+    <div
+      id="language-selector-root"
+      ref={containerRef}
+      onKeyDown={handleKeyDown}
+      className={`relative inline-block ${compact ? 'w-auto shrink-0' : 'w-full max-w-[280px]'}`}
+    >
       <button
+        ref={triggerRef}
         id="language-selector-trigger"
-        onClick={() => setIsOpen(!isOpen)}
-        className={`flex items-center justify-between w-full px-3 py-1.5 bg-white dark:bg-slate-900/90 border border-slate-200 dark:border-white/10 rounded-xl text-sm font-bold text-slate-800 dark:text-slate-100 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:border-indigo-500/50 shadow-sm transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20`}
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={isOpen}
+        aria-label={t('Language Locale', 'Language Locale')}
+        onClick={() => setIsOpen((prev) => !prev)}
+        className={`flex items-center justify-between gap-2 whitespace-nowrap shrink-0 cursor-pointer border transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500/30 ${
+          compact
+            ? 'h-8 px-2.5 rounded-lg bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700 text-slate-700 dark:text-slate-200'
+            : 'w-full px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 hover:border-indigo-500/50 text-slate-800 dark:text-slate-100 shadow-sm'
+        }`}
       >
-        <div className="flex items-center gap-2.5 truncate">
-          <span className="text-lg leading-none filter drop-shadow-sm select-none" id="current-language-flag">
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-base leading-none select-none shrink-0" id="current-language-flag">
             {currentLang.flag}
           </span>
           {!compact && (
-            <span className="truncate font-black tracking-tight" id="current-language-name">
+            <span className="truncate text-xs font-semibold" id="current-language-name">
               {currentLang.nativeName}
             </span>
           )}
           {compact && (
-            <span className="font-mono text-[11px] font-bold uppercase tracking-widest text-slate-500" id="current-language-code">
+            <span
+              className="font-mono text-[11px] font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300"
+              id="current-language-code"
+            >
               {currentLang.code}
             </span>
           )}
+          {isTranslating && (
+            <Loader2
+              className="w-3 h-3 text-indigo-500 animate-spin shrink-0"
+              aria-label={t('Translating...', 'Translating...')}
+            />
+          )}
         </div>
-        <ChevronDown className={`w-4 h-4 text-slate-400 shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+        <ChevronDown
+          className={`w-3.5 h-3.5 text-slate-400 shrink-0 transition-transform duration-150 ${
+            isOpen ? 'rotate-180' : ''
+          }`}
+        />
       </button>
 
       <AnimatePresence>
         {isOpen && (
           <motion.div
             id="language-selector-dropdown"
-            initial={{ opacity: 0, y: panelPosition === 'down' ? 10 : -10, scale: 0.95 }}
+            role="dialog"
+            aria-label={t('Language Locale', 'Language Locale')}
+            initial={{ opacity: 0, y: panelPosition === 'down' ? 6 : -6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: panelPosition === 'down' ? 10 : -10, scale: 0.95 }}
-            transition={{ duration: 0.15, ease: 'easeOut' }}
-            className={`absolute z-[110] w-[300px] bg-white dark:bg-slate-950 border border-slate-200 dark:border-white/10 rounded-2xl shadow-2xl p-3 ${
+            exit={{ opacity: 0, y: panelPosition === 'down' ? 6 : -6, scale: 0.98 }}
+            transition={{ duration: 0.14, ease: 'easeOut' }}
+            className={`absolute z-[120] w-[min(320px,calc(100vw-24px))] bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-xl shadow-2xl p-2.5 ${horizontalAnchorClass} ${
               panelPosition === 'down' ? 'top-full mt-2' : 'bottom-full mb-2'
             }`}
-            style={{
-              left: '50%',
-              transform: 'translateX(-50%)',
-            }}
           >
             {/* Search Input */}
-            <div className="relative mb-2.5" id="language-search-wrapper">
-              <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none">
-                <Search className="w-4 h-4" />
-              </span>
+            <div className="relative mb-2" id="language-search-wrapper">
+              <Search className="w-3.5 h-3.5 text-slate-400 pointer-events-none absolute top-1/2 -translate-y-1/2 start-3" />
               <input
+                ref={searchInputRef}
                 id="language-search-input"
                 type="text"
-                placeholder="Search language or region..."
+                placeholder={t('Search language or region...', 'Search language or region...')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-white/10 rounded-xl outline-none focus:border-indigo-500/50 dark:text-slate-100 placeholder-slate-400 font-medium transition-all"
-                autoFocus
+                className="w-full ps-8 pe-7 py-2 text-xs bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-lg outline-none focus:border-indigo-500 text-slate-800 dark:text-slate-100 placeholder-slate-400 transition-colors"
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSearchQuery('');
+                    searchInputRef.current?.focus();
+                  }}
+                  className="absolute top-1/2 -translate-y-1/2 end-2 p-0.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                  aria-label="Clear search"
+                >
+                  <X className="w-3.5 h-3.5" />
+                </button>
+              )}
             </div>
 
-            {/* Region Category Chips */}
+            {/* Region Category Tabs */}
             {!searchQuery && (
-              <div className="flex items-center gap-1 overflow-x-auto pb-2.5 mb-1 custom-scrollbar text-[10px]">
-                {(['Popular', 'All', 'Europe', 'Asia', 'Middle East', 'Americas'] as const).map((cat) => (
-                  <button
-                    key={cat}
-                    type="button"
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-2.5 py-1 rounded-lg font-black uppercase tracking-wider shrink-0 transition-all ${
-                      selectedCategory === cat
-                        ? 'bg-indigo-600 text-white shadow-sm'
-                        : 'bg-slate-100 dark:bg-slate-900 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
+              <div className="flex items-center gap-1 overflow-x-auto pb-2 mb-1.5 border-b border-slate-100 dark:border-slate-800/80 custom-scrollbar">
+                {CATEGORY_TABS.map((cat) => {
+                  const active = selectedCategory === cat;
+                  return (
+                    <button
+                      key={cat}
+                      type="button"
+                      onClick={() => setSelectedCategory(cat)}
+                      className={`px-2 py-1 rounded-md text-[10px] font-semibold whitespace-nowrap shrink-0 cursor-pointer transition-colors ${
+                        active
+                          ? 'bg-indigo-600 text-white'
+                          : 'text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-900 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {t(cat, cat)}
+                    </button>
+                  );
+                })}
               </div>
             )}
 
-            {/* List */}
+            {/* Options List */}
             <div
+              ref={listRef}
               id="language-options-list"
-              className="max-h-[300px] overflow-y-auto space-y-1 pr-1 custom-scrollbar"
-              style={{
-                scrollbarWidth: 'thin',
-              }}
+              role="listbox"
+              aria-activedescendant={
+                filteredLanguages[highlightedIndex]
+                  ? `lang-option-${filteredLanguages[highlightedIndex].code}`
+                  : undefined
+              }
+              className="max-h-[276px] overflow-y-auto space-y-0.5 pe-0.5 custom-scrollbar"
+              style={{ scrollbarWidth: 'thin' }}
             >
               {filteredLanguages.length > 0 ? (
-                filteredLanguages.map((language) => {
-                  const isSelected = language.code === i18n.language;
-                  const isNative = nativeLanguageCodes.includes(language.code);
+                filteredLanguages.map((langItem, idx) => {
+                  const isSelected = langItem.code === activeLangCode;
+                  const isHighlighted = idx === highlightedIndex;
+                  const isNative = nativeLanguageCodes.includes(langItem.code);
+
                   return (
                     <button
-                      key={language.code}
-                      id={`lang-option-${language.code}`}
-                      onClick={() => selectLanguage(language.code)}
-                      className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-left text-xs transition-all duration-200 group relative overflow-hidden ${
+                      key={langItem.code}
+                      id={`lang-option-${langItem.code}`}
+                      data-lang-idx={idx}
+                      type="button"
+                      role="option"
+                      aria-selected={isSelected}
+                      onMouseEnter={() => setHighlightedIndex(idx)}
+                      onClick={() => selectLanguage(langItem.code)}
+                      className={`w-full flex items-center justify-between gap-2 px-2.5 py-2 rounded-lg text-start text-xs cursor-pointer transition-colors ${
                         isSelected
-                          ? 'bg-indigo-500/15 text-indigo-600 dark:text-indigo-400 font-extrabold border border-indigo-500/20 shadow-sm'
-                          : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900 border border-transparent'
+                          ? 'bg-indigo-500/12 text-indigo-700 dark:text-indigo-300 font-semibold border border-indigo-500/25'
+                          : isHighlighted
+                            ? 'bg-slate-100 dark:bg-slate-900 text-slate-900 dark:text-slate-100 border border-transparent'
+                            : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-900/70 border border-transparent'
                       }`}
                     >
-                      {/* Subdued background gradient for AI languages on hover */}
-                      {!isNative && !isSelected && (
-                        <div className="absolute inset-0 bg-gradient-to-r from-amber-500/0 via-amber-500/0 to-amber-500/5 opacity-0 group-hover:opacity-100 transition-opacity" />
-                      )}
-                      
-                      <div className="flex items-center gap-3 truncate relative z-10">
-                        <span className="text-xl leading-none filter drop-shadow-sm select-none">
-                          {language.flag}
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="text-base leading-none select-none shrink-0">
+                          {langItem.flag}
                         </span>
-                        <div className="flex flex-col truncate">
-                          <span className="font-extrabold tracking-tight truncate flex items-center gap-1.5">
-                            {language.nativeName}
+                        <div className="flex flex-col min-w-0">
+                          <span className="font-semibold truncate leading-tight">
+                            {langItem.nativeName}
                           </span>
-                          <span className="text-[10px] text-slate-400 dark:text-slate-500 font-medium truncate flex items-center gap-1.5">
-                            {language.name}
-                            {isNative ? (
-                              <span className="inline-flex items-center gap-0.5 text-[9px] text-emerald-600 dark:text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.5 rounded">
-                                <BadgeCheck className="w-2.5 h-2.5" /> Verified
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-0.5 text-[9px] text-amber-600 dark:text-amber-400 font-bold bg-amber-500/10 px-1 py-0.5 rounded">
-                                <Zap className="w-2.5 h-2.5" /> AI Translated
-                              </span>
-                            )}
+                          <span className="text-[10px] text-slate-500 dark:text-slate-400 truncate mt-0.5">
+                            {langItem.name}
+                            <span className="mx-1.5 text-slate-300 dark:text-slate-700">·</span>
+                            <span
+                              className={
+                                isNative
+                                  ? 'text-emerald-600 dark:text-emerald-400 font-medium'
+                                  : 'text-slate-400 dark:text-slate-500'
+                              }
+                            >
+                              {isNative ? t('Native', 'Native') : t('Dynamic', 'Dynamic')}
+                            </span>
                           </span>
                         </div>
                       </div>
-                      <div className="flex items-center gap-2 shrink-0 relative z-10">
-                        {isSelected ? (
-                          <Check className="w-4 h-4 text-indigo-500 drop-shadow-[0_0_8px_rgba(99,102,241,0.5)]" />
-                        ) : (
-                          <span className="text-[9px] font-mono uppercase tracking-widest text-slate-400 dark:text-slate-500 opacity-0 group-hover:opacity-100 transition-opacity bg-white dark:bg-slate-800 px-1.5 py-0.5 rounded shadow-sm">
-                            {language.code}
-                          </span>
+
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <span className="font-mono text-[10px] uppercase tracking-wider text-slate-400 dark:text-slate-500">
+                          {langItem.code}
+                        </span>
+                        {isSelected && (
+                          <Check className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400 shrink-0" />
                         )}
                       </div>
                     </button>
                   );
                 })
               ) : (
-                <div className="text-center py-6 text-slate-500" id="no-languages-found">
-                  <Globe className="w-6 h-6 mx-auto mb-2 text-slate-400 animate-pulse" />
-                  <p className="text-xs font-bold uppercase tracking-wider">No languages found</p>
+                <div className="text-center py-8 text-slate-400 dark:text-slate-500" id="no-languages-found">
+                  <Globe className="w-5 h-5 mx-auto mb-2 opacity-60" />
+                  <p className="text-xs font-medium">{t('No languages found', 'No languages found')}</p>
                 </div>
               )}
             </div>
 
-            {/* Sub-Info footer */}
-            <div className="mt-3.5 pt-2.5 border-t border-slate-100 dark:border-white/5 flex items-center justify-between text-[9px] font-black uppercase tracking-widest text-slate-400 select-none">
-              <div className="flex items-center gap-2.5">
-                <span className="flex items-center gap-1 text-emerald-600 dark:text-emerald-400" title="Native Translations">
-                  <BadgeCheck className="w-3 h-3" /> {nativeLanguageCodes.length}
+            {/* Compact Footer */}
+            <div className="mt-2 pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[10px] text-slate-500 dark:text-slate-400 select-none">
+              <div className="flex items-center gap-2 font-mono tabular-nums">
+                <span className="text-emerald-600 dark:text-emerald-400">
+                  {nativeLanguageCodes.length} {t('Native', 'Native')}
                 </span>
-                <span className="flex items-center gap-1 text-amber-600 dark:text-amber-400" title="Real-time AI Translations">
-                  <Zap className="w-3 h-3" /> {languagesList.length - nativeLanguageCodes.length}
-                </span>
+                <span className="text-slate-300 dark:text-slate-700">·</span>
+                <span>{languagesList.length - noveltyLanguageCodes.size} Total</span>
               </div>
-              <span className="bg-slate-100 dark:bg-slate-800 px-1.5 py-0.5 rounded text-slate-500 dark:text-slate-400">
-                ACTIVE: {currentLang.code.toUpperCase()}
+              <span className="font-mono font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300">
+                {isTranslating ? t('Translating...', 'Translating...') : currentLang.code.toUpperCase()}
               </span>
             </div>
           </motion.div>

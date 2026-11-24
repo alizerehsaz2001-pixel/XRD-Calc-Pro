@@ -35,6 +35,7 @@ const NavigationRailComponent: React.FC<NavigationRailProps> = ({
 
   // Curated list of prominent modules to display in the mini-rail
   const railModules: { id: string; label: string; group: string }[] = [
+    { id: 'xrd_curve_builder', label: t('Build Your XRD Curves', 'Build Your XRD Curves'), group: 'Fundamentals' },
     { id: 'bragg', label: t('Bragg Basics', 'Bragg Basics'), group: 'Fundamentals' },
     { id: 'unit_cells', label: t('14 Bravais Lattices', '14 Bravais Lattices'), group: 'Fundamentals' },
     { id: 'fwhm', label: t('FWHM Analysis', 'FWHM Analysis'), group: 'Fundamentals' },

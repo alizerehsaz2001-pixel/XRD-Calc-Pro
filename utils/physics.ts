@@ -7030,18 +7030,19 @@ export const identifyPhasesDL = (
             matchedPeaksCount++;
             const positionWeight = 1 - Math.pow(diff / TOLERANCE, 2);
             const intensityWeight = Math.log10(refPeak.i + 10) / 2;
-            matchScore += (10 * positionWeight * intensityWeight);
+            let scoreInc = 10 * positionWeight * intensityWeight;
             
             const relativeIntensityMatch = Math.min(refPeak.i + 10, closest.intensity + 10) / Math.max(refPeak.i + 10, closest.intensity + 10);
-            matchScore *= (0.8 + 0.2 * relativeIntensityMatch);
+            scoreInc *= (0.8 + 0.2 * relativeIntensityMatch);
 
             let hklMatched = false;
             if ((closest as any).h !== undefined && refPeak.h !== undefined) {
               if ((closest as any).h === refPeak.h && (closest as any).k === refPeak.k && (closest as any).l === refPeak.l) {
-                matchScore *= 1.25;
+                scoreInc *= 1.25;
                 hklMatched = true;
               }
             }
+            matchScore += scoreInc;
             
             matchedDetails.push({ 
               refT: refPeak.t, 
@@ -7372,18 +7373,28 @@ export const identifyPhasesDL = (
     }
 
     let unmatchedInputEnergy = 0;
+    const maxInputI = Math.max(1, ...inputPoints.map((p) => p.intensity));
+    let significantObsTotal = 0;
+    let significantObsMatched = 0;
     for (const inputPeak of inputPoints) {
-       const hasMatch = phase.peaks.some(ref => Math.abs((ref.t + estShift) - inputPeak.twoTheta) <= TOLERANCE);
-       if (!hasMatch) {
-         unmatchedInputEnergy += inputPeak.intensity;
-       }
+      const hasMatch = phase.peaks.some(ref => Math.abs((ref.t + estShift) - inputPeak.twoTheta) <= TOLERANCE);
+      const isSig = inputPeak.intensity >= maxInputI * 0.05;
+      if (isSig) {
+        significantObsTotal++;
+        if (hasMatch) significantObsMatched++;
+      }
+      if (!hasMatch) {
+        unmatchedInputEnergy += inputPeak.intensity;
+      }
     }
     
     const totalRefPeaks = phase.peaks.length;
-    const coverage = matchedPeaksCount / totalRefPeaks;
+    const coverage = matchedPeaksCount / Math.max(1, totalRefPeaks);
+    const obsCoverage = significantObsTotal > 0 ? significantObsMatched / significantObsTotal : coverage;
+    const harmonicCoverage = (coverage + obsCoverage) > 0 ? (2 * coverage * obsCoverage) / (coverage + obsCoverage) : 0;
     
-    let baseConfidence = maxPossibleScore > 0 ? (matchScore / maxPossibleScore) * 100 : 0;
-    let confidence = (0.35 * activatedSimilarity * 100) + (0.65 * baseConfidence);
+    let baseConfidence = maxPossibleScore > 0 ? Math.min(100, (matchScore / maxPossibleScore) * 100) : 0;
+    let confidence = (0.32 * activatedSimilarity * 100) + (0.50 * baseConfidence) + (0.18 * harmonicCoverage * 100);
     
     const mainPeak = phase.peaks.reduce((prev, curr) => curr.i > prev.i ? curr : prev, {t: 0, i: -1});
     const mainPeakMatched = matchedDetails.some(md => md.refT === mainPeak.t);
@@ -7391,24 +7402,31 @@ export const identifyPhasesDL = (
     if (!mainPeakMatched && mainPeak.i > 0) {
       confidence *= 0.1;
     } else if (mainPeakMatched) {
-      confidence *= 1.25;
+      confidence *= 1.18;
     }
 
     const top3Ref = [...phase.peaks].sort((a, b) => b.i - a.i).slice(0, 3);
     const top3Hits = top3Ref.filter(rp => matchedDetails.some(md => md.refT === rp.t)).length;
-    if (top3Hits === 3) confidence *= 1.12;
+    if (top3Hits === 3) confidence *= 1.10;
 
-    if (coverage > 0.8) confidence *= 1.2;
-    if (coverage < 0.2) confidence *= 0.5;
+    if (harmonicCoverage > 0.85) confidence *= 1.12;
+    else if (coverage < 0.2) confidence *= 0.5;
 
     if (totalInputEnergy > 0) {
       const impurityRatio = unmatchedInputEnergy / totalInputEnergy;
-      confidence *= (1 - (impurityRatio * 0.4));
+      confidence *= (1 - (impurityRatio * 0.48));
+    }
+
+    // In Single-Phase mode, slightly prefer pure single-phase crystallographic standards over composite multi-phase cards
+    const isCompositeCard = typeof phase.formula === 'string' && phase.formula.includes('+');
+    if (isCompositeCard) {
+      confidence *= 0.86;
     }
 
     const precisionAvg = matchedDetails.length > 0 
       ? matchedDetails.reduce((acc, md) => acc + Math.max(0, 1 - Math.abs((md.refT + estShift) - md.obsT)/TOLERANCE), 0) / matchedDetails.length
       : 0;
+    confidence += Math.min(6, matchedPeaksCount * 0.65) + precisionAvg * 4.5;
 
     let finalConfidence = confidence;
 

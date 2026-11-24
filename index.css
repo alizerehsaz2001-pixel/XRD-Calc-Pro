@@ -1,4 +1,6 @@
 :root {
+  --font-times: 'Times New Roman', 'Tinos', 'STIX Two Text', Times, 'Liberation Serif', Georgia, serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
   --color-cyber-bg: #050505;
   --color-cyber-accent: #00ff41;
   --color-cyber-pink: #ff00ff;
@@ -178,24 +180,108 @@
   accent-color: var(--color-cyber-blue) !important;
 }
 
-* {
-  font-family: 'Times New Roman', Times, Georgia, serif !important;
+html {
+  font-size: 16.5px;
+  scroll-behavior: smooth;
+  scroll-padding-top: 90px;
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea,
+.font-sans,
+.font-serif {
+  font-family: var(--font-times);
+  font-kerning: normal;
+  font-variant-ligatures: common-ligatures contextual;
+  font-feature-settings: "kern" 1, "liga" 1, "clig" 1, "lnum" 1;
+  text-rendering: optimizeLegibility;
 }
 
 html, body {
   height: 100%;
   margin: 0;
   padding: 0;
-  font-family: 'Times New Roman', Times, Georgia, serif !important;
+  line-height: 1.56;
+  letter-spacing: 0.004em;
 }
 
-button, input, select, textarea, code, pre, span, div, p, h1, h2, h3, h4, h5, h6 {
-  font-family: 'Times New Roman', Times, Georgia, serif !important;
+/* Publication-grade Editorial Serif Hierarchy */
+h1, h2, h3, h4, h5, h6 {
+  font-family: var(--font-times);
+  text-wrap: balance;
+  letter-spacing: -0.012em;
+  line-height: 1.22;
+  font-feature-settings: "kern" 1, "liga" 1, "dlig" 1, "lnum" 1;
 }
 
-html {
-  scroll-behavior: smooth;
-  scroll-padding-top: 90px;
+h1 {
+  letter-spacing: -0.018em;
+}
+
+em, i, blockquote {
+  font-style: italic;
+}
+
+/* Optical Dark-Mode Compensation for Crisp Serif Hairlines */
+.dark body,
+.oceanic body,
+.dracula body,
+.gruvbox body,
+.monokai body,
+.synthwave body {
+  letter-spacing: 0.012em;
+}
+
+/* Clean Tabular Lining Numerals for Tables & Data Cells in Times New Roman */
+table, th, td, .tabular-nums {
+  font-variant-numeric: lining-nums tabular-nums;
+}
+
+/* Refined Editorial Text Selection & Accessible Focus Ring */
+::selection {
+  background-color: rgba(99, 102, 241, 0.22);
+  color: inherit;
+}
+
+.dark ::selection,
+.oceanic ::selection,
+.dracula ::selection {
+  background-color: rgba(129, 140, 248, 0.34);
+  color: #f8fafc;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.55);
+  outline-offset: 2px;
+}
+
+/* Crisp RTL Typography for Persian, Arabic, Urdu, Pashto, Sindhi, Kurdish, Uyghur */
+html[dir="rtl"],
+html[dir="rtl"] body,
+html[lang="fa"],
+html[lang="ar"],
+html[lang="ur"],
+html[lang="ps"],
+html[lang="sd"],
+html[lang="ku"],
+html[lang="ug"] {
+  font-family: 'Vazirmatn', 'Times New Roman', 'Tinos', 'STIX Two Text', Georgia, serif !important;
+  letter-spacing: 0;
+}
+
+/* Crisp Tabular Monospace for Scientific Readouts, Formulas & Code */
+.font-mono,
+code,
+pre,
+kbd,
+samp {
+  font-family: var(--font-mono) !important;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
 }
 
 body {
@@ -257,7 +343,7 @@ body {
 .terminal .from-indigo-500, .terminal .via-slate-200, .terminal .to-slate-400 { background-image: none !important; color: var(--color-term-fg) !important; }
 .terminal .text-transparent.bg-clip-text { background-clip: unset !important; -webkit-background-clip: unset !important; color: var(--color-term-fg) !important; }
 .terminal .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-term-dim); border-radius: 0; }
-.terminal * { font-family: 'Times New Roman', Times, Georgia, serif !important; }
+.terminal * { font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace !important; }
 
 /* Custom Animations */
 @keyframes scan {
@@ -438,80 +524,46 @@ body {
 .monokai .text-transparent.bg-clip-text { background-clip: text !important; -webkit-background-clip: text !important; }
 .monokai .custom-scrollbar::-webkit-scrollbar-thumb { background-color: var(--color-monokai-comment); }
 
-/* Google Translate styling integration & complete popup/banner/iframe suppression */
-.skiptranslate, 
-.goog-te-banner-frame, 
-.goog-te-banner-frame.skiptranslate, 
-.goog-te-gadget-icon,
-iframe.goog-te-banner-frame,
-iframe.goog-te-menu-frame,
-iframe.skiptranslate,
-.goog-te-menu-frame,
-.goog-te-menu,
-.goog-te-menu2,
-#goog-gt-tt,
-#goog-gt-vt,
-#goog-gt-src,
-.goog-te-balloon-frame,
-.VIpgJd-yD32b-Lg26de,
-.VIpgJd-yD32b-Lg26de-VIpgJd-bl2p3b,
-.VIpgJd-ZA163e-jA320-i3383e,
-.VIpgJd-ZA163e-jA320-i3383e-aL1v3e,
-div[class*="VIpgJd"],
-iframe[src*="translate.google.com"],
-iframe[id*="goog"],
-.goog-text-highlight,
-.goog-tooltip,
-.goog-tooltip:hover {
-  display: none !important;
-  visibility: hidden !important;
-  opacity: 0 !important;
-  pointer-events: none !important;
-  width: 0 !important;
-  height: 0 !important;
-  position: absolute !important;
-  top: -9999px !important;
-  left: -9999px !important;
-}
-body {
-  top: 0 !important;
-}
-.goog-te-combo {
-  display: inline-block !important;
-}
-#google_translate_element {
-  position: absolute !important;
-  top: -9999px !important;
-  left: -9999px !important;
-  width: 1px !important;
-  height: 1px !important;
-  overflow: hidden !important;
-  opacity: 0.001 !important;
-  pointer-events: none !important;
-}
-
-/* Base RTL Fixes for Tailwind CSS */
+/* RTL Layout & Scientific Notation Isolation */
 html[dir="rtl"] .text-left {
-  text-align: right !important;
+  text-align: right;
 }
 html[dir="rtl"] .text-right {
-  text-align: left !important;
+  text-align: left;
 }
 html[dir="rtl"] .pl-2 {
-  padding-left: 0 !important;
-  padding-right: 0.5rem !important;
+  padding-left: 0;
+  padding-right: 0.5rem;
 }
 html[dir="rtl"] .pr-2 {
-  padding-right: 0 !important;
-  padding-left: 0.5rem !important;
+  padding-right: 0;
+  padding-left: 0.5rem;
 }
 html[dir="rtl"] .ml-2 {
-  margin-left: 0 !important;
-  margin-right: 0.5rem !important;
+  margin-left: 0;
+  margin-right: 0.5rem;
 }
 html[dir="rtl"] .mr-2 {
-  margin-right: 0 !important;
-  margin-left: 0.5rem !important;
+  margin-right: 0;
+  margin-left: 0.5rem;
+}
+
+/* Keep scientific charts, canvases, mathematical formulas, and numeric inputs strictly LTR in RTL locales */
+html[dir="rtl"] .recharts-wrapper,
+html[dir="rtl"] .recharts-responsive-container,
+html[dir="rtl"] .katex,
+html[dir="rtl"] .katex-display,
+html[dir="rtl"] canvas,
+html[dir="rtl"] pre,
+html[dir="rtl"] code,
+html[dir="rtl"] input[type="number"],
+html[dir="rtl"] [dir="ltr"] {
+  direction: ltr;
+  unicode-bidi: isolate;
+}
+
+html[dir="rtl"] input[type="number"] {
+  text-align: left;
 }
 
 /* Typography & GPU compositing enhancements */

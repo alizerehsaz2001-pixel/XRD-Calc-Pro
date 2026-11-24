@@ -101,6 +101,7 @@ export interface SpectralAlignmentVisualizerProps {
   isSimulating?: boolean;
   scanPos?: number | null;
   pythonRAGResults?: any;
+  wavelengthA?: number;
 }
 
 const PHASE_PALETTES = [
@@ -121,6 +122,7 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
   isSimulating = false,
   scanPos = null,
   pythonRAGResults,
+  wavelengthA,
 }) => {
   // Visualizer Workspace State
   const [isFullscreen, setIsFullscreen] = useState<boolean>(false);
@@ -160,9 +162,21 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
   const [showGrid, setShowGrid] = useState<boolean>(true);
   const [showBrush, setShowBrush] = useState<boolean>(true);
 
-  // Wavelength Selection
+  // Wavelength Selection (synced with upstream PhaseIDCoreControlStrip wavelengthA)
   const [selectedWavelengthId, setSelectedWavelengthId] = useState<string>("cu_ka1");
-  const [customWavelength, setCustomWavelength] = useState<number>(1.5406);
+  const [customWavelength, setCustomWavelength] = useState<number>(wavelengthA || 1.5406);
+
+  React.useEffect(() => {
+    if (typeof wavelengthA !== "number" || !Number.isFinite(wavelengthA) || wavelengthA <= 0.05) return;
+    const matched = WAVELENGTH_PRESETS.find((p) => Math.abs(p.lambda - wavelengthA) < 0.0025);
+    if (matched) {
+      setSelectedWavelengthId(matched.id);
+      setCustomWavelength(matched.lambda);
+    } else {
+      setSelectedWavelengthId("custom");
+      setCustomWavelength(Number(wavelengthA.toFixed(5)));
+    }
+  }, [wavelengthA]);
 
   const activeWavelength = useMemo(() => {
     if (selectedWavelengthId === "custom") {

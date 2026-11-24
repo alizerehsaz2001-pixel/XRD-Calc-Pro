@@ -1119,9 +1119,9 @@ export const XRFFingerprintInspector: React.FC<XRFFingerprintInspectorProps> = (
               x={svgWidth / 2}
               y={svgHeight - 6}
               fill="#94a3b8"
-              fontSize="11"
-              fontFamily="sans-serif"
-              fontWeight="500"
+              fontSize="11.5"
+              fontFamily="'Times New Roman', 'Tinos', Georgia, serif"
+              fontWeight="600"
               textAnchor="middle"
             >
               Photon Energy E (keV)
@@ -1132,9 +1132,9 @@ export const XRFFingerprintInspector: React.FC<XRFFingerprintInspectorProps> = (
               x={-svgHeight / 2}
               y={14}
               fill="#94a3b8"
-              fontSize="11"
-              fontFamily="sans-serif"
-              fontWeight="500"
+              fontSize="11.5"
+              fontFamily="'Times New Roman', 'Tinos', Georgia, serif"
+              fontWeight="600"
               textAnchor="middle"
               transform="rotate(-90)"
             >

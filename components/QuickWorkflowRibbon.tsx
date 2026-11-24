@@ -124,7 +124,7 @@ export const QuickWorkflowRibbon: React.FC<QuickWorkflowRibbonProps> = ({
   const filteredModules = React.useMemo(() => {
     if (selectedCategory === 'all') {
       const priorityIds = [
-        'pdf_analysis', 'rietveld', 'bragg', 'scherrer', 'wh', 'xrr', 'rir', 'pawley_lebail', 'cohen',
+        'xrd_curve_builder', 'pdf_analysis', 'rietveld', 'bragg', 'scherrer', 'wh', 'xrr', 'rir', 'pawley_lebail', 'cohen',
         'fwhm', 'compare', 'periodic_table', 'database', 'settings'
       ];
       return modules.filter((m) => priorityIds.includes(m.id));

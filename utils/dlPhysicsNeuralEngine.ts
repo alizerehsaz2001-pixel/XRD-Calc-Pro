@@ -622,3 +622,298 @@ export function applySpectralPerturbation(
 
   return out;
 }
+
+export interface EmpiricalSpectralDiagnostics {
+  pointCount: number;
+  twoThetaMin: number;
+  twoThetaMax: number;
+  estimatedSnrDb: number;
+  baselineDriftPct: number;
+  detectedPeakCount: number;
+  meanFwhmDeg: number;
+  peakDensityPer10Deg: number;
+  signalRegime: 'sharp_standard' | 'broad_nanocrystalline' | 'noisy_low_snr' | 'amorphous_background' | 'dense_multiphase';
+}
+
+export interface AutoTuneEngineResult {
+  diagnostics: EmpiricalSpectralDiagnostics;
+  presetLabel: string;
+  recommendedConfig: {
+    kernelSize: number;
+    kernelProfile: string;
+    filters: number;
+    activation: string;
+    optimization: string;
+    multiScale: boolean;
+    dropout: number;
+    pooling: string;
+    depth: number;
+    learningRate: number;
+    batchNorm: boolean;
+    confidenceThreshold: number;
+    cagliotiCorrection: boolean;
+    asymmetryCorrection: boolean;
+    backgroundSubtraction: boolean;
+    shapeExponent: number;
+  };
+  rationaleLogs: string[];
+}
+
+/**
+ * Real empirical signal-aware 1D-CNN hyperparameter auto-tuner.
+ * Measures SNR (dB), lower-envelope baseline drift, peak count, and mean FWHM directly
+ * from the active diffractogram to select scientifically appropriate convolution & physics settings.
+ */
+export function analyzeAndAutoTuneEngine(
+  points: SpectralPoint[]
+): AutoTuneEngineResult {
+  if (!points || points.length === 0) {
+    return {
+      diagnostics: {
+        pointCount: 0,
+        twoThetaMin: 10,
+        twoThetaMax: 90,
+        estimatedSnrDb: 22,
+        baselineDriftPct: 4,
+        detectedPeakCount: 0,
+        meanFwhmDeg: 0.28,
+        peakDensityPer10Deg: 0,
+        signalRegime: 'sharp_standard',
+      },
+      presetLabel: 'Empirical Standard',
+      recommendedConfig: {
+        kernelSize: 5,
+        kernelProfile: 'Pseudo-Voigt',
+        filters: 64,
+        activation: 'GELU',
+        optimization: 'AdamW',
+        multiScale: true,
+        dropout: 0.15,
+        pooling: 'max',
+        depth: 50,
+        learningRate: 0.001,
+        batchNorm: true,
+        confidenceThreshold: 48,
+        cagliotiCorrection: true,
+        asymmetryCorrection: true,
+        backgroundSubtraction: true,
+        shapeExponent: 2.5,
+      },
+      rationaleLogs: [
+        'No diffractogram points loaded; restored balanced Pseudo-Voigt 1D-ResNet-50 defaults.',
+      ],
+    };
+  }
+
+  const sorted = [...points]
+    .filter((p) => Number.isFinite(p.twoTheta) && Number.isFinite(p.intensity))
+    .sort((a, b) => a.twoTheta - b.twoTheta);
+
+  const twoThetaMin = sorted[0]?.twoTheta ?? 10;
+  const twoThetaMax = sorted[sorted.length - 1]?.twoTheta ?? 90;
+  const spanDeg = Math.max(5, twoThetaMax - twoThetaMin);
+
+  const { grid2Theta, intensity, step } = buildUniformGrid(sorted, 240);
+  const sortedInt = [...intensity].sort((a, b) => a - b);
+  const q15 = sortedInt[Math.floor(sortedInt.length * 0.15)] ?? 0;
+  const q35 = sortedInt[Math.floor(sortedInt.length * 0.35)] ?? 0;
+  const q98 = sortedInt[Math.floor(sortedInt.length * 0.98)] ?? 100;
+
+  // Estimate baseline drift from low-quantile intensity level & low-angle vs high-angle slope
+  const lowSlice = intensity.slice(0, Math.max(10, Math.floor(intensity.length * 0.25)));
+  const highSlice = intensity.slice(Math.floor(intensity.length * 0.75));
+  const lowFloor = [...lowSlice].sort((a, b) => a - b)[Math.floor(lowSlice.length * 0.2)] ?? 0;
+  const highFloor = [...highSlice].sort((a, b) => a - b)[Math.floor(highSlice.length * 0.2)] ?? 0;
+  const baselineDriftPct = Number(
+    Math.min(60, Math.max(0, Math.max(q15, Math.abs(lowFloor - highFloor)) / Math.max(1, q98) * 100)).toFixed(1)
+  );
+
+  // Estimate noise floor from high-frequency second differences in quiet baseline bins
+  const quietDiffs: number[] = [];
+  for (let i = 1; i < intensity.length - 1; i++) {
+    if (intensity[i] <= q35 + 8) {
+      const d2 = Math.abs(intensity[i + 1] - 2 * intensity[i] + intensity[i - 1]) / Math.SQRT2;
+      quietDiffs.push(d2);
+    }
+  }
+  const noiseSigma =
+    quietDiffs.length > 5
+      ? quietDiffs.reduce((a, b) => a + b, 0) / quietDiffs.length
+      : Math.max(0.6, q15 * 0.12);
+  const signalAmp = Math.max(5, q98 - q15);
+  const snrLinear = signalAmp / Math.max(0.35, noiseSigma);
+  const estimatedSnrDb = Number(Math.max(4, Math.min(42, 20 * Math.log10(snrLinear))).toFixed(1));
+
+  // Detect local peaks & estimate FWHM
+  const peakThreshold = q15 + Math.max(8, signalAmp * 0.12);
+  const fwhms: number[] = [];
+  let detectedPeakCount = 0;
+
+  // For discrete stick patterns (few points), count points directly and estimate nominal FWHM
+  if (sorted.length <= 45) {
+    const maxRaw = Math.max(1, ...sorted.map((p) => p.intensity));
+    detectedPeakCount = sorted.filter((p) => p.intensity >= maxRaw * 0.08).length;
+    fwhms.push(0.22);
+  } else {
+    for (let i = 2; i < intensity.length - 2; i++) {
+      const y = intensity[i];
+      if (
+        y >= peakThreshold &&
+        y >= intensity[i - 1] &&
+        y >= intensity[i + 1] &&
+        y >= intensity[i - 2] &&
+        y >= intensity[i + 2]
+      ) {
+        detectedPeakCount++;
+        const halfH = q15 + (y - q15) * 0.5;
+        let left = i;
+        while (left > 0 && intensity[left] > halfH) left--;
+        let right = i;
+        while (right < intensity.length - 1 && intensity[right] > halfH) right++;
+        const widthDeg = Math.max(step, (grid2Theta[right] - grid2Theta[left]));
+        if (widthDeg > 0.05 && widthDeg < 4.5) {
+          fwhms.push(widthDeg);
+        }
+      }
+    }
+  }
+
+  const meanFwhmDeg = Number(
+    (fwhms.length > 0 ? fwhms.reduce((a, b) => a + b, 0) / fwhms.length : 0.28).toFixed(2)
+  );
+  const peakDensityPer10Deg = Number(((detectedPeakCount / spanDeg) * 10).toFixed(2));
+
+  // Classify signal regime & synthesize optimal 1D-CNN hyperparameters
+  let signalRegime: EmpiricalSpectralDiagnostics['signalRegime'] = 'sharp_standard';
+  let presetLabel = 'Empirical High-Res';
+  let kernelSize = 5;
+  let kernelProfile = 'Pseudo-Voigt';
+  let filters = 64;
+  let depth = 50;
+  let activation = 'GELU';
+  let optimization = 'AdamW';
+  let dropout = 0.15;
+  let pooling = 'max';
+  let learningRate = 0.0012;
+  let confidenceThreshold = 48;
+  let cagliotiCorrection = true;
+  let asymmetryCorrection = true;
+  let backgroundSubtraction = baselineDriftPct >= 5;
+  let shapeExponent = 2.5;
+
+  if (estimatedSnrDb < 14) {
+    signalRegime = 'noisy_low_snr';
+    presetLabel = 'Empirical Low-SNR';
+    kernelSize = 7;
+    kernelProfile = 'Pseudo-Voigt';
+    filters = 128;
+    depth = 18;
+    activation = 'SiLU';
+    dropout = 0.30;
+    pooling = 'avg';
+    learningRate = 0.0008;
+    confidenceThreshold = 38;
+    backgroundSubtraction = true;
+    shapeExponent = 3.0;
+  } else if (baselineDriftPct >= 14) {
+    signalRegime = 'amorphous_background';
+    presetLabel = 'Empirical Bg-Corrected';
+    kernelSize = 7;
+    kernelProfile = 'Pseudo-Voigt';
+    filters = 128;
+    depth = 34;
+    activation = 'GELU';
+    dropout = 0.25;
+    pooling = 'max';
+    learningRate = 0.001;
+    confidenceThreshold = 42;
+    backgroundSubtraction = true;
+    shapeExponent = 2.8;
+  } else if (meanFwhmDeg >= 0.55) {
+    signalRegime = 'broad_nanocrystalline';
+    presetLabel = 'Empirical Nano-Broadened';
+    kernelSize = 9;
+    kernelProfile = 'Lorentzian';
+    filters = 128;
+    depth = 34;
+    activation = 'GELU';
+    dropout = 0.20;
+    pooling = 'avg';
+    learningRate = 0.0012;
+    confidenceThreshold = 42;
+    cagliotiCorrection = true;
+    shapeExponent = 2.2;
+  } else if (detectedPeakCount >= 14 || peakDensityPer10Deg >= 2.2) {
+    signalRegime = 'dense_multiphase';
+    presetLabel = 'Empirical Multi-Phase';
+    kernelSize = 3;
+    kernelProfile = 'Pseudo-Voigt';
+    filters = 128;
+    depth = 50;
+    activation = 'GELU';
+    dropout = 0.15;
+    pooling = 'max';
+    learningRate = 0.0015;
+    confidenceThreshold = 40;
+    cagliotiCorrection = true;
+    asymmetryCorrection = true;
+    shapeExponent = 3.0;
+  } else {
+    signalRegime = 'sharp_standard';
+    presetLabel = 'Empirical High-Res';
+    kernelSize = 5;
+    kernelProfile = 'Pseudo-Voigt';
+    filters = 64;
+    depth = 50;
+    activation = 'GELU';
+    dropout = 0.12;
+    pooling = 'max';
+    learningRate = 0.0012;
+    confidenceThreshold = 50;
+    cagliotiCorrection = true;
+    asymmetryCorrection = true;
+    shapeExponent = 2.5;
+  }
+
+  const rationaleLogs = [
+    `Measured ${sorted.length} points across ${twoThetaMin.toFixed(1)}°–${twoThetaMax.toFixed(1)}° 2θ (${detectedPeakCount} peaks, density ${peakDensityPer10Deg}/10°).`,
+    `Signal telemetry: empirical SNR = ${estimatedSnrDb} dB, baseline drift = ${baselineDriftPct}%, mean peak FWHM ≈ ${meanFwhmDeg}°.`,
+    `Classified diffraction regime: ${presetLabel} → selected k=${kernelSize} ${kernelProfile} stencil, ${filters} filters, ResNet-${depth} (${activation}, dropout=${dropout}).`,
+    `Physics priors: Caglioti U/V/W=${cagliotiCorrection ? 'ON' : 'OFF'}, Axial Asymmetry=${asymmetryCorrection ? 'ON' : 'OFF'}, Rolling Baseline Removal=${backgroundSubtraction ? 'ON' : 'OFF'}.`,
+  ];
+
+  return {
+    diagnostics: {
+      pointCount: sorted.length,
+      twoThetaMin: Number(twoThetaMin.toFixed(2)),
+      twoThetaMax: Number(twoThetaMax.toFixed(2)),
+      estimatedSnrDb,
+      baselineDriftPct,
+      detectedPeakCount,
+      meanFwhmDeg,
+      peakDensityPer10Deg,
+      signalRegime,
+    },
+    presetLabel,
+    recommendedConfig: {
+      kernelSize,
+      kernelProfile,
+      filters,
+      activation,
+      optimization,
+      multiScale: true,
+      dropout,
+      pooling,
+      depth,
+      learningRate,
+      batchNorm: true,
+      confidenceThreshold,
+      cagliotiCorrection,
+      asymmetryCorrection,
+      backgroundSubtraction,
+      shapeExponent,
+    },
+    rationaleLogs,
+  };
+}
+

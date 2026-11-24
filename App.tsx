@@ -123,6 +123,7 @@ import {
 
 const ResidualStressModule = safeLazy(() => import('./components/ResidualStressModule'), 'ResidualStressModule');
 const XRRModule = safeLazy(() => import('./components/XRRModule'), 'XRRModule');
+const XRDCurveBuilderModule = safeLazy(() => import('./components/curve_builder/XRDCurveBuilderModule'), 'XRDCurveBuilderModule');
 import { XRDSectionScanAnimation } from './components/XRDSectionScanAnimation';
 import { logNavigation, logAuth, logSystem, logCalculation, logExport } from './services/activityLogger';
 const UnitCellsSection = safeLazy(() => import('./components/fundamentals/UnitCellsSection'), 'UnitCellsSection');
@@ -131,7 +132,7 @@ import { DisplayModeSwitcher } from './components/DisplayModeSwitcher';
 import { WorkflowStageHeader } from './components/WorkflowStageHeader';
 import { HalfScreenStageNavigator } from './components/HalfScreenStageNavigator';
 
-type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rietveld' | 'pdf_analysis' | 'rir' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
+type Module = 'bragg' | 'unit_cells' | 'fwhm' | 'selection' | 'compare' | 'xrd_curve_builder' | 'scherrer' | 'wh' | 'monshi_scherrer' | 'double_voigt' | 'integral' | 'integral_adv' | 'wa' | 'method_of_moments' | 'preferred_orientation' | 'cohen' | 'metric_tensor' | 'supercell_transform' | 'pawley_lebail' | 'rietveld' | 'pdf_analysis' | 'rir' | 'neutron' | 'magnetic' | 'dl' | 'image_analysis' | 'image_gen' | 'xrd_nano' | 'python_export' | 'learn' | 'profile' | 'settings' | 'database' | 'periodic_table' | 'residual_stress' | 'xrr';
 
 const ModuleLoadingFallback: React.FC = () => (
   <div className="flex flex-col items-center justify-center p-12 min-h-[380px] rounded-3xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-md border border-slate-200/60 dark:border-white/5 animate-pulse">
@@ -251,7 +252,7 @@ const App: React.FC = () => {
     return saved !== null ? saved === 'true' : true;
   });
   const [authMode, setAuthMode] = useState<'register' | 'login'>('register');
-  const [activeModule, setActiveModule] = useState<Module>('pdf_analysis');
+  const [activeModule, setActiveModule] = useState<Module>('xrd_curve_builder');
   const [sidebarMode, setSidebarMode] = useState<'guided' | 'all'>(() => {
     const saved = localStorage.getItem('xrd_sidebar_mode');
     return saved === 'all' ? 'all' : 'guided';
@@ -1001,12 +1002,17 @@ const App: React.FC = () => {
     setWavelength(defaultWavelength);
   }, [defaultWavelength]);
 
-  // Reset explanation state when module changes (except for profile/learn/settings)
+  // Reset explanation state when module changes (except for profile/learn/settings/xrd_curve_builder)
   useEffect(() => {
-    if (activeModule !== 'profile' && activeModule !== 'learn' && activeModule !== 'settings') {
+    if (
+      activeModule !== 'profile' &&
+      activeModule !== 'learn' &&
+      activeModule !== 'settings' &&
+      activeModule !== 'xrd_curve_builder'
+    ) {
       setIsExplained(skipIntros);
     } else {
-      setIsExplained(true); // Auto-explain profile/learn/settings
+      setIsExplained(true);
     }
   }, [activeModule, skipIntros]);
 
@@ -1417,6 +1423,7 @@ const App: React.FC = () => {
 
   const modules = useMemo<{ id: Module; label: string; icon?: string; group?: string }[]>(() => {
     const allModules: { id: Module; label: string; icon?: string; group?: string }[] = [
+      { id: 'xrd_curve_builder', label: t('Build Your XRD Curves'), group: t('Fundamentals') },
       { id: 'bragg', label: t('Bragg Basics'), group: t('Fundamentals') },
       { id: 'unit_cells', label: t('14 Bravais & Crystal Systems'), group: t('Fundamentals') },
       { id: 'fwhm', label: t('FWHM Analysis'), group: t('Fundamentals') },
@@ -2017,7 +2024,8 @@ const App: React.FC = () => {
                     </div>
                     <div className="grid grid-cols-1 gap-1">
                       {[
-                        { id: 'pdf_analysis' as Module, label: 'Pair Distribution Function G(r)', badge: 'NEW · S(Q)→G(r)' },
+                        { id: 'xrd_curve_builder' as Module, label: 'Build Your XRD Curves', badge: 'Xc% · Builder' },
+                        { id: 'pdf_analysis' as Module, label: 'Pair Distribution Function G(r)', badge: 'S(Q)→G(r)' },
                         { id: 'rietveld' as Module, label: 'Rietveld Refinement (Full Pattern)', badge: 'R_wp · CIF' },
                         { id: 'xrr' as Module, label: 'X-Ray Reflectometry (XRR)', badge: 'Thin Film' },
                         { id: 'wh' as Module, label: 'Williamson-Hall (Size + Strain)', badge: 'Strain ε' },
@@ -2450,12 +2458,15 @@ const App: React.FC = () => {
                           'Step 5: Search reference crystal phases by peak positions or chemical elements and sync with the Neural Network.'}
                         {activeModule === 'pdf_analysis' &&
                           'Total Scattering & Atomic Pair Distribution Function G(r): Sine Fourier transform of F(Q) = Q[S(Q)−1] to resolve real-space interatomic bond lengths, coordination shells N_c, and nanoscale coherence γ₀(r; D).'}
+                        {activeModule === 'xrd_curve_builder' &&
+                          'Build scientific XRD curves for crystalline, semi-crystalline, and amorphous materials using Pseudo-Voigt peaks, amorphous halos, and exact integrated-area Degree of Crystallinity (Xc%).'}
                         {activeModule !== 'bragg' &&
                           activeModule !== 'selection' &&
                           activeModule !== 'fwhm' &&
                           activeModule !== 'scherrer' &&
                           activeModule !== 'database' &&
                           activeModule !== 'pdf_analysis' &&
+                          activeModule !== 'xrd_curve_builder' &&
                           'Adjust parameters on the left or top controls to update live crystallographic calculations and interactive plots.'}
                       </p>
                     </div>
@@ -3005,6 +3016,7 @@ const App: React.FC = () => {
                     )}
                     {activeModule === 'rietveld' && <RietveldRefinementModule />}
                     {activeModule === 'pdf_analysis' && <PairDistributionFunctionModule />}
+                    {activeModule === 'xrd_curve_builder' && <XRDCurveBuilderModule />}
                     {activeModule === 'rir' && <ReferenceIntensityRatioModule />}
                     {activeModule === 'neutron' && <NeutronModule />}
                     {activeModule === 'magnetic' && <MagneticNeutronModule />}

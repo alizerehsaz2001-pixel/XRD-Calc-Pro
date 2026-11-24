@@ -268,7 +268,7 @@ export const Magnetic3DStructureVisualizer: React.FC<Magnetic3DStructureVisualiz
 
           if (showLabels && el.rawAtom.element !== 'O') {
             ctx.fillStyle = 'rgba(255, 255, 255, 0.85)';
-            ctx.font = 'bold 9px sans-serif';
+            ctx.font = 'bold 10px "Times New Roman", "Tinos", Georgia, serif';
             ctx.textAlign = 'center';
             ctx.fillText(el.label, el.p.x, el.p.y - el.radius - 4);
           }

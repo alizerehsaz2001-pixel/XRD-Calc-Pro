@@ -53,6 +53,7 @@ export type ModuleId =
   | 'fwhm'
   | 'selection'
   | 'compare'
+  | 'xrd_curve_builder'
   | 'scherrer'
   | 'wh'
   | 'monshi_scherrer'
@@ -140,6 +141,7 @@ const VALID_MODULE_IDS = new Set<string>([
   'selection',
   'preferred_orientation',
   'compare',
+  'xrd_curve_builder',
   'scherrer',
   'wh',
   'integral_adv',
@@ -247,7 +249,28 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
   const moduleList = useMemo<ModuleMetadata[]>(() => {
     const defaultIconClass = 'w-4 h-4';
     return [
-      // 1. Fundamentals & Optics (6)
+      // 1. Fundamentals & Optics (7)
+      {
+        id: 'xrd_curve_builder',
+        label: t('Build Your XRD Curves', 'Build Your XRD Curves'),
+        categoryId: 'fundamentals',
+        category: t('Fundamentals & Optics', 'Fundamentals & Optics'),
+        categoryIcon: <FlaskConical className="w-4 h-4 text-cyan-500" />,
+        subtitle: t('Synthesize crystalline, semi-crystalline & amorphous XRD curves and compute Degree of Crystallinity (Xc%)', 'Synthesize crystalline, semi-crystalline & amorphous XRD curves and compute Degree of Crystallinity (Xc%)'),
+        formula: 'Xc (%) = [Ac / (Ac + Aa)] × 100',
+        tags: ['Build XRD Curve', 'Crystallinity', 'Xc%', 'Amorphous Halo', 'Semi-Crystalline', 'Pseudo-Voigt', '2Theta'],
+        icon: <Activity className={`${defaultIconClass} text-indigo-500`} />,
+        inputs: ['Material Type (Crystalline / Semi-Crystalline / Amorphous)', 'Peak 2θ, Intensity & FWHM', 'Wavelength λ, Amorphous Halo & Noise'],
+        outputs: ['Shaded Crystalline vs. Amorphous Diffractogram', 'Degree of Crystallinity Xc% (Weight / Volume / Mole)', 'CSV, XY, SVG, PNG & Report Exports'],
+        subModels: ['Pseudo-Voigt + Kα₂ Synthesizer', 'Multi-Halo Amorphous Scattering', 'Trapezoidal Integrated Area Crystallinity Engine'],
+        recommendedRange: '2θ: 2° – 175° · Xc: 0% – 100%',
+        complexity: 'Beginner',
+        isPopular: true,
+        descriptionDetail: isRTL
+          ? 'ابزار گام‌به‌گام ساخت علمی منحنی‌های XRD برای مواد بلوری، نیمه‌بلوری و آمورف به همراه محاسبه دقیق درصد بلورینگی (Xc%).'
+          : 'Guided scientific XRD curve builder for crystalline, semi-crystalline, and amorphous materials with shaded crystalline/amorphous integration and 0%–100% degree of crystallinity quantification.',
+        suggestedNext: ['bragg', 'fwhm', 'rietveld']
+      },
       {
         id: 'bragg',
         label: t('Bragg Basics & Optics', 'Bragg Basics & Optics'),

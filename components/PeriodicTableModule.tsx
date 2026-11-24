@@ -24,6 +24,15 @@ import { MolarMassStpCalculator } from './MolarMassStpCalculator';
 import { XRFFingerprintInspector } from './periodic/XRFFingerprintInspector';
 import { IsotopeNeutronMetrologyDeck } from './periodic/IsotopeNeutronMetrologyDeck';
 import { QuantumOrbitalEnergyDiagram } from './periodic/QuantumOrbitalEnergyDiagram';
+import {
+  BOHR_RADIUS_A,
+  calculateExactRadialPdfForElement,
+  getExactRadialNodesForElement,
+  computeElectronConfiguration,
+  computeSlaterScreening,
+  sampleOrbitalCloud3D,
+  REAL_ORBITAL_VARIANTS,
+} from './periodic/quantumOrbitalPhysics';
 import { HumeRotheryAlloyWorkbench } from './periodic/HumeRotheryAlloyWorkbench';
 import { COMPLETE_PERIODIC_TABLE } from './periodic/elementsData';
 import { PeriodicFilterToolbar } from './periodic/PeriodicFilterToolbar';
@@ -101,93 +110,17 @@ export const getPhysicalStateAtTemp = (number: number, meltingPoint: number, boi
   return 'liquid';
 };
 
-// Quantum Radial Probability Density Function calculation P_{n,l}(r) = 4*pi*r^2 * |R_{n,l}(r)|^2
+// Exact normalized Quantum Radial Probability Density P_{n,l}(r) = r^2 |R_{n,l}(r)|^2 (unit integral = 1.0)
 export const calculateOrbitalRadialPdf = (
   n: number,
   l: number,
   Z: number,
   rAngstrom: number
-): number => {
-  const a0 = 0.529177; // Bohr radius in Angstroms
-  if (rAngstrom <= 0) return 0;
+): number => calculateExactRadialPdfForElement(n, l, Z, rAngstrom);
 
-  // Approximate Slater Effective Nuclear Charge Z_eff
-  let Zeff = Z;
-  if (n === 1) Zeff = Z > 1 ? Z - 0.30 : 1.0;
-  else if (n === 2) Zeff = Math.max(1.0, Z - 0.35 * Math.min(7, Z - 2) - 0.85 * 2);
-  else if (n === 3) Zeff = Math.max(1.0, Z - 0.35 * Math.min(17, Z - 10) - 0.85 * 8 - 1.0 * 2);
-  else if (n === 4) Zeff = Math.max(1.0, Z - 0.35 * Math.min(31, Z - 28) - 0.85 * 18 - 1.0 * 10);
-  else Zeff = Math.max(1.0, Z - 0.35 * 8 - 0.85 * 18 - 1.0 * Math.max(0, Z - 26));
-
-  const rho = (2 * Zeff * rAngstrom) / (n * a0);
-  let R_nl = 0;
-
-  // Exact hydrogenic/Slater radial wavefunctions R_{n,l}(r)
-  if (n === 1 && l === 0) {
-    // 1s
-    R_nl = 2 * Math.pow(Zeff / a0, 1.5) * Math.exp(-rho / 2);
-  } else if (n === 2 && l === 0) {
-    // 2s
-    R_nl = (1 / (2 * Math.SQRT2)) * Math.pow(Zeff / a0, 1.5) * (2 - rho) * Math.exp(-rho / 2);
-  } else if (n === 2 && l === 1) {
-    // 2p
-    R_nl = (1 / (2 * Math.sqrt(6))) * Math.pow(Zeff / a0, 1.5) * rho * Math.exp(-rho / 2);
-  } else if (n === 3 && l === 0) {
-    // 3s
-    R_nl = (1 / (9 * Math.sqrt(3))) * Math.pow(Zeff / a0, 1.5) * (6 - 6 * rho + rho * rho) * Math.exp(-rho / 2);
-  } else if (n === 3 && l === 1) {
-    // 3p
-    R_nl = (1 / (9 * Math.sqrt(6))) * Math.pow(Zeff / a0, 1.5) * rho * (4 - rho) * Math.exp(-rho / 2);
-  } else if (n === 3 && l === 2) {
-    // 3d
-    R_nl = (1 / (9 * Math.sqrt(30))) * Math.pow(Zeff / a0, 1.5) * rho * rho * Math.exp(-rho / 2);
-  } else if (n === 4 && l === 0) {
-    // 4s
-    R_nl = (1 / 96) * Math.pow(Zeff / a0, 1.5) * (24 - 36 * rho + 12 * rho * rho - rho * rho * rho) * Math.exp(-rho / 2);
-  } else if (n === 4 && l === 1) {
-    // 4p
-    R_nl = (1 / (32 * Math.sqrt(15))) * Math.pow(Zeff / a0, 1.5) * rho * (20 - 10 * rho + rho * rho) * Math.exp(-rho / 2);
-  } else if (n === 4 && l === 2) {
-    // 4d
-    R_nl = (1 / (96 * Math.sqrt(5))) * Math.pow(Zeff / a0, 1.5) * rho * rho * (6 - rho) * Math.exp(-rho / 2);
-  } else if (n === 4 && l === 3) {
-    // 4f
-    R_nl = (1 / (768 * Math.sqrt(35))) * Math.pow(Zeff / a0, 1.5) * rho * rho * rho * Math.exp(-rho / 2);
-  } else {
-    // Higher n or l (Generalized Slater-type radial approximation with n - l - 1 nodes)
-    const nodeFactor = Math.pow(Math.abs(Math.cos((Math.PI * (n - l) * rho) / (3 * n))), n - l - 1);
-    R_nl = Math.pow(Zeff / (n * a0), 1.5) * Math.pow(rho, l) * (nodeFactor + 0.05) * Math.exp(-rho / 2);
-  }
-
-  // Radial probability density P(r) = 4*pi*r^2 * |R_{n,l}(r)|^2
-  const P_r = 4 * Math.PI * Math.pow(rAngstrom, 2) * Math.pow(R_nl, 2);
-  return isNaN(P_r) ? 0 : P_r;
-};
-
-// Radial node locations in Angstroms for orbital (n, l)
-export const getRadialNodes = (n: number, l: number, Z: number): { r: number; label: string }[] => {
-  const a0 = 0.529177;
-  let Zeff = Z;
-  if (n === 1) Zeff = Z > 1 ? Z - 0.30 : 1.0;
-  else if (n === 2) Zeff = Math.max(1.0, Z - 0.35 * Math.min(7, Z - 2) - 0.85 * 2);
-  else if (n === 3) Zeff = Math.max(1.0, Z - 0.35 * Math.min(17, Z - 10) - 0.85 * 8 - 1.0 * 2);
-  else Zeff = Math.max(1.0, Z - 0.35 * 8 - 0.85 * 18 - 1.0 * Math.max(0, Z - 26));
-
-  const nodes: { r: number; label: string }[] = [];
-  if (n === 2 && l === 0) {
-    nodes.push({ r: (2 * n * a0) / (2 * Zeff), label: '2s Node' });
-  } else if (n === 3 && l === 0) {
-    nodes.push({ r: ((3 - Math.SQRT2 * 0.866) * 3 * a0) / (2 * Zeff), label: '3s Node 1' });
-    nodes.push({ r: ((3 + Math.SQRT2 * 0.866) * 3 * a0) / (2 * Zeff), label: '3s Node 2' });
-  } else if (n === 3 && l === 1) {
-    nodes.push({ r: (4 * 3 * a0) / (2 * Zeff), label: '3p Node' });
-  } else if (n === 4 && l === 0) {
-    nodes.push({ r: (0.76 * 4 * a0) / (2 * Zeff), label: '4s Node 1' });
-    nodes.push({ r: (2.45 * 4 * a0) / (2 * Zeff), label: '4s Node 2' });
-    nodes.push({ r: (5.80 * 4 * a0) / (2 * Zeff), label: '4s Node 3' });
-  }
-  return nodes;
-};
+// Exact Associated Laguerre radial node locations in Angstroms for orbital (n, l)
+export const getRadialNodes = (n: number, l: number, Z: number): { r: number; label: string }[] =>
+  getExactRadialNodesForElement(n, l, Z);
 
 // 3D Point presentation format helper
 interface Point3D {
@@ -1143,197 +1076,83 @@ const ElectronCloud3D: React.FC<{
     return '#6366f1';
   }, [colorClass]);
 
-  // Parse total electrons per shell n (1..7)
-  const shells = useMemo(() => {
-    const capacities = [2, 8, 18, 32, 32, 18, 8];
-    let remaining = atomicNumber;
-    const computedShells: number[] = [];
-    for (let cap of capacities) {
-      if (remaining <= 0) break;
-      computedShells.push(Math.min(remaining, cap));
-      remaining -= cap;
-    }
-    return computedShells;
-  }, [atomicNumber]);
+  // Exact IUPAC ground-state electron configuration (includes all 20 exchange/relativistic anomalies & exact shell populations)
+  const quantumConfig = useMemo(() => computeElectronConfiguration(atomicNumber, 0), [atomicNumber]);
 
-  // Parse detailed subshells & Hund's Rule Spin boxes
+  // Exact principal shell populations (e.g. K = [2, 8, 8, 1])
+  const shells = quantumConfig.shellPopulations;
+
+  // Subshells & Hund's Rule Spin boxes mapped from exact configuration
   const parsedSubshells = useMemo<SubshellInfo[]>(() => {
-    const sequence: { n: number; type: 's' | 'p' | 'd' | 'f'; cap: number; color: string; orientations: string[] }[] = [
-      { n: 1, type: 's', cap: 2, color: '#38bdf8', orientations: ['1s'] },
-      { n: 2, type: 's', cap: 2, color: '#38bdf8', orientations: ['2s'] },
-      { n: 2, type: 'p', cap: 6, color: '#c084fc', orientations: ['2p_x', '2p_y', '2p_z'] },
-      { n: 3, type: 's', cap: 2, color: '#38bdf8', orientations: ['3s'] },
-      { n: 3, type: 'p', cap: 6, color: '#c084fc', orientations: ['3p_x', '3p_y', '3p_z'] },
-      { n: 4, type: 's', cap: 2, color: '#38bdf8', orientations: ['4s'] },
-      { n: 3, type: 'd', cap: 10, color: '#fbbf24', orientations: ['3d_xy', '3d_yz', '3d_xz', '3d_x²-y²', '3d_z²'] },
-      { n: 4, type: 'p', cap: 6, color: '#c084fc', orientations: ['4p_x', '4p_y', '4p_z'] },
-      { n: 5, type: 's', cap: 2, color: '#38bdf8', orientations: ['5s'] },
-      { n: 4, type: 'd', cap: 10, color: '#fbbf24', orientations: ['4d_xy', '4d_yz', '4d_xz', '4d_x²-y²', '4d_z²'] },
-      { n: 5, type: 'p', cap: 6, color: '#c084fc', orientations: ['5p_x', '5p_y', '5p_z'] },
-      { n: 6, type: 's', cap: 2, color: '#38bdf8', orientations: ['6s'] },
-      { n: 4, type: 'f', cap: 14, color: '#fb7185', orientations: ['4f_z³', '4f_xz²', '4f_yz²', '4f_z(x²-y²)', '4f_x(x²-3y²)', '4f_y(3x²-y²)', '4f_xyz'] },
-      { n: 5, type: 'd', cap: 10, color: '#fbbf24', orientations: ['5d_xy', '5d_yz', '5d_xz', '5d_x²-y²', '5d_z²'] },
-      { n: 6, type: 'p', cap: 6, color: '#c084fc', orientations: ['6p_x', '6p_y', '6p_z'] },
-      { n: 7, type: 's', cap: 2, color: '#38bdf8', orientations: ['7s'] },
-      { n: 5, type: 'f', cap: 14, color: '#fb7185', orientations: ['5f_z³', '5f_xz²', '5f_yz²', '5f_z(x²-y²)', '5f_x(x²-3y²)', '5f_y(3x²-y²)', '5f_xyz'] },
-      { n: 6, type: 'd', cap: 10, color: '#fbbf24', orientations: ['6d_xy', '6d_yz', '6d_xz', '6d_x²-y²', '6d_z²'] },
-      { n: 7, type: 'p', cap: 6, color: '#c084fc', orientations: ['7p_x', '7p_y', '7p_z'] }
-    ];
+    return quantumConfig.subshells.map((sub) => ({
+      n: sub.n,
+      type: sub.type,
+      cap: sub.capacity,
+      label: sub.label,
+      count: sub.electrons,
+      boxes: sub.boxes.map((b) => ({ up: b.up, down: b.down })),
+      color: sub.color,
+      orientations: (REAL_ORBITAL_VARIANTS[sub.l] || []).map((v) => v.fullLabel(sub.n)),
+    }));
+  }, [quantumConfig]);
 
-    let remaining = atomicNumber;
-    const result: SubshellInfo[] = [];
-
-    for (const sub of sequence) {
-      if (remaining <= 0) break;
-      const count = Math.min(remaining, sub.cap);
-      remaining -= count;
-
-      const boxCount = sub.cap / 2;
-      const boxes: { up: boolean; down: boolean }[] = Array.from({ length: boxCount }, () => ({ up: false, down: false }));
-
-      // Fill using Hund's Rule
-      for (let e = 0; e < count; e++) {
-        if (e < boxCount) {
-          boxes[e].up = true;
-        } else {
-          boxes[e - boxCount].down = true;
-        }
-      }
-
-      result.push({
-        n: sub.n,
-        type: sub.type,
-        cap: sub.cap,
-        label: `${sub.n}${sub.type}`,
-        count,
-        boxes,
-        color: sub.color,
-        orientations: sub.orientations
-      });
-    }
-
-    return result;
-  }, [atomicNumber]);
-
-  // Estimate Slater's Rules Effective Nuclear Charge Z_eff
+  // Exact Textbook Slater's Rules (1930) Effective Nuclear Charge Z_eff for valence subshell
   const slaterZeff = useMemo(() => {
-    if (parsedSubshells.length === 0) return { Zeff: atomicNumber, shielding: 0, valenceLabel: '1s' };
-    const valenceSub = parsedSubshells[parsedSubshells.length - 1];
-    let shielding = 0;
-
-    parsedSubshells.forEach((sub, idx) => {
-      const isValence = idx === parsedSubshells.length - 1;
-      const eCount = isValence ? sub.count - 1 : sub.count;
-      
-      if (sub.n === valenceSub.n) {
-        shielding += eCount * (valenceSub.type === 's' || valenceSub.type === 'p' ? 0.35 : 0.35);
-      } else if (sub.n === valenceSub.n - 1) {
-        shielding += eCount * (valenceSub.type === 's' || valenceSub.type === 'p' ? 0.85 : 1.0);
-      } else if (sub.n < valenceSub.n - 1) {
-        shielding += eCount * 1.0;
-      }
-    });
-
+    const val = quantumConfig.valenceSubshell;
+    const screening = computeSlaterScreening(atomicNumber, val.n, val.l);
     return {
-      Zeff: Math.max(1, atomicNumber - shielding),
-      shielding: shielding,
-      valenceLabel: valenceSub.label
+      Zeff: screening.zEff,
+      shielding: screening.sigma,
+      valenceLabel: val.label,
     };
-  }, [atomicNumber, parsedSubshells]);
+  }, [atomicNumber, quantumConfig]);
 
-  // Monte Carlo pre-generation of Quantum Orbital Point Cloud particles with Wavefunction Phase
+  // Exact Monte Carlo 3D Quantum Orbital Point Cloud sampled from |R_{n,l}(r) Y_{l,m}(θ,φ)|²
   const orbitalParticles = useMemo(() => {
-    const points: { 
-      x: number; 
-      y: number; 
-      z: number; 
-      subshell: string; 
+    const points: {
+      x: number;
+      y: number;
+      z: number;
+      subshell: string;
       type: 's' | 'p' | 'd' | 'f';
-      color: string; 
+      color: string;
       phasePositive: boolean;
       size: number;
     }[] = [];
 
-    parsedSubshells.forEach((sub) => {
-      if (blockFilter !== 'ALL' && sub.type !== blockFilter) return;
+    const activeSubs = quantumConfig.subshells.filter(
+      (sub) => blockFilter === 'ALL' || sub.type === blockFilter
+    );
+    if (activeSubs.length === 0) return points;
 
-      const radiusBase = sub.n * 20;
-      for (let i = 0; i < cloudDensity; i++) {
-        let u1 = Math.random();
-        let u2 = Math.random();
-        let theta = Math.acos(2 * u1 - 1);
-        let phi = 2 * Math.PI * u2;
+    // Normalize spatial radius cleanly into ~95px viewport radius
+    const maxExtentA = Math.max(
+      1.2,
+      ...activeSubs.map((s) => (BOHR_RADIUS_A / (2 * s.zEff)) * (3 * s.n * s.n - s.l * (s.l + 1)) * 2.5)
+    );
+    const pxPerAngstrom = 92 / maxExtentA;
 
-        let r = radiusBase * (0.35 + Math.pow(Math.random(), 0.5) * 0.85);
-        let weight = 1;
-        let phasePos = true;
-
-        if (sub.type === 's') {
-          // Spherical distribution
-          weight = 1;
-          phasePos = true;
-        } else if (sub.type === 'p') {
-          // Dumbbell distribution along x, y, or z
-          const axis = i % 3;
-          if (axis === 0) {
-            // p_z dumbbell
-            const cosT = Math.cos(theta);
-            weight = Math.abs(cosT);
-            phasePos = cosT >= 0;
-          } else if (axis === 1) {
-            // p_x dumbbell
-            const sinTcosP = Math.sin(theta) * Math.cos(phi);
-            weight = Math.abs(sinTcosP);
-            phasePos = sinTcosP >= 0;
-          } else {
-            // p_y dumbbell
-            const sinTsinP = Math.sin(theta) * Math.sin(phi);
-            weight = Math.abs(sinTsinP);
-            phasePos = sinTsinP >= 0;
-          }
-          r *= (0.25 + weight * 0.95);
-        } else if (sub.type === 'd') {
-          // Cloverleaf / Donut distribution
-          const subIdx = i % 5;
-          if (subIdx === 4) {
-            // d_z² donut + lobes
-            const val = 3 * Math.pow(Math.cos(theta), 2) - 1;
-            weight = Math.abs(val);
-            phasePos = val >= 0;
-          } else {
-            // d_xy, d_yz, d_xz
-            const val = Math.sin(2 * theta) * Math.cos(2 * phi);
-            weight = Math.abs(val);
-            phasePos = val >= 0;
-          }
-          r *= (0.2 + weight * 1.1);
-        } else if (sub.type === 'f') {
-          // Multi-lobe f-orbital
-          const val = Math.sin(3 * theta) * Math.sin(3 * phi);
-          weight = Math.abs(val);
-          phasePos = val >= 0;
-          r *= (0.2 + weight * 1.25);
-        }
-
-        const px = r * Math.sin(theta) * Math.cos(phi);
-        const py = r * Math.sin(theta) * Math.sin(phi);
-        const pz = r * Math.cos(theta);
-
+    activeSubs.forEach((sub) => {
+      // Sample representative real harmonic (m_l = 0 for focused single-subshell clarity, or distributed across occupied m_l)
+      const variants = REAL_ORBITAL_VARIANTS[sub.l] || REAL_ORBITAL_VARIANTS[0];
+      const variantIdx = Math.min(sub.l, variants.length - 1);
+      const sampled = sampleOrbitalCloud3D(sub.n, sub.l, variantIdx, sub.zEff, cloudDensity);
+      sampled.points.forEach((pt) => {
         points.push({
-          x: px,
-          y: py,
-          z: pz,
+          x: pt.x * pxPerAngstrom,
+          y: pt.y * pxPerAngstrom,
+          z: pt.z * pxPerAngstrom,
           subshell: sub.label,
           type: sub.type,
           color: sub.color,
-          phasePositive: phasePos,
-          size: 1.2 + Math.random() * 1.8
+          phasePositive: pt.psiSign > 0,
+          size: 1.15 + pt.densityWeight * 1.35,
         });
-      }
+      });
     });
 
     return points;
-  }, [parsedSubshells, blockFilter, cloudDensity]);
+  }, [quantumConfig, blockFilter, cloudDensity]);
 
   // Export CSV Data
   const handleExportCSV = (e: React.MouseEvent) => {
@@ -1726,7 +1545,7 @@ const ElectronCloud3D: React.FC<{
         ctx.fillText(
           useLogScale 
             ? 'Radial Probability Density log₁₀ P(r) [Å⁻¹]' 
-            : 'Radial Probability P(r) = 4πr²|R_{n,l}(r)|² [Å⁻¹]',
+            : 'Radial Probability P(r) = r²|R_{n,l}(r)|² [Å⁻¹]',
           padL + 5,
           padT - 15
         );
@@ -1971,23 +1790,23 @@ const ElectronCloud3D: React.FC<{
     focusedShell, focusedSubshell, isPlaying, animSpeed, rotX, rotY, 
     colorByPhase, showAxesGizmo, showNodalPlanes, isHovering, blockFilter,
     showTotalDensity, useLogScale, showRadialNodes, showShading, showCumulativeCharge, 
-    hoveredRadius, atomicNumber
+    hoveredRadius, atomicNumber, isFullscreen
   ]);
 
   return (
     <div 
-      className="bg-slate-900/95 text-white rounded-3xl border border-slate-800 p-4 relative overflow-hidden group shadow-2xl flex flex-col justify-between transition-all select-none"
+      className="bg-slate-900/95 text-white rounded-2xl border border-slate-800 p-4 relative overflow-hidden group shadow-xl flex flex-col justify-between transition-all select-none"
       onMouseEnter={() => setIsHovering(true)}
       onMouseLeave={() => setIsHovering(false)}
     >
       {/* Header Bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 z-10 relative pb-2.5 border-b border-slate-800/80">
-        <div className="flex items-center gap-2">
-          <div className="w-2.5 h-2.5 rounded-full animate-pulse shadow-[0_0_10px_currentColor]" style={{ backgroundColor: atomColor, color: atomColor }} />
-          <span className="text-xs font-bold uppercase tracking-wider text-slate-200">
+        <div className="flex items-center gap-2 font-mono">
+          <span className="text-xs font-bold tracking-tight text-slate-100">
             s, p, d, f Quantum Cloud
           </span>
-          <span className="text-[10px] font-mono text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded-md border border-slate-700">
+          <span className="text-slate-600">·</span>
+          <span className="text-[11px] text-slate-400 tabular-nums">
             Z = {atomicNumber}
           </span>
         </div>
@@ -2184,10 +2003,12 @@ const ElectronCloud3D: React.FC<{
         onMouseUp={handleMouseUp}
         onMouseLeave={() => { handleMouseUp(); setHoveredRadius(null); }}
       >
-        <canvas 
-          ref={canvasRef} 
-          className="w-full h-full absolute inset-0"
-        />
+        {!isFullscreen && (
+          <canvas 
+            ref={canvasRef} 
+            className="w-full h-full absolute inset-0"
+          />
+        )}
 
         {/* Drag rotation helper overlay */}
         {viewMode === 'orbital' && (
@@ -2198,10 +2019,10 @@ const ElectronCloud3D: React.FC<{
 
         {/* Interactive Radial PDF Hover Probe Tooltip Card */}
         {viewMode === 'radial' && hoveredRadius !== null && (
-          <div className="absolute top-2 right-2 z-20 bg-slate-950/90 backdrop-blur-md border border-amber-500/50 p-2.5 rounded-2xl text-[10px] font-mono text-slate-200 shadow-2xl space-y-1.5 max-w-[220px] pointer-events-none animate-in fade-in zoom-in-95">
+          <div className="absolute top-2 right-2 z-20 bg-slate-950/90 backdrop-blur-md border border-amber-500/50 p-2.5 rounded-xl text-[10px] font-mono text-slate-200 shadow-2xl space-y-1.5 max-w-[220px] pointer-events-none tabular-nums">
             <div className="flex items-center justify-between border-b border-slate-800 pb-1">
-              <span className="font-bold text-amber-400 flex items-center gap-1">
-                <Zap className="w-3 h-3 animate-pulse" /> Probe @ r = {hoveredRadius.toFixed(3)} Å
+              <span className="font-bold text-amber-400">
+                Probe @ r = {hoveredRadius.toFixed(3)} Å
               </span>
               <span className="text-[8.5px] text-slate-400">
                 ({(hoveredRadius / 0.529177).toFixed(2)} a₀)
@@ -2239,11 +2060,10 @@ const ElectronCloud3D: React.FC<{
           </div>
         )}
 
-        {/* Slater's Rules Effective Nuclear Charge Badge */}
-        <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 bg-black/70 backdrop-blur border border-slate-800 px-2.5 py-1 rounded-xl text-[9px] font-mono text-slate-300">
-          <Zap className="w-3 h-3 text-amber-400 animate-pulse" />
-          <span>Z_eff = <strong className="text-amber-300 font-bold">{slaterZeff.Zeff.toFixed(2)}</strong></span>
-          <span className="text-slate-500 text-[8px]">(Shield S={slaterZeff.shielding.toFixed(1)})</span>
+        {/* Slater's Rules Effective Nuclear Charge Readout */}
+        <div className="absolute top-2 left-2 z-10 flex items-center gap-1.5 bg-black/75 border border-slate-800 px-2.5 py-1 rounded-lg text-[9px] font-mono text-slate-300 tabular-nums">
+          <span>Z_eff({slaterZeff.valenceLabel}) = <strong className="text-amber-300 font-bold">{slaterZeff.Zeff.toFixed(2)}</strong></span>
+          <span className="text-slate-500 text-[8.5px]">(σ={slaterZeff.shielding.toFixed(2)})</span>
         </div>
 
         {/* Shell / Subshell Focus Selector Pills */}
@@ -2368,7 +2188,7 @@ const ElectronCloud3D: React.FC<{
             {/* Modal Top Bar */}
             <div className="flex items-center justify-between pb-4 border-b border-slate-800">
               <div className="flex items-center gap-3">
-                <Atom className="w-6 h-6 text-indigo-400 animate-spin" />
+                <Atom className="w-5 h-5 text-indigo-400" />
                 <div>
                   <h2 className="text-lg font-bold font-mono text-slate-100">
                     High-Definition Quantum Laboratory — Atomic Number Z = {atomicNumber}
@@ -2506,7 +2326,7 @@ const ElementTooltip: React.FC<{ el: CrystalElement; isXtal: boolean; stateAtTem
 
 export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoadPeaks }) => {
   const { t, i18n } = useTranslation();
-  const isFa = i18n.language === 'fa';
+  const isFa = (i18n.language || '').toLowerCase().startsWith('fa');
   const [selectedElement, setSelectedElement] = useState<number | null>(14); // Default to Silicon (Si)
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [categoryFilter, setCategoryFilter] = useState<string>('all');
@@ -3709,7 +3529,7 @@ export const PeriodicTableModule: React.FC<PeriodicTableModuleProps> = ({ onLoad
                         {([
                           // Domain 1: Structure
                           { id: 'lattice', label: '3D Lattice', domain: 'structure', icon: Orbit, color: 'text-rose-400', activeBg: 'bg-rose-500/15 border-rose-500/30 text-rose-300' },
-                          { id: 'orbitals', label: 'Radial Orbitals', domain: 'structure', icon: Atom, color: 'text-teal-400', activeBg: 'bg-teal-500/15 border-teal-500/30 text-teal-300' },
+                          { id: 'orbitals', label: 'Atomic Orbitals', domain: 'structure', icon: Atom, color: 'text-teal-400', activeBg: 'bg-teal-500/15 border-teal-500/30 text-teal-300' },
                           // Domain 2: Metrology
                           { id: 'xray', label: 'X-Ray & XRD', domain: 'metrology', icon: Zap, color: 'text-amber-400', activeBg: 'bg-amber-500/15 border-amber-500/30 text-amber-300' },
                           { id: 'xrf', label: 'XRF Barcode', domain: 'metrology', icon: Fingerprint, color: 'text-cyan-400', activeBg: 'bg-cyan-500/15 border-cyan-500/30 text-cyan-300' },

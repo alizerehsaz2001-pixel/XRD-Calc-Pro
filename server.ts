@@ -803,12 +803,57 @@ async function startServer() {
     );
   }
 
-  // Non-blocking asynchronous translation cache preload
+  function normalizeTargetLanguage(raw: string): string {
+    const cleaned = raw.trim().toLowerCase().replace(/_/g, "-");
+    if (!cleaned) return "en";
+    if (cleaned.startsWith("zh")) return "zh";
+    if (cleaned.startsWith("en")) return "en";
+    const base = cleaned.split("-")[0];
+    return /^[a-z]{2,8}$/.test(base) ? base : "en";
+  }
+
+  function isNonTranslatableToken(text: string): boolean {
+    const trimmed = text.trim();
+    if (!trimmed || trimmed.length > 260) return true;
+    // Skip pure numbers, symbols, units, chemical/diffraction notation, or keyboard shortcuts
+    if (/^[\d\s.,:;+\-*/=<>()%°Åθλµαβγ±×÷\[\]{}()|⌘⌃⇧⌥/\\]+$/.test(trimmed)) return true;
+    if (/^(XRD|XRR|XRF|PDF|RIR|FWHM|CIF|NIST|SRM|Cu Kα|Mo Kα|Co Kα|Fe Kα|Cr Kα|Ag Kα|2θ|hkl|d-spacing|Rwp|Rp|GOF)$/i.test(trimmed)) return true;
+    return false;
+  }
+
+  // Non-blocking asynchronous translation cache preload with sanitization
   const translationCache: Record<string, Record<string, string>> = {};
+  let saveTranslationCacheTimer: NodeJS.Timeout | null = null;
+
   safeReadJsonFile<Record<string, Record<string, string>>>(TRANSLATIONS_FILE, {})
     .then((loaded) => {
       if (loaded && typeof loaded === "object") {
-        Object.assign(translationCache, loaded);
+        let needsRewrite = false;
+        for (const [rawLang, entries] of Object.entries(loaded)) {
+          const normLang = normalizeTargetLanguage(rawLang);
+          if (normLang === "en" || !entries || typeof entries !== "object") {
+            needsRewrite = true;
+            continue;
+          }
+          if (normLang !== rawLang) needsRewrite = true;
+          if (!translationCache[normLang]) translationCache[normLang] = {};
+          for (const [k, v] of Object.entries(entries)) {
+            if (
+              typeof k === "string" &&
+              typeof v === "string" &&
+              v.trim() &&
+              !v.includes("returned an object instead of string") &&
+              !v.startsWith("{")
+            ) {
+              translationCache[normLang][k] = v;
+            } else {
+              needsRewrite = true;
+            }
+          }
+        }
+        if (needsRewrite) {
+          saveTranslationCacheAsync();
+        }
       }
     })
     .catch((err) => {
@@ -816,24 +861,40 @@ async function startServer() {
     });
 
   function saveTranslationCacheAsync() {
-    try {
-      fs.writeFile(TRANSLATIONS_FILE, JSON.stringify(translationCache, null, 2), "utf-8", () => {});
-    } catch (e) {}
+    if (saveTranslationCacheTimer) clearTimeout(saveTranslationCacheTimer);
+    saveTranslationCacheTimer = setTimeout(() => {
+      saveTranslationCacheTimer = null;
+      safeWriteJsonFile(TRANSLATIONS_FILE, translationCache).catch(() => {});
+    }, 400);
   }
 
   app.post("/api/translate", async (req, res) => {
-    const { keys, to } = req.body;
+    const rawKeys = Array.isArray(req.body?.keys) ? req.body.keys : [];
+    const rawTo = typeof req.body?.to === "string" ? req.body.to : "";
     try {
-      if (!keys || !Array.isArray(keys) || keys.length === 0) {
+      if (rawKeys.length === 0) {
         res.json({ success: true, translations: {} });
         return;
       }
-      if (!to || typeof to !== "string") {
+      if (!rawTo.trim()) {
         res.status(400).json({ success: false, error: "A valid language code ('to') is required." });
         return;
       }
 
-      // Initialize cache for this language if not exists
+      const to = normalizeTargetLanguage(rawTo);
+      const filteredKeys: string[] = rawKeys
+        .filter((k: unknown): k is string => typeof k === "string" && k.trim().length > 0)
+        .slice(0, 120);
+      const uniqueKeys: string[] = Array.from(new Set<string>(filteredKeys));
+
+      // English target or empty cleaned list requires no translation
+      if (to === "en" || uniqueKeys.length === 0) {
+        const identity: Record<string, string> = {};
+        for (const k of uniqueKeys) identity[k] = k;
+        res.json({ success: true, translations: identity });
+        return;
+      }
+
       if (!translationCache[to]) {
         translationCache[to] = {};
       }
@@ -842,76 +903,78 @@ async function startServer() {
       const result: Record<string, string> = {};
       const uncachedKeys: string[] = [];
 
-      // Separate cached and uncached keys
-      for (const key of keys) {
-        if (typeof key !== "string" || !key.trim()) continue;
-        if (langCache[key]) {
+      for (const key of uniqueKeys) {
+        if (isNonTranslatableToken(key)) {
+          result[key] = key;
+        } else if (langCache[key]) {
           result[key] = langCache[key];
         } else {
           uncachedKeys.push(key);
         }
       }
 
-      // If all keys were already cached, return immediately!
       if (uncachedKeys.length === 0) {
         res.json({ success: true, translations: result });
         return;
       }
 
-      // Check if we are currently cooling down from a previous quota issue
-      if (Date.now() < translationQuotaExhaustedUntil) {
+      // Gracefully fall back if cooling down from quota or API key is not configured
+      if (Date.now() < translationQuotaExhaustedUntil || !process.env.GEMINI_API_KEY) {
         for (const key of uncachedKeys) {
           result[key] = key;
         }
-        res.json({ success: true, translations: result });
+        res.json({ success: true, fallback: true, translations: result });
         return;
       }
 
       const ai = getGeminiClient();
-      const prompt = `Translate the following English strings into language '${to}'. Ensure translations are highly natural, accurate, and culturally appropriate for that language. Maintain all technical terms (like XRD, Rietveld, d-spacing, Miller Indices, etc.) and symbols (like 2θ, Å, etc.) unchanged if they are commonly used as-is in that language. 
-      
-      Input strings to translate:
-      ${JSON.stringify(uncachedKeys, null, 2)}
-      
-      Return a single JSON object where each key is the EXACT original English input string from the array and the value is its corresponding translated string in '${to}'. Do not wrap the response in any markdown code block, just output raw JSON.`;
+      const prompt = `Translate the following English UI and materials-science strings into language code '${to}'.
+Rules:
+1. Return a single JSON object mapping each EXACT original English input key to its natural, accurate translation in '${to}'.
+2. Preserve all interpolation placeholders like {{count}}, {{name}}, {{value}} verbatim.
+3. Preserve scientific symbols, chemical formulas, and standard acronyms (XRD, XRR, PDF, RIR, FWHM, 2θ, Å, λ, hkl, NIST, SRM, CIF, IndexedDB, Firestore) accurately for '${to}'.
+4. Output raw JSON only with no markdown fences.
 
-      const translateConfig = {
-        contents: prompt,
-        config: {
-          responseMimeType: "application/json",
-          systemInstruction: "You are a professional material science and physics software translator. You provide high-fidelity, academically precise translations from English to other languages. You must return a JSON object with the exact keys provided mapped to their translations."
-        }
-      };
+Input strings:
+${JSON.stringify(uncachedKeys, null, 2)}`;
 
       let responseText = "";
-      const modelsToTry = ["gemini-3.8-flash", "gemini-2.5-flash", "gemini-3.1-flash-lite"];
-      
-      for (const model of modelsToTry) {
+      const modelsToTry: Array<{ model: string; thinkingLevel: ThinkingLevel }> = [
+        { model: "gemini-4-hydrogen", thinkingLevel: ThinkingLevel.LOW },
+        { model: "gemini-3.1-flash-lite", thinkingLevel: ThinkingLevel.MINIMAL },
+      ];
+
+      for (const { model, thinkingLevel } of modelsToTry) {
         if (Date.now() < translationQuotaExhaustedUntil) {
           break;
         }
-        let retries = 2;
-        let delay = 1000;
+        let retries = 1;
+        let delay = 600;
         while (retries >= 0) {
           try {
-            console.log(`[i18n] Translating ${uncachedKeys.length} keys to ${to} via ${model}`);
             const response = await ai.models.generateContent({
               model,
-              ...translateConfig
+              contents: prompt,
+              config: {
+                responseMimeType: "application/json",
+                thinkingConfig: { thinkingLevel },
+                systemInstruction:
+                  "You are a professional crystallography and materials-science UI translator. Return a strict JSON object mapping each exact English input string to its concise, academically precise translation in the requested language. Preserve all {{placeholders}} and scientific symbols.",
+              },
             });
             if (response && response.text) {
               responseText = response.text;
               break;
             }
+            break;
           } catch (apiErr: any) {
             if (isTranslationQuotaError(apiErr)) {
-              // Set a 15-minute cooldown for API-based translations
               translationQuotaExhaustedUntil = Date.now() + 15 * 60 * 1000;
-              console.log(`[i18n] Quota condition detected. Transitioning to local text-fallback for 15m.`);
+              console.warn(`[i18n] Quota limit reached. Pausing dynamic translation for 15m.`);
               break;
             }
-            console.log(`[i18n] Model ${model} retry status: ${retries}`);
             if (retries === 0) {
+              console.warn(`[i18n] Model ${model} unavailable for '${to}':`, apiErr?.message || apiErr);
               break;
             }
             retries--;
@@ -929,23 +992,21 @@ async function startServer() {
         try {
           let cleanJson = responseText.trim();
           cleanJson = cleanJson.replace(/```json\n?/gi, "").replace(/\n?```/g, "").trim();
-          const firstBrace = cleanJson.indexOf('{');
-          const lastBrace = cleanJson.lastIndexOf('}');
+          const firstBrace = cleanJson.indexOf("{");
+          const lastBrace = cleanJson.lastIndexOf("}");
           if (firstBrace !== -1 && lastBrace !== -1 && lastBrace >= firstBrace) {
             cleanJson = cleanJson.substring(firstBrace, lastBrace + 1);
           }
-          
+
           try {
             parsed = JSON.parse(cleanJson);
           } catch {
-            // Attempt cleanup for trailing commas & control characters
             const sanitized = cleanJson
-              .replace(/,\s*([}\]])/g, '$1')
-              .replace(/[\u0000-\u001F\u007F-\u009F]/g, ' ');
+              .replace(/,\s*([}\]])/g, "$1")
+              .replace(/[\u0000-\u001F\u007F-\u009F]/g, " ");
             parsed = JSON.parse(sanitized);
           }
         } catch {
-          // Regex fallback for key-value extraction if JSON.parse fails
           parsed = {};
           const kvRegex = /"([^"]+)"\s*:\s*"([^"\\]*(?:\\.[^"\\]*)*)"/g;
           let match;
@@ -954,40 +1015,43 @@ async function startServer() {
           }
         }
 
-        if (parsed && Object.keys(parsed).length > 0) {
-          Object.keys(parsed).forEach((key) => {
-            const val = parsed![key];
-            if (typeof val === "string" && val) {
-              langCache[key] = val;
-              result[key] = val;
+        if (parsed && typeof parsed === "object" && Object.keys(parsed).length > 0) {
+          const allowedSet = new Set(uncachedKeys);
+          let addedCount = 0;
+          for (const [key, val] of Object.entries(parsed)) {
+            if (
+              allowedSet.has(key) &&
+              typeof val === "string" &&
+              val.trim() &&
+              !val.includes("returned an object instead of string")
+            ) {
+              langCache[key] = val.trim();
+              result[key] = val.trim();
+              addedCount++;
             }
-          });
-          saveTranslationCacheAsync();
-        } else {
-          console.log("[i18n] Dynamic translation fallback applied.");
+          }
+          if (addedCount > 0) {
+            saveTranslationCacheAsync();
+          }
         }
-      } else {
-        console.log("[i18n] Dynamic translation fallback applied.");
       }
 
-      // Ensure every requested key has a response, fallback to the key itself if translation was bypassed/failed
-      for (const key of keys) {
-        if (typeof key === "string" && !result[key]) {
+      for (const key of uniqueKeys) {
+        if (!result[key]) {
           result[key] = key;
         }
       }
 
       res.json({ success: true, translations: result });
     } catch (err: any) {
-      console.log("[i18n] Recovery fallback initialized:", err?.message || err);
-      // Gracefully recover to prevent UI/API failure, returning original keys
+      console.warn("[i18n] Translation fallback applied:", err?.message || err);
       const fallbackResult: Record<string, string> = {};
-      for (const key of keys) {
+      for (const key of rawKeys) {
         if (typeof key === "string") {
           fallbackResult[key] = key;
         }
       }
-      res.json({ success: true, translations: fallbackResult });
+      res.json({ success: true, fallback: true, translations: fallbackResult });
     }
   });
 
@@ -1310,14 +1374,19 @@ async function startServer() {
 
   const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-  // Canonical mapping of Gemini models to modern, supported aliases
+  // Canonical mapping of Gemini models to modern, active aliases
   function normalizeGeminiModels(inputModels: string[]): string[] {
     const aliasMap: Record<string, string> = {
-      "gemini-1.5-flash": "gemini-3.8-flash",
-      "gemini-3.5-flash": "gemini-3.8-flash",
-      "gemini-3.6-flash": "gemini-3.8-flash",
-      "gemini-3.7-flash": "gemini-3.8-flash",
-      "gemini-1.5-pro": "gemini-2.5-pro",
+      "gemini-1.5-flash": "gemini-3.1-flash-lite",
+      "gemini-2.0-flash": "gemini-3.1-flash-lite",
+      "gemini-2.5-flash": "gemini-4-hydrogen",
+      "gemini-3.5-flash": "gemini-4-hydrogen",
+      "gemini-3.6-flash": "gemini-4-hydrogen",
+      "gemini-3.7-flash": "gemini-4-hydrogen",
+      "gemini-3.8-flash": "gemini-4-hydrogen",
+      "gemini-1.5-pro": "gemini-4-hydrogen",
+      "gemini-2.5-pro": "gemini-4-hydrogen",
+      "gemini-3.1-pro-preview": "gemini-4-hydrogen",
       "gemini-3.1-flash-image": "gemini-nano-banana-2.1"
     };
     const deduplicated: string[] = [];
@@ -1327,9 +1396,9 @@ async function startServer() {
         deduplicated.push(canonical);
       }
     }
-    // Ensure high-reliability fallback defaults exist
-    if (!deduplicated.includes("gemini-3.8-flash")) deduplicated.push("gemini-3.8-flash");
-    if (!deduplicated.includes("gemini-2.5-flash")) deduplicated.push("gemini-2.5-flash");
+    // Ensure active, high-reliability fallback defaults exist
+    if (!deduplicated.includes("gemini-4-hydrogen")) deduplicated.push("gemini-4-hydrogen");
+    if (!deduplicated.includes("gemini-3.1-flash-lite")) deduplicated.push("gemini-3.1-flash-lite");
     return deduplicated;
   }
 
@@ -1353,8 +1422,11 @@ async function startServer() {
       for (let attempt = 0; attempt <= maxRetriesPerModel; attempt++) {
         try {
           const modelConfig = { ...config };
-          // If thinkingLevel is specified, only pass it if model contains 'pro'
-          if (modelConfig?.thinkingConfig && !model.includes("pro")) {
+          const supportsThinking =
+            model.includes("pro") ||
+            model.includes("gemini-4-hydrogen") ||
+            model.includes("gemini-3.1-flash-lite");
+          if (modelConfig?.thinkingConfig && !supportsThinking) {
             delete modelConfig.thinkingConfig;
           }
 
@@ -1420,7 +1492,7 @@ async function startServer() {
         }
       });
       
-      const models = ["gemini-2.5-flash", "gemini-3.5-flash", "gemini-3.6-flash", "gemini-2.5-pro", "gemini-3.1-pro-preview"];
+      const models = ["gemini-4-hydrogen", "gemini-3.1-flash-lite"];
       const result = await callGeminiWithResilientFallback({
         ai,
         models,
@@ -1587,7 +1659,7 @@ Provide the response in structured markdown with the following specific sections
 4.  **Lattice Strain & Thermodynamics Analysis**: Analyze how the ${doping} mol% dopant level affects the lattice strain (Williamson-Hall profile) and structural coherence in the ${morphology} structure.
 5.  **Quality Control & Secondary Phase Impurity Guidelines**: Provide practical laboratory hints for verifying synthesis completion using X-ray Diffraction (XRD peak movements) and avoiding common impurities.`;
 
-      const models = ["gemini-2.5-pro", "gemini-2.5-flash", "gemini-3.1-pro-preview", "gemini-3.5-flash"];
+      const models = ["gemini-4-hydrogen", "gemini-3.1-flash-lite"];
       const result = await callGeminiWithResilientFallback({
         ai,
         models,
@@ -1596,7 +1668,7 @@ Provide the response in structured markdown with the following specific sections
           systemInstruction: "You are XRD-Calc Pro's Senior AI Materials Synthesis Expert. " +
             "Your task is to provide an elite, publication-grade, and academically thorough synthesis recipe/formulation advise for preparing the requested nanomaterial phase with specific morphology under current autoclave/reaction conditions. " +
             "Structure your response with clean headings, readable bullet points, equations where needed, and a professional, academic tone.",
-          thinkingConfig: { thinkingLevel: ThinkingLevel.HIGH }
+          thinkingConfig: { thinkingLevel: ThinkingLevel.MEDIUM }
         }
       });
       

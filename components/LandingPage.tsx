@@ -465,6 +465,14 @@ const FORMALISM_MATRIX: {
   regime: string;
 }[] = [
   {
+    id: 'xrd_curve_builder',
+    method: 'Build Your XRD Curves & Crystallinity (Xc%)',
+    equation: 'Xc (%) = [ Ac / (Ac + Aa) ] × 100',
+    reciprocalSpaceVar: '2θ Scan (2°–175°)',
+    observables: 'Crystalline vs. Amorphous area, Weight/Volume/Mole Xc%',
+    regime: 'Crystalline, Semi-Crystalline & Amorphous Solids',
+  },
+  {
     id: 'rietveld',
     method: 'Rietveld Full-Pattern Refinement',
     equation: 'Y_calc(2θ_i) = s ∑ I_K φ(Δ2θ_i) + y_b(2θ_i)',
@@ -1460,11 +1468,11 @@ print(f"Rwp: {rietveld.rwp:.2f}% | c/a: {rietveld.c / rietveld.a:.4f} | Ti-O r1:
                   </div>
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-1.5">
                     {[
+                      { id: 'xrd_curve_builder', label: 'Build Your XRD Curves', code: 'Xc% · Curve' },
                       { id: 'rietveld', label: 'Rietveld Refinement', code: 'Rwp/χ²' },
                       { id: 'pdf_analysis', label: 'Total Scattering PDF', code: 'G(r)' },
                       { id: 'xrr', label: 'Specular XRR Engine', code: 'Parratt' },
                       { id: 'williamson', label: 'Williamson–Hall', code: 'UDM/USDM' },
-                      { id: 'warren', label: 'Warren–Averbach', code: 'Fourier' },
                       { id: 'dl', label: 'Neural Phase ID', code: 'PINN-1D' },
                     ].map((quick) => (
                       <button
@@ -1900,19 +1908,19 @@ print(f"Rwp: {rietveld.rwp:.2f}% | c/a: {rietveld.c / rietveld.a:.4f} | Ti-O r1:
       <LegalModal
         isOpen={showPrivacyModal}
         onClose={() => setShowPrivacyModal(false)}
-        content={i18n.language === 'fa' ? PRIVACY_POLICY_DATA.fa : PRIVACY_POLICY_DATA.en}
+        content={(i18n.language || '').toLowerCase().startsWith('fa') ? PRIVACY_POLICY_DATA.fa : PRIVACY_POLICY_DATA.en}
         isRTL={isRTL}
       />
       <LegalModal
         isOpen={showTermsModal}
         onClose={() => setShowTermsModal(false)}
-        content={i18n.language === 'fa' ? TERMS_OF_USE_DATA.fa : TERMS_OF_USE_DATA.en}
+        content={(i18n.language || '').toLowerCase().startsWith('fa') ? TERMS_OF_USE_DATA.fa : TERMS_OF_USE_DATA.en}
         isRTL={isRTL}
       />
       <LegalModal
         isOpen={showChangelogModal}
         onClose={() => setShowChangelogModal(false)}
-        content={i18n.language === 'fa' ? CHANGELOG_DATA.fa : CHANGELOG_DATA.en}
+        content={(i18n.language || '').toLowerCase().startsWith('fa') ? CHANGELOG_DATA.fa : CHANGELOG_DATA.en}
         isRTL={isRTL}
       />
 
