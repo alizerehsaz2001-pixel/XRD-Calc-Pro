@@ -28,6 +28,7 @@ import { MeanCrystalliteSizingCard, SizingAverageMethod } from './scherrer/MeanC
 import { ScherrerCadSchematic } from './scherrer/ScherrerCadSchematic';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
+import { MathFormula, EquationPlate } from './common/MathFormula';
 import { logCalculation, logExport } from '../services/activityLogger';
 
 const K_FACTORS = [
@@ -1630,30 +1631,39 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
         </div>
 
         {/* Interactive Master Scherrer Law & Physical Schematic Card */}
-        <div className="bg-[#050A14] p-6 rounded-3xl text-white border border-slate-800 shadow-2xl relative overflow-hidden group space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-            <div className="flex items-center gap-3">
-              <BookOpen className="w-5 h-5 text-emerald-400" />
+        <div className="bg-white dark:bg-[#0B0F19] p-5 rounded-xl text-slate-900 dark:text-white border border-slate-200 dark:border-slate-800 space-y-4">
+          <div className="flex items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3.5">
+            <div className="flex items-center gap-2.5">
+              <BookOpen className="w-4 h-4 text-blue-600 dark:text-sky-400 shrink-0" />
               <div>
-                <h3 className="text-sm font-black uppercase tracking-wider">Theory & Physical Graphic</h3>
-                <p className="text-[9px] text-slate-500 font-mono uppercase tracking-widest">Master Scherrer Diffraction Law</p>
+                <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Master Scherrer Diffraction Law
+                </h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Finite-domain coherence &amp; angular broadening
+                </p>
               </div>
             </div>
             <button
+              type="button"
               onClick={() => setIsDerivationModalOpen(true)}
-              className="text-[10px] font-black text-emerald-400 hover:text-emerald-300 uppercase tracking-wider flex items-center gap-1.5 bg-emerald-500/10 hover:bg-emerald-500/20 px-3 py-1.5 rounded-xl border border-emerald-500/30 transition-all cursor-pointer"
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-sky-400 hover:bg-blue-50 dark:hover:bg-sky-950/40 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 transition-colors cursor-pointer whitespace-nowrap"
             >
-              <BookOpen className="w-3.5 h-3.5 text-emerald-400" />
-              Derivation Proof
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Derivation Proof</span>
             </button>
           </div>
 
-          <div className="bg-[#0a0f16] p-3 rounded-2xl font-mono text-sm text-emerald-300 border border-emerald-900/40 text-center font-bold tabular-nums">
-            D = (K · λ) / (β_sample · cosθ)
-          </div>
+          <EquationPlate
+            tex="D_{hkl} = \frac{K_{hkl}\,\lambda}{\beta_{\mathrm{sample}}\,\cos\theta}"
+            label="Scherrer Equation (1918)"
+            dimension="[L] · nm"
+            eqNumber="(1)"
+            emphasis="primary"
+          />
 
           {/* Live SVG Schematic of Finite-Domain Bragg Broadening & FWHM Deconvolution */}
-          <svg viewBox="0 0 340 124" className="w-full h-32 bg-slate-950/90 rounded-2xl border border-slate-800/90 select-none overflow-visible">
+          <svg viewBox="0 0 340 124" className="w-full h-32 bg-slate-950 rounded-xl border border-slate-200 dark:border-slate-800 select-none overflow-visible">
             {/* Left Side: Coherent Lattice Domain D = N * d */}
             <g transform="translate(12, 12)">
               <rect x="0" y="0" width="146" height="100" rx="8" fill="#080e1c" stroke="#1e293b" strokeWidth="1" />
@@ -1718,22 +1728,22 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
             </g>
           </svg>
 
-          <div className="grid grid-cols-2 gap-2 text-[10px] font-mono tabular-nums">
-            <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+          <div className="grid grid-cols-2 gap-2.5 text-xs">
+            <div className="bg-slate-50 dark:bg-slate-950/70 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
               <div>
-                <span className="text-slate-500 block font-sans uppercase font-bold text-[8px]">Dislocation (δ):</span>
-                <span className="text-amber-300 font-bold">δ = 1 / D²</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Dislocation</span>
+                <MathFormula tex="\delta = 1/D^2" className="text-slate-800 dark:text-amber-300" />
               </div>
-              <span className="text-amber-400 font-bold text-[11px]">
+              <span className="font-mono tabular-nums font-semibold text-slate-900 dark:text-white text-xs">
                 {stats.avgDislocation10_14.toFixed(2)}×10¹⁴
               </span>
             </div>
-            <div className="bg-slate-900/60 p-2.5 rounded-xl border border-slate-800 flex items-center justify-between">
+            <div className="bg-slate-50 dark:bg-slate-950/70 p-3 rounded-lg border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-2">
               <div>
-                <span className="text-slate-500 block font-sans uppercase font-bold text-[8px]">Specific Surface:</span>
-                <span className="text-indigo-300 font-bold">6000 / (ρ·D)</span>
+                <span className="text-[11px] text-slate-500 dark:text-slate-400 block">Surface Area</span>
+                <MathFormula tex="\tfrac{6\times 10^3}{\rho D}" className="text-slate-800 dark:text-sky-300" />
               </div>
-              <span className="text-cyan-300 font-bold text-[11px]">
+              <span className="font-mono tabular-nums font-semibold text-slate-900 dark:text-white text-xs">
                 {stats.avgSSA.toFixed(1)} m²/g
               </span>
             </div>
@@ -1751,12 +1761,12 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
           const activeMathPeak = results[safeIdx] || results[0];
           if (!activeMathPeak || activeMathPeak.error) return null;
           return (
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {results.length > 1 && (
-                <div className="flex flex-wrap items-center justify-between gap-2 bg-[#050A14] px-4 py-2.5 rounded-2xl border border-slate-800">
-                  <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1.5">
-                    <Atom className="w-3.5 h-3.5 text-amber-400" />
-                    Inspect Reflection Math:
+                <div className="flex flex-wrap items-center justify-between gap-2.5 bg-white dark:bg-[#0B0F19] px-4 py-2.5 rounded-xl border border-slate-200 dark:border-slate-800">
+                  <span className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                    <Atom className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
+                    <span>Inspect Reflection Equation</span>
                   </span>
                   <div className="flex flex-wrap gap-1.5">
                     {results.map((r, idx) => {
@@ -1767,13 +1777,13 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
                           key={idx}
                           type="button"
                           onClick={() => setSelectedMathPeakIdx(idx)}
-                          className={`px-2.5 py-1 rounded-lg text-[10px] font-mono font-bold transition-all cursor-pointer border ${
+                          className={`px-2.5 py-1 rounded-md text-xs font-mono tabular-nums transition-colors cursor-pointer border ${
                             isSel
-                              ? 'bg-amber-500/20 border-amber-500/50 text-amber-300 shadow-sm'
-                              : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                              ? 'bg-slate-900 dark:bg-sky-500/20 border-slate-900 dark:border-sky-500/60 text-white dark:text-sky-200 font-semibold'
+                              : 'bg-slate-50 dark:bg-slate-950 border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 hover:border-slate-400'
                           }`}
                         >
-                          {r.hkl ? `(${r.hkl.join('')})` : `#${idx + 1}`} @ {r.twoTheta.toFixed(2)}°
+                          {r.hkl ? `(${r.hkl.join('')})` : `#${idx + 1}`} · {r.twoTheta.toFixed(2)}°
                         </button>
                       );
                     })}
@@ -2519,87 +2529,91 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
       {/* Interactive Mathematical Derivation Modal with Finite-Lattice Simulator */}
       <AnimatePresence>
         {isDerivationModalOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/85 backdrop-blur-md overflow-y-auto">
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm overflow-y-auto">
             <motion.div
-              initial={{ opacity: 0, scale: 0.9, y: 20 }}
+              initial={{ opacity: 0, scale: 0.96, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.9, y: 20 }}
-              transition={{ type: 'spring', damping: 25, stiffness: 180 }}
-              className="bg-slate-900 border border-slate-800 rounded-3xl w-full max-w-4xl max-h-[85vh] flex flex-col shadow-2xl overflow-hidden"
+              exit={{ opacity: 0, scale: 0.96, y: 12 }}
+              transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+              className="bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-4xl max-h-[86vh] flex flex-col shadow-2xl overflow-hidden"
             >
               {/* Modal Header */}
-              <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-slate-950/50">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4 bg-slate-50/70 dark:bg-slate-950/60">
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center">
-                    <BookOpen className="w-5 h-5 text-emerald-400" />
+                  <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-blue-600 dark:text-sky-400">
+                    <BookOpen className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-lg font-black text-white uppercase tracking-wider">Scherrer Derivation & Physics Proof</h2>
-                    <p className="text-[10px] font-mono text-emerald-400/80 uppercase tracking-widest">Theoretical Derivation & Multi-Slit Interference Simulator</p>
+                    <h2 className="text-base font-semibold text-slate-900 dark:text-white">
+                      Scherrer Equation — Kinematical Derivation &amp; Interference Proof
+                    </h2>
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                      Paul Scherrer (1918) finite-lattice boundary derivation with interactive Laue interference simulator
+                    </p>
                   </div>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setIsDerivationModalOpen(false)}
-                  className="w-10 h-10 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700 flex items-center justify-center text-slate-400 hover:text-white transition-all cursor-pointer"
+                  className="p-2 rounded-lg text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                  aria-label="Close derivation proof"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
               {/* Modal Content - Scrollable */}
-              <div className="p-6 overflow-y-auto space-y-8 text-slate-300 text-sm leading-relaxed custom-scrollbar">
-                
-                {/* Intro Card */}
-                <div className="bg-gradient-to-r from-emerald-500/5 to-teal-500/5 p-5 rounded-2xl border border-emerald-500/20">
-                  <p className="text-slate-200 leading-relaxed">
-                    The Scherrer formula is an analytical approximation relating the average size of sub-micrometer crystallites (<span className="text-amber-400 font-mono font-bold">D</span>) in a powder sample to the broadening of the diffraction peak (<span className="text-emerald-400 font-mono font-bold">β</span>). It was first derived by Paul Scherrer in 1918. Below is the full mathematical and wave interference proof.
-                  </p>
-                </div>
+              <div className="p-6 overflow-y-auto space-y-7 text-slate-700 dark:text-slate-300 text-sm leading-relaxed custom-scrollbar">
+                {/* Intro Prose */}
+                <p className="text-slate-600 dark:text-slate-300 leading-relaxed">
+                  The Scherrer relation links the coherent scattering domain thickness (<MathFormula tex="D" />) of sub-micrometer crystallites to the intrinsic angular broadening (<MathFormula tex="\beta" />) of a Bragg diffraction reflection. Below is the first-principles kinematical derivation from destructive interference boundaries.
+                </p>
 
                 {/* Interactive Wave Interference Simulator */}
-                <div className="bg-slate-950 p-5 rounded-2xl border border-indigo-500/30 space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-800 pb-3">
+                <div className="bg-slate-50/70 dark:bg-slate-950/80 p-5 rounded-xl border border-slate-200 dark:border-slate-800 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 dark:border-slate-800 pb-3">
                     <div className="flex items-center gap-2">
-                      <Sliders className="w-4 h-4 text-indigo-400" />
-                      <h4 className="text-xs font-black text-white uppercase tracking-wider">
-                        Interactive Finite-Lattice Interference Simulator
+                      <Sliders className="w-4 h-4 text-blue-600 dark:text-sky-400" />
+                      <h4 className="text-xs font-semibold text-slate-900 dark:text-white">
+                        Interactive Finite-Lattice Laue Interference Simulator
                       </h4>
                     </div>
-                    <div className="flex items-center gap-2 text-xs font-mono">
-                      <span className="text-slate-400">Total Thickness D = </span>
-                      <strong className="text-amber-400">{(simPlaneCount * simDSpacing / 10).toFixed(2)} nm</strong>
-                      <span className="text-slate-500">({simPlaneCount} planes × {simDSpacing} Å)</span>
+                    <div className="flex items-center gap-2 text-xs font-mono tabular-nums text-slate-600 dark:text-slate-300">
+                      <span>
+                        <MathFormula tex="D = N d" /> = <strong className="text-slate-900 dark:text-white">{(simPlaneCount * simDSpacing / 10).toFixed(2)} nm</strong>
+                      </span>
+                      <span className="text-slate-400">({simPlaneCount} planes × {simDSpacing} Å)</span>
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                     <div>
-                      <div className="flex justify-between mb-1 text-slate-400 font-bold">
-                        <span>Lattice Plane Count (N):</span>
-                        <span className="text-indigo-400 font-mono font-black">{simPlaneCount} planes</span>
+                      <div className="flex justify-between mb-1 text-slate-600 dark:text-slate-400 font-medium">
+                        <span>Coherent Plane Count (<MathFormula tex="N" />)</span>
+                        <span className="text-slate-900 dark:text-sky-300 font-mono tabular-nums font-semibold">{simPlaneCount} planes</span>
                       </div>
-                      <input 
-                        type="range" 
-                        min="5" 
-                        max="80" 
+                      <input
+                        type="range"
+                        min="5"
+                        max="80"
                         value={simPlaneCount}
-                        onChange={(e) => setSimPlaneCount(parseInt(e.target.value))}
-                        className="w-full accent-indigo-500 cursor-pointer"
+                        onChange={(e) => setSimPlaneCount(parseInt(e.target.value, 10))}
+                        className="w-full accent-blue-600 dark:accent-sky-400 cursor-pointer"
                       />
                     </div>
                     <div>
-                      <div className="flex justify-between mb-1 text-slate-400 font-bold">
-                        <span>Interplanar Spacing (d):</span>
-                        <span className="text-emerald-400 font-mono font-black">{simDSpacing.toFixed(3)} Å</span>
+                      <div className="flex justify-between mb-1 text-slate-600 dark:text-slate-400 font-medium">
+                        <span>Interplanar Spacing (<MathFormula tex="d" />)</span>
+                        <span className="text-slate-900 dark:text-emerald-300 font-mono tabular-nums font-semibold">{simDSpacing.toFixed(3)} Å</span>
                       </div>
-                      <input 
-                        type="range" 
-                        min="1.0" 
-                        max="5.0" 
+                      <input
+                        type="range"
+                        min="1.0"
+                        max="5.0"
                         step="0.05"
                         value={simDSpacing}
                         onChange={(e) => setSimDSpacing(parseFloat(e.target.value))}
-                        className="w-full accent-emerald-500 cursor-pointer"
+                        className="w-full accent-emerald-600 dark:accent-emerald-400 cursor-pointer"
                       />
                     </div>
                   </div>
@@ -2608,91 +2622,112 @@ export const ScherrerModule: React.FC<ScherrerModuleProps> = ({ initialMode = 's
                   <div className="h-44 w-full pt-2">
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={simDiffractionProfile.points} margin={{ top: 5, right: 10, left: -25, bottom: 5 }}>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                        <XAxis dataKey="twoTheta" tick={{ fill: '#64748b', fontSize: 9 }} unit="°" />
-                        <YAxis tick={{ fill: '#64748b', fontSize: 9 }} domain={[0, 105]} />
-                        <Tooltip 
-                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '12px', fontSize: '11px', color: '#fff' }}
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(148,163,184,0.22)" />
+                        <XAxis dataKey="twoTheta" tick={{ fill: '#64748b', fontSize: 10 }} unit="°" />
+                        <YAxis tick={{ fill: '#64748b', fontSize: 10 }} domain={[0, 105]} />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#0f172a', borderColor: '#334155', borderRadius: '8px', fontSize: '11px', color: '#fff' }}
                           formatter={(val: any) => [`${val}%`, 'Intensity']}
                           labelFormatter={(l) => `2θ = ${l}°`}
                         />
-                        <Area type="monotone" dataKey="intensity" fill="#6366f1" stroke="#6366f1" fillOpacity={0.25} strokeWidth={2} isAnimationActive={false} />
+                        <Area type="monotone" dataKey="intensity" fill="#0284c7" stroke="#0284c7" fillOpacity={0.18} strokeWidth={2} isAnimationActive={false} />
                       </ComposedChart>
                     </ResponsiveContainer>
                   </div>
-                  <p className="text-[10px] text-slate-400 text-center font-mono">
-                    Predicted Scherrer FWHM for N={simPlaneCount} planes: <strong className="text-amber-400">β ≈ {simDiffractionProfile.expectedFwhm}°</strong>. As N decreases, the peak broadens!
+                  <p className="text-xs text-slate-600 dark:text-slate-400 text-center font-mono tabular-nums">
+                    Predicted Scherrer FWHM for <MathFormula tex={`N = ${simPlaneCount}`} />:{' '}
+                    <strong className="text-slate-900 dark:text-white">β ≈ {simDiffractionProfile.expectedFwhm}°</strong> — reducing coherent planes broadens the Bragg maximum inversely.
                   </p>
                 </div>
 
                 {/* Section 1: Physical Setup */}
                 <div className="space-y-3">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    1. Physical Setup & Bragg Scattering
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    01. Finite Coherent Domain &amp; Bragg Resonance
                   </h3>
                   <p>
-                    Consider a crystalline domain of finite thickness <span className="font-mono text-slate-100">$D$</span> composed of <span className="font-mono text-slate-100">$N$</span> parallel lattice planes separated by an interplanar spacing <span className="font-mono text-slate-100">$d$</span>:
+                    Consider a coherent crystalline domain of thickness <MathFormula tex="D" /> consisting of <MathFormula tex="N" /> parallel lattice planes separated by interplanar spacing <MathFormula tex="d" />:
                   </p>
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.crystalliteThickness }} />
-                  <p>
-                    When monochromatic X-rays of wavelength <span className="font-mono text-slate-100">$\lambda$</span> impinge on these planes, the first-order peak occurs at the exact Bragg angle <span className="font-mono text-emerald-400 font-bold">$\theta_0$</span>:
-                  </p>
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.braggLawOrder1 }} />
+                  <EquationPlate tex="D = N\,d, \qquad 2d\sin\theta_0 = \lambda" label="Domain Thickness & First-Order Bragg Condition" eqNumber="(1)" />
                 </div>
 
                 {/* Section 2: Destructive Boundaries */}
                 <div className="space-y-3">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    2. Peak Broadening & Zero-Intensity Boundaries
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    02. First Zero-Intensity Interference Boundaries
                   </h3>
                   <p>
-                    For an infinite crystal, diffraction occurs strictly at <span className="font-mono text-slate-100">$\theta_0$</span>. For a finite crystal of $N$ planes, intensity drops to zero at the angular boundaries $\theta_1$ and $\theta_2$ where waves from opposite crystal halves cancel:
+                    For an ideal infinite crystal, diffraction collapses to a Dirac delta at <MathFormula tex="\theta_0" />. For a finite stack of <MathFormula tex="N" /> planes, intensity first vanishes at adjacent angles <MathFormula tex="\theta_1" /> and <MathFormula tex="\theta_2" /> where rays scattered by the top and bottom halves of the crystal differ in optical path by one full wavelength <MathFormula tex="\pm\lambda" />:
                   </p>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 my-2">
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.finiteSize1 }} />
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.finiteSize2 }} />
-                  </div>
+                  <EquationPlate
+                    tex={`\\begin{aligned}
+2Nd\\sin\\theta_1 &= (N + 1)\\lambda \\\\[4pt]
+2Nd\\sin\\theta_2 &= (N - 1)\\lambda
+\\end{aligned}`}
+                    label="Upper & Lower Destructive Boundaries"
+                    eqNumber="(2)"
+                  />
                 </div>
 
-                {/* Section 3: Trigonometric Operations */}
+                {/* Section 3: Trigonometric Reduction */}
                 <div className="space-y-3">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    3. Trigonometric Identities & Small-Angle Approximation
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    03. Path-Difference Subtraction &amp; Small-Angle Linearization
                   </h3>
                   <p>
-                    Subtracting the boundary conditions removes the $N$ offset:
+                    Subtracting the lower boundary condition from the upper condition eliminates <MathFormula tex="N\lambda" />:
                   </p>
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.reducedSub }} />
+                  <EquationPlate
+                    tex="Nd\left(\sin\theta_1 - \sin\theta_2\right) = \lambda"
+                    label="Reduced Path-Difference Identity"
+                    eqNumber="(3)"
+                  />
                   <p>
-                    Applying the sum-to-product trigonometric identity with small angle approximation $\sin(\Delta\theta) \approx \Delta\theta$:
+                    Applying the sum-to-product trigonometric identity with <MathFormula tex="\tfrac{1}{2}(\theta_1 + \theta_2) = \theta_0" /> and half-width <MathFormula tex="\Delta\theta = \tfrac{1}{2}(\theta_1 - \theta_2)" />, then linearizing <MathFormula tex="\sin(\Delta\theta) \approx \Delta\theta" /> for narrow peaks:
                   </p>
-                  <div className="bg-slate-950 p-4 rounded-xl border border-slate-800 text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.combinedtrig }} />
+                  <EquationPlate
+                    tex={`\\begin{aligned}
+\\sin\\theta_1 - \\sin\\theta_2 &= 2\\cos\\!\\left(\\frac{\\theta_1 + \\theta_2}{2}\\right)\\sin\\!\\left(\\frac{\\theta_1 - \\theta_2}{2}\\right) \\\\[4pt]
+&= 2\\cos\\theta_0\\sin(\\Delta\\theta) \\approx 2\\,\\Delta\\theta\\cos\\theta_0
+\\end{aligned}`}
+                    label="Trigonometric Linearization"
+                    eqNumber="(4)"
+                  />
                 </div>
 
-                {/* Section 4: Final Formulation with K Factor */}
+                {/* Section 4: Master Equation */}
                 <div className="space-y-3">
-                  <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest flex items-center gap-2">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
-                    4. Master Equation & Scherrer Constant (K)
+                  <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                    04. Master Scherrer Equation &amp; Crystallite Shape Factor (<MathFormula tex="K" />)
                   </h3>
                   <p>
-                    Substituting back with $D = N \cdot d$ and FWHM $\beta \approx 2\Delta\theta$, we incorporate the crystal shape factor <span className="text-amber-400 font-bold">$K$</span>:
+                    Substituting <MathFormula tex="D = N\,d" /> and relating the full width at half maximum <MathFormula tex="\beta \approx 2\Delta\theta" /> (in radians) via the dimensionless crystallite morphology constant <MathFormula tex="K" /> (typically <MathFormula tex="0.89\text{--}0.94" /> for FWHM, <MathFormula tex="1.00" /> for integral breadth) yields the governing Scherrer equation:
                   </p>
-                  <div className="bg-slate-950 p-5 rounded-2xl border border-amber-500/20 shadow-md text-center overflow-x-auto" dangerouslySetInnerHTML={{ __html: formulas.shapeFactorK }} />
+                  <EquationPlate
+                    tex="D_{hkl} = \frac{K_{hkl}\,\lambda}{\beta_{\mathrm{sample}}\,\cos\theta}"
+                    label="Master Scherrer Sizing Law"
+                    dimension="[L] · nm"
+                    eqNumber="(5)"
+                    emphasis="result"
+                    legend={[
+                      { symbol: 'D_hkl', meaning: 'Coherent domain size (nm)' },
+                      { symbol: 'K_hkl', meaning: 'Shape factor' },
+                      { symbol: 'λ', meaning: 'X-ray wavelength (nm)' },
+                      { symbol: 'β_sample', meaning: 'Intrinsic FWHM (rad)' },
+                      { symbol: 'θ', meaning: 'Bragg angle (rad)' },
+                    ]}
+                  />
                 </div>
-
               </div>
 
               {/* Modal Footer */}
-              <div className="p-4 border-t border-slate-800 bg-slate-950/50 flex justify-end">
+              <div className="px-6 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 flex justify-end">
                 <button
+                  type="button"
                   onClick={() => setIsDerivationModalOpen(false)}
-                  className="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 hover:text-white uppercase tracking-wider rounded-xl border border-slate-700 transition-all cursor-pointer"
+                  className="px-4 py-2 bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 text-xs font-medium text-white rounded-lg transition-colors cursor-pointer"
                 >
-                  Close Document
+                  Close Derivation
                 </button>
               </div>
             </motion.div>

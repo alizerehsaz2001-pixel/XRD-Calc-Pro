@@ -7,6 +7,8 @@ import {
 import { playSynthTone } from '../utils/sound';
 import { CrystallographicBrandEmblem } from './TopAppBar';
 import { getModuleScientificMeta } from './LeftSidebarGraphics';
+import { MathFormula } from './common/MathFormula';
+import { getModuleMath } from './common/moduleMathCatalog';
 
 interface NavigationRailProps {
   activeModule: string;
@@ -233,20 +235,20 @@ const NavigationRailComponent: React.FC<NavigationRailProps> = ({
                 </button>
 
                 {/* Scientific Telemetry Hover Flyout */}
-                <div className="absolute left-full ml-3 px-3 py-2 bg-slate-900 dark:bg-slate-950 text-white rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 flex flex-col whitespace-nowrap min-w-[180px] border border-slate-700/90">
-                  <div className="flex items-center justify-between gap-3 mb-0.5">
-                    <span className="text-[9px] uppercase tracking-wider text-indigo-400 font-bold font-mono">
+                <div className="absolute left-full ml-3 px-3.5 py-2.5 bg-slate-900 dark:bg-slate-950 text-white rounded-xl shadow-2xl opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-50 flex flex-col whitespace-nowrap min-w-[200px] border border-slate-700/90">
+                  <div className="flex items-center justify-between gap-3 mb-0.5 text-[10px]">
+                    <span className="text-sky-400 font-medium">
                       {item.group}
                     </span>
-                    <span className="text-[9px] font-mono text-slate-400 tabular-nums">
+                    <span className="font-mono text-slate-400 tabular-nums">
                       {meta.categoryCode}
                     </span>
                   </div>
-                  <span className="text-xs font-bold text-slate-100">
+                  <span className="text-xs font-semibold text-slate-100">
                     {item.label}
                   </span>
-                  <div className="mt-1 pt-1 border-t border-slate-800 flex items-center justify-between gap-2 text-[9.5px] font-mono text-amber-300/90">
-                    <span>{meta.formula}</span>
+                  <div className="mt-1.5 pt-1.5 border-t border-slate-800 flex items-center justify-between gap-2 text-[11px] text-sky-300">
+                    <MathFormula tex={getModuleMath(item.id).compactTex} />
                   </div>
                 </div>
               </div>

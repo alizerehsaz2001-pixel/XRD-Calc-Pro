@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { ChevronDown } from 'lucide-react';
+import { MathFormula } from './common/MathFormula';
+import { getModuleMath } from './common/moduleMathCatalog';
 
 export interface ModuleScientificMeta {
   symbol: string;
@@ -1000,10 +1002,9 @@ export const SidebarGoniometerTelemetryCard: React.FC<SidebarGoniometerTelemetry
             </svg>
 
             {/* Bottom Formula Strip */}
-            <div className="mt-1 pt-1 border-t border-slate-800/80 flex items-center justify-between text-[9.5px] font-mono">
-              <span className="text-slate-400 truncate" title={meta.formula}>
-                <span className="text-slate-500">EQ:</span>{' '}
-                <span className="text-amber-300/95 font-semibold">{meta.formula}</span>
+            <div className="mt-1.5 pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[10.5px]">
+              <span className="text-amber-300/95 overflow-hidden whitespace-nowrap text-ellipsis" title={meta.formula}>
+                <MathFormula tex={getModuleMath(activeModule).compactTex} />
               </span>
             </div>
           </div>

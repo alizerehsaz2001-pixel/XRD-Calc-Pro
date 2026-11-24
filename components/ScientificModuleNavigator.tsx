@@ -2,6 +2,8 @@ import React, { useState, useEffect, useMemo, useRef, useCallback } from 'react'
 import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
+import { MathFormula, EquationPlate } from './common/MathFormula';
+import { getModuleMath } from './common/moduleMathCatalog';
 import {
   Search,
   X,
@@ -2058,26 +2060,20 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
                     </button>
                   </div>
 
-                  {/* Governing Equation Block */}
-                  <div
-                    className={`p-3 rounded-xl border font-mono ${
-                      isDark ? 'bg-slate-900/90 border-slate-800' : 'bg-white border-slate-200'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between text-[10px] text-slate-400 mb-1">
-                      <span>{t('Governing Relation', 'Governing Relation')}</span>
-                      {currentInspectedModule.recommendedRange && (
-                        <span>{currentInspectedModule.recommendedRange}</span>
-                      )}
-                    </div>
-                    <div
-                      className={`text-xs font-semibold break-words ${
-                        isDark ? 'text-cyan-300' : 'text-indigo-700'
-                      }`}
-                    >
-                      {currentInspectedModule.formula}
-                    </div>
-                  </div>
+                  {/* Governing Equation Plate */}
+                  {(() => {
+                    const modMath = getModuleMath(currentInspectedModule.id);
+                    return (
+                      <EquationPlate
+                        tex={modMath.displayTex}
+                        label={t('Governing Relation', 'Governing Relation')}
+                        dimension={currentInspectedModule.recommendedRange || modMath.dimension}
+                        eqNumber="(1)"
+                        emphasis="primary"
+                        legend={modMath.legend}
+                      />
+                    );
+                  })()}
 
                   {/* Description */}
                   <div>
@@ -2325,8 +2321,8 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
           </div>
         </div>
 
-        <div className="col-span-4 hidden sm:block font-mono text-[11px] text-slate-600 dark:text-cyan-300/90 truncate">
-          {metadata.formula}
+        <div className="col-span-4 hidden sm:block text-xs text-slate-700 dark:text-sky-300/95 overflow-hidden whitespace-nowrap text-ellipsis">
+          <MathFormula tex={getModuleMath(metadata.id).compactTex} />
         </div>
 
         <div className="col-span-2 hidden md:block text-[11px] text-slate-500 dark:text-slate-400 truncate">
@@ -2429,19 +2425,23 @@ const ModuleCard: React.FC<ModuleCardProps> = ({
         </p>
       </div>
 
-      {/* Footer: Governing Formula + Open Affordance (Unboxed text) */}
+      {/* Footer: Governing Formula + Open Affordance (Unboxed KaTeX) */}
       <div
-        className={`pt-2 border-t flex items-center justify-between gap-2 text-[11px] font-mono ${
+        className={`pt-2.5 border-t flex items-center justify-between gap-2 text-xs ${
           isDark ? 'border-slate-800/80 text-slate-400' : 'border-slate-100 text-slate-500'
         }`}
       >
-        <span className={`truncate ${isDark ? 'text-cyan-400/90' : 'text-indigo-600/90'}`}>
-          {metadata.formula}
-        </span>
+        <div
+          className={`min-w-0 overflow-hidden whitespace-nowrap text-ellipsis ${
+            isDark ? 'text-sky-300/95' : 'text-blue-700'
+          }`}
+        >
+          <MathFormula tex={getModuleMath(metadata.id).compactTex} />
+        </div>
         <ArrowUpRight
           className={`w-3.5 h-3.5 shrink-0 transition-transform ${
             isRTL ? 'rotate-[-90deg] group-hover:-translate-x-0.5' : 'group-hover:translate-x-0.5'
-          } text-slate-400 group-hover:text-indigo-500`}
+          } text-slate-400 group-hover:text-blue-600 dark:group-hover:text-sky-400`}
         />
       </div>
     </div>

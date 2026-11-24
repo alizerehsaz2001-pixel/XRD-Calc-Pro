@@ -1,26 +1,20 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { 
-  Calculator, 
-  ChevronDown, 
-  CheckCircle2, 
-  Sigma, 
-  Sliders, 
-  AlertTriangle, 
-  Copy, 
-  Check, 
-  Terminal, 
-  FileText,
-  HelpCircle,
+import {
+  Calculator,
+  ChevronDown,
+  Sliders,
+  AlertTriangle,
+  Copy,
+  Check,
   TrendingUp,
-  Zap,
+  RotateCcw,
   Flame,
   Home,
   Globe,
-  Sun
+  Sun,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
-import katex from 'katex';
-import 'katex/dist/katex.min.css';
+import { MathFormula, EquationPlate, formatSymbolToTex } from './common/MathFormula';
 
 interface MathVariable {
   symbol: string;
@@ -39,316 +33,397 @@ interface ScientificMathControlProps {
   resultName: string;
 }
 
-// Map formulas to numerical evaluators for Interactive Simulator & Error Propagation
-const evaluateFormula = (formulaTitle: string, vars: { [symbol: string]: number }, originalResult: number): { value: number; unit: string; steps: string } => {
+const getVar = (vars: Record<string, number>, keys: string[], fallback: number): number => {
+  for (const key of keys) {
+    if (vars[key] !== undefined && !isNaN(vars[key])) return vars[key];
+  }
+  return fallback;
+};
+
+const getUnitByKeys = (variables: MathVariable[], keys: string[]): string => {
+  for (const key of keys) {
+    const found = variables.find((v) => v.symbol === key);
+    if (found) return found.unit || '';
+  }
+  return '';
+};
+
+const wavelengthToNmFactor = (lambda: number, unit: string): { factor: number; unitTex: string } => {
+  const u = unit.trim().toLowerCase();
+  if (u === 'nm') return { factor: 1, unitTex: '\\mathrm{nm}' };
+  if (u === 'pm') return { factor: 0.001, unitTex: '\\mathrm{pm}' };
+  if (u === 'µm' || u === 'um') return { factor: 1000, unitTex: '\\mu\\mathrm{m}' };
+  if (u === 'å' || u === 'a' || u === 'angstrom') return { factor: 0.1, unitTex: '\\text{\\AA}' };
+  // Fallback heuristic when no explicit unit is provided
+  return lambda > 0.5
+    ? { factor: 0.1, unitTex: '\\text{\\AA}' }
+    : { factor: 1, unitTex: '\\mathrm{nm}' };
+};
+
+const inferDimensionalTag = (title: string, unit: string): string => {
+  const t = title.toLowerCase();
+  if (t.includes('scherrer') || t.includes('bragg') || t.includes('d-spacing') || t.includes('lattice')) {
+    return unit ? `[L] · ${unit}` : '[L]';
+  }
+  if (t.includes('williamson') || t.includes('integral breadth') || t.includes('deconvolution') || t.includes('caglioti')) {
+    return '[1] · rad';
+  }
+  if (t.includes('density')) return '[M·L⁻³] · g/cm³';
+  if (t.includes('mass-energy') || t.includes('einstein') || t.includes('rest energy') || t.includes('neutron')) {
+    return '[M·L²·T⁻²]';
+  }
+  if (t.includes('curie') || t.includes('susceptibility')) return '[emu/mol]';
+  if (t.includes('structure factor') || t.includes('march-dollase') || t.includes('pseudo-voigt')) {
+    return 'Dimensionless [1]';
+  }
+  return unit ? `Unit · ${unit}` : 'Analytical Relation';
+};
+
+// Map formulas to rigorous numerical evaluators & multi-line LaTeX derivations
+const evaluateFormula = (
+  formulaTitle: string,
+  vars: Record<string, number>,
+  variables: MathVariable[],
+  originalResult: number
+): { value: number; unit: string; steps: string } => {
   const titleLower = formulaTitle.toLowerCase();
-  
-  if (titleLower.includes("bragg")) {
-    const lambda = vars['λ'] !== undefined ? vars['λ'] : (vars['lambda'] || 1.54056);
-    const theta = vars['θ'] !== undefined ? vars['θ'] : (vars['theta'] || 0.25);
-    const n = vars['n'] !== undefined ? vars['n'] : 1;
+
+  if (titleLower.includes('bragg')) {
+    const lambda = getVar(vars, ['λ', 'lambda'], 1.54056);
+    const theta = getVar(vars, ['θ', 'theta'], 0.25);
+    const n = getVar(vars, ['n'], 1);
     const sinTheta = Math.sin(theta);
-    const d = sinTheta !== 0 ? (n * lambda) / (2 * sinTheta) : 0;
+    const num = n * lambda;
+    const den = 2 * sinTheta;
+    const d = den !== 0 ? num / den : 0;
     return {
       value: d,
-      unit: "Å",
-      steps: `d = \\frac{${n} \\cdot ${lambda.toFixed(5)}}{2 \\cdot \\sin(${theta.toFixed(4)})} = \\frac{${(n * lambda).toFixed(5)}}{${(2 * sinTheta).toFixed(4)}} = ${d.toFixed(4)}\\text{ Å}`
+      unit: 'Å',
+      steps: `\\begin{aligned}
+d_{hkl} &= \\frac{n\\,\\lambda}{2\\sin\\theta} = \\frac{${n} \\times ${lambda.toFixed(5)}\\,\\text{\\AA}}{2\\sin(${theta.toFixed(4)}\\,\\mathrm{rad})} \\\\[4pt]
+&= \\frac{${num.toFixed(5)}\\,\\text{\\AA}}{${den.toFixed(5)}} = \\mathbf{${d.toFixed(4)}\\,\\text{\\AA}}
+\\end{aligned}`,
     };
   }
-  
-  if (titleLower.includes("scherrer")) {
-    const K = vars['K'] !== undefined ? vars['K'] : 0.9;
-    const lambda = vars['λ'] !== undefined ? vars['λ'] : (vars['lambda'] || 1.54056);
-    const beta = vars['β'] !== undefined ? vars['β'] : (vars['beta'] || 0.01);
-    const theta = vars['θ'] !== undefined ? vars['θ'] : (vars['theta'] || 0.25);
+
+  if (titleLower.includes('scherrer')) {
+    const K = getVar(vars, ['K_hkl', 'K', 'k'], 0.9);
+    const lambda = getVar(vars, ['λ', 'lambda'], 1.54056);
+    const beta = getVar(vars, ['β_s', 'β_sample', 'β', 'beta'], 0.01);
+    const theta = getVar(vars, ['θ', 'theta'], 0.25);
+    const lambdaUnit = getUnitByKeys(variables, ['λ', 'lambda']);
+    const { factor, unitTex } = wavelengthToNmFactor(lambda, lambdaUnit);
+    const lambdaNm = lambda * factor;
     const cosTheta = Math.cos(theta);
-    const factor = lambda > 10 ? 1 : 0.1;
-    const Dv = (beta * cosTheta) !== 0 ? (K * lambda * factor) / (beta * cosTheta) : 0;
+    const num = K * lambdaNm;
+    const den = beta * cosTheta;
+    const Dv = den !== 0 ? num / den : 0;
     return {
       value: Dv,
-      unit: "nm",
-      steps: `D_v = \\frac{${K} \\cdot (${lambda.toFixed(4)} \\cdot ${factor})}{${beta.toFixed(5)} \\cdot \\cos(${theta.toFixed(4)})} = ${Dv.toFixed(2)}\\text{ nm}`
+      unit: 'nm',
+      steps: `\\begin{aligned}
+D_{hkl} &= \\frac{K_{hkl}\\,\\lambda}{\\beta_{\\mathrm{s}}\\cos\\theta} = \\frac{${K.toFixed(3)} \\times ${lambda.toFixed(5)}\\,${unitTex}${factor !== 1 ? ` \\times ${factor}` : ''}}{${beta.toFixed(5)}\\,\\mathrm{rad} \\times \\cos(${theta.toFixed(4)}\\,\\mathrm{rad})} \\\\[4pt]
+&= \\frac{${num.toFixed(5)}\\,\\mathrm{nm}}{${den.toFixed(6)}} = \\mathbf{${Dv.toFixed(2)}\\,\\mathrm{nm}}
+\\end{aligned}`,
     };
   }
-  
-  if (titleLower.includes("williamson") || titleLower.includes("advanced integral breadth")) {
-    const K = vars['K'] !== undefined ? vars['K'] : 0.9;
-    const lambda = vars['λ'] !== undefined ? vars['λ'] : (vars['lambda'] || 1.54056);
-    const D = vars['D'] !== undefined ? vars['D'] : 20.0;
-    const epsilon = vars['ε'] !== undefined ? vars['ε'] : (vars['epsilon'] || 0.002);
-    const theta = vars['θ'] !== undefined ? vars['θ'] : (vars['theta'] || 0.25);
-    
-    const factor = lambda > 10 ? 1 : 0.1;
-    const term1 = D !== 0 ? (K * lambda * factor) / D : 0;
+
+  if (titleLower.includes('williamson') || titleLower.includes('advanced integral breadth')) {
+    const K = getVar(vars, ['K', 'K_hkl'], 0.9);
+    const lambda = getVar(vars, ['λ', 'lambda'], 1.54056);
+    const D = getVar(vars, ['D', 'D_V', 'D_v'], 20.0);
+    const epsilon = getVar(vars, ['ε', 'epsilon'], 0.002);
+    const theta = getVar(vars, ['θ', 'theta'], 0.25);
+    const lambdaUnit = getUnitByKeys(variables, ['λ', 'lambda']);
+    const { factor } = wavelengthToNmFactor(lambda, lambdaUnit);
+    const lambdaNm = lambda * factor;
+    const term1 = D !== 0 ? (K * lambdaNm) / D : 0;
     const term2 = 4 * epsilon * Math.sin(theta);
     const yVal = term1 + term2;
     return {
       value: yVal,
-      unit: "rad",
-      steps: `\\beta \\cos(\\theta) = \\frac{${K} \\cdot (${lambda.toFixed(4)} \\cdot ${factor})}{${D.toFixed(1)}} + 4 \\cdot ${epsilon.toFixed(5)} \\cdot \\sin(${theta.toFixed(4)}) = ${yVal.toFixed(6)}\\text{ rad}`
+      unit: 'rad',
+      steps: `\\begin{aligned}
+\\beta\\cos\\theta &= \\frac{K\\lambda}{D} + 4\\varepsilon\\sin\\theta \\\\[4pt]
+&= \\frac{${K.toFixed(3)} \\times ${lambdaNm.toFixed(5)}\\,\\mathrm{nm}}{${D.toFixed(2)}\\,\\mathrm{nm}} + 4(${epsilon.toFixed(5)})\\sin(${theta.toFixed(4)}) \\\\[4pt]
+&= ${term1.toFixed(6)} + ${term2.toFixed(6)} = \\mathbf{${yVal.toFixed(6)}\\,\\mathrm{rad}}
+\\end{aligned}`,
     };
   }
-  
-  if (titleLower.includes("pseudo-voigt")) {
-    const eta = vars['η'] !== undefined ? vars['η'] : (vars['eta'] || 0.5);
-    const L = vars['L'] !== undefined ? vars['L'] : 1.0;
-    const G = vars['G'] !== undefined ? vars['G'] : 1.0;
+
+  if (titleLower.includes('pseudo-voigt')) {
+    const eta = getVar(vars, ['η', 'eta'], 0.5);
+    const L = getVar(vars, ['L'], 1.0);
+    const G = getVar(vars, ['G'], 1.0);
     const I = eta * L + (1 - eta) * G;
     return {
       value: I,
-      unit: "arb. u.",
-      steps: `I = ${eta.toFixed(3)} \\cdot ${L.toFixed(3)} + (1 - ${eta.toFixed(3)}) \\cdot ${G.toFixed(3)} = ${I.toFixed(4)}`
+      unit: 'arb. u.',
+      steps: `\\begin{aligned}
+pV(2\\theta) &= \\eta\\,L(2\\theta) + (1 - \\eta)\\,G(2\\theta) \\\\[4pt]
+&= ${eta.toFixed(3)}(${L.toFixed(3)}) + ${(1 - eta).toFixed(3)}(${G.toFixed(3)}) = \\mathbf{${I.toFixed(4)}}
+\\end{aligned}`,
     };
   }
-  
-  if (titleLower.includes("integral breadth")) {
-    const Area = vars['Area'] !== undefined ? vars['Area'] : (vars['area'] || 1.0);
-    const Imax = vars['I_{max}'] !== undefined ? vars['I_{max}'] : (vars['Imax'] || 1.0);
+
+  if (titleLower.includes('integral breadth')) {
+    const Area = getVar(vars, ['Area', 'area', 'A'], 1.0);
+    const Imax = getVar(vars, ['I_{max}', 'I_max', 'Imax'], 1.0);
     const beta = Imax !== 0 ? Area / Imax : 0;
     return {
       value: beta,
-      unit: "rad",
-      steps: `\\beta = \\frac{${Area.toFixed(3)}}{${Imax.toFixed(3)}} = ${beta.toFixed(5)}\\text{ rad}`
+      unit: 'rad',
+      steps: `\\beta = \\frac{\\int I(2\\theta)\\,\\mathrm{d}(2\\theta)}{I_{\\max}} = \\frac{${Area.toFixed(4)}}{${Imax.toFixed(4)}} = \\mathbf{${beta.toFixed(5)}\\,\\mathrm{rad}}`,
     };
   }
-  
-  if (titleLower.includes("lattice parameters")) {
-    const d = vars['d'] !== undefined ? vars['d'] : 2.0;
-    const h = vars['h'] !== undefined ? vars['h'] : 1;
-    const k = vars['k'] !== undefined ? vars['k'] : 1;
-    const l = vars['l'] !== undefined ? vars['l'] : 1;
-    const s = h*h + k*k + l*l;
+
+  if (titleLower.includes('lattice parameters')) {
+    const d = getVar(vars, ['d', 'd_hkl'], 2.0);
+    const h = getVar(vars, ['h'], 1);
+    const k = getVar(vars, ['k'], 1);
+    const l = getVar(vars, ['l'], 1);
+    const s = h * h + k * k + l * l;
     const a = d * Math.sqrt(s);
     return {
       value: a,
-      unit: "Å",
-      steps: `a = ${d.toFixed(4)} \\cdot \\sqrt{${h}^2 + ${k}^2 + ${l}^2} = ${a.toFixed(4)}\\text{ Å}`
+      unit: 'Å',
+      steps: `a = d_{hkl}\\sqrt{h^2 + k^2 + l^2} = ${d.toFixed(4)}\\sqrt{${h}^2 + ${k}^2 + ${l}^2} = ${d.toFixed(4)}\\sqrt{${s}} = \\mathbf{${a.toFixed(4)}\\,\\text{\\AA}}`,
     };
   }
 
-  if (titleLower.includes("deconvolution") || titleLower.includes("instrumental") || titleLower.includes("fwhm verifier") || titleLower.includes("caglioti")) {
-    const beta_obs = vars['β_obs'] !== undefined ? vars['β_obs'] : (vars['beta_obs'] || 0.01);
-    const beta_inst = vars['β_inst'] !== undefined ? vars['β_inst'] : (vars['beta_inst'] || 0.002);
-    const diff = beta_obs * beta_obs - beta_inst * beta_inst;
-    const beta_sample = diff > 0 ? Math.sqrt(diff) : 0;
+  if (
+    titleLower.includes('deconvolution') ||
+    titleLower.includes('instrumental') ||
+    titleLower.includes('fwhm verifier') ||
+    titleLower.includes('caglioti')
+  ) {
+    const betaObs = getVar(vars, ['β_obs', 'beta_obs'], 0.01);
+    const betaInst = getVar(vars, ['β_inst', 'beta_inst'], 0.002);
+    const diff = betaObs * betaObs - betaInst * betaInst;
+    const betaSample = diff > 0 ? Math.sqrt(diff) : 0;
     return {
-      value: beta_sample,
-      unit: "rad",
-      steps: `\\beta_{\\text{sample}} = \\sqrt{\\beta_{\\text{obs}}^2 - \\beta_{\\text{inst}}^2} = \\sqrt{${beta_obs.toFixed(5)}^2 - ${beta_inst.toFixed(5)}^2} = ${beta_sample.toFixed(5)}\\text{ rad}`
+      value: betaSample,
+      unit: 'rad',
+      steps: `\\beta_{\\mathrm{sample}} = \\sqrt{\\beta_{\\mathrm{obs}}^2 - \\beta_{\\mathrm{inst}}^2} = \\sqrt{(${betaObs.toFixed(5)})^2 - (${betaInst.toFixed(5)})^2} = \\mathbf{${betaSample.toFixed(5)}\\,\\mathrm{rad}}`,
     };
   }
 
-  if (titleLower.includes("warren") || titleLower.includes("fourier")) {
-    const A1 = vars['A_1'] !== undefined ? vars['A_1'] : (vars['A1'] || 0.85);
-    const A2 = vars['A_2'] !== undefined ? vars['A_2'] : (vars['A2'] || 0.70);
-    const L = vars['L'] !== undefined ? vars['L'] : (vars['L_nm'] || 10.0);
-    const d1 = vars['d_1'] !== undefined ? vars['d_1'] : (vars['d1'] || 2.35);
-    const d2 = vars['d_2'] !== undefined ? vars['d_2'] : (vars['d2'] || 1.17);
+  if (titleLower.includes('warren') || titleLower.includes('fourier')) {
+    const A1 = getVar(vars, ['A_1', 'A1'], 0.85);
+    const A2 = getVar(vars, ['A_2', 'A2'], 0.7);
+    const L = getVar(vars, ['L', 'L_nm'], 10.0);
+    const d1 = getVar(vars, ['d_1', 'd1'], 2.35);
+    const d2 = getVar(vars, ['d_2', 'd2'], 1.17);
     const s1 = 1 / d1;
     const s2 = 1 / d2;
     const num = Math.log(A1 / A2);
-    const den = 2 * Math.PI * Math.PI * L * L * (s2*s2 - s1*s1);
+    const den = 2 * Math.PI * Math.PI * L * L * (s2 * s2 - s1 * s1);
     const val = den !== 0 && num / den > 0 ? Math.sqrt(num / den) : 0;
     return {
       value: val,
-      unit: "",
-      steps: `\\langle \\varepsilon_L^2 \\rangle^{1/2} = \\sqrt{\\frac{\\ln(A_1 / A_2)}{2 \\pi^2 L^2 (1/d_2^2 - 1/d_1^2)}} = \\sqrt{\\frac{\\ln(${A1.toFixed(3)} / ${A2.toFixed(3)})}{2 \\pi^2 \\cdot ${L.toFixed(1)}^2 \\cdot (${s2.toFixed(4)}^2 - ${s1.toFixed(4)}^2)}} = ${val.toFixed(6)}`
+      unit: '',
+      steps: `\\begin{aligned}
+\\langle\\varepsilon_L^2\\rangle^{1/2} &= \\sqrt{\\frac{\\ln(A_1 / A_2)}{2\\pi^2 L^2 \\left(d_2^{-2} - d_1^{-2}\\right)}} \\\\[4pt]
+&= \\sqrt{\\frac{\\ln(${A1.toFixed(3)} / ${A2.toFixed(3)})}{2\\pi^2(${L.toFixed(1)})^2(${s2.toFixed(4)}^2 - ${s1.toFixed(4)}^2)}} = \\mathbf{${val.toFixed(6)}}
+\\end{aligned}`,
     };
   }
 
-  if (titleLower.includes("march-dollase") || titleLower.includes("preferred") || titleLower.includes("orientation") || titleLower.includes("texture")) {
-    const r = vars['r'] !== undefined ? vars['r'] : (vars['rValue'] || 0.8);
-    const alpha = vars['α'] !== undefined ? vars['α'] : (vars['alpha'] || 0.785);
+  if (
+    titleLower.includes('march-dollase') ||
+    titleLower.includes('preferred') ||
+    titleLower.includes('orientation') ||
+    titleLower.includes('texture')
+  ) {
+    const r = getVar(vars, ['r', 'rValue'], 0.8);
+    const alpha = getVar(vars, ['α', 'alpha'], 0.785);
     const cosA = Math.cos(alpha);
     const sinA = Math.sin(alpha);
     const term = r * r * cosA * cosA + (sinA * sinA) / r;
     const W = term !== 0 ? Math.pow(term, -1.5) : 0;
     return {
       value: W,
-      unit: "",
-      steps: `W(r, \\alpha) = (r^2 \\cos^2\\alpha + r^{-1} \\sin^2\\alpha)^{-3/2} = (${r.toFixed(3)}^2 \\cdot \\cos^2(${alpha.toFixed(3)}) + \\frac{\\sin^2(${alpha.toFixed(3)})}{${r.toFixed(3)}})^{-3/2} = ${W.toFixed(4)}`
+      unit: '',
+      steps: `\\begin{aligned}
+P_K(r,\\alpha) &= \\left(r^2\\cos^2\\alpha + r^{-1}\\sin^2\\alpha\\right)^{-3/2} \\\\[4pt]
+&= \\left(${r.toFixed(3)}^2\\cos^2(${alpha.toFixed(3)}) + \\frac{\\sin^2(${alpha.toFixed(3)})}{${r.toFixed(3)}}\\right)^{-3/2} = \\mathbf{${W.toFixed(4)}}
+\\end{aligned}`,
     };
   }
 
-  if (titleLower.includes("neutron de broglie") || titleLower.includes("neutron wavelength") || titleLower.includes("de broglie")) {
-    const lambda = vars['λ'] !== undefined ? vars['λ'] : (vars['lambda'] || 1.54);
+  if (titleLower.includes('neutron de broglie') || titleLower.includes('neutron wavelength') || titleLower.includes('de broglie')) {
+    const lambda = getVar(vars, ['λ', 'lambda'], 1.54);
     const E = lambda !== 0 ? 81.8048 / (lambda * lambda) : 0;
     return {
       value: E,
-      unit: "meV",
-      steps: `E = \\frac{81.8048}{\\lambda^2} = \\frac{81.8048}{${lambda.toFixed(4)}^2} = ${E.toFixed(2)}\\text{ meV}`
+      unit: 'meV',
+      steps: `E = \\frac{h^2}{2m_n\\lambda^2} = \\frac{81.8048\\,\\mathrm{meV}\\cdot\\text{\\AA}^2}{(${lambda.toFixed(4)}\\,\\text{\\AA})^2} = \\mathbf{${E.toFixed(2)}\\,\\mathrm{meV}}`,
     };
   }
 
-  if (titleLower.includes("curie") || titleLower.includes("weiss") || titleLower.includes("susceptibility")) {
-    const C = vars['C'] !== undefined ? vars['C'] : 1.5;
-    const T = vars['T'] !== undefined ? vars['T'] : 10.0;
-    const theta_p = vars['θ_p'] !== undefined ? vars['θ_p'] : (vars['theta_p'] || 5.0);
-    const diff = T - theta_p;
+  if (titleLower.includes('curie') || titleLower.includes('weiss') || titleLower.includes('susceptibility')) {
+    const C = getVar(vars, ['C'], 1.5);
+    const T = getVar(vars, ['T'], 10.0);
+    const thetaP = getVar(vars, ['θ_p', 'theta_p'], 5.0);
+    const diff = T - thetaP;
     const chi = diff !== 0 ? C / diff : 0;
     return {
       value: chi,
-      unit: "emu/mol",
-      steps: `\\chi = \\frac{C}{T - \\theta_p} = \\frac{${C.toFixed(2)}}{${T.toFixed(1)} - ${theta_p.toFixed(1)}} = ${chi.toFixed(4)}\\text{ emu/mol}`
+      unit: 'emu/mol',
+      steps: `\\chi(T) = \\frac{C}{T - \\theta_p} = \\frac{${C.toFixed(2)}}{${T.toFixed(1)} - ${thetaP.toFixed(1)}} = \\mathbf{${chi.toFixed(4)}\\,\\mathrm{emu/mol}}`,
     };
   }
 
-  if (titleLower.includes("structure factor") || titleLower.includes("selection") || titleLower.includes("absence")) {
-    const h = vars['h'] !== undefined ? Math.round(vars['h']) : 1;
-    const k = vars['k'] !== undefined ? Math.round(vars['k']) : 1;
-    const l = vars['l'] !== undefined ? Math.round(vars['l']) : 1;
-    const f = vars['f'] !== undefined ? vars['f'] : 1.0;
-    
+  if (titleLower.includes('structure factor') || titleLower.includes('selection') || titleLower.includes('absence')) {
+    const h = Math.round(getVar(vars, ['h'], 1));
+    const k = Math.round(getVar(vars, ['k'], 1));
+    const l = Math.round(getVar(vars, ['l'], 1));
+    const f = getVar(vars, ['f'], 1.0);
     const hEven = h % 2 === 0;
     const kEven = k % 2 === 0;
     const lEven = l % 2 === 0;
-    const allowed = (hEven === kEven) && (kEven === lEven);
+    const allowed = hEven === kEven && kEven === lEven;
     const F = allowed ? 4 * f : 0;
-    
     return {
       value: F,
-      unit: "",
-      steps: `F_{hkl} = f \\cdot [1 + e^{i\\pi(h+k)} + e^{i\\pi(k+l)} + e^{i\\pi(h+l)}] = ${f.toFixed(2)} \\cdot [1 + e^{i\\pi(${h}+${k})} + e^{i\\pi(${k}+${l})} + e^{i\\pi(${h}+${l})}] = ${F.toFixed(2)}`
+      unit: '',
+      steps: `\\begin{aligned}
+F_{hkl} &= f\\left[1 + e^{i\\pi(h+k)} + e^{i\\pi(k+l)} + e^{i\\pi(h+l)}\\right] \\\\[4pt]
+&= ${f.toFixed(2)}\\left[1 + e^{i\\pi(${h}+${k})} + e^{i\\pi(${k}+${l})} + e^{i\\pi(${h}+${l})}\\right] = \\mathbf{${F.toFixed(2)}}
+\\end{aligned}`,
     };
   }
 
-  if (titleLower.includes("theoretical density") || titleLower.includes("density verification") || titleLower.includes("crystallographic density")) {
-    const Z = vars['Z'] !== undefined ? vars['Z'] : 4;
-    const M = vars['M'] !== undefined ? vars['M'] : 28.0855;
-    const V = vars['V_cell'] !== undefined ? vars['V_cell'] : 160.0;
-    const Na = vars['N_A'] !== undefined ? vars['N_A'] : 6.02214e23;
-    
-    // rho = (Z * M) / (Na * V * 1e-24)
-    // where V is in Angstrom^3, so V * 10^-24 cm^3
+  if (
+    titleLower.includes('theoretical density') ||
+    titleLower.includes('density verification') ||
+    titleLower.includes('crystallographic density')
+  ) {
+    const Z = getVar(vars, ['Z'], 4);
+    const M = getVar(vars, ['M'], 28.0855);
+    const V = getVar(vars, ['V_cell', 'V'], 160.0);
+    const Na = getVar(vars, ['N_A'], 6.02214e23);
     const rho = V !== 0 ? (Z * M) / (Na * V * 1e-24) : 0;
     return {
       value: rho,
-      unit: "g/cm³",
-      steps: `\\rho_{\\text{calc}} = \\frac{Z \\cdot M}{N_A \\cdot V_{\\text{cell}} \\cdot 10^{-24}} = \\frac{${Math.round(Z)} \\cdot ${M.toFixed(4)}}{6.022 \\times 10^{23} \\cdot ${V.toFixed(2)} \\cdot 10^{-24}} = ${rho.toFixed(4)}\\text{ g/cm}^3`
+      unit: 'g/cm³',
+      steps: `\\begin{aligned}
+\\rho_{\\mathrm{calc}} &= \\frac{Z\\,M}{N_{\\mathrm{A}}\\,V_{\\mathrm{cell}} \\times 10^{-24}} \\\\[4pt]
+&= \\frac{${Math.round(Z)} \\times ${M.toFixed(4)}}{6.02214\\times 10^{23} \\times ${V.toFixed(2)} \\times 10^{-24}} = \\mathbf{${rho.toFixed(4)}\\,\\mathrm{g/cm}^3}
+\\end{aligned}`,
     };
   }
 
-  if (titleLower.includes("cubic d-spacing") || titleLower.includes("interplanar d-spacing") || titleLower.includes("spacing verification")) {
-    const a = vars['a'] !== undefined ? vars['a'] : 5.43;
-    const h = vars['h'] !== undefined ? vars['h'] : 1;
-    const k = vars['k'] !== undefined ? vars['k'] : 1;
-    const l = vars['l'] !== undefined ? vars['l'] : 1;
-    const s = h*h + k*k + l*l;
+  if (
+    titleLower.includes('cubic d-spacing') ||
+    titleLower.includes('interplanar d-spacing') ||
+    titleLower.includes('spacing verification')
+  ) {
+    const a = getVar(vars, ['a'], 5.43);
+    const h = getVar(vars, ['h'], 1);
+    const k = getVar(vars, ['k'], 1);
+    const l = getVar(vars, ['l'], 1);
+    const s = h * h + k * k + l * l;
     const d = s !== 0 ? a / Math.sqrt(s) : 0;
     return {
       value: d,
-      unit: "Å",
-      steps: `d_{hkl} = \\frac{a}{\\sqrt{h^2 + k^2 + l^2}} = \\frac{${a.toFixed(4)}}{\\sqrt{${h}^2 + ${k}^2 + ${l}^2}} = ${d.toFixed(5)}\\text{ Å}`
+      unit: 'Å',
+      steps: `d_{hkl} = \\frac{a}{\\sqrt{h^2 + k^2 + l^2}} = \\frac{${a.toFixed(4)}\\,\\text{\\AA}}{\\sqrt{${h}^2 + ${k}^2 + ${l}^2}} = \\mathbf{${d.toFixed(5)}\\,\\text{\\AA}}`,
     };
   }
 
-  if (titleLower.includes("mass-energy equivalence") || titleLower.includes("einstein") || titleLower.includes("rest energy")) {
-    const m = vars['m'] !== undefined ? vars['m'] : 1.67e-27;
-    const c = vars['c'] !== undefined ? vars['c'] : 299792458;
+  if (titleLower.includes('mass-energy equivalence') || titleLower.includes('einstein') || titleLower.includes('rest energy')) {
+    const m = getVar(vars, ['m'], 1.67e-27);
+    const c = getVar(vars, ['c'], 299792458);
     const E = m * c * c;
-    // pJ = 10^12 J
     const EpJ = E * 1e12;
-    const mFormatted = Math.abs(m) < 1e-4 || Math.abs(m) >= 1e6 ? m.toExponential(5) : m.toFixed(5);
-    const eFormatted = Math.abs(E) < 1e-4 || Math.abs(E) >= 1e6 ? E.toExponential(5) : E.toFixed(5);
-    const epjFormatted = Math.abs(EpJ) < 1e-4 || Math.abs(EpJ) >= 1e6 ? EpJ.toExponential(5) : EpJ.toFixed(5);
+    const fmt = (v: number) => (Math.abs(v) < 1e-4 || Math.abs(v) >= 1e6 ? v.toExponential(5) : v.toFixed(5));
     return {
       value: EpJ,
-      unit: "pJ",
-      steps: `E = m \\cdot c^2 = ${mFormatted} \\cdot (${c.toExponential(4)})^2 = ${eFormatted}\\text{ J} = ${epjFormatted}\\text{ pJ}`
+      unit: 'pJ',
+      steps: `\\begin{aligned}
+E &= m\\,c^2 = (${fmt(m)}\\,\\mathrm{kg})(2.99792\\times 10^8\\,\\mathrm{m/s})^2 \\\\[4pt]
+&= ${fmt(E)}\\,\\mathrm{J} = \\mathbf{${fmt(EpJ)}\\,\\mathrm{pJ}}
+\\end{aligned}`,
     };
   }
 
   return {
     value: originalResult,
-    unit: "",
-    steps: `\\text{Result} = ${typeof originalResult === 'number' ? originalResult.toFixed(4) : originalResult}`
+    unit: '',
+    steps: `\\mathrm{Evaluated\\ Value} = \\mathbf{${typeof originalResult === 'number' && !isNaN(originalResult) ? originalResult.toFixed(4) : originalResult}}`,
   };
 };
 
+const formatNumericReadout = (val: number | string, digits = 4): string => {
+  if (typeof val !== 'number') return String(val);
+  if (isNaN(val)) return '—';
+  if (val !== 0 && (Math.abs(val) < 1e-3 || Math.abs(val) >= 1e6)) {
+    return val.toExponential(digits);
+  }
+  return val.toFixed(digits);
+};
+
 export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
-  title = "Scientific Math Control & Verification",
+  title = 'Scientific Math Control & Verification',
   formula,
   description,
   variables,
   result,
   resultUnit,
-  resultName
+  resultName,
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const [isSimulating, setIsSimulating] = useState(false);
   const [showUncertainty, setShowUncertainty] = useState(false);
-  const [inputUncertaintyPercent, setInputUncertaintyPercent] = useState(2); // Default ±2%
+  const [inputUncertaintyPercent, setInputUncertaintyPercent] = useState(2);
   const [copiedState, setCopiedState] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<'latex' | 'python' | 'json'>('latex');
   const [massScale, setMassScale] = useState<'atom' | 'mole' | 'gram' | 'kg' | 'custom'>('atom');
   const [customMassGrams, setCustomMassGrams] = useState<number>(1.0);
+  const [simulatedValues, setSimulatedValues] = useState<Record<string, number>>({});
 
-  // Dynamic values state for the simulator
-  const [simulatedValues, setSimulatedValues] = useState<{ [symbol: string]: number }>({});
-
-  // Sync simulator state when inputs/props change
   useEffect(() => {
-    const initialSims: { [symbol: string]: number } = {};
-    variables.forEach(v => {
+    const initialSims: Record<string, number> = {};
+    variables.forEach((v) => {
       const parsed = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
       initialSims[v.symbol] = isNaN(parsed) ? 1 : parsed;
     });
     setSimulatedValues(initialSims);
   }, [variables]);
 
-  // Copy helper
   const handleCopy = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
+    navigator.clipboard?.writeText(text);
     setCopiedState(type);
     setTimeout(() => setCopiedState(null), 2000);
   };
 
-  // Base rendered LaTeX formula
-  const renderedFormulaHtml = useMemo(() => {
-    try {
-      return katex.renderToString(formula, {
-        throwOnError: false,
-        displayMode: true,
-      });
-    } catch (e) {
-      console.error(e);
-      return `<span class="text-rose-400 font-mono">${formula}</span>`;
-    }
-  }, [formula]);
-
-  // Einstein mass-energy equivalence helpers & computations
   const titleLower = title.toLowerCase();
-  const isMassEnergy = titleLower.includes("mass-energy equivalence") || titleLower.includes("einstein") || titleLower.includes("rest energy");
+  const isMassEnergy =
+    titleLower.includes('mass-energy equivalence') ||
+    titleLower.includes('einstein') ||
+    titleLower.includes('rest energy');
   const elementSymbol = title.split(' ')[0] || 'Element';
 
   const restMassOfSingleAtom = useMemo(() => {
     const v0 = variables[0]?.value;
-    return typeof v0 === 'string' ? parseFloat(v0) : (v0 || 1.67e-27);
+    return typeof v0 === 'string' ? parseFloat(v0) : v0 || 1.67e-27;
   }, [variables]);
 
-  const atomicWeight = useMemo(() => {
-    return restMassOfSingleAtom / 1.66053906660e-27;
-  }, [restMassOfSingleAtom]);
+  const atomicWeight = useMemo(() => restMassOfSingleAtom / 1.6605390666e-27, [restMassOfSingleAtom]);
 
   const mSelected = useMemo(() => {
-    if (massScale === 'atom') {
-      return restMassOfSingleAtom;
-    } else if (massScale === 'mole') {
-      return atomicWeight * 1e-3;
-    } else if (massScale === 'gram') {
-      return 1e-3;
-    } else if (massScale === 'kg') {
-      return 1.0;
-    } else if (massScale === 'custom') {
-      return customMassGrams * 1e-3;
-    }
+    if (massScale === 'atom') return restMassOfSingleAtom;
+    if (massScale === 'mole') return atomicWeight * 1e-3;
+    if (massScale === 'gram') return 1e-3;
+    if (massScale === 'kg') return 1.0;
+    if (massScale === 'custom') return customMassGrams * 1e-3;
     return restMassOfSingleAtom;
   }, [massScale, restMassOfSingleAtom, atomicWeight, customMassGrams]);
 
-  // Active inputs depending on simulator state
   const currentVariablesMap = useMemo(() => {
-    const map: { [symbol: string]: number } = {};
-    variables.forEach(v => {
+    const map: Record<string, number> = {};
+    variables.forEach((v) => {
       const rawVal = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
       map[v.symbol] = isSimulating ? (simulatedValues[v.symbol] ?? rawVal) : rawVal;
     });
@@ -358,78 +433,71 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
     return map;
   }, [variables, isSimulating, simulatedValues, isMassEnergy, mSelected]);
 
-  // Compute simulated result & LaTeX evaluation step
   const evaluated = useMemo(() => {
     const numericOriginalResult = typeof result === 'string' ? parseFloat(result) : result;
-    return evaluateFormula(title, currentVariablesMap, numericOriginalResult);
-  }, [title, currentVariablesMap, result]);
+    return evaluateFormula(title, currentVariablesMap, variables, numericOriginalResult);
+  }, [title, currentVariablesMap, variables, result]);
 
-  // Latex of evaluated step
-  const evaluatedStepHtml = useMemo(() => {
-    try {
-      return katex.renderToString(evaluated.steps, {
-        throwOnError: false,
-        displayMode: true,
-      });
-    } catch {
-      return evaluated.steps;
-    }
-  }, [evaluated]);
+  const activeUnit = evaluated.unit || resultUnit;
+  const dimensionTag = useMemo(() => inferDimensionalTag(title, activeUnit), [title, activeUnit]);
 
-  // Generate python simulation snippet
+  const equationLegend = useMemo(
+    () =>
+      variables.slice(0, 6).map((v) => ({
+        symbol: v.symbol,
+        meaning: v.unit ? `${v.name} (${v.unit})` : v.name,
+      })),
+    [variables]
+  );
+
+  // Python script snippet
   const pythonSnippet = useMemo(() => {
-    let pythonCode = `import numpy as np\n\n# --- Scientific Math Verification: ${title} ---\n`;
-    variables.forEach(v => {
-      const val = currentVariablesMap[v.symbol] || 0;
-      const cleanSymbol = v.symbol.replace(/[^a-zA-Z0-9]/g, '_');
-      pythonCode += `${cleanSymbol.toLowerCase()} = ${val} # ${v.name} (${v.unit || 'dimensionless'})\n`;
+    let pythonCode = `import numpy as np\n\n# Scientific Mathematical Verification: ${title}\n`;
+    variables.forEach((v) => {
+      const val = currentVariablesMap[v.symbol] ?? 0;
+      const cleanSymbol = v.symbol.replace(/[^a-zA-Z0-9]/g, '_').replace(/^_+/, 'var_').toLowerCase();
+      pythonCode += `${cleanSymbol} = ${val}  # ${v.name} (${v.unit || 'dimensionless'})\n`;
     });
-    
-    pythonCode += `\n# Calculation formula:\n`;
-    const titleLower = title.toLowerCase();
-    if (titleLower.includes("bragg")) {
-      pythonCode += `d_spacing = (1 * lambda) / (2 * np.sin(theta))\nprint(f"Calculated d-spacing: {d_spacing:.5f} Å")\n`;
-    } else if (titleLower.includes("scherrer")) {
-      pythonCode += `factor = 0.1 if wavelength < 10 else 1.0\nd_v = (k * wavelength * factor) / (beta * np.cos(theta))\nprint(f"Crystallite size: {d_v:.3f} nm")\n`;
-    } else if (titleLower.includes("williamson") || titleLower.includes("advanced integral breadth")) {
-      pythonCode += `factor = 0.1 if wavelength < 10 else 1.0\ny_val = (k * wavelength * factor) / d + 4 * epsilon * np.sin(theta)\nprint(f"Broadening beta * cos(theta): {y_val:.6f} rad")\n`;
-    } else if (titleLower.includes("pseudo-voigt")) {
-      pythonCode += `intensity = eta * l + (1 - eta) * g\nprint(f"Calculated intensity: {intensity:.4f}")\n`;
-    } else if (titleLower.includes("integral breadth")) {
-      pythonCode += `beta = area / i_max\nprint(f"Integral breadth: {beta:.5f} rad")\n`;
-    } else if (titleLower.includes("lattice parameters")) {
-      pythonCode += `s = h**2 + k**2 + l**2\na = d * np.sqrt(s)\nprint(f"Unit cell a: {a:.5f} Å")\n`;
-    } else if (titleLower.includes("mass-energy equivalence") || titleLower.includes("einstein") || titleLower.includes("rest energy")) {
-      pythonCode += `# Einstein Mass-Energy Equivalence: E = m * c^2\nc = 299792458  # Speed of light in m/s\ne_joules = m * (c ** 2)\ne_pj = e_joules * 1e12\ne_mev = e_joules / 1.602176634e-13\nprint(f"Rest Energy E = {e_joules:.6e} Joules ({e_pj:.6e} pJ, {e_mev:.6e} MeV)")\n`;
+
+    pythonCode += `\n# Evaluation\n`;
+    if (titleLower.includes('bragg')) {
+      pythonCode += `d_hkl = (n * lambda_val) / (2.0 * np.sin(theta))\nprint(f"d_hkl = {d_hkl:.5f} Å")\n`;
+    } else if (titleLower.includes('scherrer')) {
+      const lambdaUnit = getUnitByKeys(variables, ['λ', 'lambda']);
+      const { factor } = wavelengthToNmFactor(getVar(currentVariablesMap, ['λ', 'lambda'], 1.54056), lambdaUnit);
+      pythonCode += `d_hkl_nm = (k_hkl * lambda_val * ${factor}) / (beta_s * np.cos(theta))\nprint(f"D_hkl = {d_hkl_nm:.3f} nm")\n`;
+    } else if (titleLower.includes('williamson') || titleLower.includes('advanced integral breadth')) {
+      pythonCode += `y_val = (k * lambda_val * 0.1) / d + 4.0 * epsilon * np.sin(theta)\nprint(f"beta * cos(theta) = {y_val:.6f} rad")\n`;
+    } else if (titleLower.includes('mass-energy equivalence') || titleLower.includes('einstein')) {
+      pythonCode += `c = 299792458.0  # m/s\ne_joules = m * c**2\nprint(f"E = {e_joules:.6e} J ({e_joules * 1e12:.6e} pJ)")\n`;
     } else {
-      pythonCode += `# Custom formula: ${formula}\nresult = ${evaluated.value}\nprint(f"Result: {result}")\n`;
+      pythonCode += `# LaTeX: ${formula}\nresult = ${evaluated.value}\nprint(f"${resultName} = {result:.5g} ${activeUnit}")\n`;
     }
     return pythonCode;
-  }, [title, variables, currentVariablesMap, formula, evaluated]);
+  }, [title, titleLower, variables, currentVariablesMap, formula, evaluated, resultName, activeUnit]);
 
-  // JSON metadata string
   const jsonMetadata = useMemo(() => {
     const obj = {
       title,
       formula,
       description,
-      timestamp: new Date().toISOString(),
-      parameters: variables.map(v => ({
+      dimensions: dimensionTag,
+      parameters: variables.map((v) => ({
         symbol: v.symbol,
         name: v.name,
-        currentValue: currentVariablesMap[v.symbol],
-        unit: v.unit
+        value: currentVariablesMap[v.symbol],
+        unit: v.unit || 'dimensionless',
       })),
-      verificationResult: {
+      evaluatedResult: {
         name: resultName,
         value: evaluated.value,
-        unit: evaluated.unit || resultUnit
-      }
+        unit: activeUnit,
+      },
     };
     return JSON.stringify(obj, null, 2);
-  }, [title, formula, description, variables, currentVariablesMap, resultName, evaluated, resultUnit]);
+  }, [title, formula, description, dimensionTag, variables, currentVariablesMap, resultName, evaluated, activeUnit]);
 
-  // Error Propagation & Sensitivities Analysis
+  // First-order Gaussian error propagation (central finite differences)
   const sensitivityAnalysis = useMemo(() => {
     const baseResult = evaluated.value;
     if (typeof baseResult !== 'number' || isNaN(baseResult) || baseResult === 0) {
@@ -437,408 +505,357 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
         variablesSensitivity: [],
         totalUncertaintyAbs: 0,
         totalUncertaintyRelPercent: 0,
-        mostSensitiveVar: null
+        mostSensitiveVar: null,
       };
     }
 
-    const deltaPercent = 0.001; // Tiny perturbation for numerical derivative
-    const list = variables.map(v => {
-      const originalVal = currentVariablesMap[v.symbol];
-      if (typeof originalVal !== 'number' || isNaN(originalVal)) {
-        return { symbol: v.symbol, name: v.name, sensitivity: 0, errorContribution: 0 };
+    const eps = 1e-4;
+    const list = variables.map((v) => {
+      const x0 = currentVariablesMap[v.symbol];
+      if (typeof x0 !== 'number' || isNaN(x0) || x0 === 0) {
+        return {
+          symbol: v.symbol,
+          name: v.name,
+          unit: v.unit,
+          partialDerivative: 0,
+          elasticity: 0,
+          sensitivity: 0,
+        };
       }
 
-      // Perturb variable up
-      const perturbedMapUp = { ...currentVariablesMap, [v.symbol]: originalVal * (1 + deltaPercent) };
-      const resUp = evaluateFormula(title, perturbedMapUp, baseResult).value;
-
-      // Numerical derivative: (dy / dx)
-      const dx = originalVal * deltaPercent;
-      const dy = resUp - baseResult;
-      const partialDerivative = dx !== 0 ? dy / dx : 0;
-
-      // Absolute error propagated from this variable (e.g. ±2% error)
-      const variableUncertainty = originalVal * (inputUncertaintyPercent / 100);
-      const propagatedErrorAbs = Math.abs(partialDerivative * variableUncertainty);
-
-      // Relative sensitivity factor
-      const sensitivity = isNaN(propagatedErrorAbs) ? 0 : propagatedErrorAbs;
+      const dx = Math.abs(x0) * eps;
+      const resUp = evaluateFormula(title, { ...currentVariablesMap, [v.symbol]: x0 + dx }, variables, baseResult).value;
+      const resDown = evaluateFormula(title, { ...currentVariablesMap, [v.symbol]: x0 - dx }, variables, baseResult).value;
+      const partialDerivative = (resUp - resDown) / (2 * dx);
+      const sigmaX = Math.abs(x0) * (inputUncertaintyPercent / 100);
+      const sigmaY = Math.abs(partialDerivative * sigmaX);
+      const elasticity = Math.abs((partialDerivative * x0) / baseResult);
 
       return {
         symbol: v.symbol,
         name: v.name,
-        sensitivity, // Absolute change in result
-        errorContribution: originalVal !== 0 ? (Math.abs(partialDerivative * originalVal) / Math.abs(baseResult)) : 0
+        unit: v.unit,
+        partialDerivative: isFinite(partialDerivative) ? partialDerivative : 0,
+        elasticity: isFinite(elasticity) ? elasticity : 0,
+        sensitivity: isFinite(sigmaY) ? sigmaY : 0,
       };
     });
 
-    // Propagated total uncertainty (Quadratic sum: sqrt(sum(df_dx * dx)^2))
-    const totalUncertaintyAbs = Math.sqrt(list.reduce((acc, item) => acc + Math.pow(item.sensitivity, 2), 0));
+    const totalUncertaintyAbs = Math.sqrt(list.reduce((acc, item) => acc + item.sensitivity * item.sensitivity, 0));
     const totalUncertaintyRelPercent = (totalUncertaintyAbs / Math.abs(baseResult)) * 100;
-
-    // Rank variables by absolute sensitivity contribution
     const sorted = [...list].sort((a, b) => b.sensitivity - a.sensitivity);
     const maxContribution = sorted[0]?.sensitivity || 1;
 
-    const listWithRelativePercentages = sorted.map(item => ({
-      ...item,
-      percentageOfMax: maxContribution > 0 ? (item.sensitivity / maxContribution) * 100 : 0
-    }));
-
     return {
-      variablesSensitivity: listWithRelativePercentages,
+      variablesSensitivity: sorted.map((item) => ({
+        ...item,
+        percentageOfMax: maxContribution > 0 ? (item.sensitivity / maxContribution) * 100 : 0,
+      })),
       totalUncertaintyAbs,
       totalUncertaintyRelPercent,
-      mostSensitiveVar: sorted[0] || null
+      mostSensitiveVar: sorted[0] || null,
     };
   }, [title, currentVariablesMap, evaluated.value, variables, inputUncertaintyPercent]);
 
-  // Helper to render KaTeX symbols beautifully
-  const renderSymbol = (symbol: string) => {
-    const hasMath = /[\\_{}^[\]()|+=?*./ -]/.test(symbol) || 
-                    ['η', 'β', 'λ', 'θ', 'ε', 'α', 'K', 'n', 'R_wp', 'R_{wp}', 'β_obs', 'β_inst', 'θ_p', 'ρ_calc', 'V_cell', 'N_A', 'd_hkl', 'ρ'].some(kw => symbol.includes(kw));
-    
-    if (hasMath) {
-      let tex = symbol;
-      if (symbol === 'η') tex = '\\eta';
-      else if (symbol === 'β') tex = '\\beta';
-      else if (symbol === 'λ') tex = '\\lambda';
-      else if (symbol === 'θ') tex = '\\theta';
-      else if (symbol === 'ε') tex = '\\varepsilon';
-      else if (symbol === 'α') tex = '\\alpha';
-      else if (symbol === 'β_obs') tex = '\\beta_{\\text{obs}}';
-      else if (symbol === 'β_inst') tex = '\\beta_{\\text{inst}}';
-      else if (symbol === 'θ_p') tex = '\\theta_{p}';
-      else if (symbol === 'Slope (4ε)') tex = '4\\varepsilon';
-      else if (symbol === 'R_wp' || symbol === 'R_{wp}') tex = 'R_{\\text{wp}}';
-      else if (symbol === 'd(avg)') tex = 'd_{\\text{avg}}';
-      else if (symbol === 'ρ_calc' || symbol === 'ρ') tex = '\\rho_{\\text{calc}}';
-      else if (symbol === 'V_cell') tex = 'V_{\\text{cell}}';
-      else if (symbol === 'N_A') tex = 'N_A';
-      else if (symbol === 'd_hkl') tex = 'd_{hkl}';
-      
-      try {
-        return <span dangerouslySetInnerHTML={{ __html: katex.renderToString(tex, { throwOnError: false, displayMode: false }) }} />;
-      } catch {
-        return symbol;
-      }
-    }
-    return symbol;
+  const eJoules = useMemo(() => mSelected * 299792458 * 299792458, [mSelected]);
+  const eMeV = useMemo(() => eJoules / 1.602176634e-13, [eJoules]);
+  const eTntTons = useMemo(() => eJoules / 4.184e9, [eJoules]);
+  const homesPowered = useMemo(() => eJoules / 3.816e10, [eJoules]);
+  const hiroshimaBombs = useMemo(() => eJoules / 6.276e13, [eJoules]);
+  const lightbulbYears = useMemo(() => eJoules / 1.893456e9, [eJoules]);
+
+  const resetAllSimulated = () => {
+    const initial: Record<string, number> = {};
+    variables.forEach((v) => {
+      const parsed = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
+      initial[v.symbol] = isNaN(parsed) ? 0 : parsed;
+    });
+    setSimulatedValues(initial);
   };
 
-  const eJoules = useMemo(() => {
-    const c = 299792458;
-    return mSelected * c * c;
-  }, [mSelected]);
-
-  const eMeV = useMemo(() => {
-    return eJoules / 1.602176634e-13;
-  }, [eJoules]);
-
-  const eTntTons = useMemo(() => {
-    return eJoules / 4.184e9;
-  }, [eJoules]);
-
-  const homesPowered = useMemo(() => {
-    return eJoules / 3.816e10;
-  }, [eJoules]);
-
-  const hiroshimaBombs = useMemo(() => {
-    return eJoules / 6.276e13;
-  }, [eJoules]);
-
-  const lightbulbYears = useMemo(() => {
-    return eJoules / 1.893456e9;
-  }, [eJoules]);
-
   return (
-    <div className="mt-4 border border-indigo-500/20 bg-gradient-to-b from-indigo-950/10 to-slate-900/40 rounded-2xl overflow-hidden shadow-2xl transition-all duration-300 hover:border-indigo-500/30">
-      
-      {/* Header Accordion Button */}
-      <button 
+    <section
+      aria-label={title}
+      className="mt-4 bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden transition-colors"
+    >
+      {/* Header Accordion Bar */}
+      <button
+        type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-gradient-to-r from-indigo-950/20 to-transparent hover:from-indigo-950/30 transition-all duration-300"
         id="scientific-check-header"
+        className="w-full flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 hover:bg-slate-50/80 dark:hover:bg-slate-900/60 transition-colors cursor-pointer text-left"
       >
-        <div className="flex items-center gap-3">
-          <div className="p-1.5 rounded-lg bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-blue-600 dark:text-sky-400 shrink-0">
             <Calculator className="w-4 h-4" />
           </div>
-          <div className="text-left">
-            <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-mono block leading-none mb-1">
-              PHYSICS MODULE VERIFIER
-            </span>
-            <span className="text-sm font-bold text-slate-100 font-sans tracking-tight">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-slate-900 dark:text-white leading-snug truncate">
               {title}
-            </span>
+            </div>
+            <div className="flex flex-wrap items-center gap-x-2 text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <span>Analytical Equation &amp; Sensitivity Audit</span>
+              <span aria-hidden="true">·</span>
+              <span className="font-mono tabular-nums text-slate-700 dark:text-slate-300">
+                {formatNumericReadout(evaluated.value, 3)} {activeUnit}
+              </span>
+            </div>
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          {isOpen && (
-            <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-widest font-mono flex items-center gap-1 bg-emerald-500/10 px-2 py-0.5 rounded border border-emerald-500/20 mr-2">
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-              Verified
-            </span>
+
+        <div className="flex items-center gap-3 shrink-0 ml-auto">
+          {!isOpen && (
+            <div className="hidden md:block px-3 py-1 rounded-lg bg-slate-50 dark:bg-slate-950 border border-slate-200/80 dark:border-slate-800 text-slate-800 dark:text-slate-200 max-w-[320px] overflow-hidden">
+              <MathFormula tex={formula} />
+            </div>
           )}
-          <ChevronDown className={`w-4 h-4 text-indigo-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`} />
+          <span className="text-xs font-medium text-slate-500 dark:text-slate-400 hidden sm:inline">
+            {isOpen ? 'Hide derivation' : 'Inspect formula'}
+          </span>
+          <ChevronDown
+            className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+          />
         </div>
       </button>
 
       <AnimatePresence>
         {isOpen && (
-          <motion.div 
-            initial={{ height: 0, opacity: 0 }} 
-            animate={{ height: 'auto', opacity: 1 }} 
-            exit={{ height: 0, opacity: 0 }} 
-            transition={{ duration: 0.3, ease: 'easeInOut' }}
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
             className="overflow-hidden"
           >
-            <div className="p-5 border-t border-indigo-500/10 flex flex-col gap-6">
-              
-              {/* Description bar */}
-              <div className="text-xs text-slate-400 bg-slate-950/40 p-3 rounded-xl border border-slate-800/80 leading-relaxed">
+            <div className="p-5 sm:p-6 border-t border-slate-200 dark:border-slate-800 space-y-5">
+              {/* Concise Physical Context */}
+              <p className="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
                 {description}
-              </div>
+              </p>
 
-              {/* Governing Equation Box */}
-              <div className="bg-slate-950 border border-slate-800 rounded-2xl p-5 flex flex-col items-center justify-center relative overflow-hidden group shadow-inner">
-                <div className="absolute top-3 left-3 flex items-center gap-1.5 opacity-60">
-                  <Sigma className="w-3.5 h-3.5 text-slate-400" />
-                  <span className="text-[9px] font-mono uppercase tracking-wider text-slate-400">Governing physical Relation</span>
-                </div>
-                <div 
-                  className="mt-6 text-slate-100 max-w-full overflow-x-auto select-all text-center"
-                  dangerouslySetInnerHTML={{ __html: renderedFormulaHtml }} 
-                />
-              </div>
+              {/* Governing Equation Plate */}
+              <EquationPlate
+                tex={formula}
+                label="Governing Physical Law"
+                dimension={dimensionTag}
+                eqNumber="(1)"
+                emphasis="primary"
+                legend={equationLegend}
+              />
 
-              {/* Simulator & Error propagation Controls */}
-              <div className="flex flex-wrap items-center justify-between gap-3 bg-indigo-950/10 p-3 rounded-xl border border-indigo-500/10">
-                <div className="flex items-center gap-2">
+              {/* Analytical Controls Toolbar */}
+              <div className="flex flex-wrap items-center justify-between gap-3 py-2.5 px-3.5 rounded-lg bg-slate-50 dark:bg-slate-900/70 border border-slate-200 dark:border-slate-800">
+                <div className="flex flex-wrap items-center gap-2">
                   <button
+                    type="button"
                     onClick={() => {
+                      if (!isSimulating) resetAllSimulated();
                       setIsSimulating(!isSimulating);
-                      if (!isSimulating) {
-                        // Reset simulator values to current props
-                        const initial: { [symbol: string]: number } = {};
-                        variables.forEach(v => {
-                          initial[v.symbol] = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
-                        });
-                        setSimulatedValues(initial);
-                      }
                     }}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      isSimulating 
-                        ? 'bg-indigo-600 text-white border border-indigo-400 shadow-lg shadow-indigo-600/25' 
-                        : 'bg-slate-900 text-indigo-400 border border-indigo-500/20 hover:bg-slate-800'
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer border whitespace-nowrap ${
+                      isSimulating
+                        ? 'bg-slate-900 dark:bg-sky-500/20 text-white dark:text-sky-200 border-slate-900 dark:border-sky-500/60'
+                        : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-400'
                     }`}
                   >
                     <Sliders className="w-3.5 h-3.5" />
-                    {isSimulating ? 'Active Simulator' : 'Toggle Math Simulator'}
+                    <span>{isSimulating ? 'Simulator Active' : 'Parameter Simulator'}</span>
                   </button>
 
                   <button
+                    type="button"
                     onClick={() => setShowUncertainty(!showUncertainty)}
-                    className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${
-                      showUncertainty 
-                        ? 'bg-amber-600 text-white border border-amber-400 shadow-lg shadow-amber-600/25' 
-                        : 'bg-slate-900 text-amber-500 border border-amber-500/20 hover:bg-slate-800'
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-colors cursor-pointer border whitespace-nowrap ${
+                      showUncertainty
+                        ? 'bg-amber-600 dark:bg-amber-500/20 text-white dark:text-amber-200 border-amber-600 dark:border-amber-500/60'
+                        : 'bg-white dark:bg-slate-950 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-slate-400'
                     }`}
                   >
-                    <AlertTriangle className="w-3.5 h-3.5" />
-                    {showUncertainty ? 'Sensitivities: ON' : 'Error Propagation Check'}
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    <span>{showUncertainty ? 'Hide Error Propagation' : 'Error Propagation'}</span>
                   </button>
                 </div>
 
                 {isSimulating && (
-                  <span className="text-[10px] text-amber-400 font-mono flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/20">
-                    <span className="w-1.5 h-1.5 rounded-full bg-amber-400 animate-ping" />
-                    Simulated Mode Active
-                  </span>
+                  <button
+                    type="button"
+                    onClick={resetAllSimulated}
+                    className="inline-flex items-center gap-1 text-xs font-medium text-blue-600 dark:text-sky-400 hover:underline cursor-pointer"
+                  >
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset to measured inputs</span>
+                  </button>
                 )}
               </div>
 
-              {/* TWO COLUMN WORKSPACE (Sliders / Outputs / Error Propagation) */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-                
-                {/* LEFT COLUMN: Variable Inspector / Sim Sliders */}
-                <div className="bg-slate-900/80 rounded-2xl p-5 border border-slate-800 flex flex-col gap-4">
-                  <div className="flex items-center justify-between border-b border-slate-800 pb-2">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 font-mono">
-                      {isSimulating ? 'Adjustable Parameters' : 'Active Physical Parameters'}
-                    </span>
-                    <span className="text-[10px] text-slate-500 italic">
-                      {isSimulating ? 'Tweak to observe results' : 'Calculated values'}
-                    </span>
-                  </div>
+              {/* Two-Column Analytical Evaluation Grid */}
+              <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+                {/* Left: Active Physical Parameters */}
+                <div className="lg:col-span-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 p-4 flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-baseline justify-between gap-2 pb-2.5 mb-3 border-b border-slate-200 dark:border-slate-800">
+                      <span className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+                        {isSimulating ? 'Adjustable Parameters' : 'Substituted Parameters'}
+                      </span>
+                      <span className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {isSimulating ? 'Live perturbation' : 'From active reflection'}
+                      </span>
+                    </div>
 
-                  <div className="flex flex-col gap-4">
-                    {variables.map((v, i) => {
-                      const currentVal = currentVariablesMap[v.symbol];
-                      const initialVal = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
-                      
-                      // Calculate slider bounds
-                      const isDegreeOrRad = v.symbol.includes('θ') || v.symbol.includes('theta') || v.symbol.includes('β') || v.symbol.includes('beta');
-                      const safeInitialVal = isNaN(initialVal) ? 0 : initialVal;
-                      const step = safeInitialVal === 0 ? 0.05 : Math.pow(10, Math.floor(Math.log10(Math.abs(safeInitialVal) || 1)) - 3);
-                      const min = safeInitialVal === 0 ? 0 : Math.min(safeInitialVal * 0.1, safeInitialVal * 2.0);
-                      const max = safeInitialVal === 0 ? 5 : Math.max(safeInitialVal * 0.1, safeInitialVal * 2.0);
+                    <div className="divide-y divide-slate-100 dark:divide-slate-800/70">
+                      {variables.map((v, i) => {
+                        const currentVal = currentVariablesMap[v.symbol];
+                        const initialVal = typeof v.value === 'string' ? parseFloat(v.value) : v.value;
+                        const safeInitialVal = isNaN(initialVal) ? 0 : initialVal;
+                        const step =
+                          safeInitialVal === 0
+                            ? 0.05
+                            : Math.pow(10, Math.floor(Math.log10(Math.abs(safeInitialVal) || 1)) - 3);
+                        const min = safeInitialVal === 0 ? 0 : Math.min(safeInitialVal * 0.1, safeInitialVal * 2.0);
+                        const max = safeInitialVal === 0 ? 5 : Math.max(safeInitialVal * 0.1, safeInitialVal * 2.0);
 
-                      return (
-                        <div key={i} className="flex flex-col gap-1.5">
-                          <div className="flex items-center justify-between font-mono text-xs">
-                            <div className="flex items-center gap-2 max-w-[70%]">
-                              <span className="text-indigo-400 font-black bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 inline-flex items-center justify-center min-w-[28px] text-[11px]">
-                                {renderSymbol(v.symbol)}
-                              </span>
-                              <span className="text-slate-400 font-sans font-medium text-[10px] uppercase truncate">
-                                {v.name}
-                              </span>
+                        return (
+                          <div key={i} className="py-2.5 first:pt-0 last:pb-0 space-y-2">
+                            <div className="flex items-center justify-between gap-2">
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className="inline-flex items-center justify-center min-w-[34px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-sky-300 text-xs shrink-0">
+                                  <MathFormula tex={formatSymbolToTex(v.symbol)} />
+                                </span>
+                                <span className="text-xs text-slate-600 dark:text-slate-300 truncate">
+                                  {v.name}
+                                </span>
+                              </div>
+                              <div className="font-mono tabular-nums text-xs font-semibold text-slate-900 dark:text-white whitespace-nowrap">
+                                {typeof currentVal === 'number'
+                                  ? isNaN(currentVal)
+                                    ? '0'
+                                    : Math.abs(currentVal) > 0 && (Math.abs(currentVal) < 1e-4 || Math.abs(currentVal) >= 1e6)
+                                    ? currentVal.toExponential(4)
+                                    : currentVal.toFixed(5).replace(/\.?0+$/, '')
+                                  : currentVal}
+                                {v.unit && (
+                                  <span className="text-slate-500 dark:text-slate-400 font-normal ml-1">
+                                    {v.unit}
+                                  </span>
+                                )}
+                              </div>
                             </div>
-                            <div className="text-slate-200 font-bold">
-                              {typeof currentVal === 'number' 
-                                ? (isNaN(currentVal) 
-                                  ? '0' 
-                                  : (Math.abs(currentVal) > 0 && (Math.abs(currentVal) < 1e-4 || Math.abs(currentVal) >= 1e6))
-                                    ? currentVal.toExponential(5)
-                                    : currentVal.toFixed(5).replace(/\.?0+$/, '')) 
-                                : currentVal}
-                              <span className="text-slate-500 font-normal ml-1">{v.unit}</span>
-                            </div>
+
+                            {isSimulating && typeof currentVal === 'number' && (
+                              <div className="flex items-center gap-2.5">
+                                <input
+                                  type="range"
+                                  min={isNaN(min) ? 0 : min}
+                                  max={isNaN(max) ? 100 : max}
+                                  step={step || 0.001}
+                                  value={isNaN(currentVal) ? 0 : currentVal}
+                                  onChange={(e) => {
+                                    const newVal = parseFloat(e.target.value);
+                                    setSimulatedValues((prev) => ({
+                                      ...prev,
+                                      [v.symbol]: newVal,
+                                    }));
+                                  }}
+                                  className="flex-1 accent-blue-600 dark:accent-sky-400 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setSimulatedValues((prev) => ({
+                                      ...prev,
+                                      [v.symbol]: safeInitialVal,
+                                    }))
+                                  }
+                                  className="text-[11px] text-slate-500 hover:text-slate-900 dark:hover:text-white px-1.5 py-0.5 rounded border border-slate-200 dark:border-slate-700 cursor-pointer"
+                                >
+                                  Reset
+                                </button>
+                              </div>
+                            )}
                           </div>
-
-                          {/* Render slider if simulator mode is active */}
-                          {isSimulating && typeof currentVal === 'number' && (
-                            <div className="flex items-center gap-3">
-                              <input
-                                type="range"
-                                min={isNaN(min) ? 0 : min}
-                                max={isNaN(max) ? 100 : max}
-                                step={step || 0.001}
-                                value={isNaN(currentVal) ? 0 : currentVal}
-                                onChange={(e) => {
-                                  const newVal = parseFloat(e.target.value);
-                                  setSimulatedValues(prev => ({
-                                    ...prev,
-                                    [v.symbol]: newVal
-                                  }));
-                                }}
-                                className="flex-1 accent-indigo-500 h-1 bg-slate-950 rounded-lg cursor-pointer"
-                              />
-                              <button
-                                onClick={() => {
-                                  // Reset single variable
-                                  setSimulatedValues(prev => ({
-                                    ...prev,
-                                    [v.symbol]: isNaN(initialVal) ? 0 : initialVal
-                                  }));
-                                }}
-                                className="text-[9px] text-slate-500 hover:text-slate-300 font-mono transition-colors border border-slate-800 rounded px-1"
-                              >
-                                Reset
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                        );
+                      })}
+                    </div>
                   </div>
                 </div>
 
-                {/* RIGHT COLUMN: Output display & Substitute calculation */}
-                <div className="flex flex-col gap-5">
-                  
-                  {/* Verification Answer Card */}
-                  <div className="bg-indigo-950/20 rounded-2xl p-5 border border-indigo-500/20 flex flex-col justify-center items-center text-center relative overflow-hidden shadow-inner">
-                    <div className="absolute top-3 right-3 opacity-50">
-                      <CheckCircle2 className="w-5 h-5 text-indigo-400 animate-pulse" />
+                {/* Right: Authoritative Result & Step-by-Step Numerical Substitution */}
+                <div className="lg:col-span-7 flex flex-col gap-4">
+                  <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 px-5 py-4 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">{resultName}</div>
+                      <div className="mt-1 flex items-baseline gap-2 font-mono tabular-nums">
+                        <span className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
+                          {formatNumericReadout(evaluated.value, 4)}
+                        </span>
+                        {activeUnit && (
+                          <span className="text-base font-semibold text-blue-600 dark:text-sky-400">
+                            {activeUnit}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-[9px] font-black uppercase tracking-widest text-indigo-400 block mb-2 font-mono">
-                      Calculated Verification Answer
-                    </span>
-                    
-                    <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-black text-white font-mono drop-shadow-[0_0_15px_rgba(99,102,241,0.6)]">
-                        {typeof evaluated.value === 'number' 
-                          ? (isNaN(evaluated.value) 
-                            ? 'ERR' 
-                            : (Math.abs(evaluated.value) > 0 && (Math.abs(evaluated.value) < 1e-3 || Math.abs(evaluated.value) >= 1e6))
-                              ? evaluated.value.toExponential(4)
-                              : evaluated.value.toFixed(4)) 
-                          : evaluated.value
-                        }
-                      </span>
-                      <span className="text-indigo-300 text-sm font-bold">{evaluated.unit || resultUnit}</span>
+                    <div className="text-right text-xs text-slate-500 dark:text-slate-400">
+                      <div>{isSimulating ? 'Simulated evaluation' : 'Direct analytical evaluation'}</div>
+                      <div className="font-mono tabular-nums text-[11px] mt-0.5">{dimensionTag}</div>
                     </div>
-                    <span className="text-[10px] text-indigo-300/70 font-sans tracking-wide mt-1 uppercase">
-                      {resultName}
-                    </span>
                   </div>
 
-                  {/* Substitution steps display */}
-                  <div className="bg-slate-950 border border-slate-800/80 rounded-2xl p-4 flex flex-col justify-center relative overflow-hidden group min-h-[100px]">
-                    <div className="absolute top-2.5 left-2.5 flex items-center gap-1.5 opacity-60">
-                      <Terminal className="w-3 h-3 text-emerald-400" />
-                      <span className="text-[8px] font-mono uppercase tracking-wider text-emerald-400 font-bold">
-                        Substitution & Arithmetic Trace
-                      </span>
-                    </div>
-                    <div 
-                      className="mt-5 text-slate-200 overflow-x-auto select-all py-2 text-xs flex justify-center text-center"
-                      dangerouslySetInnerHTML={{ __html: evaluatedStepHtml }} 
-                    />
-                  </div>
-
+                  <EquationPlate
+                    tex={evaluated.steps}
+                    label="Numerical Substitution & Reduction"
+                    eqNumber="(2)"
+                    emphasis="result"
+                    className="flex-1 flex flex-col justify-between"
+                  />
                 </div>
-
               </div>
 
+              {/* Einstein Mass-Energy Equivalents Panel */}
               {isMassEnergy && (
-                <div className="bg-slate-950/40 rounded-2xl border border-indigo-500/20 p-5 space-y-4 shadow-xl">
-                  <div className="flex flex-col sm:flex-row sm:items-center justify-between border-b border-indigo-500/10 pb-3 gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1.5 bg-indigo-500/15 rounded-lg border border-indigo-500/30 text-indigo-400">
-                        <Zap className="w-4 h-4 text-indigo-400 animate-pulse" />
-                      </div>
-                      <div>
-                        <span className="text-[10px] font-black uppercase tracking-wider text-indigo-400 font-mono block leading-none mb-0.5">
-                          EINSTEINIAN EQUIVALENTS ENGINE
-                        </span>
-                        <span className="text-sm font-bold text-slate-200">
-                          {elementSymbol} Mass-Energy Conversions
-                        </span>
-                      </div>
+                <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-900/40 p-4 sm:p-5 space-y-4">
+                  <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-slate-200 dark:border-slate-800">
+                    <div>
+                      <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                        {elementSymbol} Mass–Energy Scale Equivalencies
+                      </h4>
+                      <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                        Relativistic rest energy across atomic and macroscopic mass references
+                      </p>
                     </div>
-                    <div className="text-left sm:text-right">
-                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono block">QUANTUM FRAME</span>
-                      <span className="text-[10px] font-mono text-indigo-400 font-bold uppercase">{massScale} Reference</span>
+                    <div className="flex items-center gap-1 p-1 rounded-lg bg-slate-200/70 dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      {(['atom', 'mole', 'gram', 'kg', 'custom'] as const).map((scale) => (
+                        <button
+                          key={scale}
+                          type="button"
+                          onClick={() => setMassScale(scale)}
+                          className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                            massScale === scale
+                              ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                          }`}
+                        >
+                          {scale === 'atom'
+                            ? '1 Atom'
+                            : scale === 'mole'
+                            ? '1 Mole'
+                            : scale === 'gram'
+                            ? '1 g'
+                            : scale === 'kg'
+                            ? '1 kg'
+                            : 'Custom'}
+                        </button>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Mass Scale Selector Tabs */}
-                  <div className="grid grid-cols-5 gap-1 bg-slate-950 p-1 rounded-xl border border-slate-900 text-[10px]">
-                    {(['atom', 'mole', 'gram', 'kg', 'custom'] as const).map(scale => (
-                      <button
-                        key={scale}
-                        type="button"
-                        onClick={() => setMassScale(scale)}
-                        className={`py-1.5 px-1 rounded-lg font-bold font-mono uppercase tracking-tight text-center transition-all cursor-pointer ${
-                          massScale === scale
-                            ? 'bg-indigo-600 text-white font-extrabold shadow-sm shadow-indigo-500/20'
-                            : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
-                        }`}
-                      >
-                        {scale === 'atom' ? '1 Atom' : scale === 'mole' ? '1 Mole' : scale === 'gram' ? '1 Gram' : scale === 'kg' ? '1 kg' : 'Custom'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {/* Custom Mass Slider */}
                   {massScale === 'custom' && (
-                    <div className="bg-slate-950/60 p-3 rounded-xl border border-slate-900 space-y-2 animate-fadeIn">
-                      <div className="flex justify-between items-center text-xs font-mono">
-                        <span className="text-slate-400">Set Custom Mass:</span>
-                        <span className="text-indigo-400 font-black">{customMassGrams.toFixed(3)} grams</span>
+                    <div className="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 space-y-1.5">
+                      <div className="flex justify-between items-center text-xs font-mono tabular-nums">
+                        <span className="font-sans text-slate-600 dark:text-slate-400">Custom Mass</span>
+                        <span className="font-semibold text-slate-900 dark:text-white">
+                          {customMassGrams.toFixed(3)} g
+                        </span>
                       </div>
                       <input
                         type="range"
@@ -847,148 +864,123 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                         step="0.001"
                         value={customMassGrams}
                         onChange={(e) => setCustomMassGrams(parseFloat(e.target.value) || 0.001)}
-                        className="w-full accent-indigo-500 h-1.5 bg-slate-900 rounded-lg cursor-pointer"
+                        className="w-full accent-blue-600 dark:accent-sky-400 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg cursor-pointer"
                       />
-                      <div className="flex justify-between text-[8px] font-mono text-slate-600">
-                        <span>1 milligram</span>
-                        <span>50 g</span>
-                        <span>100 grams</span>
-                      </div>
                     </div>
                   )}
 
-                  {/* Rest Mass & Energy Core Outputs */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Mass Info */}
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 flex flex-col justify-center">
-                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono mb-1">
-                        Effective Rest Mass (m)
-                      </span>
-                      <div className="flex items-baseline gap-1.5 font-mono">
-                        <span className="text-lg font-extrabold text-slate-100">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                    <div className="p-3.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">Effective Rest Mass (m)</div>
+                      <div className="mt-1 flex items-baseline gap-1.5 font-mono tabular-nums">
+                        <span className="text-lg font-semibold text-slate-900 dark:text-white">
                           {mSelected.toExponential(6)}
                         </span>
-                        <span className="text-xs text-slate-400 font-bold">kg</span>
+                        <span className="text-xs text-slate-500">kg</span>
                       </div>
-                      <p className="text-[9.5px] text-slate-400 mt-1 leading-snug">
-                        Equivalent to <strong className="text-indigo-400">{(mSelected / 1.66053906660e-27).toExponential(4)}</strong> atomic mass units (u).
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-mono tabular-nums">
+                        {(mSelected / 1.6605390666e-27).toExponential(4)} u
                       </p>
                     </div>
 
-                    {/* Energy Info */}
-                    <div className="bg-slate-950 p-4 rounded-xl border border-slate-900 flex flex-col justify-center">
-                      <span className="text-[8px] font-bold text-slate-500 uppercase tracking-widest font-mono mb-1">
-                        Released Rest Energy (E = mc²)
-                      </span>
-                      <div className="flex items-baseline gap-1.5 font-mono">
-                        <span className="text-lg font-extrabold text-indigo-400 drop-shadow-[0_0_10px_rgba(99,102,241,0.4)]">
+                    <div className="p-3.5 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800">
+                      <div className="text-xs text-slate-500 dark:text-slate-400">
+                        Rest Energy (<MathFormula tex="E = mc^2" />)
+                      </div>
+                      <div className="mt-1 flex items-baseline gap-1.5 font-mono tabular-nums">
+                        <span className="text-lg font-semibold text-blue-600 dark:text-sky-400">
                           {eJoules.toExponential(6)}
                         </span>
-                        <span className="text-xs text-indigo-300 font-bold">Joules</span>
+                        <span className="text-xs text-slate-500">J</span>
                       </div>
-                      <p className="text-[9.5px] text-indigo-300 mt-1 leading-snug">
-                        Equivalent to <strong className="text-emerald-400">{eMeV >= 1e6 ? `${(eMeV/1e6).toFixed(4)} TeV` : eMeV >= 1e3 ? `${(eMeV/1e3).toFixed(4)} GeV` : `${eMeV.toFixed(4)} MeV`}</strong> of particle physics energy.
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400 mt-1 font-mono tabular-nums">
+                        {eMeV >= 1e6
+                          ? `${(eMeV / 1e6).toFixed(4)} TeV`
+                          : eMeV >= 1e3
+                          ? `${(eMeV / 1e3).toFixed(4)} GeV`
+                          : `${eMeV.toFixed(4)} MeV`}
                       </p>
                     </div>
                   </div>
 
-                  {/* Physical Conversions & Real World Scale Equivalents */}
-                  <div className="space-y-2.5 pt-2">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest font-mono block">
-                      Real-World Scale Energy Equivalencies
-                    </span>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-                      {/* Equivalency 1: TNT */}
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex items-start gap-3 hover:border-indigo-500/20 transition-all duration-300">
-                        <div className="p-2 bg-rose-500/10 text-rose-400 rounded-lg border border-rose-500/20 mt-0.5">
-                          <Flame className="w-4 h-4" />
-                        </div>
-                        <div className="space-y-0.5 min-w-0">
-                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Explosive Yield</span>
-                          <div className="text-[11px] font-bold text-slate-200 font-mono truncate">
-                            {eTntTons >= 1e6 ? `${(eTntTons/1e6).toFixed(4)} Mt TNT` : eTntTons >= 1e3 ? `${(eTntTons/1e3).toFixed(4)} kt TNT` : `${eTntTons.toFixed(4)} tons TNT`}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+                    {[
+                      {
+                        icon: Flame,
+                        label: 'Explosive Yield',
+                        value:
+                          eTntTons >= 1e6
+                            ? `${(eTntTons / 1e6).toFixed(4)} Mt TNT`
+                            : eTntTons >= 1e3
+                            ? `${(eTntTons / 1e3).toFixed(4)} kt TNT`
+                            : `${eTntTons.toFixed(4)} t TNT`,
+                      },
+                      {
+                        icon: Home,
+                        label: 'Grid Power Equivalent',
+                        value:
+                          homesPowered >= 1
+                            ? `${homesPowered.toLocaleString(undefined, { maximumFractionDigits: 1 })} homes/yr`
+                            : `${(homesPowered * 365.25).toFixed(1)} homes/day`,
+                      },
+                      {
+                        icon: Globe,
+                        label: 'Fission Benchmark (15 kt)',
+                        value: `${hiroshimaBombs.toExponential(3)}×`,
+                      },
+                      {
+                        icon: Sun,
+                        label: '60 W Lamp Runtime',
+                        value:
+                          lightbulbYears >= 1e6
+                            ? `${(lightbulbYears / 1e6).toFixed(3)}M yrs`
+                            : lightbulbYears >= 1
+                            ? `${lightbulbYears.toFixed(1)} yrs`
+                            : `${(lightbulbYears * 365.25).toFixed(1)} days`,
+                      },
+                    ].map((eq) => {
+                      const Icon = eq.icon;
+                      return (
+                        <div
+                          key={eq.label}
+                          className="p-3 rounded-lg bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-start gap-2.5"
+                        >
+                          <Icon className="w-4 h-4 text-slate-400 shrink-0 mt-0.5" />
+                          <div className="min-w-0">
+                            <div className="text-[11px] text-slate-500 dark:text-slate-400">{eq.label}</div>
+                            <div className="font-mono tabular-nums font-semibold text-slate-900 dark:text-white truncate mt-0.5">
+                              {eq.value}
+                            </div>
                           </div>
-                          <span className="text-[9px] text-slate-400 leading-tight block">
-                            Equivalent explosive blast.
-                          </span>
                         </div>
-                      </div>
-
-                      {/* Equivalency 2: Homes Powered */}
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex items-start gap-3 hover:border-indigo-500/20 transition-all duration-300">
-                        <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg border border-amber-500/20 mt-0.5">
-                          <Home className="w-4 h-4" />
-                        </div>
-                        <div className="space-y-0.5 min-w-0">
-                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Grid Power Eq.</span>
-                          <div className="text-[11px] font-bold text-slate-200 font-mono truncate">
-                            {homesPowered >= 1 ? `${homesPowered.toLocaleString(undefined, {maximumFractionDigits: 1})} Homes/yr` : `${(homesPowered * 365.25).toFixed(1)} Homes/day`}
-                          </div>
-                          <span className="text-[9px] text-slate-400 leading-tight block">
-                            Residential utility feed.
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Equivalency 3: Hiroshima Bombs */}
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex items-start gap-3 hover:border-indigo-500/20 transition-all duration-300">
-                        <div className="p-2 bg-purple-500/10 text-purple-400 rounded-lg border border-purple-500/20 mt-0.5">
-                          <Globe className="w-4 h-4" />
-                        </div>
-                        <div className="space-y-0.5 min-w-0">
-                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">Hiroshima Yield</span>
-                          <div className="text-[11px] font-bold text-slate-200 font-mono truncate">
-                            {hiroshimaBombs.toExponential(4)} Bombs
-                          </div>
-                          <span className="text-[9px] text-slate-400 leading-tight block">
-                            ~15 kt Little Boy fission bomb.
-                          </span>
-                        </div>
-                      </div>
-
-                      {/* Equivalency 4: Lightbulb Duration */}
-                      <div className="bg-slate-950 p-3 rounded-xl border border-slate-900 flex items-start gap-3 hover:border-indigo-500/20 transition-all duration-300">
-                        <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg border border-emerald-500/20 mt-0.5">
-                          <Sun className="w-4 h-4" />
-                        </div>
-                        <div className="space-y-0.5 min-w-0">
-                          <span className="text-[8px] font-bold text-slate-500 uppercase tracking-wider block">60W Lightbulb</span>
-                          <div className="text-[11px] font-bold text-slate-200 font-mono truncate">
-                            {lightbulbYears >= 1e6 ? `${(lightbulbYears/1e6).toFixed(3)}M Years` : lightbulbYears >= 1 ? `${lightbulbYears.toFixed(1)} Years` : `${(lightbulbYears * 365.25).toFixed(1)} Days`}
-                          </div>
-                          <span className="text-[9px] text-slate-400 leading-tight block">
-                            Continuous illumination.
-                          </span>
-                        </div>
-                      </div>
-                    </div>
+                      );
+                    })}
                   </div>
                 </div>
               )}
 
-              {/* DYNAMIC ERROR PROPAGATION & SENSITIVITY VIEW */}
+              {/* Gaussian Error Propagation & Sensitivity Audit */}
               <AnimatePresence>
                 {showUncertainty && sensitivityAnalysis && (
-                  <motion.div 
+                  <motion.div
                     initial={{ height: 0, opacity: 0 }}
                     animate={{ height: 'auto', opacity: 1 }}
                     exit={{ height: 0, opacity: 0 }}
-                    className="overflow-hidden bg-amber-500/5 rounded-2xl border border-amber-500/20 p-5 flex flex-col gap-4"
+                    className="overflow-hidden rounded-xl border border-amber-200 dark:border-amber-800/60 bg-amber-50/40 dark:bg-amber-950/20 p-4 sm:p-5 space-y-4"
                   >
-                    <div className="flex items-center justify-between border-b border-amber-500/10 pb-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-amber-200/70 dark:border-amber-800/50">
                       <div className="flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4 text-amber-400" />
-                        <span className="text-xs font-black uppercase tracking-wider text-amber-400 font-mono">
-                          Error Propagation & Parameter Sensitivities
+                        <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
+                        <span className="text-xs font-semibold text-slate-900 dark:text-white">
+                          First-Order Gaussian Error Propagation &amp; Parameter Sensitivities
                         </span>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-amber-400/80 font-mono">Input Uncertainty:</span>
-                        <select 
+                      <div className="flex items-center gap-2 text-xs">
+                        <span className="text-slate-600 dark:text-slate-400">Relative input uncertainty:</span>
+                        <select
                           value={inputUncertaintyPercent}
-                          onChange={(e) => setInputUncertaintyPercent(parseInt(e.target.value))}
-                          className="bg-slate-950 border border-amber-500/20 rounded px-2 py-0.5 text-xs text-amber-400 font-mono focus:outline-none"
+                          onChange={(e) => setInputUncertaintyPercent(parseInt(e.target.value, 10))}
+                          className="bg-white dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-md px-2 py-1 text-xs font-mono text-slate-900 dark:text-white focus:outline-none"
                         >
                           <option value={1}>±1%</option>
                           <option value={2}>±2%</option>
@@ -998,130 +990,132 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
                       </div>
                     </div>
 
+                    <EquationPlate
+                      tex={`\\sigma_y = \\sqrt{\\sum_{i=1}^{${variables.length}} \\left(\\frac{\\partial y}{\\partial x_i}\\,\\sigma_{x_i}\\right)^2} = \\mathbf{\\pm ${sensitivityAnalysis.totalUncertaintyAbs.toFixed(4)}\\,${activeUnit ? `\\mathrm{${activeUnit}}` : ''}} \\quad (${sensitivityAnalysis.totalUncertaintyRelPercent.toFixed(2)}\\%)`}
+                      label="Quadrature Uncertainty Propagation Law"
+                      eqNumber="(3)"
+                      copyable={false}
+                    />
+
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-center">
-                      
-                      {/* Left: Sensitivity Progress Bars */}
-                      <div className="md:col-span-7 flex flex-col gap-3">
-                        <span className="text-[10px] text-slate-400 uppercase font-mono font-bold">
-                          Relative Sensitivity Factor Ranking
-                        </span>
-                        
-                        <div className="flex flex-col gap-2.5">
-                          {sensitivityAnalysis.variablesSensitivity.map((v, idx) => (
-                            <div key={idx} className="flex flex-col gap-1">
-                              <div className="flex justify-between items-center text-[10px] font-mono">
-                                <span className="text-slate-300 font-bold flex items-center gap-1.5">
-                                  <span className="text-amber-400 bg-amber-500/10 border border-amber-500/20 px-1 py-0.5 rounded">
-                                    {renderSymbol(v.symbol)}
-                                  </span>
-                                  {v.name}
+                      <div className="md:col-span-7 space-y-2.5">
+                        {sensitivityAnalysis.variablesSensitivity.map((v, idx) => (
+                          <div key={idx} className="space-y-1">
+                            <div className="flex items-center justify-between gap-2 text-xs">
+                              <span className="flex items-center gap-2 text-slate-800 dark:text-slate-200 font-medium">
+                                <span className="px-1.5 py-0.5 rounded bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-slate-900 dark:text-amber-300">
+                                  <MathFormula tex={formatSymbolToTex(v.symbol)} />
                                 </span>
-                                <span className="text-slate-400 italic">
-                                  {v.sensitivity > 0.0001 ? `Impact Factor: ${v.sensitivity.toFixed(4)}` : 'Negligible Impact'}
-                                </span>
-                              </div>
-                              <div className="w-full bg-slate-950 rounded-full h-1.5 overflow-hidden">
-                                <div 
-                                  className="bg-gradient-to-r from-amber-500 to-amber-400 h-full rounded-full transition-all duration-300"
-                                  style={{ width: `${v.percentageOfMax}%` }}
-                                />
-                              </div>
+                                <span>{v.name}</span>
+                              </span>
+                              <span className="font-mono tabular-nums text-[11px] text-slate-600 dark:text-slate-400">
+                                {v.sensitivity > 1e-5
+                                  ? `±${v.sensitivity.toFixed(4)} ${activeUnit} · |S| = ${v.elasticity.toFixed(2)}`
+                                  : 'Negligible'}
+                              </span>
                             </div>
-                          ))}
-                        </div>
+                            <div className="w-full bg-slate-200/80 dark:bg-slate-800 rounded-full h-1.5 overflow-hidden">
+                              <div
+                                className="bg-amber-500 h-full rounded-full transition-all duration-200"
+                                style={{ width: `${Math.max(2, v.percentageOfMax)}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
 
-                      {/* Right: Propagated Total Error Answer */}
-                      <div className="md:col-span-5 bg-slate-950/80 p-4 rounded-xl border border-amber-500/10 flex flex-col justify-center items-center text-center">
-                        <TrendingUp className="w-5 h-5 text-amber-400 mb-1" />
-                        <span className="text-[9px] font-bold uppercase text-amber-400/80 tracking-widest font-mono">
-                          Propagated Error in Result
-                        </span>
-                        <div className="text-2xl font-mono font-black text-white my-1">
-                          ±{sensitivityAnalysis.totalUncertaintyAbs.toFixed(4)}
+                      <div className="md:col-span-5 p-4 rounded-xl bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-center space-y-1.5">
+                        <div className="text-xs text-slate-500 dark:text-slate-400">
+                          Combined Standard Uncertainty
                         </div>
-                        <span className="text-[10px] text-slate-400">
-                          (~{sensitivityAnalysis.totalUncertaintyRelPercent.toFixed(2)}% overall variation)
-                        </span>
-
+                        <div className="text-2xl font-mono font-bold tabular-nums text-slate-900 dark:text-white">
+                          ±{sensitivityAnalysis.totalUncertaintyAbs.toFixed(4)}{' '}
+                          <span className="text-sm font-medium text-amber-600 dark:text-amber-400">
+                            {activeUnit}
+                          </span>
+                        </div>
+                        <div className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                          ±{sensitivityAnalysis.totalUncertaintyRelPercent.toFixed(2)}% relative spread
+                        </div>
                         {sensitivityAnalysis.mostSensitiveVar && (
-                          <div className="mt-3 text-[9px] text-amber-200/80 leading-relaxed max-w-xs border-t border-amber-500/10 pt-2.5 font-sans">
-                            Result is <strong>most sensitive</strong> to <strong>{sensitivityAnalysis.mostSensitiveVar.name}</strong>. A {inputUncertaintyPercent}% error in measurement triggers a <strong>{sensitivityAnalysis.mostSensitiveVar.sensitivity.toFixed(4)} {evaluated.unit || resultUnit}</strong> shift.
-                          </div>
+                          <p className="text-[11px] text-slate-600 dark:text-slate-400 pt-2 border-t border-slate-100 dark:border-slate-800 leading-relaxed">
+                            Dominant uncertainty driver:{' '}
+                            <strong className="text-slate-900 dark:text-white">
+                              {sensitivityAnalysis.mostSensitiveVar.name}
+                            </strong>{' '}
+                            (±{sensitivityAnalysis.mostSensitiveVar.sensitivity.toFixed(4)} {activeUnit} per{' '}
+                            {inputUncertaintyPercent}% input shift).
+                          </p>
                         )}
                       </div>
-
                     </div>
                   </motion.div>
                 )}
               </AnimatePresence>
 
-              {/* EXPORT WORKSPACE */}
-              <div className="bg-slate-950/60 rounded-2xl border border-slate-800 p-4">
-                <div className="flex items-center justify-between border-b border-slate-800 pb-2 mb-3">
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setActiveTab('latex')}
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors font-mono ${
-                        activeTab === 'latex' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      LaTeX Source
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('python')}
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors font-mono ${
-                        activeTab === 'python' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      Python Script
-                    </button>
-                    <button
-                      onClick={() => setActiveTab('json')}
-                      className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded transition-colors font-mono ${
-                        activeTab === 'json' ? 'bg-indigo-500/10 text-indigo-400 border border-indigo-500/20' : 'text-slate-500 hover:text-slate-300'
-                      }`}
-                    >
-                      JSON Metadata
-                    </button>
+              {/* Manuscript & Script Export Bar */}
+              <div className="rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60 overflow-hidden">
+                <div className="flex items-center justify-between gap-2 px-3.5 py-2 border-b border-slate-200 dark:border-slate-800">
+                  <div className="flex items-center gap-1">
+                    {(
+                      [
+                        { id: 'latex', label: 'LaTeX Source' },
+                        { id: 'python', label: 'Python (NumPy)' },
+                        { id: 'json', label: 'JSON Audit' },
+                      ] as const
+                    ).map((tab) => (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        onClick={() => setActiveTab(tab.id)}
+                        className={`px-2.5 py-1 rounded-md text-xs font-medium transition-colors cursor-pointer whitespace-nowrap ${
+                          activeTab === tab.id
+                            ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                            : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        {tab.label}
+                      </button>
+                    ))}
                   </div>
 
                   <button
+                    type="button"
                     onClick={() => {
-                      const textToCopy = activeTab === 'latex' ? formula : (activeTab === 'python' ? pythonSnippet : jsonMetadata);
+                      const textToCopy =
+                        activeTab === 'latex'
+                          ? formula
+                          : activeTab === 'python'
+                          ? pythonSnippet
+                          : jsonMetadata;
                       handleCopy(textToCopy, activeTab);
                     }}
-                    className="flex items-center gap-1 text-[10px] text-slate-400 hover:text-slate-200 transition-colors bg-slate-900 border border-slate-850 px-2 py-0.5 rounded font-mono"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white hover:bg-slate-200/70 dark:hover:bg-slate-800 transition-colors cursor-pointer"
                   >
-                    {copiedState === activeTab ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3" />}
-                    {copiedState === activeTab ? 'Copied' : 'Copy'}
+                    {copiedState === activeTab ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                        <span className="text-emerald-700 dark:text-emerald-400">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
                   </button>
                 </div>
 
-                <div className="bg-slate-950 p-3 rounded-lg border border-slate-900 overflow-x-auto text-[11px] font-mono text-slate-300 max-h-40 overflow-y-auto whitespace-pre">
-                  {activeTab === 'latex' && (
-                    <div className="text-indigo-300 select-all leading-normal">
-                      {formula}
-                    </div>
-                  )}
-                  {activeTab === 'python' && (
-                    <div className="text-emerald-400 select-all leading-relaxed font-mono">
-                      {pythonSnippet}
-                    </div>
-                  )}
-                  {activeTab === 'json' && (
-                    <div className="text-sky-400 select-all leading-relaxed font-mono">
-                      {jsonMetadata}
-                    </div>
-                  )}
+                <div className="p-3.5 bg-white dark:bg-slate-950 overflow-x-auto text-[11.5px] font-mono text-slate-700 dark:text-slate-300 max-h-40 overflow-y-auto whitespace-pre select-all">
+                  {activeTab === 'latex' && formula}
+                  {activeTab === 'python' && pythonSnippet}
+                  {activeTab === 'json' && jsonMetadata}
                 </div>
               </div>
-
             </div>
           </motion.div>
         )}
       </AnimatePresence>
-
-    </div>
+    </section>
   );
 };

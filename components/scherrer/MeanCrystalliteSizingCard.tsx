@@ -1,18 +1,42 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { ScherrerResult } from '../../types';
-import { 
-  Zap, Copy, CheckCircle2, Sparkles, ChevronDown, ChevronUp, 
-  AlertTriangle, Scale, Atom, Layers, Compass, Download, Check, FileText,
-  HelpCircle, Lightbulb, BookOpen, Eye, EyeOff, Filter, RotateCcw, Code, BarChart2
+import {
+  Copy,
+  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
+  AlertTriangle,
+  Download,
+  Check,
+  FileText,
+  BookOpen,
+  Eye,
+  EyeOff,
+  Filter,
+  RotateCcw,
+  Code,
+  BarChart2,
+  Calculator,
+  ArrowUpRight,
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { MeanCrystalliteCalculationTrace } from './MeanCrystalliteCalculationTrace';
-import { 
-  ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, 
-  CartesianGrid, ReferenceLine, Cell, ComposedChart, Line 
+import { MathFormula } from '../common/MathFormula';
+import {
+  ResponsiveContainer,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  CartesianGrid,
+  ReferenceLine,
+  ReferenceArea,
+  Cell,
+  ComposedChart,
 } from 'recharts';
 
 export type SizingAverageMethod = 'weighted' | 'arithmetic' | 'volume' | 'area' | 'harmonic';
+type DisplayUnit = 'nm' | 'A' | 'pm' | 'um';
 
 export interface MeanCrystalliteSizingCardProps {
   validResults: ScherrerResult[];
@@ -34,6 +58,62 @@ export interface MeanCrystalliteSizingCardProps {
   broadeningModel?: string;
 }
 
+const MOMENT_META: {
+  id: SizingAverageMethod;
+  symbol: string;
+  texSymbol: string;
+  label: string;
+  formula: string;
+  texFormula: string;
+  desc: string;
+}[] = [
+  {
+    id: 'weighted',
+    symbol: 'D_int',
+    texSymbol: 'D_{\\mathrm{int}}',
+    label: 'Intensity-Weighted',
+    formula: 'Σ(I·D) / ΣI',
+    texFormula: '\\tfrac{\\sum I_i D_i}{\\sum I_i}',
+    desc: 'Weighted by Bragg peak intensity (standard XRD practice)',
+  },
+  {
+    id: 'arithmetic',
+    symbol: 'D_num',
+    texSymbol: 'D_{\\mathrm{num}}',
+    label: 'Number Mean',
+    formula: 'ΣD / N',
+    texFormula: '\\tfrac{1}{N}\\sum D_i',
+    desc: 'Unweighted arithmetic mean across resolved planes (TEM comparable)',
+  },
+  {
+    id: 'volume',
+    symbol: 'D_V',
+    texSymbol: 'D_V',
+    label: 'Volume-Weighted',
+    formula: 'ΣD⁴ / ΣD³',
+    texFormula: '\\tfrac{\\sum D_i^4}{\\sum D_i^3}',
+    desc: 'ISO 26824 / ASTM E2865 volume-weighted crystallite moment',
+  },
+  {
+    id: 'area',
+    symbol: 'D_A',
+    texSymbol: 'D_A',
+    label: 'Area-Weighted',
+    formula: 'ΣD³ / ΣD²',
+    texFormula: '\\tfrac{\\sum D_i^3}{\\sum D_i^2}',
+    desc: 'Surface-area weighted moment for catalysis and adsorption',
+  },
+  {
+    id: 'harmonic',
+    symbol: 'D_H',
+    texSymbol: 'D_H',
+    label: 'Harmonic Mean',
+    formula: 'N / Σ(1/D)',
+    texFormula: '\\tfrac{N}{\\sum D_i^{-1}}',
+    desc: 'Harmonic effective broadening mean matching ⟨β cos θ⟩',
+  },
+];
+
 export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps> = ({
   validResults,
   allResults = [],
@@ -51,33 +131,39 @@ export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps>
   materialOptions,
   whSlope = 0,
   instFwhm = 0.1,
-  broadeningModel = 'Gaussian'
+  broadeningModel = 'Gaussian',
 }) => {
   const [copiedMode, setCopiedMode] = useState<'summary' | 'markdown' | 'latex' | 'unit' | null>(null);
   const [showFacetTable, setShowFacetTable] = useState(true);
-  const [showTrace, setShowTrace] = useState(false);
+  const [workspaceView, setWorkspaceView] = useState<'summary' | 'chart' | 'trace'>('summary');
   const [traceTab, setTraceTab] = useState<'trace' | 'models' | 'physics' | 'diagnostics'>('trace');
+  const [displayUnit, setDisplayUnit] = useState<DisplayUnit>('nm');
   const [isMaterialDropdownOpen, setIsMaterialDropdownOpen] = useState(false);
   const [customDensityInput, setCustomDensityInput] = useState<string>(materialDensity.toString());
-  const [viewMode, setViewMode] = useState<'summary' | 'chart'>('summary');
+  const densityDropdownRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    setCustomDensityInput(materialDensity.toString());
+  }, [materialDensity]);
+
+  useEffect(() => {
+    if (!isMaterialDropdownOpen) return;
+    const handleOutsideClick = (e: MouseEvent) => {
+      if (densityDropdownRef.current && !densityDropdownRef.current.contains(e.target as Node)) {
+        setIsMaterialDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [isMaterialDropdownOpen]);
 
   const totalReflectionsCount = allResults.length > 0 ? allResults.length : validResults.length;
-  const excludedReflectionsCount = allResults.filter(r => r.excluded).length;
-  const unresolvedReflectionsCount = allResults.filter(r => !r.excluded && (r.error || r.sizeNm <= 0)).length;
+  const excludedReflectionsCount = allResults.filter((r) => r.excluded).length;
+  const unresolvedReflectionsCount = allResults.filter(
+    (r) => !r.excluded && (r.error || r.sizeNm <= 0)
+  ).length;
 
-  const chartData = useMemo(() => {
-    const source = allResults.length > 0 ? allResults : validResults;
-    return source.map((r, idx) => ({
-      name: r.hkl ? `(${r.hkl.join('')})` : `#${idx + 1}`,
-      twoTheta: r.twoTheta,
-      size: r.sizeNm > 0 ? r.sizeNm : 0,
-      intensity: r.intensity || 100,
-      excluded: !!r.excluded,
-      error: !!r.error || r.sizeNm <= 0
-    })).filter(d => !d.excluded && !d.error);
-  }, [validResults, allResults]);
-
-  // 1. Compute multi-method statistical metrics
+  // 1. Multi-moment statistical synthesis
   const sizingStats = useMemo(() => {
     if (validResults.length === 0) {
       return {
@@ -103,91 +189,84 @@ export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps>
         anisotropyIndex: 1,
         avgPlanes: 0,
         avgDSpacing: 0,
-        outlierCount: 0
+        outlierCount: 0,
       };
     }
 
     const count = validResults.length;
-    const sizes = validResults.map(r => r.sizeNm);
+    const sizes = validResults.map((r) => r.sizeNm);
     const min = Math.min(...sizes);
     const max = Math.max(...sizes);
 
-    // Arithmetic
     const sum = sizes.reduce((acc, val) => acc + val, 0);
     const arithmetic = sum / count;
 
-    // Intensity Weighted
     let totalWeight = 0;
     let weightedSum = 0;
-    validResults.forEach(r => {
+    validResults.forEach((r) => {
       const weight = r.intensity && r.intensity > 0 ? r.intensity : 1;
       weightedSum += r.sizeNm * weight;
       totalWeight += weight;
     });
     const weighted = totalWeight > 0 ? weightedSum / totalWeight : arithmetic;
 
-    // Volume-Weighted (D_V = sum(D^4) / sum(D^3))
     const sumD4 = sizes.reduce((acc, d) => acc + Math.pow(d, 4), 0);
     const sumD3 = sizes.reduce((acc, d) => acc + Math.pow(d, 3), 0);
     const volume = sumD3 > 0 ? sumD4 / sumD3 : arithmetic;
 
-    // Area-Weighted (D_A = sum(D^3) / sum(D^2))
     const sumD2 = sizes.reduce((acc, d) => acc + Math.pow(d, 2), 0);
     const area = sumD2 > 0 ? sumD3 / sumD2 : arithmetic;
 
-    // Harmonic Mean (D_H = N / sum(1/D_i))
-    const sumInv = sizes.reduce((acc, d) => acc + (1 / Math.max(0.01, d)), 0);
+    const sumInv = sizes.reduce((acc, d) => acc + 1 / Math.max(0.01, d), 0);
     const harmonic = sumInv > 0 ? count / sumInv : arithmetic;
 
-    // Geometric Mean & Log-Normal Sample Std Dev (Bessel N-1 corrected)
     const logSum = sizes.reduce((acc, d) => acc + Math.log(Math.max(0.1, d)), 0);
     const geometricMean = Math.exp(logSum / count);
-    const logVar = count > 1
-      ? sizes.reduce((acc, d) => acc + Math.pow(Math.log(Math.max(0.1, d)) - Math.log(geometricMean), 2), 0) / (count - 1)
-      : 0;
+    const logVar =
+      count > 1
+        ? sizes.reduce(
+            (acc, d) => acc + Math.pow(Math.log(Math.max(0.1, d)) - Math.log(geometricMean), 2),
+            0
+          ) /
+          (count - 1)
+        : 0;
     const geometricStdDev = Math.exp(Math.sqrt(logVar));
 
-    // Median & Quartiles
     const sorted = [...sizes].sort((a, b) => a - b);
-    const median = count % 2 === 1
-      ? sorted[Math.floor(count / 2)]
-      : (sorted[count / 2 - 1] + sorted[count / 2]) / 2;
+    const median =
+      count % 2 === 1
+        ? sorted[Math.floor(count / 2)]
+        : (sorted[count / 2 - 1] + sorted[count / 2]) / 2;
     const q1 = sorted[Math.floor((count - 1) * 0.25)];
     const q3 = sorted[Math.floor((count - 1) * 0.75)];
     const iqr = Math.max(0, q3 - q1);
 
-    // Determine current mean based on selected averaging method
     let currentMean = weighted;
     if (averageType === 'arithmetic') currentMean = arithmetic;
     else if (averageType === 'volume') currentMean = volume;
     else if (averageType === 'area') currentMean = area;
     else if (averageType === 'harmonic') currentMean = harmonic;
 
-    // Variance & Standard Deviation
-    const variance = count > 1
-      ? sizes.reduce((acc, d) => acc + Math.pow(d - currentMean, 2), 0) / (count - 1)
-      : 0;
+    const variance =
+      count > 1
+        ? sizes.reduce((acc, d) => acc + Math.pow(d - currentMean, 2), 0) / (count - 1)
+        : 0;
     const stdDev = Math.sqrt(variance);
     const sem = count > 1 ? stdDev / Math.sqrt(count) : 0;
 
-    // Student's t critical value for 95% confidence
-    const tTable = [0, 12.71, 4.30, 3.18, 2.78, 2.57, 2.45, 2.36, 2.31, 2.26, 2.23];
-    const tCrit = count <= 10 && count > 0 ? (tTable[count - 1] || 2.23) : (1.96 + 2.4 / count);
+    const tTable = [0, 12.71, 4.3, 3.18, 2.78, 2.57, 2.45, 2.36, 2.31, 2.26, 2.23];
+    const tCrit = count <= 10 && count > 0 ? tTable[count - 1] || 2.23 : 1.96 + 2.4 / count;
     const ci95 = count > 1 ? tCrit * sem : 0;
 
-    // Polydispersity Index (PDI)
     const pdi = currentMean > 0 ? Math.pow(stdDev / currentMean, 2) : 0;
     const relDispersion = currentMean > 0 ? (stdDev / currentMean) * 100 : 0;
-
-    // Anisotropy & lattice planes
     const anisotropyIndex = min > 0 ? max / min : 1;
-    const avgPlanes = Math.round(validResults.reduce((acc, r) => acc + (r.coherencePlanesN || 0), 0) / count);
+    const avgPlanes = Math.round(
+      validResults.reduce((acc, r) => acc + (r.coherencePlanesN || 0), 0) / count
+    );
     const avgDSpacing = validResults.reduce((acc, r) => acc + (r.dSpacing || 0), 0) / count;
-
-    // Outlier count (|Z| > 1.8)
-    const outlierCount = stdDev > 0
-      ? sizes.filter(s => Math.abs(s - currentMean) / stdDev > 1.8).length
-      : 0;
+    const outlierCount =
+      stdDev > 0 ? sizes.filter((s) => Math.abs(s - currentMean) / stdDev > 1.8).length : 0;
 
     return {
       count,
@@ -212,24 +291,56 @@ export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps>
       anisotropyIndex,
       avgPlanes,
       avgDSpacing,
-      outlierCount
+      outlierCount,
     };
   }, [validResults, averageType]);
 
-  // Active mean size in nanometers
   const currentSizeNm = useMemo(() => {
     switch (averageType) {
-      case 'arithmetic': return sizingStats.arithmetic;
-      case 'volume': return sizingStats.volume;
-      case 'area': return sizingStats.area;
-      case 'harmonic': return sizingStats.harmonic;
+      case 'arithmetic':
+        return sizingStats.arithmetic;
+      case 'volume':
+        return sizingStats.volume;
+      case 'area':
+        return sizingStats.area;
+      case 'harmonic':
+        return sizingStats.harmonic;
       case 'weighted':
       default:
         return sizingStats.weighted;
     }
   }, [averageType, sizingStats]);
 
-  // Live Microstructural Properties based on chosen mean & density
+  const totalValidIntensity = useMemo(
+    () => validResults.reduce((acc, r) => acc + (r.intensity && r.intensity > 0 ? r.intensity : 1), 0),
+    [validResults]
+  );
+
+  const chartData = useMemo(() => {
+    const source = allResults.length > 0 ? allResults : validResults;
+    return source
+      .map((r, idx) => {
+        const weightPct =
+          !r.excluded && r.sizeNm > 0 && totalValidIntensity > 0
+            ? ((r.intensity && r.intensity > 0 ? r.intensity : 1) / totalValidIntensity) * 100
+            : 0;
+        const delta = r.sizeNm - currentSizeNm;
+        const isOutlier = sizingStats.stdDev > 0 && Math.abs(delta) / sizingStats.stdDev > 1.8;
+        return {
+          name: r.hkl ? `(${r.hkl.join('')})` : `#${idx + 1}`,
+          twoTheta: r.twoTheta,
+          size: r.sizeNm > 0 ? r.sizeNm : 0,
+          delta,
+          weightPct,
+          planesN: r.coherencePlanesN || 0,
+          isOutlier,
+          excluded: !!r.excluded,
+          error: !!r.error || r.sizeNm <= 0,
+        };
+      })
+      .filter((d) => !d.excluded && !d.error);
+  }, [validResults, allResults, totalValidIntensity, currentSizeNm, sizingStats.stdDev]);
+
   const microstructuralProperties = useMemo(() => {
     if (currentSizeNm <= 0) {
       return {
@@ -238,23 +349,17 @@ export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps>
         particleVolumeNm3: 0,
         particleMassG: 0,
         surfaceToVolumeRatio: 0,
-        surfaceAtomFractionPct: 0
+        surfaceAtomFractionPct: 0,
       };
     }
 
-    // Dislocation density: delta = 1 / D^2 (10^14 lines/m^2)
     const dislocation10_14 = 100 / Math.pow(currentSizeNm, 2);
-
-    // Specific Surface Area: SSA = 6000 / (rho * D_nm) in m^2/g
-    const ssaM2g = materialDensity > 0 ? (6000 / (materialDensity * currentSizeNm)) : 0;
-
-    // Single spherical particle volume & mass
+    const ssaM2g = materialDensity > 0 ? 6000 / (materialDensity * currentSizeNm) : 0;
     const rNm = currentSizeNm / 2;
     const particleVolumeNm3 = (4 / 3) * Math.PI * Math.pow(rNm, 3);
     const particleMassG = particleVolumeNm3 * 1e-21 * materialDensity;
-    const surfaceToVolumeRatio = currentSizeNm > 0 ? (6 / currentSizeNm) : 0;
+    const surfaceToVolumeRatio = currentSizeNm > 0 ? 6 / currentSizeNm : 0;
 
-    // Surface atom dispersion fraction: f_surf = 1 - ((D - 2*d_shell)/D)^3
     const dShellNm = Math.max(0.22, (sizingStats.avgDSpacing || 2.5) / 10);
     const coreRatio = Math.max(0, (currentSizeNm - 2 * dShellNm) / currentSizeNm);
     const surfaceAtomFractionPct = Math.min(99.9, (1 - Math.pow(coreRatio, 3)) * 100);
@@ -265,56 +370,72 @@ export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps>
       particleVolumeNm3,
       particleMassG,
       surfaceToVolumeRatio,
-      surfaceAtomFractionPct
+      surfaceAtomFractionPct,
     };
   }, [currentSizeNm, materialDensity, sizingStats.avgDSpacing]);
 
-  // Physical regime assessment
   const regimeInfo = useMemo(() => {
-    if (currentSizeNm <= 0) return { label: 'Awaiting Active Reflections', color: 'slate', desc: 'Ensure at least one reflection has FWHM > β_inst' };
-    if (currentSizeNm < 10) {
-      return { 
-        label: 'Quantum Confinement (<10 nm)', 
-        color: 'indigo',
-        desc: 'Extreme nanoscale regime with high surface atom fraction (>15%). Strong Scherrer peak broadening.'
+    if (currentSizeNm <= 0)
+      return {
+        label: 'Awaiting Active Reflections',
+        tone: 'text-slate-500 dark:text-slate-400',
+        desc: 'Ensure at least one reflection has FWHM > β_inst',
       };
-    }
-    if (currentSizeNm < 50) {
-      return { 
-        label: 'Optimal Scherrer Window (10–50 nm)', 
-        color: 'emerald',
-        desc: 'Gold-standard analytical window for the Scherrer formula. Finite size broadening strongly dominates instrumental optics.'
+    if (currentSizeNm < 10)
+      return {
+        label: 'Quantum Confinement (<10 nm)',
+        tone: 'text-indigo-700 dark:text-indigo-300',
+        desc: 'Extreme nanoscale regime with high surface atom fraction (>15%). Strong Scherrer broadening.',
       };
-    }
-    if (currentSizeNm < 100) {
-      return { 
-        label: 'Nanocrystalline Regime (50–100 nm)', 
-        color: 'cyan',
-        desc: 'High reliability. Broadening is clearly measurable; ensure instrumental line profile deconvolution is calibrated.'
+    if (currentSizeNm < 50)
+      return {
+        label: 'Optimal Scherrer Window (10–50 nm)',
+        tone: 'text-emerald-700 dark:text-emerald-400',
+        desc: 'Ideal analytical window for the Scherrer equation. Finite size broadening dominates optics.',
       };
-    }
-    if (currentSizeNm < 200) {
-      return { 
-        label: 'Approaching Optics Limit (100–200 nm)', 
-        color: 'amber',
-        desc: 'Approaching diffractometer resolution boundary. Sample broadening is small relative to slit optics.'
+    if (currentSizeNm < 100)
+      return {
+        label: 'Nanocrystalline Regime (50–100 nm)',
+        tone: 'text-sky-700 dark:text-sky-400',
+        desc: 'High reliability. Ensure instrumental line profile deconvolution is calibrated.',
       };
-    }
-    return { 
-      label: 'Instrument-Dominated (>200 nm)', 
-      color: 'rose',
-      desc: 'Exceeds reliable Scherrer boundary. Sample broadening is dominated by instrumental resolution.'
+    if (currentSizeNm < 200)
+      return {
+        label: 'Approaching Optics Limit (100–200 nm)',
+        tone: 'text-amber-700 dark:text-amber-400',
+        desc: 'Approaching diffractometer resolution boundary. Sample broadening is small relative to slit optics.',
+      };
+    return {
+      label: 'Instrument-Dominated (>200 nm)',
+      tone: 'text-rose-700 dark:text-rose-400',
+      desc: 'Exceeds reliable Scherrer boundary. Broadening is dominated by instrumental resolution.',
     };
   }, [currentSizeNm]);
 
-  // Polydispersity classification
   const pdiClassification = useMemo(() => {
-    if (sizingStats.pdi < 0.05) return { label: 'Monodisperse (<0.05)', color: 'text-emerald-400' };
-    if (sizingStats.pdi < 0.20) return { label: 'Moderate Polydispersity (0.05–0.20)', color: 'text-amber-400' };
-    return { label: 'Broad / Anisotropic (>0.20)', color: 'text-purple-400' };
+    if (sizingStats.pdi < 0.05)
+      return { label: 'Monodisperse', tone: 'text-emerald-700 dark:text-emerald-400' };
+    if (sizingStats.pdi < 0.2)
+      return { label: 'Moderate', tone: 'text-amber-700 dark:text-amber-400' };
+    return { label: 'Anisotropic / Broad', tone: 'text-indigo-700 dark:text-indigo-300' };
   }, [sizingStats.pdi]);
 
-  // Copy publication summary
+  const activeMomentMeta = MOMENT_META.find((m) => m.id === averageType) ?? MOMENT_META[0];
+
+  const formatScaledSize = (nmVal: number, unit: DisplayUnit) => {
+    if (unit === 'A') return (nmVal * 10).toFixed(Math.max(1, precision - 1));
+    if (unit === 'pm') return (nmVal * 1000).toFixed(0);
+    if (unit === 'um') return (nmVal / 1000).toFixed(4);
+    return nmVal.toFixed(precision);
+  };
+
+  const unitLabel = (unit: DisplayUnit) => (unit === 'A' ? 'Å' : unit === 'um' ? 'µm' : unit);
+
+  const openTraceAt = (tab: 'trace' | 'models' | 'physics' | 'diagnostics') => {
+    setTraceTab(tab);
+    setWorkspaceView('trace');
+  };
+
   const handleCopySummary = (type: 'summary' | 'markdown' | 'latex' | 'unit') => {
     let text = '';
     if (type === 'summary') {
@@ -331,18 +452,20 @@ export const MeanCrystalliteSizingCard: React.FC<MeanCrystalliteSizingCardProps>
 - **Volume-Weighted ($D_V$)**: ${sizingStats.volume.toFixed(precision)} nm
 - **Area-Weighted ($D_A$)**: ${sizingStats.area.toFixed(precision)} nm
 - **Harmonic Mean ($D_H$)**: ${sizingStats.harmonic.toFixed(precision)} nm
-- **Log-Normal Geometric Mean ($D_g$)**: ${sizingStats.geometricMean.toFixed(precision)} nm ($\sigma_g$ = ${sizingStats.geometricStdDev.toFixed(3)})
+- **Log-Normal Geometric Mean ($D_g$)**: ${sizingStats.geometricMean.toFixed(precision)} nm ($\\sigma_g$ = ${sizingStats.geometricStdDev.toFixed(3)})
 - **Median ($D_{50}$)**: ${sizingStats.median.toFixed(precision)} nm (IQR: ${sizingStats.iqr.toFixed(2)} nm, Q1–Q3: ${sizingStats.q1.toFixed(1)}–${sizingStats.q3.toFixed(1)} nm)
 - **Specific Surface Area (SSA)**: ${microstructuralProperties.ssaM2g.toFixed(1)} m²/g (${selectedMaterial}, ρ = ${materialDensity} g/cm³)
 - **Surface Atom Fraction ($f_{surf}$)**: ${microstructuralProperties.surfaceAtomFractionPct.toFixed(1)}%
-- **Dislocation Density ($\delta$)**: ${microstructuralProperties.dislocation10_14.toFixed(2)} × 10¹⁴ m⁻²
+- **Dislocation Density ($\\delta$)**: ${microstructuralProperties.dislocation10_14.toFixed(2)} × 10¹⁴ m⁻²
 - **Anisotropy Ratio**: ${sizingStats.anisotropyIndex.toFixed(2)}:1`;
     } else if (type === 'latex') {
-      const rowsLatex = validResults.map((r, i) => {
-        const hklStr = r.hkl ? `(${r.hkl.join('')})` : `Peak ${i + 1}`;
-        const disloc = (100 / Math.pow(r.sizeNm, 2)).toFixed(2);
-        return `${hklStr} & ${r.twoTheta.toFixed(2)} & ${r.dSpacing ? r.dSpacing.toFixed(3) : '-'} & ${r.fwhmObs.toFixed(3)} & ${r.betaCorrected.toFixed(3)} & ${r.sizeNm.toFixed(precision)} & ${disloc} \\\\`;
-      }).join('\n');
+      const rowsLatex = validResults
+        .map((r, i) => {
+          const hklStr = r.hkl ? `(${r.hkl.join('')})` : `Peak ${i + 1}`;
+          const disloc = (100 / Math.pow(r.sizeNm, 2)).toFixed(2);
+          return `${hklStr} & ${r.twoTheta.toFixed(2)} & ${r.dSpacing ? r.dSpacing.toFixed(3) : '-'} & ${r.fwhmObs.toFixed(3)} & ${r.betaCorrected.toFixed(3)} & ${r.sizeNm.toFixed(precision)} & ${disloc} \\\\`;
+        })
+        .join('\n');
       text = `\\begin{table}[htbp]
 \\centering
 \\caption{Scherrer Crystallite Sizing and Microstructural Parameters for ${selectedMaterial} ($\\lambda = ${wavelength}$ \\AA, $K = ${constantK}$)}
@@ -360,897 +483,941 @@ ${rowsLatex}
       text = `${currentSizeNm.toFixed(precision)} nm | ${(currentSizeNm * 10).toFixed(1)} Å | ${(currentSizeNm * 1000).toFixed(0)} pm | ${(currentSizeNm / 1000).toFixed(4)} µm`;
     }
 
-    navigator.clipboard.writeText(text);
+    navigator.clipboard?.writeText(text);
     setCopiedMode(type);
-    setTimeout(() => setCopiedMode(null), 2500);
+    setTimeout(() => setCopiedMode(null), 2200);
   };
 
-  // Download Sizing Breakdown CSV
   const handleDownloadCSV = () => {
-    const csvHeader = 'Peak_Index,Status,TwoTheta_deg,hkl,dSpacing_A,FWHM_deg,Beta_Corrected_deg,Intensity,Size_nm,Deviation_from_Mean_nm,Deviation_Pct,Weight_Pct,Dislocation_Density_10_14_m2,Coherent_Planes\n';
+    const csvHeader =
+      'Peak_Index,Status,TwoTheta_deg,hkl,dSpacing_A,FWHM_deg,Beta_Corrected_deg,Intensity,Size_nm,Deviation_from_Mean_nm,Deviation_Pct,Weight_Pct,Dislocation_Density_10_14_m2,Coherent_Planes\n';
     const totalIntensity = validResults.reduce((acc, r) => acc + (r.intensity || 1), 0);
     const sourceList = allResults.length > 0 ? allResults : validResults;
-    const csvRows = sourceList.map((r, idx) => {
-      const hklStr = r.hkl ? `"(${r.hkl.join('')})"` : `"Peak ${idx + 1}"`;
-      const status = r.excluded ? 'Excluded' : r.error ? 'Unresolved' : 'Active';
-      const dev = r.sizeNm > 0 ? r.sizeNm - currentSizeNm : 0;
-      const devPct = currentSizeNm > 0 && r.sizeNm > 0 ? (dev / currentSizeNm) * 100 : 0;
-      const weightPct = !r.excluded && r.sizeNm > 0 && totalIntensity > 0 ? ((r.intensity || 1) / totalIntensity) * 100 : 0;
-      const disloc = r.sizeNm > 0 ? 100 / Math.pow(r.sizeNm, 2) : 0;
-      return `${idx + 1},${status},${r.twoTheta.toFixed(3)},${hklStr},${r.dSpacing ? r.dSpacing.toFixed(3) : 'N/A'},${r.fwhmObs.toFixed(3)},${r.betaCorrected.toFixed(3)},${r.intensity || 0},${r.sizeNm > 0 ? r.sizeNm.toFixed(precision) : 'N/A'},${dev.toFixed(2)},${devPct.toFixed(1)},${weightPct.toFixed(1)},${disloc > 0 ? disloc.toFixed(2) : 'N/A'},${r.coherencePlanesN || 'N/A'}`;
-    }).join('\n');
+    const csvRows = sourceList
+      .map((r, idx) => {
+        const hklStr = r.hkl ? `"(${r.hkl.join('')})"` : `"Peak ${idx + 1}"`;
+        const status = r.excluded ? 'Excluded' : r.error ? 'Unresolved' : 'Active';
+        const dev = r.sizeNm > 0 ? r.sizeNm - currentSizeNm : 0;
+        const devPct = currentSizeNm > 0 && r.sizeNm > 0 ? (dev / currentSizeNm) * 100 : 0;
+        const weightPct =
+          !r.excluded && r.sizeNm > 0 && totalIntensity > 0
+            ? ((r.intensity || 1) / totalIntensity) * 100
+            : 0;
+        const disloc = r.sizeNm > 0 ? 100 / Math.pow(r.sizeNm, 2) : 0;
+        return `${idx + 1},${status},${r.twoTheta.toFixed(3)},${hklStr},${r.dSpacing ? r.dSpacing.toFixed(3) : 'N/A'},${r.fwhmObs.toFixed(3)},${r.betaCorrected.toFixed(3)},${r.intensity || 0},${r.sizeNm > 0 ? r.sizeNm.toFixed(precision) : 'N/A'},${dev.toFixed(2)},${devPct.toFixed(1)},${weightPct.toFixed(1)},${disloc > 0 ? disloc.toFixed(2) : 'N/A'},${r.coherencePlanesN || 'N/A'}`;
+      })
+      .join('\n');
 
     const blob = new Blob([csvHeader + csvRows], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.setAttribute('href', url);
-    link.setAttribute('download', `mean_crystallite_sizing_report_${new Date().toISOString().split('T')[0]}.csv`);
+    link.setAttribute(
+      'download',
+      `mean_crystallite_sizing_report_${new Date().toISOString().split('T')[0]}.csv`
+    );
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  const totalValidIntensity = useMemo(
-    () => validResults.reduce((acc, r) => acc + (r.intensity && r.intensity > 0 ? r.intensity : 1), 0),
-    [validResults]
+  const momentValues: Record<SizingAverageMethod, number> = {
+    weighted: sizingStats.weighted,
+    arithmetic: sizingStats.arithmetic,
+    volume: sizingStats.volume,
+    area: sizingStats.area,
+    harmonic: sizingStats.harmonic,
+  };
+
+  const maxMomentVal = Math.max(
+    1e-6,
+    sizingStats.weighted,
+    sizingStats.arithmetic,
+    sizingStats.volume,
+    sizingStats.area,
+    sizingStats.harmonic
   );
 
   return (
-    <div className="bg-[#0B0F19] border border-slate-800 rounded-md shadow-2xl relative overflow-hidden group/size-card transition-all">
-      {/* Top 2px Signal Accent Bar */}
-      <div className="h-0.5 w-full bg-gradient-to-r from-amber-500 via-cyan-500 to-emerald-500" />
-      <div className="p-5 lg:p-6">
-
-      {/* --- Card Header --- */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-5 relative z-10 pb-4 border-b border-slate-800">
-        <div className="flex items-center gap-3">
-          <div className="p-2.5 bg-amber-500/10 rounded border border-amber-500/30">
-            <Zap className="h-5 w-5 text-amber-400" />
-          </div>
-          <div>
-            <div className="flex flex-wrap items-center gap-2.5">
-              <h3 className="text-base font-bold text-white uppercase tracking-wider font-mono">Mean Crystallite Sizing & Moment Synthesis</h3>
-              <div className="flex items-center gap-1.5 text-xs font-mono text-slate-400">
-                <span>·</span>
-                <span className="text-amber-400 font-bold">
-                  {sizingStats.count} / {totalReflectionsCount} Reflections Resolved
-                </span>
-                {excludedReflectionsCount > 0 && (
-                  <>
-                    <span>·</span>
-                    <span className="text-slate-500">{excludedReflectionsCount} Excluded</span>
-                  </>
-                )}
-              </div>
-            </div>
-            <div className="text-[11px] font-mono text-slate-400 mt-0.5 flex flex-wrap items-center gap-2">
-              <span>Statistical Microstructure Synthesis</span>
-              <span className="text-slate-600">·</span>
-              <span className="text-amber-400/90 font-sans font-semibold">
-                {averageType === 'weighted' && 'Intensity-Weighted Volume (D_int)'}
-                {averageType === 'arithmetic' && 'Number / Arithmetic Mean (D_num)'}
-                {averageType === 'volume' && 'Volume-Weighted Moment (D_V = ΣD⁴/ΣD³)'}
-                {averageType === 'area' && 'Surface Area-Weighted Moment (D_A = ΣD³/ΣD²)'}
-                {averageType === 'harmonic' && 'Harmonic Effective Broadening Mean (D_H)'}
-              </span>
-              <span className="text-slate-600">·</span>
-              <span className={
-                regimeInfo.color === 'indigo' ? 'text-indigo-300' :
-                regimeInfo.color === 'emerald' ? 'text-emerald-300' :
-                regimeInfo.color === 'cyan' ? 'text-cyan-300' :
-                regimeInfo.color === 'amber' ? 'text-amber-300' :
-                'text-rose-300'
-              } title={regimeInfo.desc}>
-                {regimeInfo.label}
-              </span>
-            </div>
-          </div>
-        </div>
-
-        {/* Action Controls & Publication Exporters */}
-        <div className="flex flex-wrap items-center gap-2">
-          {/* Toggle Chart View */}
-          <button
-            onClick={() => setViewMode(viewMode === 'summary' ? 'chart' : 'summary')}
-            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border ${
-              viewMode === 'chart' 
-                ? 'bg-cyan-500 text-slate-950 border-cyan-400 font-black shadow-[0_0_15px_rgba(6,182,212,0.4)]' 
-                : 'bg-cyan-500/15 hover:bg-cyan-500/25 border-cyan-500/40 text-cyan-300 hover:text-cyan-200'
-            }`}
-            title="Toggle interactive size distribution chart view"
-          >
-            <BarChart2 className="w-3.5 h-3.5 text-cyan-400" />
-            <span>{viewMode === 'summary' ? 'View Chart' : 'Summary View'}</span>
-          </button>
-
-          {/* Inspect Math & Why Button */}
-          <button
-            onClick={() => {
-              setShowTrace(!showTrace);
-              setTraceTab('trace');
-            }}
-            className={`px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer border ${
-              showTrace 
-                ? 'bg-amber-500 text-slate-950 border-amber-400 font-black shadow-[0_0_15px_rgba(245,158,11,0.4)]' 
-                : 'bg-amber-500/15 hover:bg-amber-500/25 border-amber-500/40 text-amber-300 hover:text-amber-200'
-            }`}
-            title="Inspect step-by-step mathematical calculation trace, peak deconvolution, and physical meaning"
-          >
-            <Lightbulb className="w-3.5 h-3.5 text-amber-400" />
-            <span>{showTrace ? 'Hide Trace' : 'Inspect Math & Why'}</span>
-          </button>
-
-          {/* Copy Manuscript Prose Button */}
-          <button
-            onClick={() => handleCopySummary('summary')}
-            className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
-            title="Copy publication-ready manuscript paragraph (ACS/Nature/IEEE format)"
-          >
-            {copiedMode === 'summary' ? (
+    <section className="bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden text-slate-900 dark:text-slate-100 transition-colors">
+      {/* ================================================================= */}
+      {/* TOP INSTRUMENT HEADER & WORKSPACE SWITCHER                        */}
+      {/* ================================================================= */}
+      <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 px-5 py-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/60">
+        <div className="space-y-1 min-w-0">
+          <h3 className="text-lg font-semibold tracking-tight text-slate-900 dark:text-white">
+            Mean Crystallite Sizing & Moment Synthesis
+          </h3>
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500 dark:text-slate-400">
+            <span className="font-mono tabular-nums font-medium text-slate-700 dark:text-slate-200">
+              {sizingStats.count} / {totalReflectionsCount} reflections resolved
+            </span>
+            {excludedReflectionsCount > 0 && (
               <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">Prose Copied!</span>
-              </>
-            ) : (
-              <>
-                <Copy className="w-3.5 h-3.5 text-slate-400" />
-                <span>Cite Prose</span>
+                <span aria-hidden="true">·</span>
+                <span className="font-mono tabular-nums">{excludedReflectionsCount} excluded</span>
               </>
             )}
-          </button>
-
-          {/* Copy LaTeX Table Button */}
-          <button
-            onClick={() => handleCopySummary('latex')}
-            className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
-            title="Copy LaTeX journal table of all reflections & mean sizing"
-          >
-            {copiedMode === 'latex' ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">LaTeX Copied!</span>
-              </>
-            ) : (
-              <>
-                <Code className="w-3.5 h-3.5 text-amber-400" />
-                <span className="hidden sm:inline">LaTeX</span>
-              </>
-            )}
-          </button>
-
-          {/* Copy Markdown Report Button */}
-          <button
-            onClick={() => handleCopySummary('markdown')}
-            className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
-            title="Copy formatted Markdown report for lab notebooks"
-          >
-            {copiedMode === 'markdown' ? (
-              <>
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                <span className="text-emerald-400">MD Copied!</span>
-              </>
-            ) : (
-              <>
-                <FileText className="w-3.5 h-3.5 text-indigo-400" />
-                <span className="hidden sm:inline">MD Report</span>
-              </>
-            )}
-          </button>
-
-          {/* Download CSV */}
-          <button
-            onClick={handleDownloadCSV}
-            className="px-3 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider bg-slate-900/90 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white transition-all flex items-center gap-1.5 shadow-sm active:scale-95 cursor-pointer"
-            title="Download full reflection & facet sizing spreadsheet"
-          >
-            <Download className="w-3.5 h-3.5 text-cyan-400" />
-            <span className="hidden sm:inline">CSV</span>
-          </button>
-        </div>
-      </div>
-
-      {/* --- Interactive Size Distribution Chart View (when viewMode === 'chart') --- */}
-      {viewMode === 'chart' && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="bg-black/80 p-6 rounded-2xl border border-cyan-500/30 relative z-10 mb-6 shadow-2xl"
-        >
-          <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-800">
-            <div>
-              <h4 className="text-sm font-bold text-white flex items-center gap-2">
-                <BarChart2 className="w-4 h-4 text-cyan-400" />
-                <span>Facet-by-Facet Crystallite Size Distribution (D_hkl)</span>
-              </h4>
-              <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-                Comparing apparent crystallite domain size across resolved Miller indices with mean reference line ({currentSizeNm.toFixed(2)} nm).
-              </p>
-            </div>
-            <button
-              onClick={() => setViewMode('summary')}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 text-xs font-sans cursor-pointer"
-            >
-              Back to Summary Cards
-            </button>
-          </div>
-
-          <div className="h-72 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 20 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                <XAxis dataKey="name" stroke="#94a3b8" tick={{ fontSize: 11, fontFamily: 'monospace' }} />
-                <YAxis stroke="#94a3b8" unit=" nm" tick={{ fontSize: 11, fontFamily: 'monospace' }} />
-                <Tooltip
-                  contentStyle={{ backgroundColor: '#090d16', borderColor: '#334155', borderRadius: '12px', color: '#fff', fontSize: '12px', fontFamily: 'monospace' }}
-                  formatter={(val: any) => [`${Number(val).toFixed(2)} nm`, 'Crystallite Size (D)']}
-                />
-                <ReferenceLine y={currentSizeNm} stroke="#f59e0b" strokeDasharray="4 4" label={{ value: `Mean: ${currentSizeNm.toFixed(1)} nm`, fill: '#f59e0b', fontSize: 11, position: 'top' }} />
-                <Bar dataKey="size" fill="#06b6d4" radius={[6, 6, 0, 0]}>
-                  {chartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={Math.abs(entry.size - currentSizeNm) > sizingStats.stdDev ? '#f59e0b' : '#38bdf8'} />
-                  ))}
-                </Bar>
-              </ComposedChart>
-            </ResponsiveContainer>
-          </div>
-        </motion.div>
-      )}
-
-      {/* --- Main Grid: Hero Metric + Statistical Uncertainty & Key Microstructural Cards --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-stretch relative z-10">
-        
-        {/* Left Col: Hero Size Display with Confidence Intervals, Distribution Quantile Ruler & Unit Conversions */}
-        <div className="lg:col-span-5 flex flex-col justify-between bg-[#070A12] p-5 rounded border border-slate-800 relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-amber-500" />
-
-          <div>
-            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400">
-              <span className="font-bold text-amber-400 uppercase tracking-wider">
-                {averageType === 'weighted' && 'Intensity-Weighted Mean (D_int)'}
-                {averageType === 'arithmetic' && 'Number / Arithmetic Mean (D_num)'}
-                {averageType === 'volume' && 'Volume-Weighted Mean (D_V)'}
-                {averageType === 'area' && 'Area-Weighted Mean (D_A)'}
-                {averageType === 'harmonic' && 'Harmonic Mean (D_H)'}
-              </span>
-              <span>
-                K = {constantK} · λ = {wavelength} Å
-              </span>
-            </div>
-
-            {/* Primary Sizing Hero Value */}
-            <div className="flex items-baseline gap-2.5 mt-2">
-              <span 
-                className="text-5xl sm:text-6xl font-black text-white font-mono tabular-nums tracking-tighter" 
-                style={{ textShadow: '0 0 30px rgba(245,158,11,0.3)' }}
-              >
-                {currentSizeNm.toFixed(precision)}
-              </span>
-              <span className="text-2xl font-black text-amber-400 font-mono">nm</span>
-              {sizingStats.count > 1 && (
-                <span className="text-sm font-mono text-slate-400 ml-1 tabular-nums">
-                  ± {sizingStats.stdDev.toFixed(2)} nm
-                </span>
-              )}
-            </div>
-
-            {/* Clean Unboxed Statistical Metadata */}
-            {sizingStats.count > 1 ? (
-              <div className="flex flex-wrap items-center gap-2 mt-2.5 font-mono text-[11px] text-slate-300 tabular-nums">
-                <span className="text-amber-300 font-semibold">
-                  95% CI: ±{sizingStats.ci95.toFixed(2)} nm
-                </span>
-                <span className="text-slate-600">·</span>
-                <span className="text-slate-400">
-                  SEM: <strong className="text-slate-200">{sizingStats.sem.toFixed(2)} nm</strong>
-                </span>
-                <span className="text-slate-600">·</span>
-                <span className="text-slate-400">
-                  CV: <strong className="text-slate-200">{sizingStats.relDispersion.toFixed(1)}%</strong>
-                </span>
-              </div>
-            ) : (
-              <p className="text-[11px] text-slate-500 italic mt-1 font-mono">
-                Single reflection active · Include ≥2 reflections for confidence intervals.
-              </p>
-            )}
-
-            {/* Log-Normal & Polydispersity Unboxed Metadata */}
-            <div className="mt-2.5 flex flex-wrap items-center gap-2 text-[11px] font-mono tabular-nums">
-              <span className="text-slate-400">
-                PDI: <strong className={pdiClassification.color}>{sizingStats.pdi.toFixed(3)}</strong> ({pdiClassification.label})
-              </span>
-              <span className="text-slate-600">·</span>
-              <span className="text-slate-400">
-                Log-Normal D_g: <strong className="text-indigo-300">{sizingStats.geometricMean.toFixed(1)} nm</strong> (σ_g = {sizingStats.geometricStdDev.toFixed(2)})
-              </span>
-            </div>
-
-            {/* Visual Quantile Span Bar (Min -> Q1 -> Median -> Q3 -> Max) */}
-            {sizingStats.count > 1 && sizingStats.max > sizingStats.min && (
-              <div className="mt-4 pt-3 border-t border-slate-800/70 space-y-1.5">
-                <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 tabular-nums">
-                  <span>Min: <strong className="text-slate-200">{sizingStats.min.toFixed(1)}</strong></span>
-                  <span>Q₁: <strong className="text-indigo-300">{sizingStats.q1.toFixed(1)}</strong></span>
-                  <span>D₅₀: <strong className="text-amber-300">{sizingStats.median.toFixed(1)}</strong></span>
-                  <span>Q₃: <strong className="text-indigo-300">{sizingStats.q3.toFixed(1)}</strong></span>
-                  <span>Max: <strong className="text-slate-200">{sizingStats.max.toFixed(1)} nm</strong></span>
-                </div>
-                <div className="relative h-2 bg-slate-900 rounded-full overflow-hidden border border-slate-800">
-                  {(() => {
-                    const span = Math.max(0.01, sizingStats.max - sizingStats.min);
-                    const q1Left = Math.max(0, Math.min(100, ((sizingStats.q1 - sizingStats.min) / span) * 100));
-                    const q3Right = Math.max(0, Math.min(100, ((sizingStats.q3 - sizingStats.min) / span) * 100));
-                    const medPos = Math.max(0, Math.min(100, ((sizingStats.median - sizingStats.min) / span) * 100));
-                    const meanPos = Math.max(0, Math.min(100, ((currentSizeNm - sizingStats.min) / span) * 100));
-                    return (
-                      <>
-                        <div
-                          className="absolute top-0 bottom-0 bg-indigo-500/35"
-                          style={{ left: `${q1Left}%`, width: `${Math.max(4, q3Right - q1Left)}%` }}
-                          title={`Interquartile Range (Q1–Q3): ${sizingStats.q1.toFixed(1)}–${sizingStats.q3.toFixed(1)} nm`}
-                        />
-                        <div
-                          className="absolute top-0 bottom-0 w-1 bg-amber-400"
-                          style={{ left: `${meanPos}%` }}
-                          title={`Active Mean: ${currentSizeNm.toFixed(2)} nm`}
-                        />
-                        <div
-                          className="absolute top-0 bottom-0 w-0.5 bg-white/80"
-                          style={{ left: `${medPos}%` }}
-                          title={`Median (D50): ${sizingStats.median.toFixed(2)} nm`}
-                        />
-                      </>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Unit Conversions with quick-copy */}
-          <div className="mt-4 pt-3 border-t border-slate-800/80 flex items-center justify-between font-mono text-[11px] tabular-nums">
-            <div
-              onClick={() => handleCopySummary('unit')}
-              className="flex items-center gap-2 flex-wrap text-slate-300 hover:text-amber-300 cursor-pointer transition-colors"
-              title="Click to copy all length unit conversions"
-            >
-              <span className="font-bold text-white">{(currentSizeNm * 10).toFixed(Math.max(1, precision - 1))} Å</span>
-              <span className="text-slate-600">·</span>
-              <span>{(currentSizeNm * 1000).toFixed(0)} pm</span>
-              <span className="text-slate-600">·</span>
-              <span>{(currentSizeNm / 1000).toFixed(4)} µm</span>
-              <span className="text-slate-600">·</span>
-              <span className="text-emerald-300">f_surf ≈ {microstructuralProperties.surfaceAtomFractionPct.toFixed(1)}%</span>
-            </div>
-            <span className="text-[9px] text-slate-500 font-mono">
-              {copiedMode === 'unit' ? 'Copied!' : 'Click units to copy'}
+            <span aria-hidden="true">·</span>
+            <span>
+              {activeMomentMeta.label} ({activeMomentMeta.symbol})
+            </span>
+            <span aria-hidden="true">·</span>
+            <span className={`font-medium ${regimeInfo.tone}`} title={regimeInfo.desc}>
+              {regimeInfo.label}
             </span>
           </div>
         </div>
 
-        {/* Right Col: 4 Microstructural Property Cards */}
-        <div className="lg:col-span-7 grid grid-cols-2 sm:grid-cols-4 gap-3">
-          
-          {/* Card 1: Dislocation Density */}
-          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/90 transition-all hover:bg-slate-900 hover:border-amber-500/30 flex flex-col justify-between group/disloc">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
-                  <span>Dislocation (δ)</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowTrace(true);
-                      setTraceTab('physics');
-                    }}
-                    className="text-slate-500 hover:text-amber-400 cursor-pointer transition-colors p-0.5"
-                    title="Why δ = 1/D²? Click to inspect physical derivation"
-                  >
-                    <HelpCircle className="w-3 h-3" />
-                  </button>
-                </span>
-                <Atom className="w-3.5 h-3.5 text-amber-400/70" />
-              </div>
-              <span className="text-xl font-mono tabular-nums font-bold text-amber-300">
-                {microstructuralProperties.dislocation10_14.toFixed(2)}
-              </span>
-              <span className="text-[10px] text-slate-500 block font-mono">×10¹⁴ lines/m²</span>
-            </div>
-            <div className="pt-2 mt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex items-center justify-between">
-              <span>δ = 1 / D²</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowTrace(true);
-                  setTraceTab('physics');
-                }}
-                className="text-[10px] text-amber-400/80 hover:text-amber-300 font-sans cursor-pointer"
-              >
-                Why?
-              </button>
-            </div>
+        {/* Unified View Segmented Switcher + Compact Publication Exports */}
+        <div className="flex flex-wrap items-center gap-2.5 shrink-0">
+          <div className="flex items-center gap-0.5 p-1 bg-slate-200/70 dark:bg-slate-900 rounded-lg border border-slate-200 dark:border-slate-800">
+            {(
+              [
+                { id: 'summary', label: 'Synthesis', icon: null },
+                { id: 'chart', label: 'Distribution', icon: BarChart2 },
+                { id: 'trace', label: 'Math Trace', icon: Calculator },
+              ] as const
+            ).map((tab) => {
+              const Icon = tab.icon;
+              const isActive = workspaceView === tab.id;
+              return (
+                <button
+                  key={tab.id}
+                  type="button"
+                  onClick={() => setWorkspaceView(tab.id)}
+                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                    isActive
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                  }`}
+                >
+                  {Icon && <Icon className="w-3.5 h-3.5" />}
+                  <span>{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
 
-          {/* Card 2: Specific Surface Area (SSA) with Dynamic Material Density */}
-          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/90 transition-all hover:bg-slate-900 hover:border-emerald-500/30 flex flex-col justify-between group/ssa">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
-                  <span>Specific Surface</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowTrace(true);
-                      setTraceTab('physics');
-                    }}
-                    className="text-slate-500 hover:text-emerald-400 cursor-pointer transition-colors p-0.5"
-                    title="Why SSA = 6000 / (ρ·D)? Click to inspect derivation"
-                  >
-                    <HelpCircle className="w-3 h-3" />
-                  </button>
-                </span>
-                <Scale className="w-3.5 h-3.5 text-emerald-400/70" />
-              </div>
-              <span className="text-xl font-mono tabular-nums font-bold text-emerald-300">
-                {microstructuralProperties.ssaM2g.toFixed(1)}
-              </span>
-              <span className="text-[10px] text-slate-500 block font-mono">m² / g</span>
-            </div>
-            <div className="pt-2 mt-2 border-t border-slate-800/60 text-[10px] text-slate-400 flex items-center justify-between">
-              <span className="truncate" title={selectedMaterial}>ρ = {materialDensity} g/cm³</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowTrace(true);
-                  setTraceTab('physics');
-                }}
-                className="text-[10px] text-emerald-400/80 hover:text-emerald-300 font-sans cursor-pointer shrink-0 ml-1"
-              >
-                Why?
-              </button>
-            </div>
-          </div>
-
-          {/* Card 3: Coherent Lattice Planes */}
-          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/90 transition-all hover:bg-slate-900 hover:border-indigo-500/30 flex flex-col justify-between group/planes">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
-                  <span>Coherent Planes</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowTrace(true);
-                      setTraceTab('physics');
-                    }}
-                    className="text-slate-500 hover:text-indigo-400 cursor-pointer transition-colors p-0.5"
-                    title="Why N = D / d? Click to inspect coherent layer meaning"
-                  >
-                    <HelpCircle className="w-3 h-3" />
-                  </button>
-                </span>
-                <Layers className="w-3.5 h-3.5 text-indigo-400/70" />
-              </div>
-              <span className="text-xl font-mono tabular-nums font-bold text-indigo-300">
-                ~{sizingStats.avgPlanes}
-              </span>
-              <span className="text-[10px] text-slate-500 block font-mono">lattice layers</span>
-            </div>
-            <div className="pt-2 mt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex items-center justify-between">
-              <span>Mean d = {sizingStats.avgDSpacing.toFixed(2)} Å</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowTrace(true);
-                  setTraceTab('physics');
-                }}
-                className="text-[10px] text-indigo-400/80 hover:text-indigo-300 font-sans cursor-pointer"
-              >
-                Why?
-              </button>
-            </div>
-          </div>
-
-          {/* Card 4: Facet Anisotropy Ratio */}
-          <div className="bg-slate-900/70 p-4 rounded-2xl border border-slate-800/90 transition-all hover:bg-slate-900 hover:border-purple-500/30 flex flex-col justify-between group/aniso">
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <span className="text-[10px] font-semibold text-slate-400 flex items-center gap-1">
-                  <span>Anisotropy</span>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowTrace(true);
-                      setTraceTab('physics');
-                    }}
-                    className="text-slate-500 hover:text-purple-400 cursor-pointer transition-colors p-0.5"
-                    title="What does Anisotropy Ratio mean for morphology? Click to inspect"
-                  >
-                    <HelpCircle className="w-3 h-3" />
-                  </button>
-                </span>
-                <Compass className="w-3.5 h-3.5 text-purple-400/70" />
-              </div>
-              <span className="text-xl font-mono tabular-nums font-bold text-purple-300">
-                {sizingStats.anisotropyIndex.toFixed(2)}:1
-              </span>
-              <span className="text-[10px] text-slate-500 block font-mono">D_max / D_min</span>
-            </div>
-            <div className="pt-2 mt-2 border-t border-slate-800/60 text-[10px] text-slate-500 flex items-center justify-between">
-              <span>{sizingStats.min.toFixed(1)}–{sizingStats.max.toFixed(1)} nm</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowTrace(true);
-                  setTraceTab('physics');
-                }}
-                className="text-[10px] text-purple-400/80 hover:text-purple-300 font-sans cursor-pointer"
-              >
-                Why?
-              </button>
-            </div>
-          </div>
-
-        </div>
-      </div>
-
-      {/* --- Microstrain & Resolution Alerts (if applicable) --- */}
-      {Math.abs(whSlope) > 0.0008 && (
-        <div className="mt-4 p-3 rounded-2xl bg-amber-500/10 border border-amber-500/25 flex items-center gap-3 text-xs text-amber-200">
-          <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0" />
-          <span>
-            <strong>Microstrain Contamination Warning:</strong> Williamson-Hall slope indicates lattice strain (ε ≈ {(Math.abs(whSlope) * 100).toFixed(2)}%). Peak broadening contains both size and strain components; pure Scherrer sizing will underestimate true crystallite dimensions.
-          </span>
-        </div>
-      )}
-
-      {currentSizeNm > 150 && (
-        <div className="mt-4 p-3 rounded-2xl bg-rose-500/10 border border-rose-500/25 flex items-center gap-3 text-xs text-rose-200">
-          <AlertTriangle className="w-4 h-4 text-rose-400 shrink-0" />
-          <span>
-            <strong>Instrument Resolution Boundary:</strong> Calculated crystallite size ({currentSizeNm.toFixed(1)} nm) approaches or exceeds the typical lab diffractometer broadening limit (~100–150 nm). Ensure instrumental broadening (FWHM_inst) is rigorously subtracted using a standard calibrant (NIST SRM 640/660).
-          </span>
-        </div>
-      )}
-
-      {/* --- Comprehensive 5-Method Averaging Bar --- */}
-      <div className="mt-6 pt-5 border-t border-slate-800/80 flex flex-col space-y-4 relative z-10">
-        <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-semibold text-slate-300">
-              Select Primary Averaging Model
-            </span>
+          <div className="flex items-center gap-1 border-l border-slate-200 dark:border-slate-800 pl-2.5">
             <button
               type="button"
-              onClick={() => {
-                setShowTrace(true);
-                setTraceTab('models');
-              }}
-              className="px-2.5 py-1 rounded-lg text-[10px] font-bold text-indigo-300 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 flex items-center gap-1 cursor-pointer transition-colors"
-              title="Why 5 different averaging methods? Compare XRD vs TEM and publication standards"
+              onClick={() => handleCopySummary('summary')}
+              title="Copy publication-ready manuscript paragraph"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
             >
-              <BookOpen className="w-3 h-3 text-indigo-400" />
-              <span>Why 5 Models?</span>
+              {copiedMode === 'summary' ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Copy className="w-3.5 h-3.5 text-slate-400" />
+              )}
+              <span>{copiedMode === 'summary' ? 'Copied' : 'Cite'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCopySummary('latex')}
+              title="Copy LaTeX journal table"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              {copiedMode === 'latex' ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <Code className="w-3.5 h-3.5 text-slate-400" />
+              )}
+              <span className="hidden sm:inline">{copiedMode === 'latex' ? 'Copied' : 'LaTeX'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => handleCopySummary('markdown')}
+              title="Copy Markdown lab report"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              {copiedMode === 'markdown' ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+              ) : (
+                <FileText className="w-3.5 h-3.5 text-slate-400" />
+              )}
+              <span className="hidden sm:inline">{copiedMode === 'markdown' ? 'Copied' : 'MD'}</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadCSV}
+              title="Download CSV spreadsheet"
+              className="inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+            >
+              <Download className="w-3.5 h-3.5 text-slate-400" />
+              <span className="hidden sm:inline">CSV</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {/* ================================================================= */}
+      {/* BODY CONTENT                                                      */}
+      {/* ================================================================= */}
+      <div className="p-5 lg:p-6 space-y-5">
+        {/* VIEW 2: FACET-BY-FACET DISTRIBUTION CHART */}
+        {workspaceView === 'chart' && (
+          <div className="border border-slate-200 dark:border-slate-800 rounded-xl bg-slate-50/60 dark:bg-slate-950/60 p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-semibold text-slate-900 dark:text-white">
+                  Facet-by-Facet Crystallite Size Distribution (D_hkl)
+                </h4>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  Apparent domain sizes across resolved Miller planes against {activeMomentMeta.symbol} ={' '}
+                  <span className="font-mono tabular-nums font-medium text-slate-800 dark:text-slate-200">
+                    {currentSizeNm.toFixed(precision)} ± {sizingStats.stdDev.toFixed(2)} nm
+                  </span>
+                </p>
+              </div>
+              <div className="flex items-center gap-4 text-[11px] text-slate-500 dark:text-slate-400">
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-sky-500 inline-block" />
+                  Within ±1.8σ
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-2.5 h-2.5 rounded-xs bg-amber-500 inline-block" />
+                  Outlier (|Z| &gt; 1.8)
+                </span>
+                <span className="inline-flex items-center gap-1.5">
+                  <span className="w-4 h-0 border-t border-dashed border-amber-500 inline-block" />
+                  Active Mean
+                </span>
+              </div>
+            </div>
+
+            <div className="h-72 w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <ComposedChart data={chartData} margin={{ top: 14, right: 24, left: 4, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(148, 163, 184, 0.2)" />
+                  <XAxis
+                    dataKey="name"
+                    stroke="#64748b"
+                    tick={{ fontSize: 11, fontFamily: 'monospace' }}
+                  />
+                  <YAxis
+                    stroke="#64748b"
+                    unit=" nm"
+                    tick={{ fontSize: 11, fontFamily: 'monospace' }}
+                  />
+                  <Tooltip
+                    cursor={{ fill: 'rgba(148, 163, 184, 0.08)' }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload || !payload.length) return null;
+                      const d = payload[0].payload;
+                      return (
+                        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 text-xs font-mono tabular-nums shadow-lg space-y-1 text-slate-800 dark:text-slate-200">
+                          <div className="font-sans font-semibold text-slate-900 dark:text-white">
+                            {d.name} · 2θ = {d.twoTheta.toFixed(2)}°
+                          </div>
+                          <div>
+                            D_hkl = <strong>{d.size.toFixed(precision)} nm</strong>
+                          </div>
+                          <div className={d.delta >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}>
+                            Δ Mean = {d.delta >= 0 ? '+' : ''}
+                            {d.delta.toFixed(2)} nm
+                          </div>
+                          <div className="text-slate-500 dark:text-slate-400">
+                            Weight {d.weightPct.toFixed(1)}% · ~{d.planesN} planes
+                          </div>
+                        </div>
+                      );
+                    }}
+                  />
+                  {sizingStats.count > 1 && sizingStats.stdDev > 0 && (
+                    <ReferenceArea
+                      y1={Math.max(0, currentSizeNm - sizingStats.stdDev)}
+                      y2={currentSizeNm + sizingStats.stdDev}
+                      fill="#0ea5e9"
+                      fillOpacity={0.09}
+                    />
+                  )}
+                  <ReferenceLine
+                    y={currentSizeNm}
+                    stroke="#d97706"
+                    strokeWidth={1.5}
+                    strokeDasharray="4 4"
+                    label={{
+                      value: `${activeMomentMeta.symbol} ${currentSizeNm.toFixed(1)} nm`,
+                      fill: '#d97706',
+                      fontSize: 11,
+                      fontFamily: 'monospace',
+                      position: 'insideTopRight',
+                    }}
+                  />
+                  <Bar dataKey="size" radius={[4, 4, 0, 0]} maxBarSize={48}>
+                    {chartData.map((entry, index) => (
+                      <Cell
+                        key={`cell-${index}`}
+                        fill={entry.isOutlier ? '#f59e0b' : '#0284c7'}
+                      />
+                    ))}
+                  </Bar>
+                </ComposedChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        )}
+
+        {/* PRIMARY 2-ZONE HERO & MICROSTRUCTURE MATRIX */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+          {/* Left Zone: Primary Crystallite Size Readout & Quantile Span Ruler */}
+          <div className="lg:col-span-5 flex flex-col justify-between p-5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/60">
+            <div className="space-y-3">
+              {/* Top Kicker + Unit Switcher */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-medium text-slate-600 dark:text-slate-300 flex items-center gap-1.5">
+                  <span>{activeMomentMeta.label}</span>
+                  <span className="text-slate-500 dark:text-slate-400">
+                    (<MathFormula tex={activeMomentMeta.texSymbol} />)
+                  </span>
+                </div>
+                <div className="flex items-center gap-0.5 bg-slate-200/70 dark:bg-slate-900 p-0.5 rounded-md border border-slate-200 dark:border-slate-800">
+                  {(['nm', 'A', 'pm', 'um'] as DisplayUnit[]).map((u) => (
+                    <button
+                      key={u}
+                      type="button"
+                      onClick={() => setDisplayUnit(u)}
+                      className={`px-1.5 py-0.5 text-[11px] font-mono rounded transition-colors cursor-pointer ${
+                        displayUnit === u
+                          ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white font-semibold shadow-xs'
+                          : 'text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200'
+                      }`}
+                    >
+                      {unitLabel(u)}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Hero Authoritative Measurement */}
+              <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-1">
+                <span className="text-4xl sm:text-5xl font-bold font-mono tabular-nums tracking-tight text-slate-900 dark:text-white">
+                  {formatScaledSize(currentSizeNm, displayUnit)}
+                </span>
+                <span className="text-xl font-semibold font-mono text-blue-600 dark:text-sky-400">
+                  {unitLabel(displayUnit)}
+                </span>
+                {sizingStats.count > 1 && (
+                  <span className="text-sm font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                    ± {formatScaledSize(sizingStats.stdDev, displayUnit)} {unitLabel(displayUnit)}
+                  </span>
+                )}
+              </div>
+
+              {/* Unboxed Precision Uncertainty Line */}
+              {sizingStats.count > 1 ? (
+                <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs font-mono tabular-nums text-slate-600 dark:text-slate-300">
+                  <span>
+                    95% CI <strong className="text-slate-900 dark:text-white">±{sizingStats.ci95.toFixed(2)} nm</strong>
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">·</span>
+                  <span>
+                    SEM <strong className="text-slate-800 dark:text-slate-200">{sizingStats.sem.toFixed(2)} nm</strong>
+                  </span>
+                  <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">·</span>
+                  <span>
+                    CV <strong className="text-slate-800 dark:text-slate-200">{sizingStats.relDispersion.toFixed(1)}%</strong>
+                  </span>
+                </div>
+              ) : (
+                <p className="text-xs text-slate-500 dark:text-slate-400">
+                  Single reflection active — include ≥ 2 resolved peaks for confidence intervals.
+                </p>
+              )}
+
+              {/* Log-Normal & Instrument Constants Line */}
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                <span>
+                  <MathFormula tex="D_g" className="text-slate-600 dark:text-slate-300" />{' '}
+                  <strong className="text-slate-700 dark:text-slate-200">{sizingStats.geometricMean.toFixed(1)} nm</strong>{' '}
+                  (<MathFormula tex="\sigma_g" className="text-slate-600 dark:text-slate-300" /> {sizingStats.geometricStdDev.toFixed(2)})
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  <MathFormula tex={`K = ${constantK}`} className="text-slate-600 dark:text-slate-300" />
+                </span>
+                <span aria-hidden="true">·</span>
+                <span>
+                  <MathFormula tex={`\\lambda = ${wavelength}\\,\\text{\\AA}`} className="text-slate-600 dark:text-slate-300" />
+                </span>
+              </div>
+            </div>
+
+            {/* Quantile Span Ruler (Min · Q1 · D50 · Q3 · Max) */}
+            <div className="mt-5 pt-4 border-t border-slate-200 dark:border-slate-800 space-y-3">
+              {sizingStats.count > 1 && sizingStats.max > sizingStats.min && (
+                <div className="space-y-1.5">
+                  <div className="flex items-center justify-between text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                    <span>
+                      Min <strong className="text-slate-800 dark:text-slate-200">{sizingStats.min.toFixed(1)}</strong>
+                    </span>
+                    <span>
+                      Q₁ <strong className="text-slate-700 dark:text-slate-300">{sizingStats.q1.toFixed(1)}</strong>
+                    </span>
+                    <span>
+                      D₅₀ <strong className="text-slate-900 dark:text-white">{sizingStats.median.toFixed(1)}</strong>
+                    </span>
+                    <span>
+                      Q₃ <strong className="text-slate-700 dark:text-slate-300">{sizingStats.q3.toFixed(1)}</strong>
+                    </span>
+                    <span>
+                      Max <strong className="text-slate-800 dark:text-slate-200">{sizingStats.max.toFixed(1)} nm</strong>
+                    </span>
+                  </div>
+                  <div className="relative h-2 bg-slate-200/90 dark:bg-slate-800 rounded-full overflow-hidden">
+                    {(() => {
+                      const span = Math.max(0.01, sizingStats.max - sizingStats.min);
+                      const q1Left = Math.max(0, Math.min(100, ((sizingStats.q1 - sizingStats.min) / span) * 100));
+                      const q3Right = Math.max(0, Math.min(100, ((sizingStats.q3 - sizingStats.min) / span) * 100));
+                      const medPos = Math.max(0, Math.min(100, ((sizingStats.median - sizingStats.min) / span) * 100));
+                      const meanPos = Math.max(0, Math.min(100, ((currentSizeNm - sizingStats.min) / span) * 100));
+                      return (
+                        <>
+                          <div
+                            className="absolute top-0 bottom-0 bg-blue-500/30 dark:bg-sky-400/30"
+                            style={{ left: `${q1Left}%`, width: `${Math.max(4, q3Right - q1Left)}%` }}
+                            title={`IQR (Q1–Q3): ${sizingStats.q1.toFixed(1)}–${sizingStats.q3.toFixed(1)} nm`}
+                          />
+                          <div
+                            className="absolute top-0 bottom-0 w-0.5 bg-slate-700 dark:bg-white/80"
+                            style={{ left: `${medPos}%` }}
+                            title={`Median D50: ${sizingStats.median.toFixed(2)} nm`}
+                          />
+                          <div
+                            className="absolute top-0 bottom-0 w-1 bg-blue-600 dark:bg-sky-400"
+                            style={{ left: `${meanPos}%` }}
+                            title={`Active Mean (${activeMomentMeta.symbol}): ${currentSizeNm.toFixed(2)} nm`}
+                          />
+                        </>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              <div className="flex items-center justify-between gap-2 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                <button
+                  type="button"
+                  onClick={() => handleCopySummary('unit')}
+                  className="text-left hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer truncate"
+                  title="Click to copy all unit conversions"
+                >
+                  {(currentSizeNm * 10).toFixed(1)} Å · {(currentSizeNm * 1000).toFixed(0)} pm ·{' '}
+                  {(currentSizeNm / 1000).toFixed(4)} µm
+                </button>
+                <span className="shrink-0 font-sans text-[11px]">
+                  {copiedMode === 'unit' ? (
+                    <span className="text-emerald-600 dark:text-emerald-400 font-medium">Copied</span>
+                  ) : (
+                    'Click to copy'
+                  )}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* Right Zone: Clean 2×2 Hairline-Divided Microstructural Matrix */}
+          <div className="lg:col-span-7 flex flex-col border border-slate-200 dark:border-slate-800 rounded-xl bg-white dark:bg-slate-900/60 overflow-visible">
+            <div className="grid grid-cols-1 sm:grid-cols-2 divide-y sm:divide-y-0 divide-slate-200 dark:divide-slate-800 flex-1">
+              {/* Cell 1: Dislocation Density */}
+              <div className="p-4 sm:p-5 sm:border-r sm:border-b border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Dislocation Density (<MathFormula tex="\delta" />)
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5 font-mono tabular-nums">
+                  <span className="text-2xl font-semibold text-slate-900 dark:text-white">
+                    {microstructuralProperties.dislocation10_14.toFixed(2)}
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">×10¹⁴ lines/m²</span>
+                </div>
+                <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span>Williamson–Smallman</span>
+                  <span aria-hidden="true">·</span>
+                  <MathFormula tex="\delta = 1/D^2" className="text-slate-700 dark:text-slate-300" />
+                </div>
+              </div>
+
+              {/* Cell 2: Specific Surface Area + Inline Density Selector */}
+              <div className="p-4 sm:p-5 sm:border-b border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Specific Surface Area (SSA)</span>
+                  <div className="relative" ref={densityDropdownRef}>
+                    <button
+                      type="button"
+                      onClick={() => setIsMaterialDropdownOpen((o) => !o)}
+                      className="inline-flex items-center gap-1 text-[11px] font-mono text-blue-600 dark:text-sky-400 hover:underline cursor-pointer"
+                      title="Change crystal density ρ used in SSA = 6000 / (ρ·D)"
+                    >
+                      <span>ρ = {materialDensity} g/cm³</span>
+                      <ChevronDown className="w-3 h-3" />
+                    </button>
+
+                    {isMaterialDropdownOpen && (
+                      <div className="absolute right-0 top-full mt-1.5 w-64 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 rounded-xl shadow-xl p-2 z-50 space-y-1.5 text-xs">
+                        <div className="px-2 py-1 text-[11px] font-semibold text-slate-500 dark:text-slate-400 border-b border-slate-100 dark:border-slate-800">
+                          Crystal Density (SSA)
+                        </div>
+                        <div className="max-h-52 overflow-y-auto space-y-0.5">
+                          {materialOptions.map((mat) => (
+                            <button
+                              key={mat.label}
+                              type="button"
+                              onClick={() => {
+                                onMaterialDensityChange(mat.density, mat.label);
+                                setCustomDensityInput(mat.density.toString());
+                                setIsMaterialDropdownOpen(false);
+                              }}
+                              className={`w-full text-left px-2.5 py-1.5 rounded-md flex items-center justify-between cursor-pointer transition-colors ${
+                                selectedMaterial === mat.label
+                                  ? 'bg-blue-50 dark:bg-sky-950/60 text-blue-700 dark:text-sky-300 font-medium'
+                                  : 'text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              <span className="truncate">{mat.label}</span>
+                              <span className="font-mono text-[11px] text-slate-400 shrink-0 ml-2">
+                                {mat.density}
+                              </span>
+                            </button>
+                          ))}
+                        </div>
+                        <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between gap-2 px-1">
+                          <span className="text-[11px] text-slate-500 dark:text-slate-400">Custom ρ</span>
+                          <div className="flex items-center gap-1">
+                            <input
+                              type="number"
+                              step="0.01"
+                              min="0.1"
+                              value={customDensityInput}
+                              onChange={(e) => {
+                                setCustomDensityInput(e.target.value);
+                                const val = parseFloat(e.target.value);
+                                if (!isNaN(val) && val > 0) {
+                                  onMaterialDensityChange(val, 'Custom Density');
+                                }
+                              }}
+                              className="w-20 px-2 py-1 text-right font-mono text-xs rounded border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-950 text-slate-900 dark:text-white focus:outline-none focus:border-blue-500"
+                            />
+                            <span className="text-[10px] font-mono text-slate-400">g/cm³</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5 font-mono tabular-nums">
+                  <span className="text-2xl font-semibold text-slate-900 dark:text-white">
+                    {microstructuralProperties.ssaM2g.toFixed(1)}
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">m² / g</span>
+                </div>
+                <div className="mt-2 text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 truncate">
+                  <span className="truncate">{selectedMaterial}</span>
+                  <span aria-hidden="true">·</span>
+                  <MathFormula tex="\mathrm{SSA} = 6000/(\rho D)" className="text-slate-700 dark:text-slate-300 shrink-0" />
+                </div>
+              </div>
+
+              {/* Cell 3: Coherent Lattice Planes & Surface Atom Fraction */}
+              <div className="p-4 sm:p-5 sm:border-r border-slate-200 dark:border-slate-800 flex flex-col justify-between">
+                <div className="text-xs text-slate-500 dark:text-slate-400">
+                  Coherent Lattice Layers (<MathFormula tex="N = D/d_{hkl}" />)
+                </div>
+                <div className="mt-2 flex items-baseline gap-1.5 font-mono tabular-nums">
+                  <span className="text-2xl font-semibold text-slate-900 dark:text-white">
+                    ~{sizingStats.avgPlanes}
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">planes</span>
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-x-2 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                  <span>
+                    <MathFormula tex="\bar{d}" /> = {sizingStats.avgDSpacing.toFixed(2)} Å
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <span className="text-emerald-700 dark:text-emerald-400">
+                    <MathFormula tex="f_{\mathrm{surf}}" /> ≈ {microstructuralProperties.surfaceAtomFractionPct.toFixed(1)}%
+                  </span>
+                </div>
+              </div>
+
+              {/* Cell 4: Facet Anisotropy & Polydispersity */}
+              <div className="p-4 sm:p-5 flex flex-col justify-between">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs text-slate-500 dark:text-slate-400">Anisotropy &amp; Dispersion</span>
+                  <span className={`text-[11px] font-medium ${pdiClassification.tone}`}>
+                    {pdiClassification.label}
+                  </span>
+                </div>
+                <div className="mt-2 flex items-baseline gap-2 font-mono tabular-nums">
+                  <span className="text-2xl font-semibold text-slate-900 dark:text-white">
+                    {sizingStats.anisotropyIndex.toFixed(2)}:1
+                  </span>
+                  <span className="text-xs text-slate-500 dark:text-slate-400">
+                    PDI {sizingStats.pdi.toFixed(3)}
+                  </span>
+                </div>
+                <div className="mt-2 text-[11px] font-mono tabular-nums text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span>
+                    {sizingStats.min.toFixed(1)}–{sizingStats.max.toFixed(1)} nm
+                  </span>
+                  <span aria-hidden="true">·</span>
+                  <MathFormula tex="D_{\max}/D_{\min}" className="text-slate-700 dark:text-slate-300" />
+                </div>
+              </div>
+            </div>
+
+            {/* Quiet Contextual Derivation Bar */}
+            <div className="px-4 sm:px-5 py-2.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 flex flex-wrap items-center justify-between gap-2 text-xs">
+              <span className="text-slate-500 dark:text-slate-400">
+                Spherical-equivalent microstructure estimates from{' '}
+                <MathFormula tex={activeMomentMeta.texSymbol} className="text-slate-800 dark:text-slate-200" />.
+              </span>
+              <button
+                type="button"
+                onClick={() => openTraceAt('physics')}
+                className="inline-flex items-center gap-1 font-medium text-blue-600 dark:text-sky-400 hover:underline cursor-pointer whitespace-nowrap"
+              >
+                <span>Inspect physical derivations</span>
+                <ArrowUpRight className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {/* CONTEXTUAL SCIENTIFIC WARNINGS (NON-HUE-ONLY, NO THICK LEFT BORDER) */}
+        {(Math.abs(whSlope) > 0.0008 || currentSizeNm > 150) && (
+          <div className="space-y-2.5">
+            {Math.abs(whSlope) > 0.0008 && (
+              <div className="px-4 py-3 rounded-xl border border-amber-200 dark:border-amber-800/70 bg-amber-50/70 dark:bg-amber-950/30 flex items-start gap-2.5 text-xs text-amber-950 dark:text-amber-200">
+                <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong>Microstrain Contamination:</strong> Williamson–Hall slope indicates lattice strain (ε ≈{' '}
+                  <span className="font-mono">{(Math.abs(whSlope) * 100).toFixed(2)}%</span>). Peak broadening includes strain; pure Scherrer sizing will underestimate true crystallite dimensions.
+                </div>
+              </div>
+            )}
+            {currentSizeNm > 150 && (
+              <div className="px-4 py-3 rounded-xl border border-rose-200 dark:border-rose-800/70 bg-rose-50/70 dark:bg-rose-950/30 flex items-start gap-2.5 text-xs text-rose-950 dark:text-rose-200">
+                <AlertTriangle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                <div className="leading-relaxed">
+                  <strong>Instrument Resolution Boundary:</strong> Calculated size (
+                  <span className="font-mono">{currentSizeNm.toFixed(1)} nm</span>) approaches or exceeds typical lab diffractometer resolution (~100–150 nm). Verify β_inst calibration against a NIST SRM 640/660 standard.
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 5-MOMENT STATISTICAL SYNTHESIS STRIP */}
+        <div className="space-y-2.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="text-xs font-semibold text-slate-800 dark:text-slate-200">
+              Statistical Moment Synthesis — Select Primary Averaging Model
+            </div>
+            <button
+              type="button"
+              onClick={() => openTraceAt('models')}
+              className="inline-flex items-center gap-1.5 text-xs font-medium text-blue-600 dark:text-sky-400 hover:underline cursor-pointer"
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>Compare XRD vs. TEM moments</span>
             </button>
           </div>
 
-          {/* 5 Averaging Method Segmented Controls */}
-          <div className="grid grid-cols-2 sm:grid-cols-5 gap-1.5 bg-slate-950/70 p-1.5 rounded-2xl border border-slate-800/90 text-xs">
-            {[
-              { id: 'weighted', label: 'Intensity-Weighted', symbol: 'D_int', val: sizingStats.weighted, desc: 'Weighted by Bragg peak intensity (standard)' },
-              { id: 'arithmetic', label: 'Arithmetic Mean', symbol: 'D_num', val: sizingStats.arithmetic, desc: 'Simple number mean across all planes' },
-              { id: 'volume', label: 'Volume-Weighted', symbol: 'D_V', val: sizingStats.volume, desc: 'ISO/ASTM volume-weighted crystallite dimension' },
-              { id: 'area', label: 'Area-Weighted', symbol: 'D_A', val: sizingStats.area, desc: 'Surface-area weighted dimension' },
-              { id: 'harmonic', label: 'Harmonic Mean', symbol: 'D_H', val: sizingStats.harmonic, desc: 'Harmonic mean matching ⟨β cos θ⟩' }
-            ].map((method) => {
+          <div className="grid grid-cols-2 sm:grid-cols-5 border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800 bg-white dark:bg-slate-900/60">
+            {MOMENT_META.map((method) => {
               const isActive = averageType === method.id;
+              const val = momentValues[method.id];
+              const pctWidth = Math.max(8, Math.min(100, (val / maxMomentVal) * 100));
               return (
                 <button
                   key={method.id}
-                  onClick={() => onAverageTypeChange(method.id as SizingAverageMethod)}
-                  className={`px-3 py-2 rounded-xl text-left transition-all cursor-pointer flex flex-col justify-between ${
-                    isActive 
-                      ? 'bg-amber-500 text-slate-950 shadow-md font-bold' 
-                      : 'text-slate-400 hover:text-white hover:bg-slate-900/90'
-                  }`}
+                  type="button"
+                  onClick={() => onAverageTypeChange(method.id)}
                   title={method.desc}
+                  className={`relative p-3.5 text-left transition-colors cursor-pointer flex flex-col justify-between ${
+                    isActive
+                      ? 'bg-blue-50/70 dark:bg-sky-950/40'
+                      : 'hover:bg-slate-50 dark:hover:bg-slate-800/40'
+                  }`}
                 >
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-[10px] font-mono font-extrabold">{method.symbol}</span>
-                    {isActive && <Check className="w-3 h-3 text-slate-950 stroke-[3]" />}
+                  {isActive && (
+                    <span
+                      aria-hidden="true"
+                      className="absolute top-0 left-0 right-0 h-0.5 bg-blue-600 dark:bg-sky-400"
+                    />
+                  )}
+                  <div className="flex items-center justify-between gap-1">
+                    <span
+                      className={`text-sm ${
+                        isActive ? 'text-blue-700 dark:text-sky-300' : 'text-slate-700 dark:text-slate-200'
+                      }`}
+                    >
+                      <MathFormula tex={method.texSymbol} />
+                    </span>
+                    {isActive && <Check className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400 shrink-0" />}
                   </div>
-                  <div className="flex items-baseline gap-1 mt-1">
-                    <span className="font-mono tabular-nums text-sm font-black">{method.val.toFixed(precision)}</span>
-                    <span className="text-[9px] opacity-80">nm</span>
+
+                  <div className="mt-2 flex items-baseline gap-1 font-mono tabular-nums">
+                    <span className="text-lg font-semibold text-slate-900 dark:text-white">
+                      {val.toFixed(precision)}
+                    </span>
+                    <span className="text-[11px] text-slate-400">nm</span>
                   </div>
-                  <span className={`text-[9px] truncate mt-0.5 ${isActive ? 'text-slate-900' : 'text-slate-500'}`}>
-                    {method.label}
-                  </span>
+
+                  <div className="mt-2 space-y-1.5">
+                    <div className="h-1 w-full bg-slate-200/80 dark:bg-slate-800 rounded-full overflow-hidden">
+                      <div
+                        className={isActive ? 'h-full bg-blue-600 dark:bg-sky-400' : 'h-full bg-slate-400/60 dark:bg-slate-600'}
+                        style={{ width: `${pctWidth}%` }}
+                      />
+                    </div>
+                    <div className="flex items-center justify-between gap-1 text-[10.5px]">
+                      <span className="text-slate-600 dark:text-slate-300 truncate">{method.label}</span>
+                      <span className="text-slate-500 dark:text-slate-400 shrink-0 hidden xl:inline">
+                        <MathFormula tex={method.texFormula} />
+                      </span>
+                    </div>
+                  </div>
                 </button>
               );
             })}
           </div>
         </div>
 
-        {/* Secondary Statistical Bar: Total Reflections Controls, Outlier Filter, and Quick Material Density Selector */}
-        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pt-2 text-[11px] font-mono text-slate-400">
-          
-          {/* Total Reflections & Outlier Controls */}
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="flex items-center gap-2 bg-slate-900/50 px-3.5 py-1.5 rounded-xl border border-slate-800 tabular-nums">
-              <span>Total Reflections: <strong className="text-white">{totalReflectionsCount}</strong></span>
-              <span className="text-slate-600">·</span>
-              <span>Active: <strong className="text-emerald-400">{sizingStats.count}</strong></span>
-              {excludedReflectionsCount > 0 && (
-                <>
-                  <span className="text-slate-600">·</span>
-                  <span>Excluded: <strong className="text-amber-400">{excludedReflectionsCount}</strong></span>
-                </>
-              )}
-              {unresolvedReflectionsCount > 0 && (
-                <>
-                  <span className="text-slate-600">·</span>
-                  <span>Limit: <strong className="text-rose-400">{unresolvedReflectionsCount}</strong></span>
-                </>
-              )}
-            </div>
-
-            {onAutoPruneOutliers && sizingStats.outlierCount > 0 && (
-              <button
-                type="button"
-                onClick={onAutoPruneOutliers}
-                className="px-2.5 py-1.5 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 text-[10px] font-sans font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-                title="Automatically exclude outlier reflections (|Z| > 1.8) from Mean Crystallite Sizing"
-              >
-                <Filter className="w-3 h-3" />
-                <span>Prune {sizingStats.outlierCount} Outlier{sizingStats.outlierCount > 1 ? 's' : ''}</span>
-              </button>
-            )}
-
-            {onIncludeAllPeaks && excludedReflectionsCount > 0 && (
-              <button
-                type="button"
-                onClick={onIncludeAllPeaks}
-                className="px-2.5 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-300 hover:text-white text-[10px] font-sans font-bold flex items-center gap-1.5 cursor-pointer transition-colors"
-                title="Re-include all excluded reflections in Mean Crystallite Sizing"
-              >
-                <RotateCcw className="w-3 h-3 text-emerald-400" />
-                <span>Include All ({totalReflectionsCount})</span>
-              </button>
-            )}
-          </div>
-
-          {/* Material & Density Tuning + Toggle Facet Matrix */}
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-[10px] font-sans font-semibold text-slate-400">Crystal Density (SSA):</span>
-            <div className="relative">
-              <button
-                onClick={() => setIsMaterialDropdownOpen(!isMaterialDropdownOpen)}
-                className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-200 text-xs flex items-center gap-2 cursor-pointer"
-              >
-                <span>{selectedMaterial} ({materialDensity} g/cm³)</span>
-                <ChevronDown className="w-3.5 h-3.5 text-slate-400" />
-              </button>
-
-              {/* Dropdown Menu */}
-              {isMaterialDropdownOpen && (
-                <div className="absolute right-0 bottom-full mb-2 w-64 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl p-2 z-50 space-y-1 text-xs">
-                  <div className="px-2 py-1 text-[10px] font-semibold text-slate-400 border-b border-slate-800">
-                    Select Crystal Density
-                  </div>
-                  <div className="max-h-56 overflow-y-auto space-y-1">
-                    {materialOptions.map(mat => (
-                      <button
-                        key={mat.label}
-                        onClick={() => {
-                          onMaterialDensityChange(mat.density, mat.label);
-                          setCustomDensityInput(mat.density.toString());
-                          setIsMaterialDropdownOpen(false);
-                        }}
-                        className={`w-full text-left px-2.5 py-1.5 rounded-lg flex items-center justify-between cursor-pointer transition-colors ${
-                          selectedMaterial === mat.label 
-                            ? 'bg-amber-500/20 text-amber-300 border border-amber-500/30' 
-                            : 'text-slate-300 hover:bg-slate-800'
-                        }`}
-                      >
-                        <span className="font-medium">{mat.label}</span>
-                        <span className="font-mono text-[10px] text-slate-400">{mat.density} g/cm³</span>
-                      </button>
-                    ))}
-                  </div>
-                  
-                  {/* Custom Density Direct Input */}
-                  <div className="pt-2 border-t border-slate-800 flex items-center gap-2 px-1">
-                    <span className="text-[10px] text-slate-400">Custom:</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.1"
-                      value={customDensityInput}
-                      onChange={(e) => {
-                        setCustomDensityInput(e.target.value);
-                        const val = parseFloat(e.target.value);
-                        if (!isNaN(val) && val > 0) {
-                          onMaterialDensityChange(val, 'Custom Density');
-                        }
-                      }}
-                      className="w-20 bg-slate-950 border border-slate-700 rounded px-2 py-1 text-xs text-white font-mono focus:outline-none focus:border-amber-500"
-                      placeholder="g/cm³"
-                    />
-                    <span className="text-[9px] text-slate-500">g/cm³</span>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Toggle Facet Breakdown Matrix */}
-            <button
-              onClick={() => setShowFacetTable(!showFacetTable)}
-              className="px-3 py-1.5 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white text-xs flex items-center gap-1.5 cursor-pointer transition-colors"
+        {/* EXPANDABLE MATH TRACE VIEW (WHEN ACTIVE) */}
+        <AnimatePresence>
+          {workspaceView === 'trace' && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="overflow-hidden"
             >
-              <span>{showFacetTable ? 'Hide' : 'View'} Reflections ({totalReflectionsCount})</span>
-              {showFacetTable ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
-            </button>
-          </div>
+              <MeanCrystalliteCalculationTrace
+                validResults={validResults}
+                constantK={constantK}
+                wavelength={wavelength}
+                precision={precision}
+                averageType={averageType}
+                currentSizeNm={currentSizeNm}
+                materialDensity={materialDensity}
+                selectedMaterial={selectedMaterial}
+                instFwhm={instFwhm}
+                broadeningModel={broadeningModel}
+                whSlope={whSlope}
+                initialTab={traceTab}
+                onClose={() => setWorkspaceView('summary')}
+              />
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        </div>
-      </div>
-
-      {/* --- Expandable Facet-by-Facet Crystallite Sizing & Total Reflections Matrix --- */}
-      <AnimatePresence>
-        {showFacetTable && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="mt-6 pt-5 border-t border-slate-800/80 overflow-hidden"
-          >
-            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2">
-                <Compass className="w-4 h-4 text-purple-400" />
-                <h4 className="text-xs font-bold text-white">
-                  Total Reflections & Facet-by-Facet Sizing Contributions
-                </h4>
-              </div>
-              <span className="text-[11px] text-slate-400 font-mono tabular-nums">
-                Reference: {averageType.toUpperCase()} Mean = {currentSizeNm.toFixed(precision)} nm · Click Use toggle to include/exclude peak
+        {/* FACET-BY-FACET REFLECTION CONTRIBUTIONS MATRIX */}
+        <div className="border border-slate-200 dark:border-slate-800 rounded-xl overflow-hidden">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 py-3 bg-slate-50/70 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+              <h4 className="text-xs font-semibold text-slate-900 dark:text-white">
+                Facet-by-Facet Reflection Contributions
+              </h4>
+              <span className="text-xs font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                Active {sizingStats.count} / {totalReflectionsCount}
+                {excludedReflectionsCount > 0 ? ` · ${excludedReflectionsCount} excluded` : ''}
+                {unresolvedReflectionsCount > 0 ? ` · ${unresolvedReflectionsCount} at limit` : ''}
               </span>
             </div>
 
-            <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/60">
-              <table className="w-full text-left text-xs font-mono tabular-nums">
-                <thead className="bg-slate-900/80 text-[10px] uppercase text-slate-400 border-b border-slate-800">
-                  <tr>
-                    {onTogglePeakExclusion && <th className="px-3 py-2.5 text-center">Use</th>}
-                    <th className="px-3 py-2.5">Reflection</th>
-                    <th className="px-3 py-2.5">2θ (°)</th>
-                    <th className="px-3 py-2.5">d (Å)</th>
-                    <th className="px-3 py-2.5">β_obs / β_phys (°)</th>
-                    <th className="px-3 py-2.5">Weight (I%)</th>
-                    <th className="px-3 py-2.5">Size D_hkl (nm)</th>
-                    <th className="px-3 py-2.5">Δ from Mean</th>
-                    <th className="px-3 py-2.5">Dislocation δ</th>
-                    <th className="px-3 py-2.5">Planes (N)</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                  {(allResults.length > 0 ? allResults : validResults).map((r, idx) => {
-                    const hklLabel = r.hkl ? `(${r.hkl.join('')})` : `#${idx + 1}`;
-                    const isExcluded = !!r.excluded;
-                    const hasError = !!r.error || r.sizeNm <= 0;
-                    const delta = !hasError ? r.sizeNm - currentSizeNm : 0;
-                    const deltaPct = !hasError && currentSizeNm > 0 ? (delta / currentSizeNm) * 100 : 0;
-                    const disloc = !hasError ? 100 / Math.pow(r.sizeNm, 2) : 0;
-                    const weightPct = !isExcluded && !hasError && totalValidIntensity > 0
-                      ? (((r.intensity && r.intensity > 0 ? r.intensity : 1) / totalValidIntensity) * 100)
-                      : 0;
-                    const isOutlier = !isExcluded && !hasError && sizingStats.stdDev > 0 && Math.abs(delta) / sizingStats.stdDev > 1.8;
+            <div className="flex flex-wrap items-center gap-2">
+              {onAutoPruneOutliers && sizingStats.outlierCount > 0 && (
+                <button
+                  type="button"
+                  onClick={onAutoPruneOutliers}
+                  title="Automatically exclude outlier reflections (|Z| > 1.8)"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-amber-200 dark:border-amber-800/70 bg-amber-50 dark:bg-amber-950/40 text-amber-800 dark:text-amber-300 hover:bg-amber-100 dark:hover:bg-amber-900/50 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <Filter className="w-3 h-3" />
+                  <span>
+                    Prune {sizingStats.outlierCount} Outlier{sizingStats.outlierCount > 1 ? 's' : ''}
+                  </span>
+                </button>
+              )}
 
-                    return (
-                      <tr
-                        key={idx}
-                        className={`transition-colors ${
-                          isExcluded ? 'opacity-45 bg-slate-950/40' : 'hover:bg-slate-900/40'
-                        }`}
-                      >
-                        {onTogglePeakExclusion && (
-                          <td className="px-3 py-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => onTogglePeakExclusion(idx)}
-                              className={`w-6 h-6 rounded-md flex items-center justify-center mx-auto transition-colors cursor-pointer border ${
-                                isExcluded
-                                  ? 'bg-slate-900 border-slate-700 text-slate-500 hover:text-amber-400'
-                                  : 'bg-emerald-500/15 border-emerald-500/40 text-emerald-400 hover:bg-emerald-500/25'
-                              }`}
-                              title={isExcluded ? 'Click to include reflection in Mean Sizing' : 'Click to exclude reflection from Mean Sizing'}
-                            >
-                              {isExcluded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
-                            </button>
-                          </td>
-                        )}
-                        <td className="px-3 py-2 font-bold text-white flex items-center gap-1.5">
-                          <span className={`w-2 h-2 rounded-full ${isExcluded ? 'bg-slate-600' : hasError ? 'bg-rose-500' : isOutlier ? 'bg-amber-400' : 'bg-emerald-400'}`} />
-                          <span>{hklLabel}</span>
-                          {isOutlier && (
-                            <span className="text-[9px] text-amber-400 font-sans font-semibold" title="Statistical outlier (|Z| > 1.8)">
-                              · Outlier
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-slate-300">{r.twoTheta.toFixed(3)}°</td>
-                        <td className="px-3 py-2 text-slate-400">{r.dSpacing ? r.dSpacing.toFixed(3) : '-'}</td>
-                        <td className="px-3 py-2 text-slate-400">
-                          {r.fwhmObs.toFixed(3)}° / <span className="text-slate-200">{r.betaCorrected.toFixed(3)}°</span>
-                        </td>
-                        <td className="px-3 py-2 text-slate-400">
-                          <div className="flex items-center gap-2">
-                            <span>{r.intensity !== undefined ? r.intensity.toFixed(0) : '100'}</span>
-                            {!isExcluded && !hasError && (
-                              <span className="text-[10px] text-slate-500">({weightPct.toFixed(1)}%)</span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-3 py-2 font-bold text-amber-300">
-                          {hasError ? (
-                            <span className="text-rose-400 text-[10px] uppercase">β_obs ≤ β_inst</span>
-                          ) : (
-                            `${r.sizeNm.toFixed(precision)} nm`
-                          )}
-                        </td>
-                        <td className="px-3 py-2 font-bold">
-                          {hasError || isExcluded ? (
-                            <span className="text-slate-600">—</span>
-                          ) : (
-                            <span className={delta >= 0 ? 'text-emerald-400' : 'text-rose-400'}>
-                              {delta >= 0 ? '+' : ''}{delta.toFixed(2)} nm ({deltaPct >= 0 ? '+' : ''}{deltaPct.toFixed(1)}%)
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-3 py-2 text-slate-300">
-                          {hasError ? '—' : `${disloc.toFixed(2)} ×10¹⁴`}
-                        </td>
-                        <td className="px-3 py-2 text-indigo-300">
-                          {hasError ? '—' : `~${r.coherencePlanesN || '-'}`}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+              {onIncludeAllPeaks && excludedReflectionsCount > 0 && (
+                <button
+                  type="button"
+                  onClick={onIncludeAllPeaks}
+                  title="Re-include all excluded reflections"
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer whitespace-nowrap"
+                >
+                  <RotateCcw className="w-3 h-3" />
+                  <span>Include All ({totalReflectionsCount})</span>
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => setShowFacetTable((v) => !v)}
+                className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-md border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer whitespace-nowrap"
+              >
+                <span>{showFacetTable ? 'Collapse' : 'Expand'}</span>
+                {showFacetTable ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+              </button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+          </div>
 
-      {/* --- Expandable Live Calculation Trace & Explainer --- */}
-      <AnimatePresence>
-        {showTrace && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: 'auto' }}
-            exit={{ opacity: 0, height: 0 }}
-            className="overflow-hidden"
-          >
-            <MeanCrystalliteCalculationTrace
-              validResults={validResults}
-              constantK={constantK}
-              wavelength={wavelength}
-              precision={precision}
-              averageType={averageType}
-              currentSizeNm={currentSizeNm}
-              materialDensity={materialDensity}
-              selectedMaterial={selectedMaterial}
-              instFwhm={instFwhm}
-              broadeningModel={broadeningModel}
-              whSlope={whSlope}
-              initialTab={traceTab}
-              onClose={() => setShowTrace(false)}
-            />
-          </motion.div>
-        )}
-      </AnimatePresence>
+          <AnimatePresence initial={false}>
+            {showFacetTable && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                className="overflow-x-auto"
+              >
+                <table className="w-full text-left border-collapse text-xs font-mono tabular-nums">
+                  <thead>
+                    <tr className="border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/40 text-[11px] font-sans font-medium text-slate-500 dark:text-slate-400">
+                      {onTogglePeakExclusion && <th className="py-2.5 px-3 text-center">Use</th>}
+                      <th className="py-2.5 px-3.5">Reflection</th>
+                      <th className="py-2.5 px-3 text-right">2θ (°)</th>
+                      <th className="py-2.5 px-3 text-right">d (Å)</th>
+                      <th className="py-2.5 px-3 text-right">β_obs / β_s (°)</th>
+                      <th className="py-2.5 px-3 text-right">Weight (I%)</th>
+                      <th className="py-2.5 px-3 text-right">Size D_hkl (nm)</th>
+                      <th className="py-2.5 px-3 text-right">Δ Mean</th>
+                      <th className="py-2.5 px-3 text-right">δ (10¹⁴ m⁻²)</th>
+                      <th className="py-2.5 px-3.5 text-right">Planes (N)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
+                    {(allResults.length > 0 ? allResults : validResults).map((r, idx) => {
+                      const hklLabel = r.hkl ? `(${r.hkl.join('')})` : `#${idx + 1}`;
+                      const isExcluded = !!r.excluded;
+                      const hasError = !!r.error || r.sizeNm <= 0;
+                      const delta = !hasError ? r.sizeNm - currentSizeNm : 0;
+                      const deltaPct = !hasError && currentSizeNm > 0 ? (delta / currentSizeNm) * 100 : 0;
+                      const disloc = !hasError ? 100 / Math.pow(r.sizeNm, 2) : 0;
+                      const weightPct =
+                        !isExcluded && !hasError && totalValidIntensity > 0
+                          ? ((r.intensity && r.intensity > 0 ? r.intensity : 1) / totalValidIntensity) * 100
+                          : 0;
+                      const isOutlier =
+                        !isExcluded &&
+                        !hasError &&
+                        sizingStats.stdDev > 0 &&
+                        Math.abs(delta) / sizingStats.stdDev > 1.8;
+
+                      return (
+                        <tr
+                          key={idx}
+                          className={`transition-colors ${
+                            isExcluded
+                              ? 'opacity-45 bg-slate-50/60 dark:bg-slate-950/50'
+                              : 'hover:bg-slate-50/80 dark:hover:bg-slate-800/40'
+                          }`}
+                        >
+                          {onTogglePeakExclusion && (
+                            <td className="py-2.5 px-3 text-center">
+                              <button
+                                type="button"
+                                onClick={() => onTogglePeakExclusion(idx)}
+                                className={`w-6 h-6 rounded-md inline-flex items-center justify-center transition-colors cursor-pointer border ${
+                                  isExcluded
+                                    ? 'bg-slate-100 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200'
+                                    : 'bg-emerald-50 dark:bg-emerald-950/50 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/60'
+                                }`}
+                                title={
+                                  isExcluded
+                                    ? 'Include reflection in mean sizing'
+                                    : 'Exclude reflection from mean sizing'
+                                }
+                              >
+                                {isExcluded ? <EyeOff className="w-3 h-3" /> : <Eye className="w-3 h-3" />}
+                              </button>
+                            </td>
+                          )}
+                          <td className="py-2.5 px-3.5 whitespace-nowrap">
+                            <span className="font-semibold text-slate-900 dark:text-white">{hklLabel}</span>
+                            {isOutlier && (
+                              <span
+                                className="ml-1.5 font-sans text-[11px] font-medium text-amber-700 dark:text-amber-400"
+                                title="Statistical outlier (|Z| > 1.8)"
+                              >
+                                · Outlier
+                              </span>
+                            )}
+                            {isExcluded && (
+                              <span className="ml-1.5 font-sans text-[11px] text-slate-400">· Excluded</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-700 dark:text-slate-300">
+                            {r.twoTheta.toFixed(3)}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-500 dark:text-slate-400">
+                            {r.dSpacing ? r.dSpacing.toFixed(3) : '—'}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-500 dark:text-slate-400 whitespace-nowrap">
+                            {r.fwhmObs.toFixed(3)} /{' '}
+                            <span className="text-slate-800 dark:text-slate-200">{r.betaCorrected.toFixed(3)}</span>
+                          </td>
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            <div className="inline-flex items-center justify-end gap-2">
+                              <div className="hidden sm:block w-12 h-1.5 bg-slate-200 dark:bg-slate-800 rounded-full overflow-hidden">
+                                <div
+                                  className="h-full bg-blue-600/80 dark:bg-sky-400/80"
+                                  style={{ width: `${Math.min(100, weightPct)}%` }}
+                                />
+                              </div>
+                              <span className="text-slate-700 dark:text-slate-300">
+                                {!isExcluded && !hasError ? `${weightPct.toFixed(1)}%` : '—'}
+                              </span>
+                            </div>
+                          </td>
+                          <td className="py-2.5 px-3 text-right font-semibold whitespace-nowrap">
+                            {hasError ? (
+                              <span className="text-rose-600 dark:text-rose-400 font-sans text-[11px] font-medium">
+                                β_obs ≤ β_inst
+                              </span>
+                            ) : (
+                              <span className="text-slate-900 dark:text-white">
+                                {r.sizeNm.toFixed(precision)}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right whitespace-nowrap">
+                            {hasError || isExcluded ? (
+                              <span className="text-slate-400">—</span>
+                            ) : (
+                              <span
+                                className={
+                                  delta >= 0
+                                    ? 'text-emerald-700 dark:text-emerald-400'
+                                    : 'text-rose-600 dark:text-rose-400'
+                                }
+                              >
+                                {delta >= 0 ? '+' : ''}
+                                {delta.toFixed(2)} ({deltaPct >= 0 ? '+' : ''}
+                                {deltaPct.toFixed(1)}%)
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 px-3 text-right text-slate-600 dark:text-slate-300">
+                            {hasError ? '—' : disloc.toFixed(2)}
+                          </td>
+                          <td className="py-2.5 px-3.5 text-right text-slate-700 dark:text-slate-300">
+                            {hasError ? '—' : `~${r.coherencePlanesN || '—'}`}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
       </div>
-    </div>
+    </section>
   );
 };

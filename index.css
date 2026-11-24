@@ -284,6 +284,53 @@ samp {
   letter-spacing: -0.01em;
 }
 
+/* Publication-Grade Scientific Mathematical Typesetting (KaTeX) */
+.katex {
+  font-size: 1.07em;
+  line-height: 1.32;
+  letter-spacing: 0 !important;
+  text-rendering: geometricPrecision;
+  -webkit-font-smoothing: antialiased;
+}
+
+.katex .frac-line {
+  border-bottom-width: 0.055em;
+}
+
+.katex-display {
+  margin: 0.35em 0 !important;
+  padding: 0.25em 0.15em;
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+}
+
+.katex-display > .katex {
+  font-size: 1.16em;
+  white-space: nowrap;
+}
+
+.scientific-math-inline .katex {
+  font-size: 1.02em;
+}
+
+.scientific-math-display .katex-display {
+  margin: 0 !important;
+}
+
+.scientific-math-display .katex-display > .katex {
+  font-size: 1.18em;
+}
+
+.scientific-equation-plate {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.11) 1px, transparent 0);
+  background-size: 18px 18px;
+}
+
+.dark .scientific-equation-plate {
+  background-image: radial-gradient(rgba(148, 163, 184, 0.07) 1px, transparent 0);
+}
+
 body {
   overflow-y: auto;
   overflow-x: hidden;

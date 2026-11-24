@@ -93,6 +93,8 @@ import {
   getCategoryMeta,
   SidebarGoniometerTelemetryCard
 } from './components/LeftSidebarGraphics';
+import { MathFormula } from './components/common/MathFormula';
+import { getModuleMath } from './components/common/moduleMathCatalog';
 import { calculateBragg, parseSingleHKL, validateHKLAgainstCrystalSystem } from './utils/braggCore';
 import { BraggResult, BraggHistoryItem } from './types';
 import { Zap, Terminal, Music, Languages, Palette, Hash, Sparkles, Wand2, Volume2, Settings2, Check, FileDown, FastForward, X, RefreshCw, RotateCcw, Activity, BookOpen, Grid, Database, User, Compass, Microscope, TrendingUp, Infinity, Network, Cpu, Orbit, Magnet, Brain, Image as ImageIcon, Sliders, Layers, PieChart as PieChartIcon, Target, CheckCircle2, WifiOff, Mail, ChevronDown, PanelLeftClose, PanelLeftOpen, LayoutGrid, Menu, Command, Atom, Clock, Gauge, Wifi, ShieldCheck, SlidersHorizontal, Box, Search } from 'lucide-react';
@@ -2171,15 +2173,15 @@ const App: React.FC = () => {
                                 </div>
 
                                 <span
-                                  className={`text-[9px] font-mono tabular-nums shrink-0 transition-colors ${
+                                  className={`text-[10.5px] shrink-0 transition-colors ${
                                     isActive
                                       ? isCyber
                                         ? 'text-cyber-accent font-bold'
-                                        : 'text-indigo-100 font-bold'
-                                      : 'text-slate-400 dark:text-slate-500 group-hover:text-indigo-500 dark:group-hover:text-indigo-300'
+                                        : 'text-indigo-100'
+                                      : 'text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-sky-300'
                                   }`}
                                 >
-                                  {modMeta.symbol}
+                                  <MathFormula tex={getModuleMath(m.id).symbolTex} />
                                 </span>
                               </button>
                             );
@@ -2421,9 +2423,9 @@ const App: React.FC = () => {
 
               {/* Plain-English Contextual Workflow Guide Bar */}
               {activeModule !== 'profile' && activeModule !== 'settings' && (
-                <div className="mb-4 p-3 sm:p-3.5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/90 dark:border-slate-800/90 shadow-xs flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+                <div className="mb-4 px-4 py-3 rounded-xl bg-white dark:bg-[#0B0F19] border border-slate-200 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
                   <div className="flex items-start sm:items-center gap-3 min-w-0">
-                    <div className="w-8 h-8 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center shrink-0 font-mono text-xs font-black">
+                    <div className="min-w-[36px] h-9 px-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-blue-600 dark:text-sky-400 flex items-center justify-center shrink-0 font-mono text-xs font-semibold tabular-nums">
                       {activeModule === 'bragg'
                         ? '1/5'
                         : activeModule === 'selection'
@@ -2434,15 +2436,16 @@ const App: React.FC = () => {
                         ? '4/5'
                         : activeModule === 'database'
                         ? '5/5'
-                        : getModuleScientificMeta(activeModule).symbol}
+                        : <MathFormula tex={getModuleMath(activeModule).symbolTex} />}
                     </div>
                     <div className="min-w-0">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h2 className="text-sm font-extrabold text-slate-900 dark:text-white tracking-tight">
+                      <div className="flex flex-wrap items-baseline gap-x-2.5 gap-y-0.5">
+                        <h2 className="text-sm font-semibold text-slate-900 dark:text-white tracking-tight">
                           {modules.find((m) => m.id === activeModule)?.label || activeModule}
                         </h2>
-                        <span className="text-[10px] font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
-                          {getModuleScientificMeta(activeModule).formula}
+                        <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">·</span>
+                        <span className="text-xs text-blue-700 dark:text-sky-300 overflow-x-auto max-w-full">
+                          <MathFormula tex={getModuleMath(activeModule).compactTex} />
                         </span>
                       </div>
                       <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-snug">

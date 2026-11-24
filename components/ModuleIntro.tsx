@@ -17,6 +17,9 @@ import {
   Sigma
 } from 'lucide-react';
 
+import { EquationPlate } from './common/MathFormula';
+import { getModuleMath } from './common/moduleMathCatalog';
+
 interface ModuleIntroProps {
   module: string;
   onUnderstand: () => void;
@@ -25,33 +28,33 @@ interface ModuleIntroProps {
 // Helper for vertical fractions
 const Fraction = ({ num, den }: { num: React.ReactNode; den: React.ReactNode }) => (
   <div className="inline-flex flex-col items-center align-middle mx-2" style={{ verticalAlign: 'middle' }}>
-    <span className="border-b border-indigo-400/50 w-full text-center px-1.5 pb-0.5 mb-[2px]">{num}</span>
+    <span className="border-b border-slate-500/60 dark:border-slate-400/60 w-full text-center px-1.5 pb-0.5 mb-[2px]">{num}</span>
     <span className="w-full text-center px-1.5 pt-[1px]">{den}</span>
   </div>
 );
 
 // Helper for Math variables (Serif, Italic)
 const M = ({ children, className = '' }: { children?: React.ReactNode; className?: string }) => (
-  <span className={`font-serif italic text-white ${className}`}>{children}</span>
+  <span className={`font-serif italic text-slate-900 dark:text-white ${className}`}>{children}</span>
 );
 
 // Helper for Function names (Serif, Upright)
 const F = ({ children }: { children?: React.ReactNode }) => (
-  <span className="font-serif font-normal text-indigo-200">{children}</span>
+  <span className="font-serif font-normal text-blue-700 dark:text-sky-300">{children}</span>
 );
 
 const FormulaContainer = ({ children, label }: { children: React.ReactNode; label: string }) => (
-  <div className="relative p-5 bg-[#0B0F19] rounded-xl border border-slate-800/90 hover:border-cyan-500/40 transition-colors w-full flex flex-col justify-between">
-    <div className="flex justify-between items-center w-full mb-3 border-b border-slate-800/80 pb-2">
+  <div className="scientific-equation-plate relative p-5 bg-slate-50/80 dark:bg-[#080C15] rounded-xl border border-slate-200 dark:border-slate-800 transition-colors w-full flex flex-col justify-between">
+    <div className="flex justify-between items-center w-full mb-3 border-b border-slate-200/80 dark:border-slate-800/80 pb-2">
       <div className="flex items-center gap-2">
-        <Sigma className="w-3.5 h-3.5 text-cyan-400" />
-        <span className="text-[11px] font-mono font-semibold tracking-wider text-slate-200">{label}</span>
+        <Sigma className="w-3.5 h-3.5 text-blue-600 dark:text-sky-400" />
+        <span className="text-xs font-medium text-slate-700 dark:text-slate-200">{label}</span>
       </div>
-      <span className="text-[10px] font-mono text-slate-500">Analytical Form</span>
+      <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">Analytical Form</span>
     </div>
 
     <div className="w-full overflow-x-auto custom-scrollbar py-2">
-      <div className="text-xl md:text-2xl font-serif whitespace-nowrap min-w-max flex items-center tracking-wide text-slate-100">
+      <div className="text-xl md:text-2xl font-serif whitespace-nowrap min-w-max flex items-center justify-center mx-auto tracking-wide text-slate-900 dark:text-slate-100">
         <div className="inline-block align-middle">{children}</div>
       </div>
     </div>
@@ -1571,23 +1574,25 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
     visible: { opacity: 1, y: 0, transition: { duration: 0.35, ease: 'easeOut' } }
   };
 
+  const moduleMath = getModuleMath(module);
+
   return (
     <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6 relative">
       <motion.div
         variants={containerVariants}
         initial="hidden"
         animate="visible"
-        className="bg-[#070A12] rounded-xl border border-slate-800 overflow-hidden relative"
+        className="bg-white dark:bg-[#0B0F19] rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden relative shadow-2xl"
       >
         {/* Top Instrument Calibration Ribbon */}
-        <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-[#0B0F19] px-6 py-3 border-b border-slate-800">
-          <div className="text-[11px] font-mono tracking-wider text-slate-300 font-semibold">
-            <span className="text-cyan-400">{content.tag}</span>
-            <span className="mx-2 text-slate-600">·</span>
-            <span className="text-slate-400">{specializedGraphic.regime}</span>
+        <div className="flex flex-col sm:flex-row gap-3 justify-between items-center bg-slate-50/80 dark:bg-[#080C15] px-6 py-3.5 border-b border-slate-200 dark:border-slate-800">
+          <div className="text-xs text-slate-600 dark:text-slate-300 flex flex-wrap items-center gap-2">
+            <span className="font-semibold text-blue-600 dark:text-sky-400">{content.tag}</span>
+            <span className="text-slate-300 dark:text-slate-700" aria-hidden="true">·</span>
+            <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">{specializedGraphic.regime}</span>
           </div>
-          <div className="flex items-center gap-5">
-            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-400 hover:text-white transition-colors group">
+          <div className="flex items-center gap-4">
+            <label className="flex items-center gap-2 cursor-pointer select-none text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors">
               <input
                 type="checkbox"
                 checked={skipNext}
@@ -1602,15 +1607,16 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
                 }}
                 className="sr-only peer"
               />
-              <div className="w-4 h-4 rounded border border-slate-700 bg-slate-900 flex items-center justify-center peer-checked:bg-cyan-600 peer-checked:border-cyan-500 transition-all">
+              <div className="w-4 h-4 rounded border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 flex items-center justify-center peer-checked:bg-blue-600 peer-checked:border-blue-600 transition-colors">
                 <Check className="w-2.5 h-2.5 text-white opacity-0 peer-checked:opacity-100 transition-opacity" />
               </div>
-              <span className="text-[11px] font-mono text-slate-400">Skip Intro on Launch</span>
+              <span className="text-xs text-slate-600 dark:text-slate-400">Skip intro on launch</span>
             </label>
 
             <button
+              type="button"
               onClick={handleUnderstandClick}
-              className="px-4 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 rounded-lg text-xs font-semibold transition-colors cursor-pointer"
+              className="px-4 py-1.5 bg-slate-900 dark:bg-sky-500 hover:bg-slate-800 dark:hover:bg-sky-400 text-white dark:text-slate-950 rounded-lg text-xs font-semibold transition-colors cursor-pointer whitespace-nowrap"
             >
               Open Workbench
             </button>
@@ -1618,17 +1624,17 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
         </div>
 
         {/* Header + Bespoke Module-Specific CAD Schematic */}
-        <div className="p-8 md:p-10 relative z-10 border-b border-slate-800/80 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-          <div className="lg:col-span-6 space-y-4">
+        <div className="p-7 md:p-9 relative z-10 border-b border-slate-200 dark:border-slate-800 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+          <div className="lg:col-span-6 space-y-3.5">
             <motion.h1
               variants={itemVariants}
-              className="text-2xl md:text-3xl font-bold tracking-tight text-slate-100 font-sans"
+              className="text-2xl md:text-3xl font-bold tracking-tight text-slate-900 dark:text-white"
             >
               {content.title}
             </motion.h1>
             <motion.p
               variants={itemVariants}
-              className="text-sm text-slate-300 leading-relaxed font-sans"
+              className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed"
             >
               {content.description}
             </motion.p>
@@ -1637,10 +1643,10 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
           {/* Bespoke Module-Specific CAD Schematic */}
           <motion.div
             variants={itemVariants}
-            className="lg:col-span-6 bg-[#0B0F19] border border-slate-800 rounded-xl p-3.5 space-y-2"
+            className="lg:col-span-6 bg-[#0B0F19] border border-slate-200 dark:border-slate-800 rounded-xl p-3.5 space-y-2"
           >
-            <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 border-b border-slate-800/90 pb-1.5">
-              <span className="font-semibold text-cyan-400">{specializedGraphic.caption}</span>
+            <div className="flex items-center justify-between text-[11px] font-mono text-slate-400 border-b border-slate-800 pb-1.5">
+              <span className="font-semibold text-sky-400">{specializedGraphic.caption}</span>
               <span className="text-slate-500">CAD Schematic</span>
             </div>
             {specializedGraphic.svg}
@@ -1648,39 +1654,48 @@ export const ModuleIntro: React.FC<ModuleIntroProps> = ({ module, onUnderstand }
         </div>
 
         {/* Governing Equations & Action Footer */}
-        <div className="p-8 md:p-10 space-y-8 relative z-10 bg-[#070A12]">
-          {content.formulas && (
-            <motion.div variants={itemVariants}>
-              <div className="flex items-center gap-3 mb-4">
-                <Sigma className="w-4 h-4 text-cyan-400" />
-                <h3 className="text-xs font-mono uppercase tracking-wider text-slate-300 font-semibold">
-                  Governing Analytical Formalism
-                </h3>
-                <div className="h-px flex-1 bg-slate-800" />
-              </div>
-              <div>{content.formulas}</div>
-            </motion.div>
-          )}
+        <div className="p-7 md:p-9 space-y-6 relative z-10 bg-white dark:bg-[#0B0F19]">
+          <motion.div variants={itemVariants} className="space-y-4">
+            <div className="flex items-center gap-3">
+              <Sigma className="w-4 h-4 text-blue-600 dark:text-sky-400" />
+              <h3 className="text-sm font-semibold text-slate-900 dark:text-white">
+                Governing Analytical Formalism
+              </h3>
+              <div className="h-px flex-1 bg-slate-200 dark:bg-slate-800" />
+            </div>
+
+            <EquationPlate
+              tex={moduleMath.displayTex}
+              label={content.title}
+              dimension={moduleMath.dimension}
+              eqNumber="(1)"
+              emphasis="primary"
+              legend={moduleMath.legend}
+            />
+
+            {content.formulas && <div className="pt-1">{content.formulas}</div>}
+          </motion.div>
 
           <motion.div
             variants={itemVariants}
-            className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-6 border-t border-slate-800/80"
+            className="flex flex-col sm:flex-row items-center justify-between gap-6 pt-5 border-t border-slate-200 dark:border-slate-800"
           >
             <div className="flex items-start gap-3 max-w-xl">
-              <Info className="w-4 h-4 text-cyan-400 shrink-0 mt-0.5" />
+              <Info className="w-4 h-4 text-blue-600 dark:text-sky-400 shrink-0 mt-0.5" />
               <div>
-                <h4 className="text-xs font-semibold text-slate-200 mb-0.5">
+                <h4 className="text-xs font-semibold text-slate-900 dark:text-slate-200 mb-0.5">
                   Double-Precision Analytical Solver
                 </h4>
-                <p className="text-xs text-slate-400 leading-relaxed">
+                <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
                   All analytical solvers execute with 64-bit floating-point arithmetic and least-squares uncertainty propagation.
                 </p>
               </div>
             </div>
 
             <button
+              type="button"
               onClick={handleUnderstandClick}
-              className="group flex items-center justify-center px-6 py-2.5 bg-cyan-600 hover:bg-cyan-500 text-slate-950 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0"
+              className="group flex items-center justify-center px-5 py-2.5 bg-slate-900 dark:bg-sky-500 hover:bg-slate-800 dark:hover:bg-sky-400 text-white dark:text-slate-950 rounded-lg text-xs font-semibold transition-colors cursor-pointer shrink-0 whitespace-nowrap"
             >
               <span className="flex items-center gap-1.5">
                 Launch Workbench
