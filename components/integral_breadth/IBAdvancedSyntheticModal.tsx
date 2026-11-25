@@ -12,6 +12,7 @@ import {
   Atom
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { computeLangfordVoigtBreadth, computeExactVoigtPhi } from '../../utils/physics';
 
 interface IBAdvancedSyntheticModalProps {
   isOpen: boolean;
@@ -140,16 +141,21 @@ export const IBAdvancedSyntheticModal: React.FC<IBAdvancedSyntheticModalProps> =
       const eps = targetStrainPercent / 100;
       const betaStrainRad = 4 * eps * tanTheta;
 
-      // Exact Halder-Wagner Voigt convolution: beta^2 = beta * beta_C + beta_G^2
-      // => beta = 0.5 * beta_C + sqrt(0.25 * beta_C^2 + beta_G^2)
-      const betaTotalRad = 0.5 * betaSizeRad + Math.sqrt(0.25 * betaSizeRad * betaSizeRad + betaStrainRad * betaStrainRad);
+      // Exact Langford (1978) Faddeeva-Voigt convolution of Cauchy size (beta_C) and Gaussian strain (beta_G)
+      const betaTotalRad = computeLangfordVoigtBreadth(betaSizeRad, betaStrainRad);
       const betaTotalDeg = betaTotalRad * (180 / Math.PI);
+
+      // Exact Voigt shape parameter k = beta_C / (sqrt(pi) * beta_G) and exact shape factor phi(k) = FWHM / beta
+      const voigtK = betaStrainRad > 1e-12 ? betaSizeRad / (Math.sqrt(Math.PI) * betaStrainRad) : 1e6;
+      const phiExact = computeExactVoigtPhi(voigtK);
+      const fwhmDeg = betaTotalDeg * phiExact;
 
       // Calculate peak Area & Imax: Area = betaTotalDeg * Imax
       const peakImax = Math.round((ref.relativeI / 1000) * baseImax);
       const peakArea = parseFloat((betaTotalDeg * peakImax).toFixed(3));
 
-      rows.push(`${twoThetaDeg.toFixed(3)}, ${peakArea}, ${peakImax}, ${ref.h} ${ref.k} ${ref.l}`);
+      // Emit 7-column format: 2theta, FWHM, Area, I_max, h k l (preserves true reflection-dependent phi(2theta))
+      rows.push(`${twoThetaDeg.toFixed(3)}, ${fwhmDeg.toFixed(4)}, ${peakArea}, ${peakImax}, ${ref.h} ${ref.k} ${ref.l}`);
     });
 
     onGenerate(rows.join('\n'), materialTitle, materialDensity, youngsModulus);
@@ -174,7 +180,7 @@ export const IBAdvancedSyntheticModal: React.FC<IBAdvancedSyntheticModalProps> =
                 Synthetic IB Peak Generator
               </h3>
               <p className="text-[10px] text-pink-400/80 font-mono">
-                Generate ideal diffraction reflections (2θ, Area, I_max, h k l) from microstructural models
+                Generate exact Langford–Voigt reflections (2θ, FWHM, Area, I_max, h k l) with true φ(2θ)
               </p>
             </div>
           </div>

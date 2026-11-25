@@ -480,8 +480,12 @@ export interface IntegralBreadthResult {
   fwhmObs?: number;
   pseudoVoigtEta?: number;
   voigtParamK?: number; // k = beta_C / (sqrt(pi) * beta_G)
-  cauchyFractionBcOverB?: number; // beta_C / beta
-  gaussFractionBgOverB?: number; // beta_G / beta
+  cauchyFractionBcOverB?: number; // exact beta_C / beta
+  gaussFractionBgOverB?: number; // exact beta_G / beta
+  deKeijserPolyFc?: number; // classical 1982 polynomial beta_C / beta for comparison
+  deKeijserPolyFg?: number; // classical 1982 polynomial beta_G / beta for comparison
+  sampleShapeFactorPhi?: number; // deconvolved sample Voigt shape factor phi_f
+  sampleVoigtParamK?: number; // deconvolved sample Voigt parameter k_f
   cauchyBetaL_deg?: number;
   gaussianBetaG_deg?: number;
   cauchyBetaL_obsDeg?: number;
@@ -508,8 +512,10 @@ export interface IntegralBreadthResult {
   isExcluded?: boolean;
 }
 
+export type IBRegressionMethodKey = 'ols' | 'wls_jacobian' | 'robust_huber' | 'exact_voigt_nls';
+
 export interface IBModelComparisonItem {
-  modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH';
+  modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Gaussian-WH';
   label: string;
   sizeNm: number;
   sizeErrorNm?: number;
@@ -518,15 +524,29 @@ export interface IBModelComparisonItem {
   stressMPa?: number;
   energyDensityKjM3?: number;
   rSquared: number;
+  rawOlsRSquared?: number;
   adjustedRSquared?: number;
   rmse: number;
   fStatistic?: number;
   slope: number;
   intercept: number;
   rawOlsIntercept?: number;
-  fitRegime?: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized';
+  fitRegime?: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized' | 'exact_voigt_nls';
   description: string;
   isBestFit?: boolean;
+}
+
+export interface IBExactVoigtBenchmark {
+  sizeNm: number;
+  sizeErrorNm: number;
+  meanSphericalDiameterNm: number;
+  strainPercent: number;
+  strainErrorPercent: number;
+  rmsStrainPercent: number;
+  rSquaredBeta: number;
+  rmseDeg: number;
+  iterations: number;
+  converged: boolean;
 }
 
 export interface IBAdvancedInput {
@@ -541,20 +561,27 @@ export interface IBAdvancedResult {
   strainPercent: number;
   strainErrorPercent?: number;
   rmsStrainPercent?: number;
+  halderWagnerStrain2EpsPercent?: number; // 2*epsilon convention in some H-W/SSP papers
+  stokesWilsonApparentStrainEtaPercent?: number; // eta = 4*epsilon = beta_S / tan(theta)
   sizeInterceptNm: number;
   sizeErrorNm?: number;
   areaWeightedSizeNm?: number;
   meanSphericalDiameterNm?: number;
+  logNormalMedianD0Nm?: number;
   polydispersityRatioDvDa?: number;
   logNormalSigmaG?: number;
   meanCauchyFraction?: number;
-  fitRegime?: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized';
+  meanVoigtParamK?: number;
+  fitRegime?: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized' | 'exact_voigt_nls';
+  regressionMethodUsed?: IBRegressionMethodKey;
+  exactVoigtBenchmark?: IBExactVoigtBenchmark;
   regression: {
     slope: number;
     intercept: number;
     rawOlsSlope?: number;
     rawOlsIntercept?: number;
     rSquared: number;
+    rawOlsRSquared?: number;
     adjustedRSquared?: number;
     pearsonR?: number;
     stdErrorSlope?: number;
@@ -565,6 +592,8 @@ export interface IBAdvancedResult {
     tCritical95?: number;
     meanX?: number;
     sxx?: number;
+    weightedEffectiveN?: number;
+    downweightedOutlierCount?: number;
   };
   points: { x: number; y: number; twoTheta: number; betaSample: number; residual?: number; isExcluded?: boolean }[];
   stressMPa?: number;
@@ -582,8 +611,16 @@ export interface IBAdvancedResult {
     betaObsDeg: number;
     betaInstDeg: number;
     betaSampleDeg: number;
+    fwhmObsDeg?: number;
+    shapeFactorPhi?: number;
+    sampleShapeFactorPhi?: number;
+    voigtParamK?: number;
+    cauchyBetaL_deg?: number;
+    gaussianBetaG_deg?: number;
     x: number;
     y: number;
+    fitY?: number;
+    regressionWeight?: number;
     singlePeakSizeNm: number;
     dSpacing?: number;
     qVector?: number;

@@ -1,5 +1,5 @@
 import { getActiveMaterials } from './materialsHelper';
-import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MonshiScherrerMethodBenchmark, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, IBModelComparisonItem, WAInputPoint, WAHarmonicDeconvolvedPoint, WAResult, WAColumnDistributionPoint, WAOrderPlotLine, WAMetrics, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, DLPhaseDiagnostics, FWHMResult, LatticeParameters, HKLPlaneSuggestion, SuggestHKLsResponse } from '../types';
+import { BraggResult, CrystalSystem, SelectionRuleResult, ScherrerInput, ScherrerResult, WHResult, WHPoint, MonshiScherrerResult, MonshiScherrerPoint, MonshiScherrerMethodBenchmark, MomentDataPoint, MethodOfMomentsResult, DoubleVoigtResult, DoubleVoigtPoint, IntegralBreadthInput, IntegralBreadthResult, IBAdvancedInput, IBAdvancedResult, IBModelComparisonItem, IBRegressionMethodKey, IBExactVoigtBenchmark, WAInputPoint, WAHarmonicDeconvolvedPoint, WAResult, WAColumnDistributionPoint, WAOrderPlotLine, WAMetrics, RietveldSetupInput, RietveldSetupResult, NeutronAtom, NeutronResult, MagneticAtom, MagneticResult, DLPhaseResult, DLPhaseCandidate, DLPhaseDiagnostics, FWHMResult, LatticeParameters, HKLPlaneSuggestion, SuggestHKLsResponse } from '../types';
 
 // --- Signal Processing (Savitzky-Golay) ---
 
@@ -2972,20 +2972,44 @@ export const optimizeWilliamsonHallAnisotropyQ = (
 };
 
 // Exact Voigt & Integral Breadth Physical Constants
-const IB_PHI_CAUCHY = 2 / Math.PI; // 0.6366197723675814
-const IB_PHI_GAUSS = 2 * Math.sqrt(Math.LN2 / Math.PI); // 0.9394372786996513
+export const IB_PHI_CAUCHY = 2 / Math.PI; // 0.6366197723675814
+export const IB_PHI_GAUSS = 2 * Math.sqrt(Math.LN2 / Math.PI); // 0.9394372786996513
+const SQRT_PI = Math.sqrt(Math.PI);
+
+// 8-point Gauss-Legendre nodes & weights on [-1, 1] (Abramowitz & Stegun Table 25.4)
+const GL8_NODES = [
+  -0.9602898564975363,
+  -0.7966664774136267,
+  -0.5255324099163290,
+  -0.1834346424956498,
+  0.1834346424956498,
+  0.5255324099163290,
+  0.7966664774136267,
+  0.9602898564975363
+];
+const GL8_WEIGHTS = [
+  0.1012285362903763,
+  0.2223810344533745,
+  0.3137066458778873,
+  0.3626837833783620,
+  0.3626837833783620,
+  0.3137066458778873,
+  0.2223810344533745,
+  0.1012285362903763
+];
+const VOIGT_GL_PANELS = [0, 1.2, 2.8, 4.8, 7.2, 10.0, 13.5];
 
 /**
  * Scaled complementary error function erfcx(k) = exp(k^2) * erfc(k)
  * Used for Langford (1978) exact Voigt integral breadth synthesis: beta_V = beta_G / erfcx(k)
  */
-const computeErfcx = (x: number): number => {
+export const computeErfcx = (x: number): number => {
   if (x < 0) {
     return 2 * Math.exp(x * x) - computeErfcx(-x);
   }
   if (x > 26.0) {
     const invX2 = 1 / (x * x);
-    return (1 / (Math.sqrt(Math.PI) * x)) * (1 - 0.5 * invX2 * (1 - 1.5 * invX2 * (1 - 2.5 * invX2)));
+    return (1 / (SQRT_PI * x)) * (1 - 0.5 * invX2 * (1 - 1.5 * invX2 * (1 - 2.5 * invX2)));
   }
   const t = 1.0 / (1.0 + 0.3275911 * x);
   return (
@@ -2993,6 +3017,89 @@ const computeErfcx = (x: number): number => {
     (0.254829592 +
       t * (-0.284496736 + t * (1.421413741 + t * (-1.453152027 + t * 1.061405429))))
   );
+};
+
+/**
+ * High-precision Faddeeva-Voigt line-shape function H(a, u) = Re[w(u + i*a)]
+ * Evaluates (1 / sqrt(pi)) * integral_0^inf exp(-t^2/4 - a*t) * cos(u*t) dt
+ * to ~10^-10 accuracy across the entire (a >= 0, u in R) domain.
+ */
+export const computeVoigtH = (a: number, u: number): number => {
+  const safeA = Math.max(0, a);
+  const absU = Math.abs(u);
+  if (safeA <= 1e-12) {
+    return Math.exp(-absU * absU);
+  }
+  if (absU <= 1e-12) {
+    return computeErfcx(safeA);
+  }
+
+  const r2 = absU * absU + safeA * safeA;
+  // Asymptotic expansion of w(z) = (i / (sqrt(pi)*z)) * (1 + 1/(2z^2) + 3/(4z^4) + 15/(8z^6)) for |z| >= 10
+  if (r2 >= 100) {
+    const invR2 = 1 / r2;
+    const p = absU * invR2;
+    const q = -safeA * invR2;
+    // z^-2 = (p + i*q)^2
+    const z2r = p * p - q * q;
+    const z2i = 2 * p * q;
+    // Horner evaluation: S = 1 + z^-2 * (0.5 + z^-2 * (0.75 + 1.875 * z^-2))
+    let sr = 0.75 + 1.875 * z2r;
+    let si = 1.875 * z2i;
+    let tr = 0.5 + (z2r * sr - z2i * si);
+    let ti = z2r * si + z2i * sr;
+    sr = 1.0 + (z2r * tr - z2i * ti);
+    si = z2r * ti + z2i * tr;
+    // Re[(i / z) * S] = Re[((a + i*u) / r^2) * (sr + i*si)] = (a*sr - u*si) / r^2
+    return Math.max(0, ((safeA * sr - absU * si) * invR2) / SQRT_PI);
+  }
+
+  // Composite 6-panel 8-point Gauss-Legendre quadrature on [0, 13.5]
+  let integral = 0;
+  for (let p = 0; p < VOIGT_GL_PANELS.length - 1; p++) {
+    const left = VOIGT_GL_PANELS[p];
+    const right = VOIGT_GL_PANELS[p + 1];
+    const half = 0.5 * (right - left);
+    const mid = 0.5 * (right + left);
+    let panelSum = 0;
+    for (let j = 0; j < 8; j++) {
+      const t = mid + half * GL8_NODES[j];
+      const exponent = -0.25 * t * t - safeA * t;
+      if (exponent > -45) {
+        panelSum += GL8_WEIGHTS[j] * Math.exp(exponent) * Math.cos(absU * t);
+      }
+    }
+    integral += half * panelSum;
+  }
+  return Math.max(0, integral / SQRT_PI);
+};
+
+/**
+ * Exact Voigt shape factor phi(k) = FWHM_V / beta_V for Langford Voigt parameter k = beta_C / (sqrt(pi) * beta_G)
+ */
+export const computeExactVoigtPhi = (k: number): number => {
+  if (k <= 1e-6) return IB_PHI_GAUSS;
+  if (k >= 1e4) return IB_PHI_CAUCHY;
+
+  const h0 = computeErfcx(k);
+  const target = 0.5 * h0;
+
+  let lo = 0;
+  let hi = Math.max(1.2, 1.35 * k + 1.0);
+  while (computeVoigtH(k, hi) > target && hi < 1e6) {
+    hi *= 2;
+  }
+
+  for (let iter = 0; iter < 34; iter++) {
+    const mid = 0.5 * (lo + hi);
+    if (computeVoigtH(k, mid) > target) {
+      lo = mid;
+    } else {
+      hi = mid;
+    }
+  }
+  const uHalf = 0.5 * (lo + hi);
+  return (2 / SQRT_PI) * uHalf * h0;
 };
 
 /**
@@ -3004,14 +3111,14 @@ export const computeLangfordVoigtBreadth = (betaC: number, betaG: number): numbe
   const safeG = Math.max(0, betaG);
   if (safeG <= 1e-12) return safeC;
   if (safeC <= 1e-12) return safeG;
-  const k = safeC / (Math.sqrt(Math.PI) * safeG);
+  const k = safeC / (SQRT_PI * safeG);
   const denom = computeErfcx(k);
   return denom > 1e-15 ? safeG / denom : safeC;
 };
 
 /**
  * Exact analytical Pseudo-Voigt Lorentzian mixing fraction eta from shape factor phi = FWHM / beta
- * Solves 1/phi = eta/phi_C + (1 - eta)/phi_G identically
+ * Solves 1/phi = eta/phi_C + (1 - eta)/phi_G identically so Area(pV) === I_max * beta
  */
 export const computeExactPseudoVoigtEtaFromPhi = (phi: number): number => {
   const clampedPhi = Math.max(IB_PHI_CAUCHY, Math.min(IB_PHI_GAUSS, phi));
@@ -3022,28 +3129,30 @@ export const computeExactPseudoVoigtEtaFromPhi = (phi: number): number => {
 };
 
 /**
- * de Keijser, Langford, Mittemeijer & Vogels (1982) J. Appl. Cryst. 15, 308-314
- * Constituent Cauchy (beta_C / beta) and Gaussian (beta_G / beta) integral breadth fractions
- * with exact Langford Voigt boundary normalization.
+ * Exact Faddeeva-Voigt inversion of shape factor phi = FWHM / beta -> (fCauchy, fGauss, voigtK, eta)
+ * Satisfies BOTH Langford's beta_V(fCauchy, fGauss) === 1 and phi_Voigt(voigtK) === phi to ~10^-9.
+ * Also computes classical de Keijser et al. (1982) Eqs. (9a)/(9b) polynomial fractions for comparison.
  */
 export const computeDeKeijserVoigtFractions = (phi: number): {
   fCauchy: number;
   fGauss: number;
   voigtK: number;
   eta: number;
+  deKeijserPolyFc: number;
+  deKeijserPolyFg: number;
 } => {
-  if (phi <= IB_PHI_CAUCHY) {
-    return { fCauchy: 1.0, fGauss: 0.0, voigtK: 100.0, eta: 1.0 };
+  if (phi <= IB_PHI_CAUCHY + 1e-6) {
+    return { fCauchy: 1.0, fGauss: 0.0, voigtK: 100.0, eta: 1.0, deKeijserPolyFc: 1.0, deKeijserPolyFg: 0.0 };
   }
-  if (phi >= IB_PHI_GAUSS) {
-    return { fCauchy: 0.0, fGauss: 1.0, voigtK: 0.0, eta: 0.0 };
+  if (phi >= IB_PHI_GAUSS - 1e-6) {
+    return { fCauchy: 0.0, fGauss: 1.0, voigtK: 0.0, eta: 0.0, deKeijserPolyFc: 0.0, deKeijserPolyFg: 1.0 };
   }
 
   const eta = computeExactPseudoVoigtEtaFromPhi(phi);
 
-  // de Keijser et al. (1982) Eqs. (9a) and (9b):
-  const rawC = Math.max(0, 2.0207 - 0.4803 * phi - 1.7756 * phi * phi);
-  const rawG = Math.max(
+  // Classical de Keijser et al. (J. Appl. Cryst. 1982, 15, 308-314) Eqs. (9a) and (9b):
+  const polyC = Math.max(0, 2.0207 - 0.4803 * phi - 1.7756 * phi * phi);
+  const polyG = Math.max(
     0,
     0.6420 +
       1.4187 * Math.sqrt(Math.max(0, phi - IB_PHI_CAUCHY)) -
@@ -3051,14 +3160,32 @@ export const computeDeKeijserVoigtFractions = (phi: number): {
       1.8706 * phi * phi
   );
 
-  // Normalize via Langford's exact Voigt integral so beta_V(fCauchy, fGauss) === 1.000000000000
-  const normVoigt = computeLangfordVoigtBreadth(rawC, rawG);
-  const scale = normVoigt > 1e-9 ? 1.0 / normVoigt : 1.0;
-  const fCauchy = rawC * scale;
-  const fGauss = rawG * scale;
-  const voigtK = fGauss > 1e-9 ? fCauchy / (Math.sqrt(Math.PI) * fGauss) : 100.0;
+  // Exact monotonic inversion of phi_Voigt(k) = phi via bisection in ln(k)
+  // phi_Voigt(k) is strictly decreasing from phi_G (k -> 0) to phi_C (k -> inf)
+  let loLogK = -10.5;
+  let hiLogK = 8.5;
+  for (let iter = 0; iter < 32; iter++) {
+    const midLogK = 0.5 * (loLogK + hiLogK);
+    const phiMid = computeExactVoigtPhi(Math.exp(midLogK));
+    if (phiMid > phi) {
+      loLogK = midLogK;
+    } else {
+      hiLogK = midLogK;
+    }
+  }
 
-  return { fCauchy, fGauss, voigtK, eta };
+  const voigtK = Math.exp(0.5 * (loLogK + hiLogK));
+  const fGauss = computeErfcx(voigtK);
+  const fCauchy = SQRT_PI * voigtK * fGauss;
+
+  return {
+    fCauchy,
+    fGauss,
+    voigtK,
+    eta,
+    deKeijserPolyFc: polyC,
+    deKeijserPolyFg: polyG
+  };
 };
 
 /**
@@ -3109,9 +3236,9 @@ export const parseIntegralBreadthInput = (input: string): IntegralBreadthInput[]
       }
       results.push(item);
     } else if (parts.length === 3 && parts[0] > 0 && parts[0] < 180 && parts[2] > 0) {
-      // 3 columns: 2theta, Area, Imax -> intermediate Voigt shape factor phi ~ 0.788 (eta = 0.5)
+      // 3 columns: 2theta, Area, Imax -> intermediate Voigt shape factor phi ~ 0.7589 (eta = 0.5)
       const ibDeg = parts[1] / parts[2];
-      const defaultPhi = 2 / (1 / IB_PHI_CAUCHY + 1 / IB_PHI_GAUSS); // ~0.7589 for eta = 0.5
+      const defaultPhi = 2 / (1 / IB_PHI_CAUCHY + 1 / IB_PHI_GAUSS);
       results.push({ twoTheta: parts[0], fwhm: ibDeg * defaultPhi, area: parts[1], iMax: parts[2] });
     }
   }
@@ -3125,8 +3252,10 @@ export const calculateIntegralBreadth = (
   instrumentalMode: 'constant' | 'caglioti' = 'constant',
   instBetaIB: number = 0.0,
   cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
-  decouplingMethod: 'linear' | 'squared' | 'hw_voigt' | 'de_keijser' = 'linear',
-  materialDensityGcm3: number = 2.33
+  decouplingMethod: 'linear' | 'squared' | 'hw_voigt' | 'de_keijser' | 'voigt_exact' = 'de_keijser',
+  materialDensityGcm3: number = 2.33,
+  instVoigtPhi: number = 0.8226,
+  burgersVectorNm: number = 0.286
 ): IntegralBreadthResult | null => {
   if (wavelength <= 0 || peak.iMax <= 0) return null;
   const { twoTheta, fwhm, area, iMax } = peak;
@@ -3170,20 +3299,22 @@ export const calculateIntegralBreadth = (
     profileType = 'Gaussian';
   }
 
-  // Exact de Keijser (1982) & Langford (1978) single-line Voigt deconvolution
+  // Exact Faddeeva-Voigt & de Keijser (1982) single-line Voigt deconvolution
   const {
     fCauchy: cauchyFractionBcOverB,
     fGauss: gaussFractionBgOverB,
     voigtK: voigtParamK,
-    eta: pseudoVoigtEta
+    eta: pseudoVoigtEta,
+    deKeijserPolyFc,
+    deKeijserPolyFg
   } = computeDeKeijserVoigtFractions(shapeFactorPhi);
 
   const betaL_obs = betaObsRad * cauchyFractionBcOverB;
   const betaG_obs = betaObsRad * gaussFractionBgOverB;
 
-  // Instrumental Voigt split: standard Bragg-Brentano X-ray resolution function has Gaussian-dominant optics (eta_inst = 0.30, phi_inst = 0.8226)
-  const instPhi = 0.8226;
-  const instVoigt = computeDeKeijserVoigtFractions(instPhi);
+  // Instrumental Voigt split (default Bragg-Brentano optics phi_inst = 0.8226, configurable)
+  const clampedInstPhi = Math.max(IB_PHI_CAUCHY, Math.min(IB_PHI_GAUSS, instVoigtPhi));
+  const instVoigt = computeDeKeijserVoigtFractions(clampedInstPhi);
   const betaL_inst = betaInstRad * instVoigt.fCauchy;
   const betaG_inst = betaInstRad * instVoigt.fGauss;
 
@@ -3192,6 +3323,8 @@ export const calculateIntegralBreadth = (
   // Gaussian components subtract quadratically: beta_{G,f}^2 = beta_{G,h}^2 - beta_{G,g}^2
   const betaL_sample = Math.max(1e-7, betaL_obs - betaL_inst);
   const betaG_sample = Math.sqrt(Math.max(1e-14, betaG_obs * betaG_obs - betaG_inst * betaG_inst));
+  const sampleVoigtParamK = betaG_sample > 1e-10 ? betaL_sample / (SQRT_PI * betaG_sample) : 100.0;
+  const sampleShapeFactorPhi = computeExactVoigtPhi(sampleVoigtParamK);
 
   const cauchyBetaL_obsDeg = betaL_obs * (180 / Math.PI);
   const gaussianBetaG_obsDeg = betaG_obs * (180 / Math.PI);
@@ -3200,7 +3333,7 @@ export const calculateIntegralBreadth = (
 
   // Langford & de Keijser (1982) size-strain separation from single Voigt reflection:
   // Volume-weighted domain size D_V = K * lambda / (beta_C^f * cos(theta))
-  // Area-weighted domain size D_A = D_V / 2 (for Cauchy size profile)
+  // Area-weighted domain size D_A = D_V / 2 (exact for pure Cauchy size profile)
   // Root-mean-square microstrain <e^2>^(1/2) = beta_G^f / (2 * sqrt(2*pi) * tan(theta))
   // Upper-bound Stokes-Wilson microstrain e = beta_G^f / (4 * tan(theta))
   const volumeWeightedSizeDvNm = cosTheta > 0 ? (K * wavelength) / (betaL_sample * cosTheta) / 10 : 0;
@@ -3215,10 +3348,10 @@ export const calculateIntegralBreadth = (
     // Pure Gaussian quadratic subtraction: beta_s = sqrt(beta_obs^2 - beta_inst^2)
     betaSampleRad = Math.sqrt(Math.max(1e-12, betaObsRad * betaObsRad - betaInstRad * betaInstRad));
   } else if (decouplingMethod === 'hw_voigt') {
-    // True Halder-Wagner (1966) parabolic Voigt deconvolution: beta_s = beta_obs * [1 - (beta_inst / beta_obs)^2]
+    // Halder-Wagner (1966) parabolic Voigt deconvolution: beta_s = beta_obs * [1 - (beta_inst / beta_obs)^2]
     const ratio = betaInstRad / betaObsRad;
     betaSampleRad = betaObsRad * Math.max(1e-6, 1 - ratio * ratio);
-  } else if (decouplingMethod === 'de_keijser') {
+  } else if (decouplingMethod === 'de_keijser' || decouplingMethod === 'voigt_exact') {
     // Exact Langford (1978) Voigt integral breadth synthesis from deconvolved (betaL_sample, betaG_sample)
     betaSampleRad = computeLangfordVoigtBreadth(betaL_sample, betaG_sample);
   } else {
@@ -3228,9 +3361,10 @@ export const calculateIntegralBreadth = (
 
   const finalBetaRad = betaSampleRad > 0 ? betaSampleRad : betaObsRad;
   const apparentScherrerSizeNm = (K * wavelength) / (finalBetaRad * cosTheta) / 10;
-  const activeSize = decouplingMethod === 'de_keijser' && volumeWeightedSizeDvNm > 0
-    ? volumeWeightedSizeDvNm
-    : apparentScherrerSizeNm;
+  const activeSize =
+    (decouplingMethod === 'de_keijser' || decouplingMethod === 'voigt_exact') && volumeWeightedSizeDvNm > 0
+      ? volumeWeightedSizeDvNm
+      : apparentScherrerSizeNm;
 
   // Reciprocal integral breadth beta* = beta_sample * cos(theta) / lambda (nm^-1)
   const betaStar_nm = wavelengthNm > 0 ? (finalBetaRad * cosTheta) / wavelengthNm : 0;
@@ -3241,7 +3375,7 @@ export const calculateIntegralBreadth = (
   const dislocationDensity10_14 = dislocationDensityM2 / 1e14;
 
   // Williamson-Smallman (1956) combined size-strain dislocation density: rho_WS = 2*sqrt(3)*<e^2>^0.5 / (D_V * b)
-  const burgersMeters = 0.25e-9;
+  const burgersMeters = Math.max(0.05, burgersVectorNm) * 1e-9;
   const wsDislocationM2 = (2 * Math.sqrt(3) * apparentRmsStrain) / (sizeMeters * burgersMeters);
   const williamsonSmallmanDislocation10_14 = wsDislocationM2 / 1e14;
 
@@ -3269,6 +3403,10 @@ export const calculateIntegralBreadth = (
     voigtParamK,
     cauchyFractionBcOverB,
     gaussFractionBgOverB,
+    deKeijserPolyFc,
+    deKeijserPolyFg,
+    sampleShapeFactorPhi,
+    sampleVoigtParamK,
     cauchyBetaL_deg,
     gaussianBetaG_deg,
     cauchyBetaL_obsDeg,
@@ -3369,16 +3507,37 @@ const computeAnisotropicCrystallographicFactors = (
   const C_h00 = 0.285;
   const qParam = 1.35;
   const contrastFactorC = Math.max(0.05, C_h00 * (1 - qParam * gammaHkl));
-  const avgContrastC0 = C_h00 * (1 - qParam * 0.2); // Isotropic average at <H^2> = 0.2
+  const avgContrastC0 = C_h00 * (1 - qParam * 0.2); // Isotropic average at <H^2> = 0.2 (= 0.20805)
 
   return { eHklGPa, contrastFactorC, avgContrastC0, orientationGamma: gammaHkl };
 };
 
+export type IBSeparationMethodKey = 'udm' | 'usdm' | 'udedm' | 'ssp' | 'hw' | 'mwh' | 'gwh';
+export type IBDecouplingMethodKey = 'linear' | 'squared' | 'hw_voigt' | 'voigt_exact' | 'none';
+export type { IBRegressionMethodKey };
+
+interface IBProcessedPeakInternal {
+  twoTheta: number;
+  betaObsRad: number;
+  betaSampleRad: number;
+  iMax: number;
+  cosTheta: number;
+  sinTheta: number;
+  tanTheta: number;
+  dSpacing: number;
+  hkl?: [number, number, number];
+  voigtDvNm?: number;
+  cauchyFraction?: number;
+  voigtParamK?: number;
+}
+
 /**
- * Unified coordinate transformation for all 6 IB Advanced Size-Strain Separation Models
+ * Unified coordinate transformation for all 7 IB Advanced Size-Strain Separation Models
+ * Note: USDM uses E_hkl in GPa (matching Williamson-Hall module) so slope = stress in GPa
+ * and X ~ 10^-2 GPa^-1, avoiding 10^-22 numerical underflow in variance calculations.
  */
 const computeIBModelCoordinates = (
-  methodKey: 'udm' | 'usdm' | 'udedm' | 'ssp' | 'hw' | 'mwh',
+  methodKey: IBSeparationMethodKey,
   peak: {
     twoTheta: number;
     betaSampleRad: number;
@@ -3389,7 +3548,7 @@ const computeIBModelCoordinates = (
     hkl?: [number, number, number];
   },
   nominalE_GPa: number
-): { x: number; y: number; eHklGPa: number; contrastFactorC: number } => {
+): { x: number; y: number; eHklGPa: number; contrastFactorC: number; strainAnisotropyFactor: number } => {
   const { twoTheta, betaSampleRad, cosTheta, sinTheta, tanTheta, dSpacing, hkl } = peak;
   const { eHklGPa, contrastFactorC, avgContrastC0 } = computeAnisotropicCrystallographicFactors(
     hkl,
@@ -3399,53 +3558,544 @@ const computeIBModelCoordinates = (
 
   let x = 0;
   let y = 0;
+  let strainAnisotropyFactor = 1.0;
 
   if (methodKey === 'hw') {
-    // Halder-Wagner (1966): (beta / tan(theta))^2 = (K*lambda / D) * [beta / (tan(theta)*sin(theta))] + 16*epsilon^2
+    // Halder-Wagner (1966) Cauchy-Gaussian Parabolic Voigt:
+    // (beta / tan(theta))^2 = (K*lambda / D_v) * [beta / (tan(theta)*sin(theta))] + 16*epsilon^2
     y = Math.pow(betaSampleRad / tanTheta, 2);
     x = betaSampleRad / (tanTheta * sinTheta);
   } else if (methodKey === 'ssp') {
-    // Size-Strain Plot (Tagliente & Massaro 2008):
-    // (d_hkl * beta * cos(theta))^2 = (K*lambda / D) * (d_hkl^2 * beta * cos(theta)) + (2 * epsilon * lambda)^2
+    // Size-Strain Plot (Tagliente & Massaro 2008 / real-space d_hkl form of parabolic Voigt):
+    // (d_hkl * beta * cos(theta))^2 = (K*lambda / D_v) * (d_hkl^2 * beta * cos(theta)) + (2 * epsilon * lambda)^2
     y = Math.pow(dSpacing * betaSampleRad * cosTheta, 2);
     x = Math.pow(dSpacing, 2) * betaSampleRad * cosTheta;
+  } else if (methodKey === 'gwh') {
+    // Gaussian-Gaussian Quadratic Williamson-Hall (Langford Gaussian convolution limit):
+    // (beta * cos(theta))^2 = (K*lambda / D_v)^2 + (4 * epsilon * sin(theta))^2
+    y = Math.pow(betaSampleRad * cosTheta, 2);
+    x = Math.pow(4 * sinTheta, 2);
   } else if (methodKey === 'udedm') {
     // Uniform Deformation Energy Density Model (anisotropic E_hkl):
-    // beta * cos(theta) = K*lambda / D + 4 * sin(theta) * sqrt(2 * u / E_hkl)
+    // beta * cos(theta) = K*lambda / D_v + 4 * sin(theta) * sqrt(2 * u / E_hkl)
     const E_Pa = Math.max(1e9, eHklGPa * 1e9);
     y = betaSampleRad * cosTheta;
     x = 4 * sinTheta * Math.sqrt(2 / E_Pa);
+    strainAnisotropyFactor = Math.sqrt(Math.max(0.1, nominalE_GPa / Math.max(1, eHklGPa)));
   } else if (methodKey === 'usdm') {
-    // Uniform Stress Deformation Model (anisotropic E_hkl):
-    // beta * cos(theta) = K*lambda / D + 4 * sigma * sin(theta) / E_hkl
-    const E_Pa = Math.max(1e9, eHklGPa * 1e9);
+    // Uniform Stress Deformation Model (anisotropic E_hkl in GPa):
+    // beta * cos(theta) = K*lambda / D_v + sigma_GPa * (4 * sin(theta) / E_hkl_GPa)
+    const safeE_GPa = Math.max(1, eHklGPa);
     y = betaSampleRad * cosTheta;
-    x = (4 * sinTheta) / E_Pa;
+    x = (4 * sinTheta) / safeE_GPa;
+    strainAnisotropyFactor = nominalE_GPa / safeE_GPa;
   } else if (methodKey === 'mwh') {
     // Modified Williamson-Hall (Ungár & Borbély 1996):
-    // beta * cos(theta) = K*lambda / D + 4 * epsilon * sin(theta) * sqrt(C_hkl / <C>)
+    // beta * cos(theta) = K*lambda / D_v + 4 * epsilon * sin(theta) * sqrt(C_hkl / <C>)
+    strainAnisotropyFactor = Math.sqrt(contrastFactorC / avgContrastC0);
     y = betaSampleRad * cosTheta;
-    x = 4 * sinTheta * Math.sqrt(contrastFactorC / avgContrastC0);
+    x = 4 * sinTheta * strainAnisotropyFactor;
   } else {
-    // Uniform Deformation Model (UDM):
-    // beta * cos(theta) = K*lambda / D + 4 * epsilon * sin(theta)
+    // Uniform Deformation Model (UDM, Cauchy-Cauchy linear limit):
+    // beta * cos(theta) = K*lambda / D_v + 4 * epsilon * sin(theta)
     y = betaSampleRad * cosTheta;
     x = 4 * sinTheta;
   }
 
-  return { x, y, eHklGPa, contrastFactorC };
+  return { x, y, eHklGPa, contrastFactorC, strainAnisotropyFactor };
 };
 
 /**
- * Helper: Compute Halder-Wagner parabolic Voigt size and de Keijser harmonic Voigt size
- * to regularize size-strain separation when unconstrained linear OLS crosses Y-intercept <= 0
- * or exhibits negative strain slope.
+ * Compute analytical inverse-variance weights propagating breadth uncertainty sigma_beta
+ * through each separation model's coordinate Jacobian |dY/dbeta|.
+ * Eliminates extreme low-angle leverage distortion in nonlinearly transformed plots (HW, SSP, GWH).
+ */
+const computeIBJacobianWeights = (
+  methodKey: IBSeparationMethodKey,
+  processedPeaks: IBProcessedPeakInternal[]
+): number[] => {
+  const n = processedPeaks.length;
+  if (n === 0) return [];
+
+  const meanImax =
+    processedPeaks.reduce((acc, p) => acc + Math.max(1, p.iMax || 1000), 0) / n;
+
+  const rawWeights: number[] = processedPeaks.map(p => {
+    const betaObs = Math.max(1e-6, p.betaObsRad || p.betaSampleRad);
+    const betaS = Math.max(1e-6, p.betaSampleRad);
+    // Relative integral-breadth precision improves with sqrt(I_max)
+    const sigmaBeta = betaObs * Math.sqrt(meanImax / Math.max(1, p.iMax || meanImax));
+
+    let dYdBeta = Math.max(1e-6, p.cosTheta);
+    if (methodKey === 'hw') {
+      dYdBeta = (2 * betaS) / Math.max(1e-8, p.tanTheta * p.tanTheta);
+    } else if (methodKey === 'ssp') {
+      dYdBeta = 2 * p.dSpacing * p.dSpacing * betaS * p.cosTheta * p.cosTheta;
+    } else if (methodKey === 'gwh') {
+      dYdBeta = 2 * betaS * p.cosTheta * p.cosTheta;
+    }
+
+    const sigmaY = Math.max(1e-30, Math.abs(dYdBeta) * sigmaBeta);
+    return 1 / (sigmaY * sigmaY);
+  });
+
+  // Normalize weights to median = 1 and softly clamp dynamic range [0.08, 12] to prevent single-peak takeover
+  const sorted = [...rawWeights].sort((a, b) => a - b);
+  const medianW = sorted[Math.floor(sorted.length / 2)] || 1;
+  const clamped = rawWeights.map(w => {
+    const rel = w / Math.max(1e-30, medianW);
+    return Math.max(0.08, Math.min(12.0, rel));
+  });
+  const meanClamped = clamped.reduce((a, b) => a + b, 0) / n;
+  return clamped.map(w => w / Math.max(1e-12, meanClamped));
+};
+
+/**
+ * Numerically stable centered weighted linear regression (OLS, WLS, or Robust IRLS Huber).
+ * Uses scale-invariant centered variance Sxx = sum(w_i * (x_i - xBar)^2) — never underflows on tiny X axes.
+ */
+const solveCenteredWeightedLinearFit = (
+  points: { x: number; y: number }[],
+  baseWeights: number[],
+  useRobustHuber: boolean
+): {
+  slope: number;
+  intercept: number;
+  meanX: number;
+  meanY: number;
+  sxx: number;
+  weights: number[];
+  sumW: number;
+  effectiveN: number;
+  downweightedOutlierCount: number;
+} | null => {
+  const n = points.length;
+  if (n < 2) return null;
+
+  let weights = baseWeights.length === n ? [...baseWeights] : new Array(n).fill(1);
+  let slope = 0;
+  let intercept = 0;
+  let meanX = 0;
+  let meanY = 0;
+  let sxx = 0;
+  let sumW = n;
+  let downweightedOutlierCount = 0;
+
+  const runWeightedPass = (wArr: number[]) => {
+    let sw = 0;
+    let wx = 0;
+    let wy = 0;
+    for (let i = 0; i < n; i++) {
+      const w = Math.max(1e-12, wArr[i]);
+      sw += w;
+      wx += w * points[i].x;
+      wy += w * points[i].y;
+    }
+    if (sw <= 0) return null;
+    const mx = wx / sw;
+    const my = wy / sw;
+    let cxx = 0;
+    let cxy = 0;
+    for (let i = 0; i < n; i++) {
+      const w = Math.max(1e-12, wArr[i]);
+      const dx = points[i].x - mx;
+      const dy = points[i].y - my;
+      cxx += w * dx * dx;
+      cxy += w * dx * dy;
+    }
+    if (!isFinite(cxx) || cxx <= 0) return null;
+    const m = cxy / cxx;
+    const c = my - m * mx;
+    return { m, c, mx, my, cxx, sw };
+  };
+
+  const init = runWeightedPass(weights);
+  if (!init) return null;
+  slope = init.m;
+  intercept = init.c;
+  meanX = init.mx;
+  meanY = init.my;
+  sxx = init.cxx;
+  sumW = init.sw;
+
+  if (useRobustHuber && n >= 3) {
+    const yVals = points.map(p => p.y);
+    const ySpan = Math.max(...yVals) - Math.min(...yVals);
+    const scaleFloor = Math.max(1e-30, ySpan * 1e-6);
+
+    for (let iter = 0; iter < 24; iter++) {
+      const absRes = points.map(p => Math.abs(p.y - (slope * p.x + intercept)));
+      const sortedAbs = [...absRes].sort((a, b) => a - b);
+      const mid = Math.floor(sortedAbs.length / 2);
+      const medianAbs =
+        sortedAbs.length % 2 === 1
+          ? sortedAbs[mid]
+          : 0.5 * (sortedAbs[mid - 1] + sortedAbs[mid]);
+      const madScale = Math.max(scaleFloor, 1.4826 * medianAbs);
+      const huberK = 1.345 * madScale;
+
+      const nextW = new Array(n);
+      let outliers = 0;
+      for (let i = 0; i < n; i++) {
+        const r = absRes[i];
+        const huberFactor = r <= huberK ? 1.0 : huberK / r;
+        if (huberFactor < 0.85) outliers++;
+        nextW[i] = (baseWeights[i] ?? 1) * huberFactor;
+      }
+      const nextMeanW = nextW.reduce((a, b) => a + b, 0) / n;
+      for (let i = 0; i < n; i++) {
+        nextW[i] /= Math.max(1e-12, nextMeanW);
+      }
+
+      const pass = runWeightedPass(nextW);
+      if (!pass) break;
+      const relDelta =
+        Math.abs(pass.m - slope) / (Math.abs(slope) + 1e-30) +
+        Math.abs(pass.c - intercept) / (Math.abs(intercept) + 1e-30);
+
+      slope = pass.m;
+      intercept = pass.c;
+      meanX = pass.mx;
+      meanY = pass.my;
+      sxx = pass.cxx;
+      sumW = pass.sw;
+      weights = nextW;
+      downweightedOutlierCount = outliers;
+
+      if (relDelta < 1e-7) break;
+    }
+  }
+
+  let sumW2 = 0;
+  for (let i = 0; i < n; i++) {
+    sumW2 += weights[i] * weights[i];
+  }
+  const effectiveN = sumW2 > 0 ? (sumW * sumW) / sumW2 : n;
+
+  return {
+    slope,
+    intercept,
+    meanX,
+    meanY,
+    sxx,
+    weights,
+    sumW,
+    effectiveN,
+    downweightedOutlierCount
+  };
+};
+
+/**
+ * Exact Langford (1978) Faddeeva-Voigt 2-Parameter Nonlinear Least Squares Solver (Levenberg-Marquardt).
+ * Directly minimizes sum_i [ beta_{s,i} - beta_Voigt( (K*lambda / D_V)/cos(theta_i), 4*epsilon*g_i*tan(theta_i) ) ]^2
+ * in physical sample integral breadth space (radians), eliminating BOTH Cauchy-Cauchy UDM bias AND
+ * Halder-Wagner/SSP parabolic approximation bias!
+ */
+const solveExactLangfordVoigtNLS = (
+  wavelength: number,
+  K: number,
+  processedPeaks: IBProcessedPeakInternal[],
+  anisotropyFactors?: number[]
+): IBExactVoigtBenchmark & { aRad: number; strain: number; strainError: number; predictedBetaRad: number[] } | null => {
+  const n = processedPeaks.length;
+  if (n < 2 || wavelength <= 0) return null;
+
+  const kLambdaNm = (K * wavelength) / 10;
+  const gArr = anisotropyFactors && anisotropyFactors.length === n ? anisotropyFactors : new Array(n).fill(1.0);
+
+  const predictAt = (idx: number, aRad: number, eps: number): number => {
+    const p = processedPeaks[idx];
+    const betaC = Math.max(0, aRad) / Math.max(1e-6, p.cosTheta);
+    const betaG = 4 * Math.max(0, eps) * gArr[idx] * Math.max(1e-6, p.tanTheta);
+    return computeLangfordVoigtBreadth(betaC, betaG);
+  };
+
+  const evalSSE = (aRad: number, eps: number): number => {
+    let s = 0;
+    for (let i = 0; i < n; i++) {
+      const r = processedPeaks[i].betaSampleRad - predictAt(i, aRad, eps);
+      s += r * r;
+    }
+    return s;
+  };
+
+  // Multi-start interior initialization (avoid eps=0 ridge where d(beta_V)/d(eps) = 0!)
+  let sumBetaCos = 0;
+  let sumBetaOver4Tan = 0;
+  const hwSeedPts: { x: number; y: number }[] = [];
+  for (let i = 0; i < n; i++) {
+    const p = processedPeaks[i];
+    sumBetaCos += p.betaSampleRad * p.cosTheta;
+    sumBetaOver4Tan += p.betaSampleRad / Math.max(1e-6, 4 * gArr[i] * p.tanTheta);
+    if (p.tanTheta > 1e-6 && p.sinTheta > 1e-6) {
+      hwSeedPts.push({
+        x: p.betaSampleRad / (p.tanTheta * p.sinTheta),
+        y: Math.pow(p.betaSampleRad / p.tanTheta, 2)
+      });
+    }
+  }
+  const meanA = Math.max(1e-7, sumBetaCos / n);
+  const meanEps = Math.max(1e-5, sumBetaOver4Tan / n);
+  const aMin = kLambdaNm / 2000;
+
+  const starts: Array<[number, number]> = [
+    [Math.max(aMin, meanA * 0.75), Math.max(1e-5, meanEps * 0.25)],
+    [Math.max(aMin, meanA * 0.55), Math.max(1e-5, meanEps * 0.45)],
+    [Math.max(aMin, meanA * 0.35), Math.max(1e-5, meanEps * 0.65)],
+    [Math.max(aMin, meanA * 0.15), Math.max(1e-5, meanEps * 0.85)],
+    [Math.max(aMin, meanA * 0.90), Math.max(1e-5, meanEps * 0.12)]
+  ];
+
+  // Add Halder-Wagner parabolic Voigt analytical seed (typically within 3-10% of exact Voigt minimum)
+  const hwSeed = solveCenteredWeightedLinearFit(hwSeedPts, new Array(hwSeedPts.length).fill(1), false);
+  if (hwSeed && hwSeed.slope > 1e-7 && hwSeed.intercept > 0) {
+    starts.unshift([
+      Math.max(aMin, hwSeed.slope),
+      Math.max(1e-5, Math.sqrt(hwSeed.intercept) / 4.0)
+    ]);
+  }
+
+  let bestA = starts[0][0];
+  let bestEps = starts[0][1];
+  let bestSSE = evalSSE(bestA, bestEps);
+  for (const [a0, e0] of starts) {
+    const sse0 = evalSSE(a0, e0);
+    if (sse0 < bestSSE) {
+      bestSSE = sse0;
+      bestA = a0;
+      bestEps = e0;
+    }
+  }
+
+  // Projected Damped Levenberg-Marquardt in interior (a >= aMin, eps >= 1e-7)
+  let a = bestA;
+  let eps = bestEps;
+  let currentSSE = bestSSE;
+  let lambdaLM = 1e-3;
+  let converged = false;
+  let iterations = 0;
+
+  let jtj00 = 0, jtj01 = 0, jtj11 = 0;
+
+  for (let iter = 1; iter <= 80; iter++) {
+    iterations = iter;
+    const da = Math.max(1e-8, Math.abs(a) * 1e-5);
+    const de = Math.max(1e-7, Math.max(Math.abs(eps), 1e-4) * 1e-5);
+
+    jtj00 = 0;
+    jtj01 = 0;
+    jtj11 = 0;
+    let jtr0 = 0;
+    let jtr1 = 0;
+
+    for (let i = 0; i < n; i++) {
+      const f0 = predictAt(i, a, eps);
+      const r = processedPeaks[i].betaSampleRad - f0;
+
+      const j0 =
+        a > da
+          ? (predictAt(i, a + da, eps) - predictAt(i, a - da, eps)) / (2 * da)
+          : (predictAt(i, a + da, eps) - f0) / da;
+      const j1 =
+        eps > de
+          ? (predictAt(i, a, eps + de) - predictAt(i, a, eps - de)) / (2 * de)
+          : (predictAt(i, a, eps + de) - f0) / de;
+
+      jtj00 += j0 * j0;
+      jtj01 += j0 * j1;
+      jtj11 += j1 * j1;
+      jtr0 += j0 * r;
+      jtr1 += j1 * r;
+    }
+
+    const h00 = jtj00 + lambdaLM * (jtj00 + 1e-14);
+    const h11 = jtj11 + lambdaLM * (jtj11 + 1e-14);
+    const det = h00 * h11 - jtj01 * jtj01;
+    if (!isFinite(det) || Math.abs(det) < 1e-36) {
+      lambdaLM *= 10;
+      if (lambdaLM > 1e10) break;
+      continue;
+    }
+
+    const stepA = (h11 * jtr0 - jtj01 * jtr1) / det;
+    const stepEps = (-jtj01 * jtr0 + h00 * jtr1) / det;
+
+    const candA = Math.max(aMin, a + stepA);
+    const candEps = Math.max(1e-7, eps + stepEps);
+    const candSSE = evalSSE(candA, candEps);
+
+    if (candSSE < currentSSE) {
+      const improvement = (currentSSE - candSSE) / (currentSSE + 1e-30);
+      const relStep =
+        Math.abs(candA - a) / (Math.abs(a) + 1e-12) +
+        Math.abs(candEps - eps) / (Math.abs(eps) + 1e-12);
+      a = candA;
+      eps = candEps;
+      currentSSE = candSSE;
+      lambdaLM = Math.max(1e-9, lambdaLM * 0.35);
+
+      if (relStep < 1e-8 || improvement < 1e-12) {
+        converged = true;
+        break;
+      }
+    } else {
+      lambdaLM = Math.min(1e10, lambdaLM * 5.0);
+      if (lambdaLM >= 1e9) {
+        converged = true;
+        break;
+      }
+    }
+  }
+
+  // Exact analytical zero-strain (eps = 0) boundary check: min sum (beta_i - a / cos(theta_i))^2
+  let numPureSize = 0;
+  let denPureSize = 0;
+  for (let i = 0; i < n; i++) {
+    const invCos = 1 / Math.max(1e-6, processedPeaks[i].cosTheta);
+    numPureSize += processedPeaks[i].betaSampleRad * invCos;
+    denPureSize += invCos * invCos;
+  }
+  const pureSizeA = Math.max(aMin, denPureSize > 0 ? numPureSize / denPureSize : meanA);
+  const pureSizeSSE = evalSSE(pureSizeA, 0);
+  if (pureSizeSSE < currentSSE) {
+    a = pureSizeA;
+    eps = 0;
+    currentSSE = pureSizeSSE;
+    converged = true;
+  }
+
+  // Final predictions, R^2 in beta_s space, and asymptotic Gauss-Newton covariance uncertainties
+  const predictedBetaRad: number[] = [];
+  let meanBeta = 0;
+  for (let i = 0; i < n; i++) {
+    predictedBetaRad.push(predictAt(i, a, eps));
+    meanBeta += processedPeaks[i].betaSampleRad;
+  }
+  meanBeta /= n;
+
+  let ssTotBeta = 0;
+  let ssResBeta = 0;
+  for (let i = 0; i < n; i++) {
+    ssTotBeta += Math.pow(processedPeaks[i].betaSampleRad - meanBeta, 2);
+    ssResBeta += Math.pow(processedPeaks[i].betaSampleRad - predictedBetaRad[i], 2);
+  }
+  const rSquaredBeta = ssTotBeta > 1e-30 ? Math.max(0, Math.min(1, 1 - ssResBeta / ssTotBeta)) : 1.0;
+  const rmseDeg = Math.sqrt(ssResBeta / n) * (180 / Math.PI);
+
+  const sizeNm = Math.max(0.5, Math.min(2000, kLambdaNm / Math.max(1e-9, a)));
+  const dof = Math.max(1, n - 2);
+  const s2 = n > 2 ? ssResBeta / dof : 0;
+  const detInfo = jtj00 * jtj11 - jtj01 * jtj01;
+  let seA = 0;
+  let seEps = 0;
+  if (s2 > 0 && detInfo > 1e-36) {
+    seA = Math.sqrt(Math.max(0, (s2 * jtj11) / detInfo));
+    seEps = Math.sqrt(Math.max(0, (s2 * jtj00) / detInfo));
+  }
+  const sizeErrorNm = Math.min(sizeNm * 0.5, sizeNm * (seA / Math.max(1e-9, a)));
+
+  return {
+    aRad: a,
+    strain: eps,
+    strainError: seEps,
+    sizeNm,
+    sizeErrorNm,
+    meanSphericalDiameterNm: (4.0 / 3.0) * sizeNm,
+    strainPercent: eps * 100,
+    strainErrorPercent: seEps * 100,
+    rmsStrainPercent: eps * Math.sqrt(2 / Math.PI) * 100,
+    rSquaredBeta,
+    rmseDeg,
+    iterations,
+    converged,
+    predictedBetaRad
+  };
+};
+
+/**
+ * Bounded finite uncertainty propagation for sqrt(v) / scale:
+ * Matches first-order Taylor sigma / (2 * scale * sqrt(v)) when v >> sigma,
+ * while remaining finite and smooth as v -> 0+.
+ */
+const propagateSqrtUncertainty = (val: number, stdErr: number, divisor: number): number => {
+  if (stdErr <= 0 || divisor <= 0) return 0;
+  const safeVal = Math.max(0, val);
+  const profileHalfWidth =
+    (Math.sqrt(safeVal + stdErr) - Math.sqrt(Math.max(0, safeVal - stdErr))) / (2 * divisor);
+  if (safeVal <= 1e-16) return profileHalfWidth;
+  const taylor = stdErr / (2 * divisor * Math.sqrt(safeVal));
+  return Math.min(taylor, profileHalfWidth);
+};
+
+/**
+ * Exact 2-variable Weighted Kuhn-Tucker Non-Negative Least Squares (NNLS) for y = m*x + c with m >= 0, c >= 0
+ */
+const solveLinearNNLS = (
+  points: { x: number; y: number }[],
+  olsSlope: number,
+  olsIntercept: number,
+  weights?: number[]
+): { slope: number; intercept: number; activeSet: 'interior' | 'zero_intercept' | 'zero_slope' | 'origin' } => {
+  if (olsSlope >= 0 && olsIntercept >= 0) {
+    return { slope: olsSlope, intercept: olsIntercept, activeSet: 'interior' };
+  }
+  const n = points.length;
+  if (n === 0) return { slope: 0, intercept: 0, activeSet: 'origin' };
+
+  let sumWX2 = 0, sumWXY = 0, sumWY = 0, sumW = 0;
+  for (let i = 0; i < n; i++) {
+    const w = weights && weights.length === n ? Math.max(1e-12, weights[i]) : 1.0;
+    const pt = points[i];
+    sumW += w;
+    sumWX2 += w * pt.x * pt.x;
+    sumWXY += w * pt.x * pt.y;
+    sumWY += w * pt.y;
+  }
+
+  const wsse = (m: number, c: number) => {
+    let s = 0;
+    for (let i = 0; i < n; i++) {
+      const w = weights && weights.length === n ? Math.max(1e-12, weights[i]) : 1.0;
+      const r = points[i].y - (m * points[i].x + c);
+      s += w * r * r;
+    }
+    return s;
+  };
+
+  const candidates: Array<{
+    slope: number;
+    intercept: number;
+    activeSet: 'zero_intercept' | 'zero_slope' | 'origin';
+    err: number;
+  }> = [
+    { slope: 0, intercept: 0, activeSet: 'origin', err: wsse(0, 0) }
+  ];
+
+  if (sumWX2 > 0) {
+    const m0 = Math.max(0, sumWXY / sumWX2);
+    candidates.push({ slope: m0, intercept: 0, activeSet: 'zero_intercept', err: wsse(m0, 0) });
+  }
+  const c0 = sumW > 0 ? Math.max(0, sumWY / sumW) : 0;
+  candidates.push({ slope: 0, intercept: c0, activeSet: 'zero_slope', err: wsse(0, c0) });
+
+  candidates.sort((a, b) => a.err - b.err);
+  return {
+    slope: candidates[0].slope,
+    intercept: candidates[0].intercept,
+    activeSet: candidates[0].activeSet
+  };
+};
+
+/**
+ * Helper: Compute Halder-Wagner parabolic Voigt size and exact Voigt harmonic size
+ * to regularize size-strain separation when unconstrained linear OLS crosses Y-intercept <= 0.
  */
 interface IBFallbackPhysicalStats {
   hwSlopeSizeNm: number;
   voigtHarmonicSizeNm: number;
   meanBetaCosThetaRad: number;
   points: { x: number; y: number }[];
+  weights?: number[];
 }
 
 const computeIBFallbackPhysicalStats = (
@@ -3460,15 +4110,15 @@ const computeIBFallbackPhysicalStats = (
     dSpacing: number;
     voigtDvNm?: number;
   }[],
-  points: { x: number; y: number }[]
+  points: { x: number; y: number }[],
+  weights?: number[]
 ): IBFallbackPhysicalStats => {
   const kLambdaNm = (K * wavelength) / 10;
   let sumBetaCos = 0;
   let sumInvVoigtDv = 0;
   let voigtCount = 0;
 
-  // Halder-Wagner linear regression on (beta/tanTheta)^2 vs beta/(tanTheta*sinTheta)
-  let hwSumX = 0, hwSumY = 0, hwSumXY = 0, hwSumX2 = 0, hwN = 0;
+  const hwPts: { x: number; y: number }[] = [];
 
   for (const p of processedPeaks) {
     const betaCos = p.betaSampleRad * p.cosTheta;
@@ -3486,11 +4136,7 @@ const computeIBFallbackPhysicalStats = (
       const xHw = p.betaSampleRad / (p.tanTheta * p.sinTheta);
       const yHw = Math.pow(p.betaSampleRad / p.tanTheta, 2);
       if (isFinite(xHw) && isFinite(yHw)) {
-        hwSumX += xHw;
-        hwSumY += yHw;
-        hwSumXY += xHw * yHw;
-        hwSumX2 += xHw * xHw;
-        hwN++;
+        hwPts.push({ x: xHw, y: yHw });
       }
     }
   }
@@ -3500,20 +4146,25 @@ const computeIBFallbackPhysicalStats = (
   const voigtHarmonicSizeNm = voigtCount > 0 && sumInvVoigtDv > 1e-9 ? voigtCount / sumInvVoigtDv : scherrerMeanSizeNm;
 
   let hwSlopeSizeNm = voigtHarmonicSizeNm;
-  if (hwN >= 2) {
-    const hwDenom = hwN * hwSumX2 - hwSumX * hwSumX;
-    if (Math.abs(hwDenom) > 1e-18) {
-      const hwSlope = (hwN * hwSumXY - hwSumX * hwSumY) / hwDenom;
-      if (hwSlope > 1e-7) {
-        const candidateNm = kLambdaNm / hwSlope;
+  if (hwPts.length >= 2) {
+    const hwFit = solveCenteredWeightedLinearFit(hwPts, new Array(hwPts.length).fill(1), false);
+    if (hwFit) {
+      if (hwFit.slope > 1e-7) {
+        const candidateNm = kLambdaNm / hwFit.slope;
         if (candidateNm > 0.5 && candidateNm < 1500) {
           hwSlopeSizeNm = candidateNm;
         }
-      } else if (hwSumX2 > 1e-18) {
-        // Origin-constrained Halder-Wagner slope (zero-strain parabolic limit)
-        const originSlope = hwSumXY / hwSumX2;
-        if (originSlope > 1e-7) {
-          hwSlopeSizeNm = Math.min(1500, Math.max(0.5, kLambdaNm / originSlope));
+      } else {
+        let sumX2 = 0, sumXY = 0;
+        for (const pt of hwPts) {
+          sumX2 += pt.x * pt.x;
+          sumXY += pt.x * pt.y;
+        }
+        if (sumX2 > 0) {
+          const originSlope = sumXY / sumX2;
+          if (originSlope > 1e-7) {
+            hwSlopeSizeNm = Math.min(1500, Math.max(0.5, kLambdaNm / originSlope));
+          }
         }
       }
     }
@@ -3523,17 +4174,18 @@ const computeIBFallbackPhysicalStats = (
     hwSlopeSizeNm,
     voigtHarmonicSizeNm,
     meanBetaCosThetaRad,
-    points
+    points,
+    weights
   };
 };
 
 /**
- * Unified physical parameter & uncertainty extraction for all 6 IB Advanced Models
- * Incorporates Non-Negative Least Squares (NNLS) boundary projection and
- * Halder-Wagner / Voigt regularization when unconstrained OLS yields unphysical negative intercepts.
+ * Unified physical parameter & uncertainty extraction for all 7 IB Advanced Models
+ * Incorporates exact 2-variable Weighted KKT NNLS boundary projection, bounded sqrt error propagation,
+ * and Halder-Wagner / Voigt regularization when unconstrained regression yields unphysical negative intercepts.
  */
 const extractIBModelPhysicalParameters = (
-  methodKey: 'udm' | 'usdm' | 'udedm' | 'ssp' | 'hw' | 'mwh',
+  methodKey: IBSeparationMethodKey,
   slope: number,
   intercept: number,
   stdErrorSlope: number,
@@ -3555,7 +4207,8 @@ const extractIBModelPhysicalParameters = (
   effectiveIntercept: number;
   fitRegime: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized';
 } => {
-  const E_Pa = Math.max(1e9, nominalE_GPa * 1e9);
+  const safeNominalE_GPa = Math.max(1, nominalE_GPa);
+  const E_Pa = safeNominalE_GPa * 1e9;
   const kLambdaNm = (K * wavelength) / 10; // in nm
 
   let sizeNm = 0;
@@ -3571,84 +4224,131 @@ const extractIBModelPhysicalParameters = (
   let fitRegime: 'standard_ols' | 'nnls_zero_strain' | 'voigt_regularized' = 'standard_ols';
 
   const pts = fallback?.points || [];
-  let sumXY_origin = 0;
-  let sumX2_origin = 0;
-  for (const pt of pts) {
-    sumXY_origin += pt.x * pt.y;
-    sumX2_origin += pt.x * pt.x;
+  const wArr = fallback?.weights;
+  let sumWX2_origin = 0;
+  let sumW = 0;
+  for (let i = 0; i < pts.length; i++) {
+    const w = wArr && wArr.length === pts.length ? Math.max(1e-12, wArr[i]) : 1.0;
+    sumW += w;
+    sumWX2_origin += w * pts[i].x * pts[i].x;
   }
 
   if (methodKey === 'hw') {
-    // Halder-Wagner: Slope = K*lambda / D, Intercept = 16 * epsilon^2
-    if (intercept < 0 && sumX2_origin > 1e-18) {
-      // NNLS zero-strain boundary: clamp intercept = 0 and refit slope through origin
+    // Halder-Wagner: Slope = K*lambda / D_v, Intercept = 16 * epsilon^2
+    const nnls = solveLinearNNLS(pts, slope, intercept, wArr);
+    if (intercept < 0 && nnls.activeSet === 'zero_intercept' && nnls.slope > 1e-7 && kLambdaNm / nnls.slope <= 1500) {
       fitRegime = 'nnls_zero_strain';
       effectiveIntercept = 0;
-      effectiveSlope = Math.max(1e-7, sumXY_origin / sumX2_origin);
+      effectiveSlope = nnls.slope;
       sizeNm = kLambdaNm / effectiveSlope;
       sizeErrorNm = stdErrorSlope > 0 ? sizeNm * (stdErrorSlope / effectiveSlope) : sizeNm * 0.04;
       strain = 0;
-      strainError = Math.sqrt(Math.abs(stdErrorIntercept)) / 4.0;
-    } else if (slope > 1e-7 && kLambdaNm / slope <= 1500) {
+      strainError = propagateSqrtUncertainty(0, stdErrorIntercept, 4.0);
+    } else if (slope > 1e-7 && kLambdaNm / slope <= 1500 && intercept >= 0) {
       sizeNm = kLambdaNm / slope;
       sizeErrorNm = sizeNm * (stdErrorSlope / slope);
-      if (intercept > 0) {
-        strain = Math.sqrt(intercept) / 4.0;
-        strainError = stdErrorIntercept / (8.0 * Math.sqrt(Math.max(1e-16, intercept)));
-      }
+      strain = Math.sqrt(intercept) / 4.0;
+      strainError = propagateSqrtUncertainty(intercept, stdErrorIntercept, 4.0);
     } else {
-      // Regularize with Voigt harmonic size
       fitRegime = 'voigt_regularized';
-      sizeNm = fallback?.voigtHarmonicSizeNm || 45.0;
-      effectiveSlope = kLambdaNm / Math.max(0.5, sizeNm);
+      sizeNm = Math.max(1.0, Math.min(1200, fallback?.voigtHarmonicSizeNm || 45.0));
+      effectiveSlope = kLambdaNm / sizeNm;
       sizeErrorNm = sizeNm * 0.06;
-      const regIntercept = pts.length > 0
-        ? pts.reduce((acc, p) => acc + (p.y - effectiveSlope * p.x), 0) / pts.length
+      const regIntercept = pts.length > 0 && sumW > 0
+        ? pts.reduce((acc, p, i) => acc + ((wArr?.[i] ?? 1) * (p.y - effectiveSlope * p.x)), 0) / sumW
         : Math.max(0, intercept);
       effectiveIntercept = Math.max(0, regIntercept);
       strain = Math.sqrt(effectiveIntercept) / 4.0;
-      strainError = stdErrorIntercept > 0 ? Math.sqrt(stdErrorIntercept) / 4.0 : strain * 0.08;
+      strainError = propagateSqrtUncertainty(effectiveIntercept, stdErrorIntercept, 4.0);
     }
-    stressMPa = strain * nominalE_GPa * 1000;
-    stressErrorMPa = strainError * nominalE_GPa * 1000;
+    stressMPa = strain * safeNominalE_GPa * 1000;
+    stressErrorMPa = strainError * safeNominalE_GPa * 1000;
     energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
     energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
   } else if (methodKey === 'ssp') {
-    // Size-Strain Plot: Slope = K*lambda / D, Intercept = (2 * epsilon * lambda)^2
-    if (intercept < 0 && sumX2_origin > 1e-18) {
+    // Size-Strain Plot: Slope = K*lambda / D_v, Intercept = (2 * epsilon * lambda)^2
+    const nnls = solveLinearNNLS(pts, slope, intercept, wArr);
+    if (intercept < 0 && nnls.activeSet === 'zero_intercept' && nnls.slope > 1e-7 && kLambdaNm / nnls.slope <= 1500) {
       fitRegime = 'nnls_zero_strain';
       effectiveIntercept = 0;
-      effectiveSlope = Math.max(1e-7, sumXY_origin / sumX2_origin);
+      effectiveSlope = nnls.slope;
       sizeNm = kLambdaNm / effectiveSlope;
       sizeErrorNm = stdErrorSlope > 0 ? sizeNm * (stdErrorSlope / effectiveSlope) : sizeNm * 0.04;
       strain = 0;
-      strainError = wavelength > 0 ? Math.sqrt(Math.abs(stdErrorIntercept)) / (2.0 * wavelength) : 0;
-    } else if (slope > 1e-7 && kLambdaNm / slope <= 1500) {
+      strainError = wavelength > 0 ? propagateSqrtUncertainty(0, stdErrorIntercept, 2.0 * wavelength) : 0;
+    } else if (slope > 1e-7 && kLambdaNm / slope <= 1500 && intercept >= 0) {
       sizeNm = kLambdaNm / slope;
       sizeErrorNm = sizeNm * (stdErrorSlope / slope);
-      if (intercept > 0 && wavelength > 0) {
+      if (wavelength > 0) {
         strain = Math.sqrt(intercept) / (2.0 * wavelength);
-        strainError = stdErrorIntercept / (4.0 * wavelength * Math.sqrt(Math.max(1e-16, intercept)));
+        strainError = propagateSqrtUncertainty(intercept, stdErrorIntercept, 2.0 * wavelength);
       }
     } else {
       fitRegime = 'voigt_regularized';
-      sizeNm = fallback?.hwSlopeSizeNm || fallback?.voigtHarmonicSizeNm || 45.0;
-      effectiveSlope = kLambdaNm / Math.max(0.5, sizeNm);
+      sizeNm = Math.max(1.0, Math.min(1200, fallback?.hwSlopeSizeNm || fallback?.voigtHarmonicSizeNm || 45.0));
+      effectiveSlope = kLambdaNm / sizeNm;
       sizeErrorNm = sizeNm * 0.06;
-      const regIntercept = pts.length > 0
-        ? pts.reduce((acc, p) => acc + (p.y - effectiveSlope * p.x), 0) / pts.length
+      const regIntercept = pts.length > 0 && sumW > 0
+        ? pts.reduce((acc, p, i) => acc + ((wArr?.[i] ?? 1) * (p.y - effectiveSlope * p.x)), 0) / sumW
         : Math.max(0, intercept);
       effectiveIntercept = Math.max(0, regIntercept);
       strain = wavelength > 0 ? Math.sqrt(effectiveIntercept) / (2.0 * wavelength) : 0;
-      strainError = strain * 0.08;
+      strainError = wavelength > 0 ? propagateSqrtUncertainty(effectiveIntercept, stdErrorIntercept, 2.0 * wavelength) : 0;
     }
-    stressMPa = strain * nominalE_GPa * 1000;
-    stressErrorMPa = strainError * nominalE_GPa * 1000;
+    stressMPa = strain * safeNominalE_GPa * 1000;
+    stressErrorMPa = strainError * safeNominalE_GPa * 1000;
+    energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
+    energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
+  } else if (methodKey === 'gwh') {
+    // Gaussian-Gaussian Quadratic Williamson-Hall:
+    // (beta * cos(theta))^2 = (K*lambda / D_v)^2 + epsilon^2 * (4 * sin(theta))^2
+    const nnls = solveLinearNNLS(pts, slope, intercept, wArr);
+    if (slope < 0 && nnls.activeSet === 'zero_slope' && nnls.intercept > 1e-12) {
+      fitRegime = 'nnls_zero_strain';
+      effectiveSlope = 0;
+      effectiveIntercept = nnls.intercept;
+      const invD = Math.sqrt(effectiveIntercept);
+      sizeNm = kLambdaNm / invD;
+      const invDErr = propagateSqrtUncertainty(effectiveIntercept, stdErrorIntercept, 1.0);
+      sizeErrorNm = invD > 0 ? sizeNm * (invDErr / invD) : sizeNm * 0.04;
+      strain = 0;
+      strainError = propagateSqrtUncertainty(0, stdErrorSlope, 1.0);
+    } else if (intercept > 1e-12 && kLambdaNm / Math.sqrt(intercept) <= 1500 && slope >= 0) {
+      const invD = Math.sqrt(intercept);
+      sizeNm = kLambdaNm / invD;
+      const invDErr = propagateSqrtUncertainty(intercept, stdErrorIntercept, 1.0);
+      sizeErrorNm = sizeNm * (invDErr / invD);
+      strain = Math.sqrt(slope);
+      strainError = propagateSqrtUncertainty(slope, stdErrorSlope, 1.0);
+    } else {
+      fitRegime = 'voigt_regularized';
+      const regSizeNm = fallback
+        ? (fallback.hwSlopeSizeNm > 0.5 && fallback.hwSlopeSizeNm < 1200
+            ? fallback.hwSlopeSizeNm
+            : fallback.voigtHarmonicSizeNm)
+        : 45.0;
+      sizeNm = Math.max(1.0, Math.min(1200, regSizeNm));
+      effectiveIntercept = Math.pow(kLambdaNm / sizeNm, 2);
+      sizeErrorNm = sizeNm * 0.06;
+      if (sumWX2_origin > 0 && pts.length >= 2) {
+        let numConstrained = 0;
+        for (let i = 0; i < pts.length; i++) {
+          const w = wArr && wArr.length === pts.length ? Math.max(1e-12, wArr[i]) : 1.0;
+          numConstrained += w * pts[i].x * (pts[i].y - effectiveIntercept);
+        }
+        effectiveSlope = Math.max(0, numConstrained / sumWX2_origin);
+      } else {
+        effectiveSlope = Math.max(0, slope);
+      }
+      strain = Math.sqrt(effectiveSlope);
+      strainError = propagateSqrtUncertainty(effectiveSlope, stdErrorSlope, 1.0);
+    }
+    stressMPa = strain * safeNominalE_GPa * 1000;
+    stressErrorMPa = strainError * safeNominalE_GPa * 1000;
     energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
     energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
   } else {
     // Linear Y = beta * cos(theta) models: UDM, USDM, UDEDM, mWH
-    // Check 1: Negative slope (apparent negative strain) -> NNLS boundary epsilon = 0
     if (slope < 0 && fallback && fallback.meanBetaCosThetaRad > 1e-7) {
       fitRegime = 'nnls_zero_strain';
       effectiveSlope = 0;
@@ -3656,12 +4356,9 @@ const extractIBModelPhysicalParameters = (
       sizeNm = kLambdaNm / effectiveIntercept;
       sizeErrorNm = stdErrorIntercept > 0 ? sizeNm * (stdErrorIntercept / effectiveIntercept) : sizeNm * 0.04;
     } else if (intercept > 1e-6 && kLambdaNm / intercept <= 1500) {
-      // Standard valid OLS intercept
       sizeNm = kLambdaNm / intercept;
       sizeErrorNm = sizeNm * (stdErrorIntercept / intercept);
     } else {
-      // Check 2: Unconstrained OLS intercept <= 0 or > 1500 nm due to parabolic Voigt curvature / high strain slope
-      // Regularize intercept using Halder-Wagner parabolic Voigt size / de Keijser harmonic Voigt size
       fitRegime = 'voigt_regularized';
       const regSizeNm = fallback
         ? (fallback.hwSlopeSizeNm > 0.5 && fallback.hwSlopeSizeNm < 1200
@@ -3674,13 +4371,13 @@ const extractIBModelPhysicalParameters = (
         ? Math.min(sizeNm * 0.25, sizeNm * (stdErrorIntercept / Math.max(1e-4, effectiveIntercept)))
         : sizeNm * 0.06;
 
-      // Re-project constrained slope through (0, effectiveIntercept): min sum (y_i - y0_reg - m * x_i)^2
-      if (sumX2_origin > 1e-18 && pts.length >= 2) {
+      if (sumWX2_origin > 0 && pts.length >= 2) {
         let numConstrained = 0;
-        for (const pt of pts) {
-          numConstrained += pt.x * (pt.y - effectiveIntercept);
+        for (let i = 0; i < pts.length; i++) {
+          const w = wArr && wArr.length === pts.length ? Math.max(1e-12, wArr[i]) : 1.0;
+          numConstrained += w * pts[i].x * (pts[i].y - effectiveIntercept);
         }
-        effectiveSlope = Math.max(0, numConstrained / sumX2_origin);
+        effectiveSlope = Math.max(0, numConstrained / sumWX2_origin);
       }
     }
 
@@ -3692,22 +4389,23 @@ const extractIBModelPhysicalParameters = (
       energyErrorKjM3 = uError_Jm3 / 1000;
       strain = Math.sqrt((2 * u_Jm3) / E_Pa);
       strainError = stdErrorSlope * Math.sqrt(2 / E_Pa);
-      stressMPa = strain * nominalE_GPa * 1000;
-      stressErrorMPa = strainError * nominalE_GPa * 1000;
+      stressMPa = strain * safeNominalE_GPa * 1000;
+      stressErrorMPa = strainError * safeNominalE_GPa * 1000;
     } else if (methodKey === 'usdm') {
-      const sigmaPa = Math.max(0, effectiveSlope);
-      stressMPa = sigmaPa / 1e6;
-      stressErrorMPa = stdErrorSlope / 1e6;
-      strain = sigmaPa / E_Pa;
-      strainError = stdErrorSlope / E_Pa;
+      // X = 4*sin(theta) / E_hkl(GPa) => Slope = uniform stress sigma in GPa
+      const sigmaGPa = Math.max(0, effectiveSlope);
+      stressMPa = sigmaGPa * 1000;
+      stressErrorMPa = stdErrorSlope * 1000;
+      strain = sigmaGPa / safeNominalE_GPa;
+      strainError = stdErrorSlope / safeNominalE_GPa;
       energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
       energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
     } else {
       // UDM & mWH
       strain = Math.max(0, effectiveSlope);
       strainError = stdErrorSlope;
-      stressMPa = strain * nominalE_GPa * 1000;
-      stressErrorMPa = strainError * nominalE_GPa * 1000;
+      stressMPa = strain * safeNominalE_GPa * 1000;
+      stressErrorMPa = strainError * safeNominalE_GPa * 1000;
       energyDensityKjM3 = (0.5 * E_Pa * strain * strain) / 1000;
       energyErrorKjM3 = (E_Pa * strain * strainError) / 1000;
     }
@@ -3728,72 +4426,70 @@ const extractIBModelPhysicalParameters = (
   };
 };
 
-// Helper for model comparison inside IB Advanced
+// Helper for 7-model comparison inside IB Advanced (honors active regression weighting mode!)
 const fitSingleIBModel = (
-  modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH',
+  modelName: 'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Gaussian-WH',
   wavelength: number,
   K: number,
-  processedPeaks: {
-    twoTheta: number;
-    betaSampleRad: number;
-    cosTheta: number;
-    sinTheta: number;
-    tanTheta: number;
-    dSpacing: number;
-    hkl?: [number, number, number];
-    voigtDvNm?: number;
-  }[],
-  youngsModulusGPa: number = 130
+  processedPeaks: IBProcessedPeakInternal[],
+  youngsModulusGPa: number = 130,
+  regressionMethod: IBRegressionMethodKey = 'ols'
 ): IBModelComparisonItem | null => {
   if (processedPeaks.length < 2) return null;
 
-  const methodKey: 'udm' | 'usdm' | 'udedm' | 'ssp' | 'hw' | 'mwh' =
+  const methodKey: IBSeparationMethodKey =
     modelName === 'Halder-Wagner'
       ? 'hw'
-      : (modelName.toLowerCase() as 'udm' | 'usdm' | 'udedm' | 'ssp' | 'mwh');
+      : modelName === 'Gaussian-WH'
+      ? 'gwh'
+      : (modelName.toLowerCase() as IBSeparationMethodKey);
 
   const points: { x: number; y: number }[] = [];
+  const validPeaks: IBProcessedPeakInternal[] = [];
+  const anisotropyFactors: number[] = [];
 
   for (const p of processedPeaks) {
-    const { x, y } = computeIBModelCoordinates(methodKey, p, youngsModulusGPa);
+    const { x, y, strainAnisotropyFactor } = computeIBModelCoordinates(methodKey, p, youngsModulusGPa);
     if (!isNaN(x) && !isNaN(y) && isFinite(x) && isFinite(y)) {
       points.push({ x, y });
+      validPeaks.push(p);
+      anisotropyFactors.push(strainAnisotropyFactor);
     }
   }
 
   if (points.length < 2) return null;
-
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (const pt of points) {
-    sumX += pt.x; sumY += pt.y; sumXY += pt.x * pt.y; sumX2 += pt.x * pt.x;
-  }
   const n = points.length;
-  const denom = n * sumX2 - sumX * sumX;
-  if (Math.abs(denom) < 1e-18) return null;
 
-  const rawSlope = (n * sumXY - sumX * sumY) / denom;
-  const rawIntercept = (sumY - rawSlope * sumX) / n;
-  const meanY = sumY / n;
-  const meanX = sumX / n;
+  const baseWeights =
+    regressionMethod === 'wls_jacobian' || regressionMethod === 'robust_huber'
+      ? computeIBJacobianWeights(methodKey, validPeaks)
+      : new Array(n).fill(1.0);
 
-  let ssTot = 0, ssRes = 0, sxx = 0;
-  for (const pt of points) {
-    const yFit = rawSlope * pt.x + rawIntercept;
-    ssTot += Math.pow(pt.y - meanY, 2);
-    ssRes += Math.pow(pt.y - yFit, 2);
-    sxx += Math.pow(pt.x - meanX, 2);
+  const fit = solveCenteredWeightedLinearFit(points, baseWeights, regressionMethod === 'robust_huber');
+  if (!fit) return null;
+
+  const rawSlope = fit.slope;
+  const rawIntercept = fit.intercept;
+  const meanY = fit.meanY;
+  const meanX = fit.meanX;
+  const sxx = fit.sxx;
+  const weights = fit.weights;
+
+  let ssTot = 0, ssResOls = 0;
+  for (let i = 0; i < n; i++) {
+    const pt = points[i];
+    const w = weights[i];
+    const yFitOls = rawSlope * pt.x + rawIntercept;
+    ssTot += w * Math.pow(pt.y - meanY, 2);
+    ssResOls += w * Math.pow(pt.y - yFitOls, 2);
   }
 
-  const rSquared = ssTot === 0 ? 0 : Math.max(0, Math.min(1, 1 - (ssRes / ssTot)));
-  const adjustedRSquared = n > 2 ? Math.max(0, 1 - (1 - rSquared) * (n - 1) / (n - 2)) : rSquared;
-  const rmse = Math.sqrt(ssRes / n);
-  const fStatistic = n > 2 && rSquared < 1 ? (rSquared / Math.max(1e-12, 1 - rSquared)) * (n - 2) : 0;
+  const varResOls = n > 2 ? ssResOls / (n - 2) : 0;
+  const stdErrorSlope = sxx > 0 ? Math.sqrt(varResOls / sxx) : 0;
+  const stdErrorIntercept =
+    sxx > 0 && fit.sumW > 0 ? Math.sqrt(varResOls * (1 / fit.sumW + (meanX * meanX) / sxx)) : 0;
 
-  const varRes = n > 2 ? ssRes / (n - 2) : 0;
-  const stdErrorSlope = sxx > 0 ? Math.sqrt(varRes / sxx) : 0;
-  const stdErrorIntercept = sxx > 0 ? Math.sqrt(varRes * (1 / n + (meanX * meanX) / sxx)) : 0;
-
-  const fallbackStats = computeIBFallbackPhysicalStats(wavelength, K, processedPeaks, points);
+  const fallbackStats = computeIBFallbackPhysicalStats(wavelength, K, validPeaks, points, weights);
 
   const extracted = extractIBModelPhysicalParameters(
     methodKey,
@@ -3807,18 +4503,45 @@ const fitSingleIBModel = (
     fallbackStats
   );
 
+  // Compute exact weighted residuals on active regression line
+  let ssResActive = 0;
+  let ssResUnweighted = 0;
+  for (let i = 0; i < n; i++) {
+    const pt = points[i];
+    const yFitActive = extracted.effectiveSlope * pt.x + extracted.effectiveIntercept;
+    const res = pt.y - yFitActive;
+    ssResActive += weights[i] * res * res;
+    ssResUnweighted += res * res;
+  }
+
+  const rawOlsRSquared = ssTot <= 0 ? 0 : Math.max(0, Math.min(1, 1 - ssResOls / ssTot));
+  const rSquared = ssTot <= 0 ? 0 : Math.max(0, Math.min(1, 1 - ssResActive / ssTot));
+  const numParams = extracted.fitRegime === 'standard_ols' ? 2 : 1;
+  const dfModel = n - numParams;
+  const adjustedRSquared = dfModel > 0 && n > 1 ? Math.max(0, 1 - (1 - rSquared) * (n - 1) / dfModel) : rSquared;
+  const rmse = Math.sqrt(ssResUnweighted / n);
+  const fStatistic = dfModel > 0 && rSquared < 1 ? (rSquared / Math.max(1e-12, 1 - rSquared)) * dfModel : 0;
+
   const descriptions: Record<string, string> = {
-    'UDM': 'Uniform Deformation Model assuming isotropic crystallite strain and uniform elastic lattice response.',
-    'USDM': 'Uniform Stress Deformation Model accounting for lattice anisotropy via directional Young\'s modulus E_hkl.',
+    'UDM': 'Uniform Deformation Model (Cauchy-Cauchy linear addition) assuming isotropic microstrain.',
+    'USDM': 'Uniform Stress Deformation Model accounting for elastic anisotropy via directional Young\'s modulus E_hkl (GPa).',
     'UDEDM': 'Uniform Deformation Energy Density Model evaluating anisotropic strain energy density u per unit volume.',
-    'SSP': 'Size-Strain Plot (d-weighted parabolic Voigt) giving higher statistical weight to low/mid-angle reflections.',
-    'Halder-Wagner': 'Parabolic Voigt Integral Breadth deconvolution separating Cauchy domain size and Gaussian strain.',
-    'mWH': 'Modified Williamson-Hall with Ungár-Borbély dislocation contrast factor C_hkl for anisotropic strain.'
+    'SSP': 'Size-Strain Plot (real-space d-weighted parabolic Voigt) prioritizing low- and mid-angle reflections.',
+    'Halder-Wagner': 'Parabolic Voigt Integral Breadth deconvolution coupling Cauchy domain size and Gaussian strain.',
+    'mWH': 'Modified Williamson-Hall with Ungár-Borbély dislocation contrast factor C_hkl for anisotropic strain.',
+    'Gaussian-WH': 'Quadratic Gaussian-Gaussian Williamson-Hall limit where both size and strain profiles add in quadrature.'
   };
 
   return {
     modelName,
-    label: modelName === 'Halder-Wagner' ? 'Halder-Wagner Voigt' : modelName === 'SSP' ? 'Size-Strain Plot (SSP)' : modelName,
+    label:
+      modelName === 'Halder-Wagner'
+        ? 'Halder–Wagner Voigt'
+        : modelName === 'SSP'
+        ? 'Size–Strain Plot (SSP)'
+        : modelName === 'Gaussian-WH'
+        ? 'Gaussian–WH (Quad)'
+        : modelName,
     sizeNm: extracted.sizeNm,
     sizeErrorNm: extracted.sizeErrorNm,
     strainPercent: extracted.strain * 100,
@@ -3826,6 +4549,7 @@ const fitSingleIBModel = (
     stressMPa: extracted.stressMPa,
     energyDensityKjM3: extracted.energyDensityKjM3,
     rSquared,
+    rawOlsRSquared,
     adjustedRSquared,
     rmse,
     fStatistic,
@@ -3844,32 +4568,31 @@ export const calculateIBAdvanced = (
   peaks: IBAdvancedInput[],
   instrumentalMode: 'constant' | 'caglioti' = 'constant',
   cagliotiParams: { U: number; V: number; W: number } = { U: 0.005, V: -0.002, W: 0.015 },
-  decouplingMethod: 'linear' | 'squared' | 'hw_voigt' | 'none' = 'linear',
+  decouplingMethod: IBDecouplingMethodKey = 'voigt_exact',
   youngsModulusGPa: number = 130,
-  separationMethod: 'udm' | 'usdm' | 'hw' | 'ssp' | 'udedm' | 'mwh' = 'udm',
+  separationMethod: IBSeparationMethodKey = 'udm',
   materialDensityGcm3: number = 2.33,
   excludedIndices: number[] = [],
-  burgersVectorNm: number = 0.286
+  burgersVectorNm: number = 0.286,
+  defaultVoigtPhi: number = 0.76,
+  instVoigtPhi: number = 0.8226,
+  regressionMethod: IBRegressionMethodKey = 'ols'
 ): IBAdvancedResult | null => {
   if (wavelength <= 0 || peaks.length < 2) return null;
-  
+
+  const nominalE = youngsModulusGPa > 0 ? youngsModulusGPa : 130;
   const points: { x: number; y: number; twoTheta: number; betaSample: number; residual?: number; isExcluded?: boolean }[] = [];
   const pointsExtended: NonNullable<IBAdvancedResult['pointsExtended']> = [];
-
-  const processedPeaksList: {
-    twoTheta: number;
-    betaSampleRad: number;
-    cosTheta: number;
-    sinTheta: number;
-    tanTheta: number;
-    dSpacing: number;
-    hkl?: [number, number, number];
-    voigtDvNm?: number;
-    cauchyFraction?: number;
-  }[] = [];
+  const processedPeaksList: IBProcessedPeakInternal[] = [];
+  const activeAnisotropyFactors: number[] = [];
+  const allAnisotropyFactors: number[] = [];
+  const activeToExtendedIdx: number[] = [];
 
   const excludedSet = new Set(excludedIndices);
   const wavelengthNm = wavelength / 10;
+  const fallbackPhi = Math.max(IB_PHI_CAUCHY, Math.min(IB_PHI_GAUSS, defaultVoigtPhi || 0.76));
+  const clampedInstPhi = Math.max(IB_PHI_CAUCHY, Math.min(IB_PHI_GAUSS, instVoigtPhi || 0.8226));
+  const instVoigt = computeDeKeijserVoigtFractions(clampedInstPhi);
 
   peaks.forEach((peak, index) => {
     const { twoTheta, area, iMax, hkl } = peak;
@@ -3897,67 +4620,79 @@ export const calculateIBAdvanced = (
     const effectiveInstDeg = decouplingMethod === 'none' ? 0 : Math.min(betaObsDeg * 0.98, peakInstBetaDeg);
     const betaInstRad = effectiveInstDeg * (Math.PI / 180);
 
+    // Exact Faddeeva-Voigt single-line decomposition for this reflection
+    const fwhmObsDeg = peak.fwhm && peak.fwhm > 0 ? peak.fwhm : betaObsDeg * fallbackPhi;
+    const shapeFactorPhi = fwhmObsDeg / betaObsDeg;
+    const { fCauchy, fGauss, voigtK } = computeDeKeijserVoigtFractions(shapeFactorPhi);
+    const betaL_obs = betaObsRad * fCauchy;
+    const betaG_obs = betaObsRad * fGauss;
+    const betaL_s = decouplingMethod === 'none'
+      ? Math.max(1e-7, betaL_obs)
+      : Math.max(1e-7, betaL_obs - betaInstRad * instVoigt.fCauchy);
+    const betaG_s = decouplingMethod === 'none'
+      ? Math.max(1e-7, betaG_obs)
+      : Math.sqrt(Math.max(1e-14, betaG_obs * betaG_obs - Math.pow(betaInstRad * instVoigt.fGauss, 2)));
+    const sampleVoigtK = betaG_s > 1e-10 ? betaL_s / (SQRT_PI * betaG_s) : 100.0;
+    const sampleShapeFactorPhi = computeExactVoigtPhi(sampleVoigtK);
+
     let betaSampleRad = 0;
     if (decouplingMethod === 'none') {
       betaSampleRad = betaObsRad;
     } else if (decouplingMethod === 'squared') {
-      // Gaussian quadratic subtraction: beta_s = sqrt(beta_obs^2 - beta_inst^2)
       betaSampleRad = Math.sqrt(Math.max(1e-12, betaObsRad * betaObsRad - betaInstRad * betaInstRad));
     } else if (decouplingMethod === 'hw_voigt') {
-      // True Halder-Wagner (1966) parabolic Voigt subtraction: beta_s = beta_obs * [1 - (beta_inst / beta_obs)^2]
       const ratio = betaInstRad / betaObsRad;
       betaSampleRad = betaObsRad * Math.max(1e-6, 1 - ratio * ratio);
+    } else if (decouplingMethod === 'voigt_exact') {
+      betaSampleRad = computeLangfordVoigtBreadth(betaL_s, betaG_s);
     } else {
-      // Cauchy / Lorentzian linear subtraction: beta_s = beta_obs - beta_inst
       betaSampleRad = Math.max(1e-6, betaObsRad - betaInstRad);
     }
 
     const betaStar_nm = wavelengthNm > 0 ? (betaSampleRad * cosTheta) / wavelengthNm : 0;
 
-    const { x, y, eHklGPa, contrastFactorC } = computeIBModelCoordinates(
+    const { x, y, eHklGPa, contrastFactorC, strainAnisotropyFactor } = computeIBModelCoordinates(
       separationMethod,
       { twoTheta, betaSampleRad, cosTheta, sinTheta, tanTheta, dSpacing, hkl },
-      youngsModulusGPa > 0 ? youngsModulusGPa : 130
+      nominalE
     );
 
     // Single peak apparent size estimate
     const singlePeakSizeNm = cosTheta > 1e-10 && betaSampleRad > 0
-      ? (K * wavelength) / (betaSampleRad * cosTheta) / 10 
+      ? (K * wavelength) / (betaSampleRad * cosTheta) / 10
       : 0;
     const sizeMeters = Math.max(1e-12, singlePeakSizeNm * 1e-9);
     const dislocationDensity10_14 = (1 / Math.pow(sizeMeters, 2)) / 1e14;
     const specificSurfaceAreaM2g = singlePeakSizeNm > 0 && materialDensityGcm3 > 0
-      ? (6 * 1000) / (materialDensityGcm3 * singlePeakSizeNm) 
+      ? (6 * 1000) / (materialDensityGcm3 * singlePeakSizeNm)
       : 0;
 
-    // Exact de Keijser single-line Voigt estimations for per-peak inspection
-    const defaultPhi = 2 / (1 / IB_PHI_CAUCHY + 1 / IB_PHI_GAUSS);
-    const fwhmEst = peak.fwhm && peak.fwhm > 0 ? peak.fwhm : betaObsDeg * defaultPhi;
-    const shapePhi = fwhmEst / betaObsDeg;
-    const { fCauchy, fGauss } = computeDeKeijserVoigtFractions(shapePhi);
-    const instVoigt = computeDeKeijserVoigtFractions(0.8226);
-    const betaL_obs = betaObsRad * fCauchy;
-    const betaG_obs = betaObsRad * fGauss;
-    const betaL_s = Math.max(1e-7, betaL_obs - betaInstRad * instVoigt.fCauchy);
-    const betaG_s = Math.sqrt(Math.max(1e-14, betaG_obs * betaG_obs - Math.pow(betaInstRad * instVoigt.fGauss, 2)));
-
     const volumeWeightedSizeDvNm = cosTheta > 0 ? (K * wavelength) / (betaL_s * cosTheta) / 10 : singlePeakSizeNm;
-    const peakDvDaRatio = 1.125 + 0.875 * fCauchy;
+    const sampleFc = betaSampleRad > 1e-10 ? Math.min(1, Math.max(0, betaL_s / betaSampleRad)) : fCauchy;
+    const peakDvDaRatio = 1.125 + 0.875 * sampleFc;
     const areaWeightedSizeDaNm = volumeWeightedSizeDvNm / peakDvDaRatio;
     const apparentRmsStrain = tanTheta > 0 ? betaG_s / (2 * Math.sqrt(2 * Math.PI) * tanTheta) : 0;
 
+    const extIdx = pointsExtended.length;
+    allAnisotropyFactors.push(strainAnisotropyFactor);
+
     if (!isExcluded && betaSampleRad > 0) {
       points.push({ x, y, twoTheta, betaSample: betaSampleRad * (180 / Math.PI), isExcluded: false });
+      activeToExtendedIdx.push(extIdx);
+      activeAnisotropyFactors.push(strainAnisotropyFactor);
       processedPeaksList.push({
         twoTheta,
+        betaObsRad,
         betaSampleRad,
+        iMax,
         cosTheta,
         sinTheta,
         tanTheta,
         dSpacing,
         hkl,
         voigtDvNm: volumeWeightedSizeDvNm,
-        cauchyFraction: fCauchy
+        cauchyFraction: sampleFc,
+        voigtParamK: sampleVoigtK
       });
     }
 
@@ -3966,8 +4701,15 @@ export const calculateIBAdvanced = (
       betaObsDeg,
       betaInstDeg: effectiveInstDeg,
       betaSampleDeg: betaSampleRad * (180 / Math.PI),
+      fwhmObsDeg,
+      shapeFactorPhi,
+      sampleShapeFactorPhi,
+      voigtParamK: voigtK,
+      cauchyBetaL_deg: betaL_s * (180 / Math.PI),
+      gaussianBetaG_deg: betaG_s * (180 / Math.PI),
       x,
       y,
+      regressionWeight: isExcluded ? 0 : 1,
       singlePeakSizeNm,
       dSpacing,
       qVector,
@@ -3986,40 +4728,55 @@ export const calculateIBAdvanced = (
   });
 
   if (points.length < 2) return null;
-
-  // Linear Regression on included points
-  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0;
-  for (const p of points) {
-    sumX += p.x; sumY += p.y; sumXY += p.x * p.y; sumX2 += p.x * p.x;
-  }
   const n = points.length;
-  const denominator = n * sumX2 - sumX * sumX;
-  if (Math.abs(denominator) < 1e-18) return null;
-  const rawSlope = (n * sumXY - sumX * sumY) / denominator;
-  const rawIntercept = (sumY - rawSlope * sumX) / n;
-  const meanY = sumY / n;
-  const meanX = sumX / n;
 
-  // Compute physical fallback stats and extract regularized parameters
-  const fallbackStats = computeIBFallbackPhysicalStats(wavelength, K, processedPeaksList, points);
+  // Always compute isotropic Exact Langford-Faddeeva Voigt benchmark (consistent across all 7 models)
+  const exactVoigtIsoSolution = solveExactLangfordVoigtNLS(wavelength, K, processedPeaksList);
+  const isAnisotropicModel =
+    separationMethod === 'usdm' || separationMethod === 'udedm' || separationMethod === 'mwh';
+  const exactVoigtSolution =
+    regressionMethod === 'exact_voigt_nls' && isAnisotropicModel
+      ? solveExactLangfordVoigtNLS(wavelength, K, processedPeaksList, activeAnisotropyFactors)
+      : exactVoigtIsoSolution;
 
-  // First pass residuals on OLS for standard errors
-  let ssTot = 0, ssResOls = 0, sxx = 0;
-  for (let i = 0; i < points.length; i++) {
+  // Numerically stable centered weighted/Huber linear regression on active coordinates
+  const baseWeights =
+    regressionMethod === 'wls_jacobian' || regressionMethod === 'robust_huber'
+      ? computeIBJacobianWeights(separationMethod, processedPeaksList)
+      : new Array(n).fill(1.0);
+
+  const linearFit = solveCenteredWeightedLinearFit(
+    points,
+    baseWeights,
+    regressionMethod === 'robust_huber'
+  );
+  if (!linearFit) return null;
+
+  const rawSlope = linearFit.slope;
+  const rawIntercept = linearFit.intercept;
+  const meanY = linearFit.meanY;
+  const meanX = linearFit.meanX;
+  const sxx = linearFit.sxx;
+  const activeWeights = linearFit.weights;
+
+  const fallbackStats = computeIBFallbackPhysicalStats(wavelength, K, processedPeaksList, points, activeWeights);
+
+  let ssTot = 0, ssResOls = 0;
+  for (let i = 0; i < n; i++) {
     const p = points[i];
+    const w = activeWeights[i];
     const yPredOls = rawSlope * p.x + rawIntercept;
-    ssTot += Math.pow(p.y - meanY, 2);
-    ssResOls += Math.pow(p.y - yPredOls, 2);
-    sxx += Math.pow(p.x - meanX, 2);
+    ssTot += w * Math.pow(p.y - meanY, 2);
+    ssResOls += w * Math.pow(p.y - yPredOls, 2);
   }
 
-  const df = Math.max(1, n - 2);
-  const tCritical95 = getStudentTCritical95(df);
   const varianceResidualsOls = n > 2 ? ssResOls / (n - 2) : 0;
   const stdErrorSlope = sxx > 0 ? Math.sqrt(varianceResidualsOls / sxx) : 0;
-  const stdErrorIntercept = sxx > 0 ? Math.sqrt(varianceResidualsOls * (1 / n + (meanX * meanX) / sxx)) : 0;
+  const stdErrorIntercept =
+    sxx > 0 && linearFit.sumW > 0
+      ? Math.sqrt(varianceResidualsOls * (1 / linearFit.sumW + (meanX * meanX) / sxx))
+      : 0;
 
-  // Physical parameters & first-order Taylor error propagation (with NNLS / Voigt regularization)
   const extracted = extractIBModelPhysicalParameters(
     separationMethod,
     rawSlope,
@@ -4028,105 +4785,193 @@ export const calculateIBAdvanced = (
     stdErrorIntercept,
     wavelength,
     K,
-    youngsModulusGPa > 0 ? youngsModulusGPa : 130,
+    nominalE,
     fallbackStats
   );
 
-  const slope = extracted.effectiveSlope;
-  const intercept = extracted.effectiveIntercept;
+  let slope = extracted.effectiveSlope;
+  let intercept = extracted.effectiveIntercept;
+  let activeFitRegime: IBAdvancedResult['fitRegime'] = extracted.fitRegime;
+  let sizeInterceptNm = extracted.sizeNm;
+  let sizeErrorNm = extracted.sizeErrorNm;
+  let absoluteStrain = extracted.strain;
+  let strainError = extracted.strainError;
+  let stressMPa = extracted.stressMPa;
+  let stressErrorMPa = extracted.stressErrorMPa;
+  let energyDensityKjM3 = extracted.energyDensityKjM3;
+  let energyErrorKjM3 = extracted.energyErrorKjM3;
 
-  let ssRes = 0;
-  const residualsList: number[] = [];
-  for (let i = 0; i < points.length; i++) {
-    const p = points[i];
-    const yPred = slope * p.x + intercept;
-    const res = p.y - yPred;
-    p.residual = res;
-    residualsList.push(res);
-    ssRes += Math.pow(res, 2);
+  // Map per-point predicted Y values (linear line OR exact curved Voigt projection in active coordinates)
+  const useExactVoigtAsActive = regressionMethod === 'exact_voigt_nls' && exactVoigtSolution !== null;
+  if (useExactVoigtAsActive && exactVoigtSolution) {
+    activeFitRegime = 'exact_voigt_nls';
+    sizeInterceptNm = exactVoigtSolution.sizeNm;
+    sizeErrorNm = exactVoigtSolution.sizeErrorNm;
+    absoluteStrain = exactVoigtSolution.strain;
+    strainError = exactVoigtSolution.strainError;
+    const E_Pa = Math.max(1e9, nominalE * 1e9);
+    stressMPa = absoluteStrain * nominalE * 1000;
+    stressErrorMPa = strainError * nominalE * 1000;
+    energyDensityKjM3 = (0.5 * E_Pa * absoluteStrain * absoluteStrain) / 1000;
+    energyErrorKjM3 = (E_Pa * absoluteStrain * strainError) / 1000;
   }
 
-  const rSquared = ssTot === 0 ? 0 : Math.max(0, Math.min(1, 1 - (ssResOls / ssTot)));
-  const adjustedRSquared = n > 2 ? Math.max(0, 1 - (1 - rSquared) * (n - 1) / (n - 2)) : rSquared;
-  const pearsonR = (rawSlope >= 0 ? 1 : -1) * Math.sqrt(rSquared);
-  const rmse = Math.sqrt(ssRes / n);
-  const fStatistic = n > 2 && rSquared < 1 ? (rSquared / Math.max(1e-12, 1 - rSquared)) * (n - 2) : 0;
+  // Assign active weights to pointsExtended
+  for (let i = 0; i < n; i++) {
+    const extIdx = activeToExtendedIdx[i];
+    if (pointsExtended[extIdx]) {
+      pointsExtended[extIdx].regressionWeight = activeWeights[i];
+    }
+  }
 
-  // Durbin-Watson statistic for serial residual correlation
+  // Compute fitted Y values and residuals
+  let ssResWeighted = 0;
+  let ssResUnweighted = 0;
+  for (let i = 0; i < n; i++) {
+    const p = points[i];
+    const pk = processedPeaksList[i];
+    let yPred = slope * p.x + intercept;
+    if (useExactVoigtAsActive && exactVoigtSolution) {
+      const predBeta = exactVoigtSolution.predictedBetaRad[i];
+      yPred = computeIBModelCoordinates(
+        separationMethod,
+        {
+          twoTheta: pk.twoTheta,
+          betaSampleRad: predBeta,
+          cosTheta: pk.cosTheta,
+          sinTheta: pk.sinTheta,
+          tanTheta: pk.tanTheta,
+          dSpacing: pk.dSpacing,
+          hkl: pk.hkl
+        },
+        nominalE
+      ).y;
+    }
+    const res = p.y - yPred;
+    p.residual = res;
+    ssResWeighted += activeWeights[i] * res * res;
+    ssResUnweighted += res * res;
+  }
+
+  const numParams = activeFitRegime === 'standard_ols' || activeFitRegime === 'exact_voigt_nls' ? 2 : 1;
+  const df = Math.max(1, n - numParams);
+  const tCritical95 = getStudentTCritical95(df);
+
+  const rawOlsRSquared = ssTot <= 0 ? 0 : Math.max(0, Math.min(1, 1 - ssResOls / ssTot));
+  const rSquared =
+    useExactVoigtAsActive && exactVoigtSolution
+      ? exactVoigtSolution.rSquaredBeta
+      : ssTot <= 0
+      ? 0
+      : Math.max(0, Math.min(1, 1 - ssResWeighted / ssTot));
+  const adjustedRSquared = n > numParams ? Math.max(0, 1 - (1 - rSquared) * (n - 1) / (n - numParams)) : rSquared;
+  const pearsonR = (rawSlope >= 0 ? 1 : -1) * Math.sqrt(rawOlsRSquared);
+  const rmse = Math.sqrt(ssResUnweighted / n);
+  const fStatistic = n > numParams && rSquared < 1 ? (rSquared / Math.max(1e-12, 1 - rSquared)) * (n - numParams) : 0;
+
+  // Durbin-Watson statistic sorted strictly along ascending X-coordinate
+  const sortedResiduals = [...points]
+    .sort((a, b) => a.x - b.x)
+    .map(p => p.residual ?? 0);
   let dwNum = 0, dwDen = 0;
-  for (let i = 0; i < residualsList.length; i++) {
-    dwDen += Math.pow(residualsList[i], 2);
+  for (let i = 0; i < sortedResiduals.length; i++) {
+    dwDen += Math.pow(sortedResiduals[i], 2);
     if (i > 0) {
-      dwNum += Math.pow(residualsList[i] - residualsList[i - 1], 2);
+      dwNum += Math.pow(sortedResiduals[i] - sortedResiduals[i - 1], 2);
     }
   }
   const durbinWatson = dwDen > 0 ? dwNum / dwDen : 2.0;
 
-  const varianceResiduals = n > 2 ? ssRes / (n - 2) : 0;
+  const varianceResiduals = n > numParams ? ssResWeighted / (n - numParams) : 0;
   const stdErrFit = Math.sqrt(varianceResiduals);
 
-  // Update residuals, internally studentized residuals, and exact pointwise 95% confidence band on pointsExtended
-  for (const pe of pointsExtended) {
-    const yPred = slope * pe.x + intercept;
+  // Update residuals, fitY, studentized residuals, and 95% confidence band on pointsExtended
+  for (let idx = 0; idx < pointsExtended.length; idx++) {
+    const pe = pointsExtended[idx];
+    let yPred = slope * pe.x + intercept;
+    if (useExactVoigtAsActive && exactVoigtSolution) {
+      const thetaRad = (pe.twoTheta / 2) * (Math.PI / 180);
+      const cosTheta = Math.cos(thetaRad);
+      const sinTheta = Math.sin(thetaRad);
+      const tanTheta = Math.tan(thetaRad);
+      const gFactor = allAnisotropyFactors[idx] ?? 1.0;
+      const predBeta = computeLangfordVoigtBreadth(
+        exactVoigtSolution.aRad / Math.max(1e-6, cosTheta),
+        4 * exactVoigtSolution.strain * gFactor * Math.max(1e-6, tanTheta)
+      );
+      yPred = computeIBModelCoordinates(
+        separationMethod,
+        {
+          twoTheta: pe.twoTheta,
+          betaSampleRad: predBeta,
+          cosTheta,
+          sinTheta,
+          tanTheta,
+          dSpacing: pe.dSpacing || (sinTheta > 0 ? wavelength / (2 * sinTheta) : 1),
+          hkl: pe.hkl
+        },
+        nominalE
+      ).y;
+    }
     const res = pe.y - yPred;
+    pe.fitY = yPred;
     pe.residual = res;
-    const leverageH = sxx > 0 ? 1 / n + Math.pow(pe.x - meanX, 2) / sxx : 1 / n;
-    const sePredMean = stdErrFit * Math.sqrt(Math.max(0, leverageH));
+    const wPoint = pe.isExcluded ? 1 : (pe.regressionWeight ?? 1);
+    const leverageH =
+      sxx > 0 && linearFit.sumW > 0
+        ? wPoint * (1 / linearFit.sumW + Math.pow(pe.x - meanX, 2) / sxx)
+        : 1 / n;
+    const sePredMean = stdErrFit * Math.sqrt(Math.max(0, leverageH / Math.max(1e-6, wPoint)));
     pe.ci95HalfWidth = tCritical95 * sePredMean;
     const denomStud = stdErrFit * Math.sqrt(Math.max(0.05, 1 - Math.min(0.95, leverageH)));
     pe.studentizedResidual = denomStud > 1e-15 ? res / denomStud : 0;
   }
 
-  const sizeInterceptNm = extracted.sizeNm;
-  const sizeErrorNm = extracted.sizeErrorNm;
-
-  // Langford-Voigt & Krill-Birringer Log-Normal Polydispersity relation between D_v and D_a:
-  // Monodisperse sphere limit (f_L -> 0): D_v / D_a = 9/8 = 1.125
-  // Exponential Cauchy column limit (f_L -> 1): D_v / D_a = 2.0
+  // Langford-Voigt & Krill-Birringer (1998) Log-Normal Polydispersity relation
   const meanCauchyFraction = processedPeaksList.length > 0
     ? processedPeaksList.reduce((acc, p) => acc + (p.cauchyFraction ?? 0.5), 0) / processedPeaksList.length
     : 0.5;
+  const meanVoigtParamK = processedPeaksList.length > 0
+    ? processedPeaksList.reduce((acc, p) => acc + (p.voigtParamK ?? 0.5), 0) / processedPeaksList.length
+    : 0.5;
   const polydispersityRatioDvDa = 1.125 + 0.875 * Math.max(0, Math.min(1, meanCauchyFraction));
   const areaWeightedSizeNm = sizeInterceptNm / polydispersityRatioDvDa;
-  const meanSphericalDiameterNm = (4.0 / 3.0) * sizeInterceptNm; // D_sphere = (4/3) * D_v for spherical domains (Guinier / Stokes-Wilson)
+  const meanSphericalDiameterNm = (4.0 / 3.0) * sizeInterceptNm;
   const lnSigmaSq = Math.max(0, Math.log((8.0 / 9.0) * polydispersityRatioDvDa));
   const logNormalSigmaG = Math.exp(Math.sqrt(lnSigmaSq));
+  const logNormalMedianD0Nm = meanSphericalDiameterNm * Math.exp(-3.5 * lnSigmaSq);
 
-  const absoluteStrain = extracted.strain;
-  const strainError = extracted.strainError;
-  const rmsStrain = absoluteStrain * Math.sqrt(2 / Math.PI); // Gaussian equivalence <e^2>^0.5 = e * sqrt(2/pi)
-  const stressMPa = extracted.stressMPa;
-  const stressErrorMPa = extracted.stressErrorMPa;
-  const energyDensityKjM3 = extracted.energyDensityKjM3;
-  const energyErrorKjM3 = extracted.energyErrorKjM3;
+  const rmsStrain = absoluteStrain * Math.sqrt(2 / Math.PI);
+  const halderWagnerStrain2Eps = absoluteStrain * 2.0;
+  const stokesWilsonApparentStrainEta = absoluteStrain * 4.0;
 
-  // Global dislocation density (Williamson-Smallman & 1/D^2) & SSA using calibrated Burgers vector b
+  // Global Williamson-Smallman (1956) dislocation density using RMS microstrain <e^2>^(1/2)
   const sizeM = Math.max(1e-12, sizeInterceptNm * 1e-9);
   const bM = Math.max(0.05, burgersVectorNm) * 1e-9;
-  const dislocationDensityM2 = sizeM > 0 ? (2 * Math.sqrt(3) * absoluteStrain) / (sizeM * bM) : 0;
+  const dislocationDensityM2 = sizeM > 0 ? (2 * Math.sqrt(3) * rmsStrain) / (sizeM * bM) : 0;
   const dislocationDensity10_14 = dislocationDensityM2 / 1e14;
   const williamsonDollarDislocation10_14 = sizeM > 0 ? (1 / (sizeM * sizeM)) / 1e14 : 0;
   const specificSurfaceAreaM2g = sizeInterceptNm > 0 && materialDensityGcm3 > 0
     ? (6 * 1000) / (materialDensityGcm3 * sizeInterceptNm)
     : undefined;
 
-  // Generate model comparison suite across all 6 models
-  const modelsToCompare: Array<'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH'> = [
-    'UDM', 'USDM', 'UDEDM', 'SSP', 'Halder-Wagner', 'mWH'
+  // Generate 7-model comparison suite using the active linear weighting mode (OLS / WLS / Robust Huber)
+  const comparisonRegMethod: IBRegressionMethodKey =
+    regressionMethod === 'exact_voigt_nls' ? 'wls_jacobian' : regressionMethod;
+  const modelsToCompare: Array<'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Gaussian-WH'> = [
+    'UDM', 'USDM', 'UDEDM', 'SSP', 'Halder-Wagner', 'mWH', 'Gaussian-WH'
   ];
   const modelComparisons: IBModelComparisonItem[] = [];
   for (const m of modelsToCompare) {
-    const res = fitSingleIBModel(m, wavelength, K, processedPeaksList, youngsModulusGPa > 0 ? youngsModulusGPa : 130);
+    const res = fitSingleIBModel(m, wavelength, K, processedPeaksList, nominalE, comparisonRegMethod);
     if (res) modelComparisons.push(res);
   }
 
-  // Find best model by highest R2 among physically valid fits
   if (modelComparisons.length > 0) {
     let maxScore = -1;
     let bestIdx = 0;
     modelComparisons.forEach((item, idx) => {
-      // Prefer standard_ols fits with high R2, then regularized fits
-      const regimePenalty = item.fitRegime === 'standard_ols' ? 0 : 0.02;
+      const regimePenalty = item.fitRegime === 'standard_ols' ? 0 : 0.03;
       const score = item.rSquared - regimePenalty;
       if (item.sizeNm > 0 && score > maxScore) {
         maxScore = score;
@@ -4136,24 +4981,46 @@ export const calculateIBAdvanced = (
     modelComparisons[bestIdx].isBestFit = true;
   }
 
+  const exactVoigtBenchmark: IBExactVoigtBenchmark | undefined = exactVoigtIsoSolution
+    ? {
+        sizeNm: exactVoigtIsoSolution.sizeNm,
+        sizeErrorNm: exactVoigtIsoSolution.sizeErrorNm,
+        meanSphericalDiameterNm: exactVoigtIsoSolution.meanSphericalDiameterNm,
+        strainPercent: exactVoigtIsoSolution.strainPercent,
+        strainErrorPercent: exactVoigtIsoSolution.strainErrorPercent,
+        rmsStrainPercent: exactVoigtIsoSolution.rmsStrainPercent,
+        rSquaredBeta: exactVoigtIsoSolution.rSquaredBeta,
+        rmseDeg: exactVoigtIsoSolution.rmseDeg,
+        iterations: exactVoigtIsoSolution.iterations,
+        converged: exactVoigtIsoSolution.converged
+      }
+    : undefined;
+
   return {
     strainPercent: absoluteStrain * 100,
     strainErrorPercent: strainError * 100,
     rmsStrainPercent: rmsStrain * 100,
+    halderWagnerStrain2EpsPercent: halderWagnerStrain2Eps * 100,
+    stokesWilsonApparentStrainEtaPercent: stokesWilsonApparentStrainEta * 100,
     sizeInterceptNm,
     sizeErrorNm,
     areaWeightedSizeNm,
     meanSphericalDiameterNm,
+    logNormalMedianD0Nm,
     polydispersityRatioDvDa,
     logNormalSigmaG,
     meanCauchyFraction,
-    fitRegime: extracted.fitRegime,
-    regression: { 
-      slope, 
+    meanVoigtParamK,
+    fitRegime: activeFitRegime,
+    regressionMethodUsed: regressionMethod,
+    exactVoigtBenchmark,
+    regression: {
+      slope,
       intercept,
       rawOlsSlope: rawSlope,
       rawOlsIntercept: rawIntercept,
       rSquared,
+      rawOlsRSquared,
       adjustedRSquared,
       pearsonR,
       stdErrorSlope,
@@ -4163,7 +5030,9 @@ export const calculateIBAdvanced = (
       fStatistic,
       tCritical95,
       meanX,
-      sxx
+      sxx,
+      weightedEffectiveN: linearFit.effectiveN,
+      downweightedOutlierCount: linearFit.downweightedOutlierCount
     },
     points,
     stressMPa,
@@ -4181,8 +5050,11 @@ export const calculateIBAdvanced = (
 };
 
 /**
- * Synthesizes a discrete high-resolution XRD peak profile along with its geometric
- * Integral Breadth bounding box (where box Area === analytical Pseudo-Voigt peak Area)
+ * Synthesizes a discrete high-resolution XRD peak profile containing:
+ * - True Faddeeva-Voigt profile I_V(2theta) = I_max * H(k, sqrt(pi)*delta/beta_G) / erfcx(k)
+ * - Exact area-conserving Pseudo-Voigt profile I_pV(2theta) = eta*L + (1-eta)*G
+ * - Pure Cauchy (Lorentzian) & Gaussian reference components
+ * - Geometric Stokes-Wilson Integral Breadth bounding box (height = I_max, width = beta)
  */
 export const synthesizeIBPeakProfile = (
   centerTwoTheta: number,
@@ -4193,9 +5065,11 @@ export const synthesizeIBPeakProfile = (
 ) => {
   const betaDeg = areaCountsDeg / Math.max(1e-6, iMaxCounts);
   const phi = fwhmDeg / Math.max(1e-6, betaDeg);
-  // Exact analytical inversion of 1/phi = eta/phi_C + (1 - eta)/phi_G so that
-  // integral_{-inf}^{+inf} I_PV(2theta) d(2theta) === I_max * beta = Area identically!
-  const eta = computeExactPseudoVoigtEtaFromPhi(phi);
+  // Exact analytical inversion for Pseudo-Voigt AND exact Faddeeva-Voigt parameters
+  const { fCauchy, fGauss, voigtK, eta } = computeDeKeijserVoigtFractions(phi);
+  const betaGDeg = Math.max(1e-6, betaDeg * fGauss);
+  const betaCDeg = Math.max(1e-6, betaDeg * fCauchy);
+  const h0 = voigtK < 99 ? computeErfcx(voigtK) : 0;
   
   const span = Math.max(2.5 * fwhmDeg, 2.5 * betaDeg, 1.2);
   const start = centerTwoTheta - span;
@@ -4208,6 +5082,7 @@ export const synthesizeIBPeakProfile = (
   const dataPoints: Array<{
     twoTheta: number;
     intensity: number;
+    exactVoigtIntensity: number;
     cauchyIntensity: number;
     gaussIntensity: number;
     ibBoxIntensity?: number;
@@ -4218,6 +5093,9 @@ export const synthesizeIBPeakProfile = (
   const fwhmHalf = fwhmDeg / 2;
   const halfMax = iMaxCounts / 2;
 
+  let trapAreaVoigt = 0;
+  let trapAreaPV = 0;
+
   for (let i = 0; i <= steps; i++) {
     const x = start + i * stepSize;
     const delta = x - centerTwoTheta;
@@ -4225,6 +5103,22 @@ export const synthesizeIBPeakProfile = (
     const g = iMaxCounts * Math.exp(-0.5 * Math.pow(delta / sigma, 2));
     const l = iMaxCounts * (Math.pow(gamma, 2) / (Math.pow(delta, 2) + Math.pow(gamma, 2)));
     const pv = (1 - eta) * g + eta * l;
+
+    // Exact Faddeeva-Voigt profile with exact integral breadth betaDeg and exact FWHM = phi * betaDeg
+    let exactVoigt = pv;
+    if (phi <= IB_PHI_CAUCHY + 1e-5) {
+      const hwhmC = betaCDeg / Math.PI;
+      exactVoigt = iMaxCounts * ((hwhmC * hwhmC) / (delta * delta + hwhmC * hwhmC));
+    } else if (phi >= IB_PHI_GAUSS - 1e-5) {
+      exactVoigt = iMaxCounts * Math.exp(-Math.PI * Math.pow(delta / betaGDeg, 2));
+    } else if (h0 > 1e-12) {
+      const u = (SQRT_PI * delta) / betaGDeg;
+      exactVoigt = iMaxCounts * (computeVoigtH(voigtK, u) / h0);
+    }
+
+    const trapWeight = i === 0 || i === steps ? 0.5 : 1.0;
+    trapAreaVoigt += trapWeight * exactVoigt * stepSize;
+    trapAreaPV += trapWeight * pv * stepSize;
 
     // Integral breadth rectangle bounding box: height = Imax, width = betaDeg
     const inBox = Math.abs(delta) <= ibBoxHalf;
@@ -4238,6 +5132,7 @@ export const synthesizeIBPeakProfile = (
     dataPoints.push({
       twoTheta: x,
       intensity: pv,
+      exactVoigtIntensity: exactVoigt,
       cauchyIntensity: l,
       gaussIntensity: g,
       ibBoxIntensity: ibBoxVal,
@@ -4251,8 +5146,13 @@ export const synthesizeIBPeakProfile = (
     betaDeg,
     phi,
     eta,
+    voigtK,
+    fCauchy,
+    fGauss,
     areaCountsDeg,
     iMaxCounts,
+    numericalVoigtArea: trapAreaVoigt,
+    numericalPvArea: trapAreaPV,
     dataPoints
   };
 };

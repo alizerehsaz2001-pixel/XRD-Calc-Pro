@@ -1,10 +1,24 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useCustomMaterialApply } from './CustomMaterialContext';
 import { useSettings, convertLength, convertToAngstrom } from './SettingsContext';
-import { parseIBAdvancedInput, calculateIBAdvanced, calculateIntegralBreadth, synthesizeIBPeakProfile, XRAY_WAVELENGTHS } from '../utils/physics';
-import { IBAdvancedResult } from '../types';
+import {
+  parseIBAdvancedInput,
+  calculateIBAdvanced,
+  calculateIntegralBreadth,
+  synthesizeIBPeakProfile,
+  computeDeKeijserVoigtFractions,
+  computeLangfordVoigtBreadth,
+  computeErfcx,
+  IB_PHI_CAUCHY,
+  IB_PHI_GAUSS,
+  IBSeparationMethodKey,
+  IBDecouplingMethodKey,
+  XRAY_WAVELENGTHS
+} from '../utils/physics';
+import { IBAdvancedResult, IBRegressionMethodKey } from '../types';
 import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
+import { MathFormula } from './common/MathFormula';
 import Markdown from 'react-markdown';
 import 'katex/dist/katex.min.css';
 import { IBCadSchematic } from './integral_breadth/IBCadSchematic';
@@ -141,9 +155,10 @@ export const IntegralBreadthAdvancedModule: React.FC<IntegralBreadthAdvancedModu
   const [cagliotiV, setCagliotiV] = useState<number>(-0.002);
   const [cagliotiW, setCagliotiW] = useState<number>(0.015);
   
-  // Size-strain deconvolution & separation state
-  const [decouplingMethod, setDecouplingMethod] = useState<'linear' | 'squared' | 'hw_voigt' | 'none'>('linear');
-  const [separationMethod, setSeparationMethod] = useState<'udm' | 'usdm' | 'hw' | 'ssp' | 'udedm' | 'mwh'>('udm');
+  // Size-strain deconvolution, separation & regression estimator state
+  const [decouplingMethod, setDecouplingMethod] = useState<IBDecouplingMethodKey>('voigt_exact');
+  const [separationMethod, setSeparationMethod] = useState<IBSeparationMethodKey>('udm');
+  const [regressionMethod, setRegressionMethod] = useState<IBRegressionMethodKey>('wls_jacobian');
   const [youngsModulusGPa, setYoungsModulusGPa] = useState<number>(130);
   const [materialDensityGcm3, setMaterialDensityGcm3] = useState<number>(2.33);
 
@@ -155,9 +170,10 @@ export const IntegralBreadthAdvancedModule: React.FC<IntegralBreadthAdvancedModu
     'fit' | 'voigtProfile' | 'residuals' | 'apparentSizes' | 'elasticState' | 'modelMatrix' | 'advisor'
   >(initialViewMode);
 
-  // Single-Line Voigt & Shape Factor φ Inspector state
+  // Single-Line Voigt & Shape Factor φ Inspector state + Instrumental Profile Shape φ_inst
   const [selectedVoigtPeakIdx, setSelectedVoigtPeakIdx] = useState<number>(0);
   const [voigtShapePhi, setVoigtShapePhi] = useState<number>(0.76);
+  const [instVoigtPhi, setInstVoigtPhi] = useState<number>(0.8226);
 
   // IB Adv Config section filter & calibration parameters
   const [configSection, setConfigSection] = useState<'all' | 'source' | 'optics' | 'models' | 'continuum'>('all');
@@ -234,8 +250,11 @@ export const IntegralBreadthAdvancedModule: React.FC<IntegralBreadthAdvancedModu
     setCagliotiU(0.005);
     setCagliotiV(-0.002);
     setCagliotiW(0.015);
-    setDecouplingMethod('linear');
+    setDecouplingMethod('voigt_exact');
     setSeparationMethod('udm');
+    setRegressionMethod('wls_jacobian');
+    setVoigtShapePhi(0.76);
+    setInstVoigtPhi(0.8226);
     setYoungsModulusGPa(130);
     setMaterialDensityGcm3(2.33);
     setBurgersVectorNm(0.384);
@@ -362,7 +381,10 @@ export const IntegralBreadthAdvancedModule: React.FC<IntegralBreadthAdvancedModu
       separationMethod,
       materialDensityGcm3 > 0 ? materialDensityGcm3 : 2.33,
       currentExclusions,
-      burgersVectorNm > 0 ? burgersVectorNm : 0.286
+      burgersVectorNm > 0 ? burgersVectorNm : 0.286,
+      voigtShapePhi,
+      instVoigtPhi,
+      regressionMethod
     );
     setResult(computed);
   };
@@ -392,6 +414,8 @@ export const IntegralBreadthAdvancedModule: React.FC<IntegralBreadthAdvancedModu
     wavelength,
     constantK,
     instBetaIB,
+    instVoigtPhi,
+    voigtShapePhi,
     instrumentalMode,
     cagliotiU,
     cagliotiV,
@@ -399,6 +423,7 @@ export const IntegralBreadthAdvancedModule: React.FC<IntegralBreadthAdvancedModu
     decouplingMethod,
     youngsModulusGPa,
     separationMethod,
+    regressionMethod,
     materialDensityGcm3,
     burgersVectorNm,
     excludedIndices,
@@ -520,18 +545,18 @@ export const IntegralBreadthAdvancedModule: React.FC<IntegralBreadthAdvancedModu
 Material / Sample: ${selectedMaterial}
 Radiation Wavelength: ${wavelength} Å (Shape Factor K = ${constantK})
 Instrumental Mode: ${instrumentalMode === 'constant' ? `Constant β_inst = ${instBetaIB}°` : `Caglioti Curve (U=${cagliotiU}, V=${cagliotiV}, W=${cagliotiW})`}
-Decoupling Mode: ${decouplingMethod.toUpperCase()}
+Decoupling Mode: ${decouplingMethod.toUpperCase()} (Sample φ = ${voigtShapePhi.toFixed(3)}, Inst φ_i = ${instVoigtPhi.toFixed(3)})
 Separation Model: ${separationMethod.toUpperCase()}
 --------------------------------------------------------------------------------
 Volume-Weighted Size (D_v): ${result.sizeInterceptNm > 0 ? `${result.sizeInterceptNm.toFixed(2)}${sizeErrStr} nm` : 'Bulk Limit (>1000 nm)'}
 Area-Weighted Size (D_a): ${result.areaWeightedSizeNm ? `${result.areaWeightedSizeNm.toFixed(2)} nm` : 'N/A'} (Dv/Da = ${result.polydispersityRatioDvDa?.toFixed(3) || '1.56'})
-Spherical Equivalent Diameter ⟨D_sph⟩: ${result.meanSphericalDiameterNm ? `${result.meanSphericalDiameterNm.toFixed(2)} nm` : 'N/A'} (Log-Normal σ_g = ${result.logNormalSigmaG?.toFixed(3) || '1.35'})
+Spherical Equivalent ⟨D_sph⟩: ${result.meanSphericalDiameterNm ? `${result.meanSphericalDiameterNm.toFixed(2)} nm` : 'N/A'} | Krill-Birringer Median D_0: ${result.logNormalMedianD0Nm ? `${result.logNormalMedianD0Nm.toFixed(2)} nm` : 'N/A'} (σ_g = ${result.logNormalSigmaG?.toFixed(3) || '1.35'})
 Apparent Microstrain (ε): ${(result.strainPercent / 100 * 1000).toFixed(3)} × 10⁻³ (${result.strainPercent.toFixed(4)}${strainErrStr} %)
 Stokes-Wilson RMS Strain ⟨ε²⟩½: ${result.rmsStrainPercent !== undefined ? `${result.rmsStrainPercent.toFixed(4)} %` : 'N/A'}
 Young's Modulus (E_0): ${youngsModulusGPa} GPa (Anisotropic E_hkl applied in USDM/UDEDM)
 Lattice Stress (σ): ${result.stressMPa !== undefined ? `${result.stressMPa.toFixed(2)}${stressErrStr} MPa` : 'N/A'}
 Strain Energy Density (u): ${result.energyDensityKjM3 !== undefined ? `${result.energyDensityKjM3.toFixed(3)}${energyErrStr} kJ/m³` : 'N/A'}
-Dislocation Density (Williamson-Smallman ρ_WS): ${result.dislocationDensity10_14 !== undefined ? `${result.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²` : 'N/A'} (b = ${burgersVectorNm} nm)
+Dislocation Density (Williamson-Smallman ρ_WS): ${result.dislocationDensity10_14 !== undefined ? `${result.dislocationDensity10_14.toFixed(3)} × 10¹⁴ m⁻²` : 'N/A'} (b = ${burgersVectorNm} nm) | Geometric δ=1/D²: ${result.williamsonDollarDislocation10_14 !== undefined ? `${result.williamsonDollarDislocation10_14.toFixed(3)} × 10¹⁴ m⁻²` : 'N/A'}
 Specific Surface Area (SSA): ${result.specificSurfaceAreaM2g !== undefined ? `${result.specificSurfaceAreaM2g.toFixed(2)} m²/g` : 'N/A'} (Density = ${materialDensityGcm3} g/cm³)
 --------------------------------------------------------------------------------
 Goodness of Fit & Regression Statistics:
@@ -561,7 +586,7 @@ Goodness of Fit & Regression Statistics:
     const fallbackBound = (result.regression.rmse || 0) * (result.regression.tCritical95 || 2.0);
 
     return (result.pointsExtended || []).map((pe, idx) => {
-      const fitY = result.regression.slope * pe.x + result.regression.intercept;
+      const fitY = pe.fitY !== undefined ? pe.fitY : result.regression.slope * pe.x + result.regression.intercept;
       const ciHalf = pe.ci95HalfWidth !== undefined && pe.ci95HalfWidth > 0 ? pe.ci95HalfWidth : fallbackBound;
       return {
         originalIndex: idx,
@@ -571,6 +596,7 @@ Goodness of Fit & Regression Statistics:
         fitRange: [Math.max(0, fitY - ciHalf), fitY + ciHalf],
         residual: pe.residual !== undefined ? pe.residual : pe.y - fitY,
         studentizedResidual: pe.studentizedResidual || 0,
+        regressionWeight: pe.regressionWeight ?? 1,
         eHklGPa: pe.eHklGPa,
         contrastFactorC: pe.contrastFactorC,
         twoTheta: pe.twoTheta,
@@ -598,11 +624,14 @@ Goodness of Fit & Regression Statistics:
         xLabel = 'X (4sinθ·√(2/E))';
         yLabel = 'Y (βcosθ)';
       } else if (separationMethod === 'usdm') {
-        xLabel = 'X (4sinθ/E)';
+        xLabel = 'X (4sinθ/E_hkl [GPa⁻¹])';
         yLabel = 'Y (βcosθ)';
       } else if (separationMethod === 'mwh') {
-        xLabel = 'X (s·√C_hkl)';
+        xLabel = 'X (4sinθ·√(C_hkl/C₀))';
         yLabel = 'Y (βcosθ)';
+      } else if (separationMethod === 'gwh') {
+        xLabel = 'X (4sinθ)²';
+        yLabel = 'Y (βcosθ)²';
       }
 
       return (
@@ -620,6 +649,9 @@ Goodness of Fit & Regression Statistics:
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">{xLabel}</span> <span className="text-cyan-300 font-bold">{d.x?.toExponential(3)}</span></p>
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">{yLabel}</span> <span className="text-cyan-300 font-bold">{d.y?.toExponential(3)}</span></p>
             <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">Apparent Size</span> <span className="text-emerald-300 font-bold">{d.singleSize > 0 ? `${d.singleSize.toFixed(1)} nm` : 'Bulk'}</span></p>
+            {(regressionMethod === 'wls_jacobian' || regressionMethod === 'robust_huber') && !d.isExcluded && (
+              <p className="flex justify-between gap-6"><span className="text-slate-500 uppercase">Solver Weight (w_i)</span> <span className="text-purple-300 font-bold">{Number(d.regressionWeight ?? 1).toFixed(3)}×</span></p>
+            )}
             <p className="flex justify-between gap-6 border-t border-white/5 pt-2 mt-2">
               <span className="text-slate-500 uppercase">Residual (ΔY)</span>
               <span className={`font-bold ${d.residual > 0 ? 'text-amber-400' : 'text-emerald-400'}`}>
@@ -646,6 +678,8 @@ Goodness of Fit & Regression Statistics:
         return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + \\frac{4\\sigma}{E_{hkl}} \\sin\\theta";
       case 'mwh':
         return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + 4\\varepsilon \\sin\\theta \\sqrt{\\frac{\\bar{C}_{hkl}}{\\bar{C}_0}}";
+      case 'gwh':
+        return "\\left(\\beta \\cos\\theta\\right)^2 = \\left(\\frac{K\\lambda}{D}\\right)^2 + \\varepsilon^2\\left(4\\sin\\theta\\right)^2";
       case 'udm':
       default:
         return "\\beta \\cos\\theta = \\frac{K\\lambda}{D} + 4 \\varepsilon \\sin\\theta";
@@ -654,6 +688,8 @@ Goodness of Fit & Regression Statistics:
 
   const getDecouplingFormula = () => {
     switch (decouplingMethod) {
+      case 'voigt_exact':
+        return "\\beta_{C,s} = \\beta_{C,o} - \\beta_{C,i}, \\quad \\beta_{G,s} = \\sqrt{\\beta_{G,o}^2 - \\beta_{G,i}^2}, \\quad \\beta_s = \\frac{\\beta_{G,s}}{\\operatorname{erfcx}(k_s)}";
       case 'linear':
         return "\\beta_{\\text{sample}} = \\beta_{\\text{obs}} - \\beta_{\\text{inst}} \\quad \\text{(Lorentzian/Cauchy)}";
       case 'squared':
@@ -677,28 +713,50 @@ Goodness of Fit & Regression Statistics:
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
+from scipy.special import erfcx
 
 wavelength = ${wavelength}  # Angstrom
 K = ${constantK}
 inst_beta = ${instBetaIB}  # degrees
+phi_obs_default = ${voigtShapePhi.toFixed(4)}
+phi_inst = ${instVoigtPhi.toFixed(4)}
 youngs_modulus_GPa = ${youngsModulusGPa}
 density_g_cm3 = ${materialDensityGcm3}
 
-# Active reflections: [2theta (deg), beta_obs (deg), E_hkl (GPa), C_hkl]
+# Active reflections: [2theta (deg), beta_obs (deg), E_hkl (GPa), C_hkl, phi_obs]
 raw_data = np.array([
-${(result?.pointsExtended || []).filter(p => !p.isExcluded).map(p => `    [${p.twoTheta.toFixed(4)}, ${p.betaObsDeg.toFixed(6)}, ${(p.eHklGPa || youngsModulusGPa).toFixed(3)}, ${(p.contrastFactorC || 0.16).toFixed(4)}]`).join(',\n')}
+${(result?.pointsExtended || []).filter(p => !p.isExcluded).map(p => `    [${p.twoTheta.toFixed(4)}, ${p.betaObsDeg.toFixed(6)}, ${(p.eHklGPa || youngsModulusGPa).toFixed(3)}, ${(p.contrastFactorC || 0.2081).toFixed(4)}, ${(p.shapeFactorPhi ?? voigtShapePhi).toFixed(4)}]`).join(',\n')}
 ])
 
 two_theta = raw_data[:, 0]
 beta_obs_deg = raw_data[:, 1]
 e_hkl_GPa = raw_data[:, 2]
 c_hkl = raw_data[:, 3]
+phi_obs = raw_data[:, 4]
 
 # Instrumental deconvolution
 beta_obs_rad = np.radians(beta_obs_deg)
 beta_inst_rad = np.radians(inst_beta)
 
-${decouplingMethod === 'squared' 
+${decouplingMethod === 'voigt_exact'
+  ? `# Exact Langford (1978) / de Keijser (1982) component-by-component Voigt deconvolution
+PHI_C = 2.0 / np.pi
+PHI_G = 2.0 * np.sqrt(np.log(2.0) / np.pi)
+def voigt_fractions(phi):
+    p = np.clip(phi, PHI_C, PHI_G)
+    fc = np.clip(2.0207 - 0.4803 * p - 1.7756 * p**2, 0.0, 1.0)
+    fg = np.clip(0.6420 + 1.4187 * np.sqrt(np.maximum(0.0, p - PHI_C)) - 2.2043 * p + 1.8706 * p**2, 0.0, 1.0)
+    k = fc / (np.sqrt(np.pi) * np.maximum(1e-9, fg))
+    bv = np.where(fg > 1e-6, fg / erfcx(k), fc)
+    return fc / bv, fg / bv
+
+fc_o, fg_o = voigt_fractions(phi_obs)
+fc_i, fg_i = voigt_fractions(phi_inst)
+beta_c_s = np.maximum(0.0, beta_obs_rad * fc_o - beta_inst_rad * fc_i)
+beta_g_s = np.sqrt(np.maximum(0.0, (beta_obs_rad * fg_o)**2 - (beta_inst_rad * fg_i)**2))
+k_s = beta_c_s / (np.sqrt(np.pi) * np.maximum(1e-12, beta_g_s))
+beta_sample_rad = np.where(beta_g_s > 1e-9, beta_g_s / erfcx(k_s), beta_c_s)`
+  : decouplingMethod === 'squared'
   ? 'beta_sample_rad = np.sqrt(np.maximum(0.0, beta_obs_rad**2 - beta_inst_rad**2))'
   : decouplingMethod === 'hw_voigt'
   ? '# True Halder-Wagner (1966) parabolic Voigt subtraction: beta_s = beta_obs * (1 - (beta_inst/beta_obs)^2)\nbeta_sample_rad = beta_obs_rad * np.maximum(1e-6, 1.0 - (beta_inst_rad / beta_obs_rad)**2)'
@@ -719,13 +777,32 @@ ${separationMethod === 'hw'
   : separationMethod === 'udedm'
   ? 'E_hkl_Pa = e_hkl_GPa * 1e9\nx = 4.0 * sin_t * np.sqrt(2.0 / E_hkl_Pa)\ny = beta_sample_rad * cos_t'
   : separationMethod === 'usdm'
-  ? 'E_hkl_Pa = e_hkl_GPa * 1e9\nx = 4.0 * sin_t / E_hkl_Pa\ny = beta_sample_rad * cos_t'
+  ? 'x = 4.0 * sin_t / e_hkl_GPa  # GPa^-1 (matches Williamson-Hall USDM)\ny = beta_sample_rad * cos_t'
   : separationMethod === 'mwh'
-  ? 'x = 4.0 * sin_t * np.sqrt(c_hkl / 0.16)\ny = beta_sample_rad * cos_t'
+  ? 'C0_ref = 0.285 * (1.0 - 1.35 * 0.2)  # 0.20805 isotropic powder average\nx = 4.0 * sin_t * np.sqrt(c_hkl / C0_ref)\ny = beta_sample_rad * cos_t'
+  : separationMethod === 'gwh'
+  ? 'x = (4.0 * sin_t)**2\ny = (beta_sample_rad * cos_t)**2'
   : 'x = 4.0 * sin_t\ny = beta_sample_rad * cos_t'}
 
-# Linear Regression & Student-t 95% Confidence Intervals
+# Regression Estimator: ${regressionMethod.toUpperCase()}
+${regressionMethod === 'exact_voigt_nls'
+  ? `from scipy.optimize import least_squares
+def exact_voigt_beta(params):
+    a_rad, eps = params
+    bc = a_rad / np.maximum(1e-6, cos_t)
+    bg = 4.0 * eps * tan_t
+    k = bc / (np.sqrt(np.pi) * np.maximum(1e-12, bg))
+    return np.where(bg > 1e-10, bg / erfcx(k), bc)
+
+nls = least_squares(lambda p: exact_voigt_beta(p) - beta_sample_rad, [np.mean(beta_sample_rad * cos_t) * 0.5, 0.001], bounds=([1e-8, 0.0], [1.0, 0.2]))
+a_opt, strain = nls.x
+D_nm = (K * wavelength) / a_opt / 10.0
+D_err_nm = 0.0
+beta_pred = exact_voigt_beta(nls.x)
+r_squared = 1.0 - np.sum((beta_sample_rad - beta_pred)**2) / np.sum((beta_sample_rad - np.mean(beta_sample_rad))**2)
 res = stats.linregress(x, y)
+slope, intercept = res.slope, res.intercept`
+  : `res = stats.linregress(x, y)
 slope, intercept, r_val, p_val, se_slope = res.slope, res.intercept, res.rvalue, res.pvalue, res.stderr
 se_intercept = res.intercept_stderr
 r_squared = r_val**2
@@ -738,14 +815,16 @@ ${separationMethod === 'hw'
   : separationMethod === 'udedm'
   ? 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nD_err_nm = D_nm * (se_intercept / intercept) if intercept > 0 else 0\nu_density_J_m3 = max(0.0, slope)**2\nstrain = np.sqrt((2.0 * u_density_J_m3) / (youngs_modulus_GPa * 1e9))'
   : separationMethod === 'usdm'
-  ? 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nD_err_nm = D_nm * (se_intercept / intercept) if intercept > 0 else 0\nstress_MPa = max(0.0, slope) / 1e6\nstrain = max(0.0, slope) / (youngs_modulus_GPa * 1e9)'
-  : 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nD_err_nm = D_nm * (se_intercept / intercept) if intercept > 0 else 0\nstrain = max(0.0, slope)'}
+  ? 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nD_err_nm = D_nm * (se_intercept / intercept) if intercept > 0 else 0\nstress_MPa = max(0.0, slope) * 1000.0\nstrain = max(0.0, slope) / youngs_modulus_GPa'
+  : separationMethod === 'gwh'
+  ? 'D_nm = (K * wavelength) / np.sqrt(intercept) / 10.0 if intercept > 0 else 0\nD_err_nm = 0.5 * D_nm * (se_intercept / intercept) if intercept > 0 else 0\nstrain = np.sqrt(max(0.0, slope))'
+  : 'D_nm = (K * wavelength) / intercept / 10.0 if intercept > 0 else 0\nD_err_nm = D_nm * (se_intercept / intercept) if intercept > 0 else 0\nstrain = max(0.0, slope)'}`}
 
 print("==================================================")
-print(f"Integral Breadth ${separationMethod.toUpperCase()} Regression")
+print(f"Integral Breadth ${separationMethod.toUpperCase()} (${regressionMethod.toUpperCase()})")
 print(f"R-squared: {r_squared:.5f}")
-print(f"Volume-Weighted Crystallite Size (D_v): {D_nm:.2f} +/- {D_err_nm:.2f} nm")
-print(f"Lattice Microstrain (epsilon): {strain * 1000:.3f} x 10^-3 ({strain * 100:.4f} %)")
+print(f"Volume-Weighted Crystallite Size (D_v): {D_nm:.2f} +/- {D_err_nm:.2f} nm (D_sph = {4/3*D_nm:.2f} nm)")
+print(f"Lattice Microstrain (epsilon): {strain * 1000:.3f} x 10^-3 ({strain * 100:.4f} %) | RMS = {strain * np.sqrt(2/np.pi) * 1000:.3f} x 10^-3")
 print("==================================================")
 
 # Plot with 95% Student-t Confidence Band
@@ -776,11 +855,26 @@ plt.show()
                 Stokes–Wilson Integral Breadth (β = Area / I_max) &amp; Voigt Deconvolution Workstation
               </h3>
               <span className="px-2 py-0.5 rounded bg-pink-500/15 border border-pink-500/30 text-[9px] font-mono font-bold text-pink-300 uppercase">
-                6-Model Multi-Reflection + Single-Line Voigt
+                7-Model Multi-Reflection + Exact Faddeeva–Voigt
               </span>
+              {result && (
+                <span
+                  className={`px-2 py-0.5 rounded border text-[9px] font-mono font-bold tabular-nums ${
+                    result.regression.rSquared >= 0.95
+                      ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                      : result.regression.rSquared >= 0.85
+                      ? 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
+                      : 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                  }`}
+                  title={`Adjusted R² = ${result.regression.adjustedRSquared?.toFixed(5) ?? 'N/A'} | RMSE = ${result.regression.rmse?.toExponential(3) ?? 'N/A'}`}
+                >
+                  R² = {result.regression.rSquared.toFixed(4)}
+                  {result.regression.adjustedRSquared !== undefined ? ` (Adj ${result.regression.adjustedRSquared.toFixed(4)})` : ''}
+                </span>
+              )}
             </div>
             <p className="text-[11px] text-slate-400 font-mono mt-0.5">
-              Simultaneous UDM, USDM, UDEDM, SSP, Halder–Wagner &amp; Ungár mWH separation with Langford φ &amp; de Keijser Voigt deconvolution.
+              Simultaneous UDM, USDM, UDEDM, SSP, Halder–Wagner, Ungár mWH &amp; Gaussian-WH separation with exact Langford–Voigt deconvolution.
             </p>
           </div>
         </div>
@@ -790,22 +884,22 @@ plt.show()
             {
               id: 'fit',
               title: 'Multi-Reflection IB Regression',
-              sub: 'UDM · USDM · UDEDM · SSP · H-W · mWH',
-              badge: `${separationMethod.toUpperCase()}`,
+              sub: 'UDM · USDM · UDEDM · SSP · H-W · mWH · GWH',
+              badge: `${separationMethod.toUpperCase()}${result ? ` · R²=${result.regression.rSquared.toFixed(3)}` : ''}`,
               activeTabs: ['fit', 'residuals', 'apparentSizes', 'elasticState', 'advisor']
             },
             {
               id: 'voigtProfile',
               title: 'Single-Line Voigt & Shape φ',
-              sub: 'β_IB Box · Langford φ · de Keijser (D_L, ε_G)',
+              sub: 'Exact H(k,u) · Langford φ · β_C / β_G',
               badge: `φ = ${voigtShapePhi.toFixed(2)}`,
               activeTabs: ['voigtProfile']
             },
             {
               id: 'modelMatrix',
-              title: '6-Model Comparative Matrix',
+              title: '7-Model Comparative Matrix',
               sub: 'Side-by-Side D_v, ε, σ, R², RMSE',
-              badge: 'All 6 Models',
+              badge: 'All 7 Models',
               activeTabs: ['modelMatrix']
             }
           ].map(mode => {
@@ -848,6 +942,7 @@ plt.show()
           wavelength={wavelength}
           constantK={constantK}
           instBetaIB={instBetaIB}
+          instVoigtPhi={instVoigtPhi}
           instrumentalMode={instrumentalMode}
           cagliotiU={cagliotiU}
           cagliotiV={cagliotiV}
@@ -876,7 +971,7 @@ plt.show()
                   IB Adv Config
                 </h2>
                 <p className="text-[10px] text-slate-400 font-mono mt-0.5">
-                  Integral Breadth Calibration &amp; 6-Model Solver
+                  Integral Breadth Calibration &amp; 7-Model Solver
                 </p>
               </div>
             </div>
@@ -925,8 +1020,10 @@ plt.show()
             const bestModel = (result?.modelComparisons || []).find(m => m.isBestFit);
             const highResOutliers = activePts.filter(p => Math.abs(p.studentizedResidual || 0) > 1.8).length;
 
+            const activeR2 = result?.regression.rSquared ?? 0;
+
             return (
-              <div className="mb-4 p-3 rounded-2xl bg-[#070D18] border border-slate-800/90 grid grid-cols-3 gap-2 font-mono tabular-nums relative z-10">
+              <div className="mb-4 p-3 rounded-2xl bg-[#070D18] border border-slate-800/90 grid grid-cols-2 gap-2.5 font-mono tabular-nums relative z-10">
                 <div>
                   <span className="text-[8px] text-slate-500 uppercase block">Active Peaks</span>
                   <span className="text-xs font-bold text-white">
@@ -945,7 +1042,20 @@ plt.show()
                     {meanRatio >= 2.0 ? '● Nominal Signal' : '▲ Near Inst Floor'}
                   </span>
                 </div>
-                <div>
+                <div className="pt-2 border-t border-white/5">
+                  <span className="text-[8px] text-purple-400 uppercase block font-bold">Active Fit R²</span>
+                  <span className={`text-xs font-bold ${activeR2 >= 0.95 ? 'text-emerald-400' : activeR2 >= 0.85 ? 'text-purple-300' : 'text-amber-400'}`}>
+                    {result ? activeR2.toFixed(4) : '—'}
+                  </span>
+                  <span className="text-[8px] text-slate-400 block truncate">
+                    {result?.regression.adjustedRSquared !== undefined
+                      ? `Adj R² = ${result.regression.adjustedRSquared.toFixed(4)}`
+                      : highResOutliers > 0
+                      ? `${highResOutliers} outlier(s)`
+                      : 'Ready'}
+                  </span>
+                </div>
+                <div className="pt-2 border-t border-white/5">
                   <span className="text-[8px] text-slate-500 uppercase block">Best Model Fit</span>
                   <span className="text-xs font-bold text-pink-300">
                     {bestModel ? bestModel.modelName : separationMethod.toUpperCase()}
@@ -1344,6 +1454,48 @@ plt.show()
                   </div>
                 )}
 
+                {/* Instrumental Voigt Shape Factor phi_inst Control (for Exact Component Deconvolution) */}
+                <div className="bg-[#0A101C] p-3 rounded-xl border border-slate-800 space-y-2 font-mono tabular-nums">
+                  <div className="flex items-center justify-between text-[9px]">
+                    <span className="text-slate-300 font-sans font-bold">
+                      Instrumental Voigt Shape (φ_inst)
+                    </span>
+                    <span className="text-amber-300 font-bold">
+                      φ_i = {instVoigtPhi.toFixed(3)}
+                    </span>
+                  </div>
+                  <input
+                    type="range"
+                    min={0.64}
+                    max={0.939}
+                    step={0.005}
+                    value={instVoigtPhi}
+                    onChange={(e) => setInstVoigtPhi(parseFloat(e.target.value) || 0.8226)}
+                    className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
+                  />
+                  <div className="grid grid-cols-4 gap-1">
+                    {[
+                      { label: 'Capil. 0.72', val: 0.72 },
+                      { label: 'B-B 0.82', val: 0.8226 },
+                      { label: 'Synch 0.90', val: 0.90 },
+                      { label: 'Neutr 0.93', val: 0.93 }
+                    ].map(opt => (
+                      <button
+                        key={opt.label}
+                        type="button"
+                        onClick={() => setInstVoigtPhi(opt.val)}
+                        className={`py-1 px-1 rounded border text-[8px] font-bold transition-colors cursor-pointer truncate ${
+                          Math.abs(instVoigtPhi - opt.val) < 0.015
+                            ? 'bg-amber-500/20 border-amber-500/50 text-amber-300'
+                            : 'bg-[#070D18] border-slate-800 text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* Live SVG Instrumental Resolution vs Sample Breadth Sparkline */}
                 {(() => {
                   const pts = result?.pointsExtended || [];
@@ -1421,13 +1573,13 @@ plt.show()
               </div>
             )}
 
-            {/* STAGE 3: Deconvolution Law & 6-Model Separation Solver with Live Telemetry */}
+            {/* STAGE 3: Deconvolution Law & 7-Model Separation Solver with Live Telemetry */}
             {(configSection === 'all' || configSection === 'models') && (
               <div className="bg-[#070D18] p-4 rounded-2xl border border-slate-800/90 space-y-5">
                 <div className="flex items-center justify-between border-b border-white/5 pb-2.5">
                   <span className="text-[10px] font-black text-white uppercase tracking-wider flex items-center gap-2">
                     <Layers className="w-3.5 h-3.5 text-pink-400" />
-                    03. Deconvolution &amp; 6-Model Solver
+                    03. Deconvolution &amp; 7-Model Solver
                   </span>
                   <div className="flex items-center gap-1.5">
                     {result?.pointsExtended && result.pointsExtended.some(p => Math.abs(p.studentizedResidual || 0) > 1.8 && !p.isExcluded) && (
@@ -1450,7 +1602,9 @@ plt.show()
                    ===================================================================== */}
                 {(() => {
                   const activePts = (result?.pointsExtended || []).filter(p => !p.isExcluded && p.betaObsDeg > 0);
-                  const computeLawPreview = (lawId: 'linear' | 'squared' | 'hw_voigt' | 'none') => {
+                  const instFrac = computeDeKeijserVoigtFractions(instVoigtPhi);
+
+                  const computeLawPreview = (lawId: IBDecouplingMethodKey) => {
                     if (activePts.length === 0) return { meanSampleDeg: 0, retentionPct: 100 };
                     let sumSample = 0;
                     let sumPct = 0;
@@ -1458,7 +1612,12 @@ plt.show()
                       const bObs = p.betaObsDeg;
                       const bInst = Math.min(bObs * 0.98, p.betaInstDeg);
                       let bS = bObs;
-                      if (lawId === 'linear') {
+                      if (lawId === 'voigt_exact') {
+                        const obsFrac = computeDeKeijserVoigtFractions(p.shapeFactorPhi ?? voigtShapePhi);
+                        const bCs = Math.max(0, bObs * obsFrac.fCauchy - bInst * instFrac.fCauchy);
+                        const bGs = Math.sqrt(Math.max(0, Math.pow(bObs * obsFrac.fGauss, 2) - Math.pow(bInst * instFrac.fGauss, 2)));
+                        bS = Math.max(1e-5, computeLangfordVoigtBreadth(bCs, bGs));
+                      } else if (lawId === 'linear') {
                         bS = Math.max(1e-5, bObs - bInst);
                       } else if (lawId === 'squared') {
                         bS = Math.sqrt(Math.max(1e-10, bObs * bObs - bInst * bInst));
@@ -1475,11 +1634,11 @@ plt.show()
                     };
                   };
 
-                  const recommendedLaw: 'linear' | 'squared' | 'hw_voigt' =
-                    voigtShapePhi < 0.70 ? 'linear' : voigtShapePhi > 0.88 ? 'squared' : 'hw_voigt';
+                  const recommendedLaw: IBDecouplingMethodKey =
+                    voigtShapePhi < 0.67 ? 'linear' : voigtShapePhi > 0.90 ? 'squared' : 'voigt_exact';
 
                   const subtractionLaws: Array<{
-                    id: 'linear' | 'squared' | 'hw_voigt' | 'none';
+                    id: IBDecouplingMethodKey;
                     code: string;
                     label: string;
                     profileTag: string;
@@ -1487,12 +1646,28 @@ plt.show()
                     regimeDesc: string;
                   }> = [
                     {
+                      id: 'voigt_exact',
+                      code: 'VOIGT-EXACT',
+                      label: 'Exact Langford–Voigt',
+                      profileTag: '0.67 ≤ φ ≤ 0.90',
+                      eq: 'β_s = β_G,s / erfcx(k_s)',
+                      regimeDesc: 'Exact component deconvolution: β_C,s = β_C,o − β_C,i (linear) and β_G,s = √(β_G,o² − β_G,i²) (quadratic), recombined via Langford Faddeeva Voigt.'
+                    },
+                    {
+                      id: 'hw_voigt',
+                      code: 'VOIGT-HW',
+                      label: 'Halder-Wagner Voigt',
+                      profileTag: 'Parabolic Approx.',
+                      eq: 'β_s = β_obs · [1 − (β_inst / β_obs)²]',
+                      regimeDesc: 'Parabolic Voigt approximation coupling Cauchy size and Gaussian strain without component inversion.'
+                    },
+                    {
                       id: 'linear',
                       code: 'CAUCHY',
                       label: 'Linear (Lorentzian)',
                       profileTag: 'φ → 0.637',
                       eq: 'β_s = β_obs − β_inst',
-                      regimeDesc: 'Exact deconvolution when both instrumental and sample profiles are Lorentzian (size-dominated).'
+                      regimeDesc: 'Exact deconvolution when both instrumental and sample profiles are pure Cauchy/Lorentzian (size-dominated).'
                     },
                     {
                       id: 'squared',
@@ -1500,15 +1675,7 @@ plt.show()
                       label: 'Quadratic (Gaussian)',
                       profileTag: 'φ → 0.939',
                       eq: 'β_s = √(β_obs² − β_inst²)',
-                      regimeDesc: 'Exact deconvolution when broadening follows Gaussian statistics (microstrain & slit optics).'
-                    },
-                    {
-                      id: 'hw_voigt',
-                      code: 'VOIGT-HW',
-                      label: 'Halder-Wagner Voigt',
-                      profileTag: '0.70 ≤ φ ≤ 0.88',
-                      eq: 'β_s = β_obs · [1 − (β_inst / β_obs)²]',
-                      regimeDesc: 'Parabolic Voigt approximation coupling Cauchy size and Gaussian strain without Fourier transform.'
+                      regimeDesc: 'Exact deconvolution when both profiles follow pure Gaussian statistics (microstrain & slit optics).'
                     },
                     {
                       id: 'none',
@@ -1635,18 +1802,20 @@ plt.show()
                 })()}
 
                 {/* =====================================================================
-                    2. MULTI-REFLECTION SEPARATION FORMALISM (6-MODEL SOLVER)
+                    2. MULTI-REFLECTION SEPARATION FORMALISM (7-MODEL SOLVER)
                    ===================================================================== */}
                 {(() => {
                   const bestFitItem = (result?.modelComparisons || []).find(m => m.isBestFit);
-                  const bestMethodKey = bestFitItem
+                  const bestMethodKey: IBSeparationMethodKey | null = bestFitItem
                     ? bestFitItem.modelName === 'Halder-Wagner'
                       ? 'hw'
-                      : (bestFitItem.modelName.toLowerCase() as 'udm' | 'usdm' | 'udedm' | 'ssp' | 'mwh')
+                      : bestFitItem.modelName === 'Gaussian-WH'
+                      ? 'gwh'
+                      : (bestFitItem.modelName.toLowerCase() as IBSeparationMethodKey)
                     : null;
 
                   const formalisms: Array<{
-                    id: 'udm' | 'usdm' | 'udedm' | 'ssp' | 'hw' | 'mwh';
+                    id: IBSeparationMethodKey;
                     matchKey: string;
                     code: string;
                     title: string;
@@ -1662,7 +1831,7 @@ plt.show()
                       matchKey: 'UDM',
                       code: 'UDM',
                       title: 'Uniform Deformation',
-                      domainTag: 'Isotropic Strain',
+                      domainTag: 'Cauchy–Cauchy',
                       yAxis: 'β_s · cosθ',
                       xAxis: '4 · sinθ',
                       slopeMeaning: 'Slope m = ε (Microstrain)',
@@ -1728,6 +1897,18 @@ plt.show()
                       slopeMeaning: 'Slope m = ε_disloc (Anisotropic)',
                       interceptMeaning: 'Intercept c = Kλ / D_v',
                       sizeFrom: 'INTERCEPT'
+                    },
+                    {
+                      id: 'gwh',
+                      matchKey: 'Gaussian-WH',
+                      code: 'GWH',
+                      title: 'Gaussian–WH (Quad)',
+                      domainTag: 'Gauss–Gauss Limit',
+                      yAxis: '(β_s · cosθ)²',
+                      xAxis: '(4 · sinθ)²',
+                      slopeMeaning: 'Slope m = ε² (Quadratic Strain)',
+                      interceptMeaning: 'Intercept c = (Kλ / D_v)²',
+                      sizeFrom: 'INTERCEPT'
                     }
                   ];
 
@@ -1741,7 +1922,7 @@ plt.show()
                             2. Multi-Reflection Separation Formalism
                           </label>
                           <span className="text-[9px] font-mono text-slate-400">
-                            Simultaneous 6-model regression with live D_v, ε, and R² ranking
+                            Simultaneous 7-model KKT-NNLS regression with live D_v, ε, and R² ranking
                           </span>
                         </div>
                         <div className="flex items-center gap-1.5 shrink-0">
@@ -1865,27 +2046,216 @@ plt.show()
                             D_v from {activeFormalism.sizeFrom}
                           </span>
                         </div>
-                        <div className="grid grid-cols-2 gap-2 text-[8.5px]">
+                        <div className="grid grid-cols-3 gap-1.5 text-[8.5px]">
                           <div className="p-2 rounded-lg bg-black/40 border border-white/5">
-                            <span className="text-slate-500 block uppercase text-[7.5px]">Regression Slope (m)</span>
+                            <span className="text-slate-500 block uppercase text-[7.5px]">Slope (m)</span>
                             <span className="text-cyan-300 font-bold block truncate mt-0.5">
                               {activeFormalism.slopeMeaning}
                             </span>
-                            <span className="text-slate-400 block mt-0.5">
-                              m = {result ? result.regression.slope.toExponential(3) : '—'}
+                            <span className="text-slate-400 block mt-0.5 truncate">
+                              {result ? result.regression.slope.toExponential(2) : '—'}
                             </span>
                           </div>
                           <div className="p-2 rounded-lg bg-black/40 border border-white/5">
-                            <span className="text-slate-500 block uppercase text-[7.5px]">Y-Axis Intercept (c)</span>
+                            <span className="text-slate-500 block uppercase text-[7.5px]">Intercept (c)</span>
                             <span className="text-emerald-300 font-bold block truncate mt-0.5">
                               {activeFormalism.interceptMeaning}
                             </span>
-                            <span className="text-slate-400 block mt-0.5">
-                              c = {result ? result.regression.intercept.toExponential(3) : '—'}
+                            <span className="text-slate-400 block mt-0.5 truncate">
+                              {result ? result.regression.intercept.toExponential(2) : '—'}
+                            </span>
+                          </div>
+                          <div className="p-2 rounded-lg bg-black/40 border border-purple-500/25">
+                            <span className="text-purple-400 block uppercase text-[7.5px] font-bold">Fit R²</span>
+                            <span className="text-white font-bold block truncate mt-0.5">
+                              {result ? result.regression.rSquared.toFixed(4) : '—'}
+                            </span>
+                            <span className="text-slate-400 block mt-0.5 truncate">
+                              Adj {result?.regression.adjustedRSquared !== undefined ? result.regression.adjustedRSquared.toFixed(3) : '—'}
                             </span>
                           </div>
                         </div>
                       </div>
+
+                      {/* =====================================================================
+                          3. REGRESSION ESTIMATOR & EXACT VOIGT NONLINEAR SOLVER
+                         ===================================================================== */}
+                      {(() => {
+                        const estimators: Array<{
+                          id: IBRegressionMethodKey;
+                          code: string;
+                          label: string;
+                          tag: string;
+                          desc: string;
+                        }> = [
+                          {
+                            id: 'exact_voigt_nls',
+                            code: 'VOIGT-NLS',
+                            label: 'Exact Faddeeva–Voigt LM',
+                            tag: 'ZERO-BIAS',
+                            desc: 'Direct nonlinear Levenberg–Marquardt fit of β_s = β_G / erfcx(k) in breadth space. Eliminates Cauchy (UDM) and parabolic (HW/SSP) linearization bias.'
+                          },
+                          {
+                            id: 'wls_jacobian',
+                            code: 'WLS-JAC',
+                            label: 'Jacobian Inverse-Var WLS',
+                            tag: 'BLUE',
+                            desc: 'Propagates σ_β through |∂Y/∂β| so low-angle peaks cannot hijack HW, SSP, or GWH squared transforms.'
+                          },
+                          {
+                            id: 'robust_huber',
+                            code: 'HUBER-IRLS',
+                            label: 'Robust Huber IRLS',
+                            tag: 'OUTLIER-SAFE',
+                            desc: 'Iteratively downweights anisotropic or noisy reflections via MAD scale without hard-deleting peaks.'
+                          },
+                          {
+                            id: 'ols',
+                            code: 'OLS-KKT',
+                            label: 'Centered Ordinary LS',
+                            tag: 'TEXTBOOK',
+                            desc: 'Equal-weight centered linear regression with non-negative KKT boundary projection.'
+                          }
+                        ];
+
+                        const activeEst = estimators.find(e => e.id === regressionMethod) || estimators[1];
+                        const voigtBm = result?.exactVoigtBenchmark;
+                        const udmComp = (result?.modelComparisons || []).find(m => m.modelName === 'UDM');
+                        const hwComp = (result?.modelComparisons || []).find(m => m.modelName === 'Halder-Wagner');
+
+                        return (
+                          <div className="space-y-2.5 pt-3 border-t border-white/5 font-mono tabular-nums">
+                            <div className="flex items-center justify-between gap-2">
+                              <div>
+                                <label className="block text-[10px] font-sans font-black text-slate-200 uppercase tracking-wider">
+                                  3. Regression Estimator &amp; Weighting
+                                </label>
+                                <span className="text-[9px] text-slate-400">
+                                  Controls how reflection variance and Voigt curvature are solved
+                                </span>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={() => setRegressionMethod('exact_voigt_nls')}
+                                className={`px-2 py-1 rounded-lg border text-[8.5px] font-bold transition-colors cursor-pointer shrink-0 ${
+                                  regressionMethod === 'exact_voigt_nls'
+                                    ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-300'
+                                    : 'bg-cyan-500/10 hover:bg-cyan-500/20 border-cyan-500/30 text-cyan-300'
+                                }`}
+                                title="Switch to direct Exact Langford–Faddeeva Voigt Nonlinear Least Squares"
+                              >
+                                {regressionMethod === 'exact_voigt_nls' ? '● Exact Voigt Active' : 'Use Exact Voigt'}
+                              </button>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-1.5">
+                              {estimators.map(est => {
+                                const isSel = regressionMethod === est.id;
+                                return (
+                                  <button
+                                    key={est.id}
+                                    type="button"
+                                    onClick={() => setRegressionMethod(est.id)}
+                                    className={`p-2.5 rounded-xl text-left border transition-all cursor-pointer ${
+                                      isSel
+                                        ? 'bg-pink-500/15 border-pink-500/60 text-white'
+                                        : 'bg-[#0A101C] border-slate-800/90 text-slate-400 hover:text-slate-200 hover:border-slate-700'
+                                    }`}
+                                  >
+                                    <div className="flex items-center justify-between gap-1 mb-1">
+                                      <span className={`text-[8.5px] font-bold px-1.5 py-0.5 rounded border ${
+                                        isSel
+                                          ? 'bg-pink-500/25 border-pink-400/50 text-pink-200'
+                                          : 'bg-black/40 border-white/5 text-slate-300'
+                                      }`}>
+                                        {est.code}
+                                      </span>
+                                      <span className={`text-[7.5px] font-bold px-1 py-0.5 rounded ${
+                                        est.id === 'exact_voigt_nls'
+                                          ? 'bg-emerald-500/15 text-emerald-300 border border-emerald-500/30'
+                                          : 'text-slate-500'
+                                      }`}>
+                                        {est.tag}
+                                      </span>
+                                    </div>
+                                    <div className="text-[10px] font-sans font-bold text-white leading-tight">
+                                      {est.label}
+                                    </div>
+                                  </button>
+                                );
+                              })}
+                            </div>
+
+                            {/* Active Estimator Explanation + Live Exact Voigt Parity & Convention Breakdown */}
+                            <div className="p-3 rounded-xl bg-[#0A101C] border border-slate-800/90 space-y-2.5 text-[8.5px]">
+                              <p className="text-slate-400 leading-relaxed">
+                                <strong className="text-pink-300">{activeEst.code}:</strong> {activeEst.desc}
+                              </p>
+
+                              {voigtBm && result && (
+                                <div className="grid grid-cols-2 gap-2 pt-2 border-t border-white/5">
+                                  <div className="p-2 rounded-lg bg-black/40 border border-emerald-500/25">
+                                    <span className="text-[7.5px] text-emerald-400 uppercase font-bold block">
+                                      Exact Voigt NLS Truth
+                                    </span>
+                                    <div className="text-[10px] font-bold text-white mt-0.5">
+                                      Dv = {voigtBm.sizeNm.toFixed(1)} nm · ε = {(voigtBm.strainPercent * 10).toFixed(2)}×10⁻³
+                                    </div>
+                                    <div className="text-[7.5px] text-slate-400 mt-0.5">
+                                      R²(β) = {voigtBm.rSquaredBeta.toFixed(4)} · LM {voigtBm.iterations} it
+                                    </div>
+                                  </div>
+                                  <div className="p-2 rounded-lg bg-black/40 border border-cyan-500/25">
+                                    <span className="text-[7.5px] text-cyan-400 uppercase font-bold block">
+                                      Size &amp; Strain Conventions
+                                    </span>
+                                    <div className="text-[9.5px] font-bold text-white mt-0.5">
+                                      D_sph = {result.meanSphericalDiameterNm?.toFixed(1)} nm (4/3·Dv)
+                                    </div>
+                                    <div className="text-[7.5px] text-slate-400 mt-0.5">
+                                      RMS={((result.rmsStrainPercent || 0) * 10).toFixed(2)} · 2ε={((result.halderWagnerStrain2EpsPercent || 0) * 10).toFixed(2)}×10⁻³
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+
+                              {udmComp && hwComp && voigtBm && (
+                                <div className="pt-2 border-t border-white/5 text-[8px] text-slate-400 space-y-1">
+                                  <div className="flex items-center justify-between text-slate-300 font-bold">
+                                    <span>Physics Parity (Cauchy vs Voigt vs Parabolic)</span>
+                                    {result?.regression.weightedEffectiveN !== undefined && (
+                                      <span className="text-purple-300">
+                                        N_eff={result.regression.weightedEffectiveN.toFixed(1)}
+                                        {result.regression.downweightedOutlierCount ? ` · ${result.regression.downweightedOutlierCount} Huber↓` : ''}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-3 gap-1.5 text-[7.5px]">
+                                    <div className="px-1.5 py-1 rounded bg-black/30 border border-white/5">
+                                      <span className="text-slate-500 block">UDM (Cauchy)</span>
+                                      <span className="text-slate-200 block">{udmComp.sizeNm.toFixed(1)} nm / {(udmComp.strainPercent * 10).toFixed(2)}</span>
+                                      <span className="text-purple-300/90 block">R²={udmComp.rSquared.toFixed(4)}</span>
+                                    </div>
+                                    <div className="px-1.5 py-1 rounded bg-black/30 border border-emerald-500/20">
+                                      <span className="text-emerald-400 block">Exact Voigt</span>
+                                      <span className="text-white font-bold block">{voigtBm.sizeNm.toFixed(1)} nm / {(voigtBm.strainPercent * 10).toFixed(2)}</span>
+                                      <span className="text-emerald-300 block">R²={voigtBm.rSquaredBeta.toFixed(4)}</span>
+                                    </div>
+                                    <div className="px-1.5 py-1 rounded bg-black/30 border border-white/5">
+                                      <span className="text-slate-500 block">H–W (Parabolic)</span>
+                                      <span className="text-slate-200 block">{hwComp.sizeNm.toFixed(1)} nm / {(hwComp.strainPercent * 10).toFixed(2)}</span>
+                                      <span className="text-purple-300/90 block">R²={hwComp.rSquared.toFixed(4)}</span>
+                                    </div>
+                                  </div>
+                                  <p className="text-[7.5px] text-slate-500 leading-snug pt-0.5">
+                                    Note: Linear UDM assumes Cauchy–Cauchy additivity (underestimates ε on Voigt peaks), Halder–Wagner approximates β²≈β_Cβ+β_G², and Exact Voigt NLS solves β_s=β_G/erfcx(k) directly without linearization bias.
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
                     </div>
                   );
                 })()}
@@ -2100,18 +2470,32 @@ plt.show()
           <ScientificMathControl
             title={`Size-Strain Separation (${separationMethod.toUpperCase()} Model)`}
             formula={getMethodFormula()}
-            description={`${separationMethod === 'udm' ? 'Uniform Deformation Model (UDM)' : separationMethod === 'usdm' ? 'Uniform Stress Deformation Model (USDM)' : separationMethod === 'hw' ? 'Halder-Wagner (HW) Voigt parabolic deconvolution' : separationMethod === 'ssp' ? 'Size-Strain Plot (SSP) method' : separationMethod === 'mwh' ? 'Modified Williamson-Hall with dislocation contrast factors' : 'Uniform Deformation Energy Density Model (UDEDM)'} separating lattice microstrain and crystallite size contributions.`}
+            description={`${
+              separationMethod === 'udm'
+                ? 'Uniform Deformation Model (UDM, Cauchy–Cauchy additive limit)'
+                : separationMethod === 'usdm'
+                ? 'Uniform Stress Deformation Model (USDM) with cubic anisotropic E_hkl'
+                : separationMethod === 'hw'
+                ? 'Halder-Wagner (HW) parabolic Voigt size–strain separation'
+                : separationMethod === 'ssp'
+                ? 'Size-Strain Plot (SSP) d-weighted parabolic Voigt separation'
+                : separationMethod === 'mwh'
+                ? 'Modified Williamson-Hall (Ungár) with dislocation contrast factors C_hkl'
+                : separationMethod === 'gwh'
+                ? 'Gaussian–Gaussian Quadratic Williamson-Hall (GWH) variance convolution limit'
+                : 'Uniform Deformation Energy Density Model (UDEDM)'
+            } separating lattice microstrain and volume-weighted crystallite size.`}
             variables={[
-              { symbol: 'Slope', name: 'Regression Slope', value: result.regression.slope, unit: '' },
-              { symbol: 'Intercept', name: 'Regression Intercept', value: result.regression.intercept, unit: '' },
-              { symbol: 'R²', name: 'Coefficient of Determination', value: result.regression.rSquared, unit: '' },
-              { symbol: 'Adj R²', name: 'Adjusted R-Squared', value: result.regression.adjustedRSquared || result.regression.rSquared, unit: '' },
-              { symbol: 'E', name: 'Young\'s Modulus', value: youngsModulusGPa, unit: 'GPa' },
-              { symbol: 'ρ', name: 'Material Density', value: materialDensityGcm3, unit: 'g/cm³' }
+              { symbol: 'K', name: 'Scherrer Shape Factor', value: constantK, unit: '' },
+              { symbol: 'λ', name: 'X-Ray Wavelength', value: wavelength, unit: 'Å' },
+              { symbol: 'm', name: 'Regression Slope', value: result.regression.slope, unit: '' },
+              { symbol: 'c', name: 'Regression Intercept', value: result.regression.intercept, unit: '' },
+              { symbol: 'E', name: "Young's Modulus", value: youngsModulusGPa, unit: 'GPa' },
+              { symbol: 'R²', name: 'Goodness of Fit', value: result.regression.rSquared, unit: '' }
             ]}
             result={result.sizeInterceptNm}
             resultUnit="nm"
-            resultName="Unified Crystallite Size (D)"
+            resultName="Volume-Weighted Crystallite Size (D_V)"
           />
         )}
 
@@ -2130,10 +2514,24 @@ plt.show()
                 </div>
                 {result?.fitRegime && result.fitRegime !== 'standard_ols' && (
                   <span
-                    className="text-[7px] px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/30 uppercase font-bold"
-                    title={result.fitRegime === 'voigt_regularized' ? 'Unconstrained OLS intercept ≤ 0 regularized via Halder-Wagner Parabolic Voigt coupling' : 'Non-Negative Least Squares zero-strain boundary'}
+                    className={`text-[7px] px-1.5 py-0.5 rounded uppercase font-bold border ${
+                      result.fitRegime === 'exact_voigt_nls'
+                        ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                        : 'bg-amber-500/15 text-amber-300 border-amber-500/30'
+                    }`}
+                    title={
+                      result.fitRegime === 'exact_voigt_nls'
+                        ? 'Direct Langford–Faddeeva Exact Voigt Nonlinear Least Squares in breadth space'
+                        : result.fitRegime === 'voigt_regularized'
+                        ? 'Unconstrained OLS intercept ≤ 0 regularized via Halder-Wagner Parabolic Voigt coupling'
+                        : 'Non-Negative Least Squares zero-strain boundary'
+                    }
                   >
-                    {result.fitRegime === 'voigt_regularized' ? 'Voigt-Reg' : 'NNLS ε=0'}
+                    {result.fitRegime === 'exact_voigt_nls'
+                      ? 'Voigt-NLS'
+                      : result.fitRegime === 'voigt_regularized'
+                      ? 'Voigt-Reg'
+                      : 'NNLS ε=0'}
                   </span>
                 )}
               </div>
@@ -2178,8 +2576,13 @@ plt.show()
                 <span className="text-[10px] font-bold text-cyan-400">×10⁻³</span>
               </div>
             </div>
-            <div className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono truncate">
-              {result ? `${result.strainPercent.toFixed(3)}${result.strainErrorPercent ? ` ±${result.strainErrorPercent.toFixed(3)}` : ''}% • RMS=${result.rmsStrainPercent?.toFixed(3) || '-'}%` : '-'}
+            <div
+              className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono truncate"
+              title="ε = β_S / (4 tanθ) upper-bound strain; RMS = √(2/π)·ε; 2ε = Halder-Wagner factor-of-2 convention"
+            >
+              {result
+                ? `RMS=${((result.rmsStrainPercent || 0) * 10).toFixed(2)} · 2ε=${((result.halderWagnerStrain2EpsPercent || 0) * 10).toFixed(2)}×10⁻³`
+                : '-'}
             </div>
           </div>
 
@@ -2236,24 +2639,56 @@ plt.show()
           </div>
 
           {/* Fit Quality R² */}
-          <div className="bg-[#0B0F19] p-4 rounded-lg border border-slate-800 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
+          <div className="bg-[#0B0F19] p-4 rounded-lg border border-purple-500/35 relative overflow-hidden flex flex-col justify-between font-mono tabular-nums">
             <div className="h-0.5 w-full bg-purple-400 absolute top-0 left-0 right-0" />
             <div>
-              <div className="flex items-center gap-1.5 mb-2">
-                <div className="p-1 rounded bg-[#070A12] border border-purple-500/30 text-purple-400">
-                  <Sliders className="w-3.5 h-3.5" />
+              <div className="flex items-center justify-between gap-1.5 mb-2">
+                <div className="flex items-center gap-1.5">
+                  <div className="p-1 rounded bg-[#070A12] border border-purple-500/30 text-purple-400">
+                    <Sliders className="w-3.5 h-3.5" />
+                  </div>
+                  <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest font-sans">Fit Quality (R²)</span>
                 </div>
-                <span className="text-[9px] font-black text-purple-400 uppercase tracking-widest font-sans">Fit Quality (R²)</span>
+                {result && (
+                  <span className={`text-[7px] px-1.5 py-0.5 rounded uppercase font-bold border ${
+                    result.regression.rSquared >= 0.95
+                      ? 'bg-emerald-500/15 text-emerald-300 border-emerald-500/40'
+                      : result.regression.rSquared >= 0.85
+                      ? 'bg-cyan-500/15 text-cyan-300 border-cyan-500/40'
+                      : 'bg-amber-500/15 text-amber-300 border-amber-500/40'
+                  }`}>
+                    {result.regression.rSquared >= 0.95 ? 'Excellent' : result.regression.rSquared >= 0.85 ? 'Good' : 'Moderate'}
+                  </span>
+                )}
               </div>
               <div className="flex items-baseline gap-1.5">
                 <span className="text-2xl font-black text-white font-mono">
                   {result ? result.regression.rSquared.toFixed(4) : '-'}
                 </span>
+                {result && (
+                  <span className="text-[9px] text-purple-300/90 font-bold">
+                    ({(result.regression.rSquared * 100).toFixed(1)}%)
+                  </span>
+                )}
               </div>
+              {result && (
+                <div className="mt-2 h-1 w-full bg-slate-800/90 rounded-full overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${
+                      result.regression.rSquared >= 0.95
+                        ? 'bg-emerald-400'
+                        : result.regression.rSquared >= 0.85
+                        ? 'bg-purple-400'
+                        : 'bg-amber-400'
+                    }`}
+                    style={{ width: `${Math.max(4, Math.min(100, result.regression.rSquared * 100))}%` }}
+                  />
+                </div>
+              )}
             </div>
-            <div className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between">
-              <span>Adj: {result?.regression.adjustedRSquared ? result.regression.adjustedRSquared.toFixed(3) : '-'}</span>
-              <span>F={result?.regression.fStatistic ? result.regression.fStatistic.toFixed(1) : '-'}</span>
+            <div className="mt-3 pt-2 border-t border-slate-800/80 text-[8px] text-slate-400 uppercase tracking-wider font-mono flex items-center justify-between gap-1">
+              <span>Adj R²={result?.regression.adjustedRSquared !== undefined ? result.regression.adjustedRSquared.toFixed(3) : '-'}</span>
+              <span>r={result?.regression.pearsonR !== undefined ? result.regression.pearsonR.toFixed(3) : '-'} · F={result?.regression.fStatistic ? result.regression.fStatistic.toFixed(1) : '-'}</span>
             </div>
           </div>
         </div>
@@ -2316,20 +2751,66 @@ plt.show()
 
           {/* Tab 1: Regression Chart */}
           {activeChartTab === 'fit' && (
-            <div className="flex flex-col h-[400px]">
-              <div className="flex justify-between items-center mb-2 px-2 text-[10px] font-mono text-slate-400">
-                <span className="flex items-center gap-2">
+            <div className="flex flex-col h-[410px]">
+              <div className="flex flex-wrap justify-between items-center gap-2 mb-2 px-2 text-[10px] font-mono text-slate-400 tabular-nums">
+                <span className="flex items-center gap-2 flex-wrap">
                   <span>Model: <span className="text-pink-400 font-bold">{separationMethod.toUpperCase()}</span></span>
                   <span className="text-slate-600">|</span>
                   <span>Decoupling: <span className="text-amber-400 font-bold">{decouplingMethod.toUpperCase()}</span></span>
+                  <span className="text-slate-600">|</span>
+                  <span>Solver: <span className="text-emerald-400 font-bold">{regressionMethod.toUpperCase()}</span></span>
                 </span>
                 {result && (
-                  <span className="text-cyan-300">
-                    y = {result.regression.slope.toFixed(5)}x + {result.regression.intercept.toFixed(5)}
-                  </span>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="text-cyan-300">
+                      {regressionMethod === 'exact_voigt_nls'
+                        ? 'Exact Voigt LM: β_s = β_G / erfcx(k)'
+                        : `y = ${result.regression.slope.toExponential(3)}x + ${result.regression.intercept.toExponential(3)}`}
+                    </span>
+                    <span className={`px-2 py-0.5 rounded border font-bold ${
+                      result.regression.rSquared >= 0.95
+                        ? 'bg-emerald-500/15 border-emerald-500/40 text-emerald-300'
+                        : result.regression.rSquared >= 0.85
+                        ? 'bg-purple-500/15 border-purple-500/40 text-purple-300'
+                        : 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                    }`}>
+                      R² = {result.regression.rSquared.toFixed(5)}
+                      {result.regression.adjustedRSquared !== undefined ? ` · Adj R² = ${result.regression.adjustedRSquared.toFixed(4)}` : ''}
+                    </span>
+                  </div>
                 )}
               </div>
-              <div className="flex-1 w-full min-h-0 bg-[#070D18] rounded-2xl p-4 border border-white/5">
+              <div className="flex-1 w-full min-h-0 bg-[#070D18] rounded-2xl p-4 border border-white/5 relative">
+                {result && (
+                  <div className="hidden sm:block absolute top-3 right-5 z-10 pointer-events-none bg-[#050A14]/90 backdrop-blur-sm border border-purple-500/35 rounded-xl px-3 py-2 font-mono tabular-nums text-[9.5px] shadow-lg">
+                    <div className="flex items-center justify-between gap-4 border-b border-white/10 pb-1 mb-1">
+                      <span className="text-purple-300 font-bold uppercase tracking-wider">Regression R²</span>
+                      <span className={`font-black text-xs ${
+                        result.regression.rSquared >= 0.95
+                          ? 'text-emerald-400'
+                          : result.regression.rSquared >= 0.85
+                          ? 'text-purple-300'
+                          : 'text-amber-400'
+                      }`}>
+                        {result.regression.rSquared.toFixed(5)}
+                      </span>
+                    </div>
+                    <div className="space-y-0.5 text-[8.5px] text-slate-300">
+                      <div className="flex justify-between gap-4">
+                        <span className="text-slate-500">Adj R²</span>
+                        <span>{result.regression.adjustedRSquared !== undefined ? result.regression.adjustedRSquared.toFixed(5) : '—'}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-slate-500">Pearson r</span>
+                        <span>{result.regression.pearsonR !== undefined ? result.regression.pearsonR.toFixed(4) : '—'}</span>
+                      </div>
+                      <div className="flex justify-between gap-4">
+                        <span className="text-slate-500">RMSE</span>
+                        <span className="text-cyan-300">{result.regression.rmse !== undefined ? result.regression.rmse.toExponential(2) : '—'}</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
                 <ResponsiveContainer width="100%" height="100%">
                   <ComposedChart data={chartData} margin={{ top: 10, right: 30, left: 20, bottom: 40 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -2338,7 +2819,20 @@ plt.show()
                       type="number" 
                       domain={['auto', 'auto']}
                       label={{ 
-                        value: separationMethod === 'hw' ? 'X = β/(tanθ·sinθ)' : separationMethod === 'ssp' ? 'X = d²·βcosθ' : separationMethod === 'udedm' ? 'X = 4sinθ·√(2/E)' : separationMethod === 'usdm' ? 'X = 4sinθ/E' : separationMethod === 'mwh' ? 'X = s·√C_hkl' : 'X = 4 sin(θ)', 
+                        value:
+                          separationMethod === 'hw'
+                            ? 'X = β/(tanθ·sinθ)'
+                            : separationMethod === 'ssp'
+                            ? 'X = d²·βcosθ'
+                            : separationMethod === 'udedm'
+                            ? 'X = 4sinθ·√(2/E)'
+                            : separationMethod === 'usdm'
+                            ? 'X = 4sinθ / E_hkl (GPa⁻¹)'
+                            : separationMethod === 'mwh'
+                            ? 'X = 4sinθ·√(C_hkl/C₀)'
+                            : separationMethod === 'gwh'
+                            ? 'X = (4 sinθ)²'
+                            : 'X = 4 sin(θ)', 
                         position: 'bottom', 
                         offset: 20, 
                         fill: '#94a3b8', 
@@ -2352,7 +2846,14 @@ plt.show()
                     <YAxis 
                       domain={['auto', 'auto']}
                       label={{ 
-                        value: separationMethod === 'hw' ? 'Y = (β/tanθ)²' : separationMethod === 'ssp' ? 'Y = (d·βcosθ)²' : 'Y = β_sample cos(θ)', 
+                        value:
+                          separationMethod === 'hw'
+                            ? 'Y = (β/tanθ)²'
+                            : separationMethod === 'ssp'
+                            ? 'Y = (d·βcosθ)²'
+                            : separationMethod === 'gwh'
+                            ? 'Y = (β_sample cosθ)²'
+                            : 'Y = β_sample cos(θ)', 
                         angle: -90, 
                         position: 'insideLeft', 
                         offset: -10, 
@@ -2412,7 +2913,7 @@ plt.show()
             </div>
           )}
 
-          {/* Tab 1B: Single-Line Voigt & Equivalent Integral Breadth Rectangle Visualizer (Merged from IntegralBreadthModule) */}
+          {/* Tab 1B: Single-Line Exact Faddeeva-Voigt & Equivalent Integral Breadth Rectangle Visualizer */}
           {activeChartTab === 'voigtProfile' && (() => {
             const pts = result?.pointsExtended || [];
             const safeIdx = Math.min(Math.max(0, selectedVoigtPeakIdx), Math.max(0, pts.length - 1));
@@ -2421,6 +2922,7 @@ plt.show()
             const betaObsDeg = activePt ? activePt.betaObsDeg : 0.25;
             const iMaxVal = 1000;
             const areaVal = betaObsDeg * iMaxVal;
+            const effectivePhi = activePt?.shapeFactorPhi ?? voigtShapePhi;
             const fwhmSynthesized = betaObsDeg * voigtShapePhi;
 
             const singleLineRes = calculateIntegralBreadth(
@@ -2436,8 +2938,10 @@ plt.show()
               instrumentalMode,
               instBetaIB,
               { U: cagliotiU, V: cagliotiV, W: cagliotiW },
-              'de_keijser',
-              materialDensityGcm3
+              'voigt_exact',
+              materialDensityGcm3,
+              instVoigtPhi,
+              burgersVectorNm
             );
 
             const profileSim = synthesizeIBPeakProfile(
@@ -2447,6 +2951,9 @@ plt.show()
               iMaxVal,
               180
             );
+
+            const voigtKVal = singleLineRes?.voigtParamK ?? profileSim.voigtK;
+            const erfcxVal = voigtKVal < 50 ? computeErfcx(voigtKVal) : 0;
 
             return (
               <div className="space-y-4">
@@ -2475,59 +2982,93 @@ plt.show()
                   </div>
 
                   <div className="md:col-span-7 flex flex-col justify-between">
-                    <div className="flex items-center justify-between text-[9px]">
+                    <div className="flex items-center justify-between text-[9px] gap-2">
                       <span className="text-slate-400 uppercase font-bold">
                         Langford Voigt Shape Factor φ = FWHM / β_IB
                       </span>
                       <span className="text-pink-300 font-bold">
-                        φ = {voigtShapePhi.toFixed(3)} ({singleLineRes?.profileType || 'Pseudo-Voigt'} · η = {(singleLineRes?.pseudoVoigtEta ?? 0.5).toFixed(2)})
+                        φ = {voigtShapePhi.toFixed(4)} · k = {voigtKVal < 50 ? voigtKVal.toFixed(3) : '∞'} · η(1/φ) = {(singleLineRes?.pseudoVoigtEta ?? 0.5).toFixed(3)}
                       </span>
                     </div>
                     <input
                       type="range"
-                      min={0.637}
-                      max={0.939}
-                      step={0.005}
+                      min={IB_PHI_CAUCHY}
+                      max={IB_PHI_GAUSS}
+                      step={0.002}
                       value={voigtShapePhi}
                       onChange={e => setVoigtShapePhi(parseFloat(e.target.value))}
                       className="w-full accent-pink-400 cursor-pointer my-1"
                     />
                     <div className="flex justify-between text-[8px] text-slate-500">
-                      <span>Cauchy Limit φ_C = 0.6366 (Pure Size)</span>
-                      <span>Voigt Midpoint φ ≈ 0.78</span>
-                      <span>Gauss Limit φ_G = 0.9394 (Pure Strain)</span>
+                      <span>Cauchy 2/π = 0.6366 (Pure Size)</span>
+                      <span>erfcx(k) = {erfcxVal.toFixed(4)} · Sample φ_s = {(singleLineRes?.sampleShapeFactorPhi ?? effectivePhi).toFixed(4)}</span>
+                      <span>Gauss 2√(ln2/π) = 0.9394</span>
                     </div>
                   </div>
                 </div>
 
-                {/* Single-Line de Keijser KPI Strip */}
-                {singleLineRes && (
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono tabular-nums">
-                    <div className="bg-[#070D18] p-3 rounded-xl border border-pink-500/25">
-                      <span className="text-[8px] text-slate-400 uppercase block">Integral Breadth β_IB</span>
-                      <span className="text-sm font-black text-pink-300">{(singleLineRes.betaObsDeg ?? singleLineRes.integralBreadthDeg).toFixed(4)}°</span>
-                      <span className="text-[9px] text-slate-500 block">FWHM = {fwhmSynthesized.toFixed(4)}°</span>
-                    </div>
-                    <div className="bg-[#070D18] p-3 rounded-xl border border-emerald-500/25">
-                      <span className="text-[8px] text-slate-400 uppercase block">de Keijser Cauchy Size D_L</span>
-                      <span className="text-sm font-black text-emerald-300">{(singleLineRes.lorentzianSizeNm ?? singleLineRes.volumeWeightedSizeDvNm ?? singleLineRes.calcSizeNm).toFixed(2)} nm</span>
-                      <span className="text-[9px] text-slate-500 block">β_L/β = {((singleLineRes.cauchyFractionBcOverB ?? 0.5) * 100).toFixed(1)}%</span>
-                    </div>
-                    <div className="bg-[#070D18] p-3 rounded-xl border border-cyan-500/25">
-                      <span className="text-[8px] text-slate-400 uppercase block">de Keijser Gauss Strain ε_G</span>
-                      <span className="text-sm font-black text-cyan-300">{((singleLineRes.upperBoundStrain ?? singleLineRes.apparentRmsStrain ?? 0) * 100).toFixed(4)}%</span>
-                      <span className="text-[9px] text-slate-500 block">β_G/β = {((singleLineRes.gaussFractionBgOverB ?? 0.5) * 100).toFixed(1)}%</span>
-                    </div>
-                    <div className="bg-[#070D18] p-3 rounded-xl border border-amber-500/25">
-                      <span className="text-[8px] text-slate-400 uppercase block">Apparent Size D_v (Total IB)</span>
-                      <span className="text-sm font-black text-amber-300">{singleLineRes.calcSizeNm.toFixed(2)} nm</span>
-                      <span className="text-[9px] text-slate-500 block">{singleLineRes.coherencePlanesN ?? 0} Coherent Planes</span>
-                    </div>
-                  </div>
-                )}
+                {/* Single-Line Exact Faddeeva-Voigt KPI Strip + Regression R² */}
+                {singleLineRes && (() => {
+                  const meanVoigt =
+                    profileSim.dataPoints.reduce((s, p) => s + (p.exactVoigtIntensity ?? p.intensity), 0) /
+                    Math.max(1, profileSim.dataPoints.length);
+                  const ssTotProf = profileSim.dataPoints.reduce(
+                    (s, p) => s + Math.pow((p.exactVoigtIntensity ?? p.intensity) - meanVoigt, 2),
+                    0
+                  );
+                  const ssResProf = profileSim.dataPoints.reduce(
+                    (s, p) => s + Math.pow((p.exactVoigtIntensity ?? p.intensity) - p.intensity, 2),
+                    0
+                  );
+                  const profileR2 = ssTotProf > 1e-12 ? Math.max(0, Math.min(1, 1 - ssResProf / ssTotProf)) : 1;
 
-                {/* Synthesized Voigt Peak Profile + Equivalent Integral Breadth Rectangle Box */}
-                <div className="h-[290px] w-full bg-[#070D18] rounded-2xl p-4 border border-white/5">
+                  return (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 font-mono tabular-nums">
+                      <div className="bg-[#070D18] p-3 rounded-xl border border-pink-500/25">
+                        <span className="text-[8px] text-slate-400 uppercase block">Integral Breadth β_IB</span>
+                        <span className="text-sm font-black text-pink-300">{(singleLineRes.betaObsDeg ?? singleLineRes.integralBreadthDeg).toFixed(4)}°</span>
+                        <span className="text-[9px] text-slate-500 block">Sample β_s = {(singleLineRes.betaSampleDeg ?? 0).toFixed(4)}°</span>
+                      </div>
+                      <div className="bg-[#070D18] p-3 rounded-xl border border-emerald-500/25">
+                        <span className="text-[8px] text-slate-400 uppercase block">Exact Voigt Size D_V</span>
+                        <span className="text-sm font-black text-emerald-300">{(singleLineRes.lorentzianSizeNm ?? singleLineRes.volumeWeightedSizeDvNm ?? singleLineRes.calcSizeNm).toFixed(2)} nm</span>
+                        <span className="text-[9px] text-slate-500 block">Exact f_C = {((singleLineRes.cauchyFractionBcOverB ?? 0.5) * 100).toFixed(1)}% (Poly: {((singleLineRes.deKeijserPolyFc ?? singleLineRes.cauchyFractionBcOverB ?? 0.5) * 100).toFixed(1)}%)</span>
+                      </div>
+                      <div className="bg-[#070D18] p-3 rounded-xl border border-cyan-500/25">
+                        <span className="text-[8px] text-slate-400 uppercase block">Exact Voigt Strain ε_G</span>
+                        <span className="text-sm font-black text-cyan-300">{((singleLineRes.upperBoundStrain ?? singleLineRes.apparentRmsStrain ?? 0) * 100).toFixed(4)}%</span>
+                        <span className="text-[9px] text-slate-500 block">Exact f_G = {((singleLineRes.gaussFractionBgOverB ?? 0.5) * 100).toFixed(1)}% (Poly: {((singleLineRes.deKeijserPolyFg ?? singleLineRes.gaussFractionBgOverB ?? 0.5) * 100).toFixed(1)}%)</span>
+                      </div>
+                      <div className="bg-[#070D18] p-3 rounded-xl border border-amber-500/25">
+                        <span className="text-[8px] text-slate-400 uppercase block">Area Verification &amp; Planes</span>
+                        <span className="text-sm font-black text-amber-300">{singleLineRes.calcSizeNm.toFixed(2)} nm</span>
+                        <span className="text-[9px] text-slate-500 block">{singleLineRes.coherencePlanesN ?? 0} Planes · ∫H/Area = {((profileSim.numericalVoigtArea / Math.max(1e-6, areaVal)) * 100).toFixed(1)}%</span>
+                      </div>
+                      <div className="bg-[#070D18] p-3 rounded-xl border border-purple-500/35 col-span-2 sm:col-span-1">
+                        <span className="text-[8px] text-purple-400 uppercase font-bold block">Fit Quality (R²)</span>
+                        <span className="text-sm font-black text-purple-300">
+                          {result ? result.regression.rSquared.toFixed(4) : profileR2.toFixed(4)}
+                        </span>
+                        <span className="text-[9px] text-slate-400 block truncate">
+                          {result
+                            ? `Adj=${result.regression.adjustedRSquared?.toFixed(3) ?? '-'} · pV R²=${profileR2.toFixed(4)}`
+                            : `Voigt/pV R² = ${profileR2.toFixed(5)}`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })()}
+
+                {/* Mathematical Reference Plate for Exact Faddeeva-Voigt Deconvolution */}
+                <div className="bg-[#070D18] px-4 py-2.5 rounded-xl border border-slate-800/90 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-300">
+                  <MathFormula tex="\beta_V = \frac{\beta_G}{\operatorname{erfcx}(k)}, \quad k = \frac{\beta_C}{\sqrt{\pi}\,\beta_G}, \quad \phi_{\mathrm{Voigt}}(k) = \frac{2}{\sqrt{\pi}}\,u_{1/2}(k)\,\operatorname{erfcx}(k)" />
+                  <span className="text-[9px] font-mono text-slate-400">
+                    Exact quadrature inversion vs. de Keijser (1982) polynomial
+                  </span>
+                </div>
+
+                {/* Synthesized Exact Faddeeva-Voigt + Pseudo-Voigt Peak Profile + Equivalent IB Rectangle */}
+                <div className="h-[260px] w-full bg-[#070D18] rounded-2xl p-4 border border-white/5">
                   <ResponsiveContainer width="100%" height="100%">
                     <ComposedChart data={profileSim.dataPoints} margin={{ top: 10, right: 25, left: 10, bottom: 25 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -2551,28 +3092,48 @@ plt.show()
                       <Area
                         type="stepAfter"
                         dataKey="ibBoxIntensity"
-                        name="Equivalent Integral Breadth Box (Area = I_max · β_IB)"
+                        name="Stokes–Wilson Box (I_max · β_IB)"
                         stroke="#38bdf8"
                         strokeDasharray="4 3"
-                        fill="rgba(56, 189, 248, 0.12)"
+                        fill="rgba(56, 189, 248, 0.10)"
                         isAnimationActive={false}
                       />
                       <Area
                         type="monotone"
-                        dataKey="intensity"
-                        name="Synthesized Pseudo-Voigt Line Profile I(2θ)"
+                        dataKey="exactVoigtIntensity"
+                        name="Exact Faddeeva–Voigt H(k, u)"
                         stroke="#f472b6"
-                        strokeWidth={2.2}
-                        fill="rgba(244, 114, 182, 0.20)"
+                        strokeWidth={2.4}
+                        fill="rgba(244, 114, 182, 0.18)"
+                        isAnimationActive={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="intensity"
+                        name="Pseudo-Voigt pV(η)"
+                        stroke="#a855f7"
+                        strokeWidth={1.3}
+                        strokeDasharray="4 2"
+                        dot={false}
                         isAnimationActive={false}
                       />
                       <Line
                         type="monotone"
                         dataKey="cauchyIntensity"
-                        name="Lorentzian (Size) Component"
+                        name="Lorentz (Size)"
                         stroke="#10b981"
-                        strokeWidth={1.3}
+                        strokeWidth={1.2}
                         strokeDasharray="3 3"
+                        dot={false}
+                        isAnimationActive={false}
+                      />
+                      <Line
+                        type="monotone"
+                        dataKey="gaussianIntensity"
+                        name="Gauss (Strain)"
+                        stroke="#f59e0b"
+                        strokeWidth={1.2}
+                        strokeDasharray="2 2"
                         dot={false}
                         isAnimationActive={false}
                       />
@@ -2586,8 +3147,15 @@ plt.show()
           {/* Tab 2: Residuals */}
           {activeChartTab === 'residuals' && (
             <div className="flex flex-col h-[400px]">
-              <div className="mb-2 text-[10px] font-mono text-slate-400">
-                Fit Residuals (Observed Y - Fitted Y) across reflection angles 2θ (Validates strain isotropy and deconvolution model)
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2 text-[10px] font-mono text-slate-400 tabular-nums">
+                <span>
+                  Fit Residuals (Observed Y − Fitted Y) across reflection angles 2θ
+                </span>
+                {result && (
+                  <span className="text-purple-300 font-bold">
+                    R² = {result.regression.rSquared.toFixed(5)} · Adj R² = {result.regression.adjustedRSquared?.toFixed(4) ?? '—'} · RMSE = {result.regression.rmse?.toExponential(2) ?? '—'} · DW = {result.regression.durbinWatson?.toFixed(2) ?? '—'}
+                  </span>
+                )}
               </div>
               <div className="flex-1 w-full bg-[#070D18] rounded-2xl p-4 border border-white/5">
                 <ResponsiveContainer width="100%" height="100%">
@@ -2682,7 +3250,17 @@ plt.show()
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
                     <span className="text-slate-400">Williamson-Smallman Dislocation (ρ_WS):</span>
-                    <span className="text-amber-300 font-bold">{(result?.williamsonDollarDislocation10_14 ?? result?.dislocationDensity10_14)?.toFixed(3) || '-'} × 10¹⁴ m⁻²</span>
+                    <span className="text-amber-300 font-bold">{result?.dislocationDensity10_14 !== undefined ? result.dislocationDensity10_14.toFixed(3) : '-'} × 10¹⁴ m⁻²</span>
+                  </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Geometric Dislocation Density (δ = 1/D_V²):</span>
+                    <span className="text-amber-200 font-bold">{result?.williamsonDollarDislocation10_14 !== undefined ? result.williamsonDollarDislocation10_14.toFixed(3) : '-'} × 10¹⁴ m⁻²</span>
+                  </div>
+                  <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
+                    <span className="text-slate-400">Krill–Birringer Median Diameter (D₀):</span>
+                    <span className="text-emerald-300 font-bold">
+                      {result?.logNormalMedianD0Nm ? `${result.logNormalMedianD0Nm.toFixed(2)} nm (σ_g = ${result.logNormalSigmaG?.toFixed(3)})` : '-'}
+                    </span>
                   </div>
                   <div className="flex justify-between p-2 rounded bg-black/40 border border-white/5">
                     <span className="text-slate-400">Specific Surface Area (SSA):</span>
@@ -2735,7 +3313,7 @@ plt.show()
           {activeChartTab === 'modelMatrix' && (
             <div className="flex flex-col h-[400px] overflow-y-auto custom-scrollbar">
               <div className="mb-3 text-[10px] font-mono text-slate-400 flex justify-between items-center">
-                <span>Multi-Model Comparative Matrix across all 6 Size-Strain separation formalisms (with propagated 1σ errors)</span>
+                <span>Multi-Model Comparative Matrix across all 7 Size-Strain separation formalisms (KKT-NNLS with propagated 1σ errors)</span>
                 <span className="text-emerald-400 font-bold text-[9px]">★ HIGHEST R² IDENTIFIES BEST-FIT PHYSICAL MODEL</span>
               </div>
               <div className="overflow-x-auto rounded-xl border border-white/5 bg-[#070D18]">
@@ -2752,9 +3330,62 @@ plt.show()
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/5 text-slate-300">
+                    {result?.exactVoigtBenchmark && (
+                      <tr className={`transition-colors ${regressionMethod === 'exact_voigt_nls' ? 'bg-emerald-500/15' : 'bg-emerald-500/5 hover:bg-emerald-500/10'}`}>
+                        <td className="px-3 py-3 font-bold flex items-center gap-2">
+                          <span className="text-emerald-300">Exact Faddeeva–Voigt NLS</span>
+                          <span className="text-[8px] px-1.5 py-0.5 rounded bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 font-bold">
+                            EXACT LM
+                          </span>
+                          {regressionMethod === 'exact_voigt_nls' && (
+                            <span className="text-[8px] px-1.5 py-0.5 rounded bg-pink-500/20 text-pink-300 border border-pink-500/30 font-bold">
+                              ACTIVE
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-3 py-3 font-bold text-emerald-300">
+                          {result.exactVoigtBenchmark.sizeNm.toFixed(1)}
+                          {result.exactVoigtBenchmark.sizeErrorNm > 0 ? ` ± ${result.exactVoigtBenchmark.sizeErrorNm.toFixed(1)}` : ''} nm
+                        </td>
+                        <td className="px-3 py-3 font-bold text-cyan-300">
+                          {(result.exactVoigtBenchmark.strainPercent * 10).toFixed(2)}
+                          {result.exactVoigtBenchmark.strainErrorPercent > 0 ? ` ± ${(result.exactVoigtBenchmark.strainErrorPercent * 10).toFixed(2)}` : ''}
+                        </td>
+                        <td className="px-3 py-3 text-pink-300">
+                          {((result.exactVoigtBenchmark.strainPercent / 100) * youngsModulusGPa * 1000).toFixed(1)}
+                        </td>
+                        <td className="px-3 py-3 font-bold text-purple-300">
+                          {result.exactVoigtBenchmark.rSquaredBeta.toFixed(4)}
+                        </td>
+                        <td className="px-3 py-3 text-slate-400 font-mono text-[10px]">
+                          {result.exactVoigtBenchmark.rmseDeg.toFixed(4)}°
+                        </td>
+                        <td className="px-3 py-3 text-right">
+                          <button
+                            onClick={() => {
+                              setRegressionMethod('exact_voigt_nls');
+                              setActiveChartTab('fit');
+                            }}
+                            disabled={regressionMethod === 'exact_voigt_nls'}
+                            className={`px-2.5 py-1 rounded text-[9px] font-black uppercase tracking-wider transition-all border ${
+                              regressionMethod === 'exact_voigt_nls'
+                                ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-300 cursor-default'
+                                : 'bg-emerald-500/10 hover:bg-emerald-500/20 border-emerald-500/30 text-emerald-300 cursor-pointer'
+                            }`}
+                          >
+                            {regressionMethod === 'exact_voigt_nls' ? 'Active' : 'Apply'}
+                          </button>
+                        </td>
+                      </tr>
+                    )}
                     {(result?.modelComparisons || []).map((m) => {
-                      const isCurrent = separationMethod.toUpperCase() === m.modelName.toUpperCase() || 
-                        (separationMethod === 'hw' && m.modelName === 'Halder-Wagner');
+                      const mappedKey: IBSeparationMethodKey =
+                        m.modelName === 'Halder-Wagner'
+                          ? 'hw'
+                          : m.modelName === 'Gaussian-WH'
+                          ? 'gwh'
+                          : (m.modelName.toLowerCase() as IBSeparationMethodKey);
+                      const isCurrent = separationMethod === mappedKey;
                       return (
                         <tr key={m.modelName} className={`hover:bg-white/5 transition-colors ${isCurrent ? 'bg-pink-500/10' : ''}`}>
                           <td className="px-3 py-3 font-bold flex items-center gap-2">
@@ -2793,8 +3424,7 @@ plt.show()
                           <td className="px-3 py-3 text-right">
                             <button
                               onClick={() => {
-                                const methodKey = m.modelName === 'Halder-Wagner' ? 'hw' : m.modelName.toLowerCase();
-                                setSeparationMethod(methodKey as any);
+                                setSeparationMethod(mappedKey);
                                 setActiveChartTab('fit');
                               }}
                               disabled={isCurrent}

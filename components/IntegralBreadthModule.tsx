@@ -240,7 +240,7 @@ export const IntegralBreadthModule: React.FC = () => {
         peaks,
         instrumentalMode,
         { U: cagliotiU, V: cagliotiV, W: cagliotiW },
-        decouplingMethod === 'de_keijser' ? 'hw_voigt' : decouplingMethod,
+        decouplingMethod === 'de_keijser' ? 'voigt_exact' : decouplingMethod,
         youngsModulusGPa,
         multiModelMethod,
         materialDensity
@@ -509,7 +509,7 @@ eta = np.clip((inv_phi - inv_phi_g) / (inv_phi_c - inv_phi_g), 0.0, 1.0)
 # de Keijser et al. (J. Appl. Cryst. 1982, 15, 308-314) Eqs. (9a) & (9b)
 beta_rad = np.radians(beta_obs)
 f_c = np.clip(2.0207 - 0.4803 * phi - 1.7756 * phi**2, 0.0, 1.0)
-f_g = np.clip(0.6442 + 1.4187 * np.sqrt(np.maximum(0.0, phi - PHI_CAUCHY)) - 2.2043 * phi + 1.8706 * phi**2, 0.0, 1.0)
+f_g = np.clip(0.6420 + 1.4187 * np.sqrt(np.maximum(0.0, phi - PHI_CAUCHY)) - 2.2043 * phi + 1.8706 * phi**2, 0.0, 1.0)
 
 # Normalize via Langford (1978) exact Voigt integral breadth: beta_V = beta_G / erfcx(k)
 k_obs = f_c / (np.sqrt(np.pi) * np.maximum(1e-9, f_g))
@@ -1451,7 +1451,7 @@ plt.show()
                   <div 
                     className="p-3 bg-black/40 rounded-xl overflow-x-auto text-center space-y-2"
                     dangerouslySetInnerHTML={{ 
-                      __html: katex.renderToString("\\begin{aligned} \\frac{\\beta_C}{\\beta} &= 2.0207 - 0.4803\\phi - 1.7756\\phi^2 \\\\ \\frac{\\beta_G}{\\beta} &= 0.6442 + 1.4187\\sqrt{\\phi - \\frac{2}{\\pi}} - 2.2043\\phi + 1.8706\\phi^2 \\\\ \\beta_V &= \\frac{\\beta_G}{\\exp(k^2)\\operatorname{erfc}(k)}, \\quad D_V = \\frac{K\\lambda}{\\beta_{C,\\text{sample}} \\cos\\theta}, \\quad \\langle\\varepsilon^2\\rangle^{1/2} = \\frac{\\beta_{G,\\text{sample}}}{2\\sqrt{2\\pi}\\tan\\theta} \\end{aligned}", { throwOnError: false }) 
+                      __html: katex.renderToString("\\begin{aligned} \\frac{\\beta_C}{\\beta} &= 2.0207 - 0.4803\\phi - 1.7756\\phi^2 \\\\ \\frac{\\beta_G}{\\beta} &= 0.6420 + 1.4187\\sqrt{\\phi - \\frac{2}{\\pi}} - 2.2043\\phi + 1.8706\\phi^2 \\\\ \\beta_V &= \\frac{\\beta_G}{\\exp(k^2)\\operatorname{erfc}(k)}, \\quad D_V = \\frac{K\\lambda}{\\beta_{C,\\text{sample}} \\cos\\theta}, \\quad \\langle\\varepsilon^2\\rangle^{1/2} = \\frac{\\beta_{G,\\text{sample}}}{2\\sqrt{2\\pi}\\tan\\theta} \\end{aligned}", { throwOnError: false }) 
                     }}
                   />
                 </div>

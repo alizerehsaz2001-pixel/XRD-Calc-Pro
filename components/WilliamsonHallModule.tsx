@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { useCustomMaterialApply } from './CustomMaterialContext';
 import { motion, AnimatePresence } from 'motion/react';
-import Markdown from 'react-markdown';
 import {
   parseScherrerInput,
   calculateWilliamsonHall,
@@ -34,7 +33,6 @@ import {
   Binary, 
   Download, 
   RefreshCw, 
-  Trash2, 
   Loader2, 
   Activity, 
   Layers, 
@@ -48,15 +46,15 @@ import {
   EyeOff,
   Info,
   BookOpen,
-  BrainCircuit,
-  FileText,
-  HelpCircle,
-  Maximize2
+  Play,
+  Database,
+  AlertTriangle
 } from 'lucide-react';
 import { ScientificMathControl } from './ScientificMathControl';
 import { PythonCodeExporter } from './PythonCodeExporter';
 import { WHPeakDataManager } from './williamson_hall/WHPeakDataManager';
 import { WHCadSchematic } from './williamson_hall/WHCadSchematic';
+import { WHSolverOpticsConsole } from './williamson_hall/WHSolverOpticsConsole';
 import { NanoCrystalliteSimulatorView } from './scherrer/NanoCrystalliteSimulatorView';
 import katex from 'katex';
 import 'katex/dist/katex.min.css';
@@ -177,18 +175,27 @@ export const WilliamsonHallModule: React.FC = () => {
   const [strainModel, setStrainModel] = useState<'UDM' | 'USDM' | 'UDEDM' | 'SSP' | 'Halder-Wagner' | 'mWH' | 'Stephens' | 'Monshi-Scherrer'>('UDM');
   
   // Diagnostic Visualizer Tab & Plot HUD Toggles
-  const [activeTab, setActiveTab] = useState<'fit' | 'pattern' | 'residuals' | 'apparentSizes' | 'dislocationTensor' | 'comparison' | 'nanoSim' | 'advisor'>('fit');
+  const [activeTab, setActiveTab] = useState<'fit' | 'pattern' | 'residuals' | 'apparentSizes' | 'dislocationTensor' | 'comparison' | 'nanoSim'>('fit');
   const [showConfidenceBand, setShowConfidenceBand] = useState<boolean>(true);
   const [showZeroStrainLine, setShowZeroStrainLine] = useState<boolean>(true);
-  const [schematicMode, setSchematicMode] = useState<'decoupling' | 'scaling' | 'lattice'>('decoupling');
+
+  // Solver & Optics Configuration Console State
+  const [configSection, setConfigSection] = useState<'all' | 'model' | 'optics' | 'elastic' | 'peaks'>('all');
+  const [autoCalculate, setAutoCalculate] = useState<boolean>(false);
+  const [hasPendingChanges, setHasPendingChanges] = useState<boolean>(false);
+  const [isCalculating, setIsCalculating] = useState<boolean>(false);
 
   const [result, setResult] = useState<WHResult | null>(null);
 
   useCustomMaterialApply('wh', (mat) => {
-    setWavelength(mat.wavelength || 1.5406);
-    setSelectedMaterial(`${mat.name} (${mat.formula})`);
-    setYoungsModulusGPa(mat.youngsModulusGPa || 150);
-    setMaterialDensityGcm3(mat.density || 4.5);
+    const nextWavelength = mat.wavelength || 1.5406;
+    const nextMaterial = `${mat.name} (${mat.formula})`;
+    const nextModulus = mat.youngsModulusGPa || 150;
+    const nextDensity = mat.density || 4.5;
+    setWavelength(nextWavelength);
+    setSelectedMaterial(nextMaterial);
+    setYoungsModulusGPa(nextModulus);
+    setMaterialDensityGcm3(nextDensity);
     setExcludedIndices([]);
     if (mat.peaks.length > 0) {
       const formatted = mat.peaks
@@ -198,17 +205,11 @@ export const WilliamsonHallModule: React.FC = () => {
         .join('\n');
       setInputData(formatted);
     }
+    setHasPendingChanges(true);
   });
 
   const isFirstRender = useRef(true);
-
-  // AI Smart Assistant & Advisor Report
-  const [aiPrompt, setAiPrompt] = useState('');
-  const [isAiLoading, setIsAiLoading] = useState(false);
-  const [aiSuccessMessage, setAiSuccessMessage] = useState('');
-  const [isAdvisorLoading, setIsAdvisorLoading] = useState(false);
-  const [advisorReport, setAdvisorReport] = useState<string | null>(null);
-  const [advisorError, setAdvisorError] = useState<string | null>(null);
+  const skipDirtyRef = useRef(false);
   const [copiedNotice, setCopiedNotice] = useState(false);
 
   const handleReset = () => {
@@ -216,6 +217,7 @@ export const WilliamsonHallModule: React.FC = () => {
     setConstantK(0.9);
     setInstFwhm(0.1);
     setInstrumentalMode('constant');
+    setIsDecouplingEnabled(true);
     setCagliotiU(0.005);
     setCagliotiV(-0.002);
     setCagliotiW(0.015);
@@ -224,20 +226,26 @@ export const WilliamsonHallModule: React.FC = () => {
     setIsModulusEnabled(false);
     setBurgersVectorNm(0.25);
     setMaterialDensityGcm3(2.33);
+    setIsDensityEnabled(true);
     setDislocationQParam(2.0);
     setCh00Param(0.285);
     setExcludedIndices([]);
     setInputData("28.44, 0.25, 1, 1, 1\n47.30, 0.28, 2, 2, 0\n56.12, 0.32, 3, 1, 1\n69.13, 0.38, 4, 0, 0\n76.38, 0.42, 3, 3, 1");
     setStrainModel('UDM');
     setBroadeningModel('Gaussian');
-    setAdvisorReport(null);
     setRecomputeFeedback(null);
+    setHasPendingChanges(true);
   };
 
-  const handleSelectStrainModel = (newModel: typeof strainModel) => {
+  const handleSelectStrainModel = (newModel: typeof strainModel, immediate = false) => {
     setStrainModel(newModel);
     if (newModel === 'USDM' || newModel === 'UDEDM') {
       setIsModulusEnabled(true);
+    }
+    if (immediate) {
+      skipDirtyRef.current = true;
+      executeCalculation(excludedIndices, dislocationQParam, newModel);
+      setHasPendingChanges(false);
     }
   };
 
@@ -273,18 +281,13 @@ export const WilliamsonHallModule: React.FC = () => {
       if (parsed.materialDensity) setMaterialDensityGcm3(parsed.materialDensity);
       if (parsed.burgersVectorNm) setBurgersVectorNm(parsed.burgersVectorNm);
       setExcludedIndices([]);
-      setTransferNotice(`Imported ${parsed.selectedMaterial || 'Scherrer dataset'} (λ = ${parsed.wavelength || wavelength} Å)`);
-      setTimeout(() => setTransferNotice(null), 4000);
-    } catch (e) {
+      setHasPendingChanges(true);
+      setTransferNotice(`Imported ${parsed.selectedMaterial || 'Scherrer dataset'} (λ = ${parsed.wavelength || wavelength} Å) — click Start Calculation to solve.`);
+      setTimeout(() => setTransferNotice(null), 4500);
+    } catch {
       setTransferNotice('Could not parse Scherrer dataset.');
       setTimeout(() => setTransferNotice(null), 3500);
     }
-  };
-
-  const handleClear = () => {
-    setInputData("");
-    setExcludedIndices([]);
-    setAdvisorReport(null);
   };
 
   // Calculation trigger
@@ -349,7 +352,7 @@ export const WilliamsonHallModule: React.FC = () => {
     }
   };
 
-  const handleCalculateWithSimulation = () => {
+  const handleStartCalculation = () => {
     const peaks = parseScherrerInput(inputData);
     if (peaks.length < 2) {
       setRecomputeFeedback({
@@ -359,6 +362,8 @@ export const WilliamsonHallModule: React.FC = () => {
       });
       return;
     }
+
+    setIsCalculating(true);
 
     // Sort reflections in ascending 2theta if unsorted
     const isSorted = peaks.every((p, i) => i === 0 || p.twoTheta >= peaks[i - 1].twoTheta);
@@ -371,6 +376,7 @@ export const WilliamsonHallModule: React.FC = () => {
             : `${p.twoTheta.toFixed(3)}, ${p.fwhmObs.toFixed(4)}`
         )
         .join('\n');
+      skipDirtyRef.current = true;
       setInputData(formatted);
     }
 
@@ -389,10 +395,14 @@ export const WilliamsonHallModule: React.FC = () => {
         ch00Param
       );
       qToUse = opt.optimalQ;
+      skipDirtyRef.current = true;
       setDislocationQParam(qToUse);
     }
 
     const computed = executeCalculation(excludedIndices, qToUse, strainModel);
+    setHasPendingChanges(false);
+    setTimeout(() => setIsCalculating(false), 180);
+
     if (!computed) return;
 
     const warnings: string[] = [];
@@ -429,7 +439,7 @@ export const WilliamsonHallModule: React.FC = () => {
   const handleAutoOptimizeAll = () => {
     const peaks = parseScherrerInput(inputData);
     if (peaks.length < 2) return;
-    // Refine q for mWH first so mWH and Stephens compete at their optimal dislocation contrast
+    setIsCalculating(true);
     let optQ = dislocationQParam;
     if (peaks.length >= 3) {
       const opt = optimizeWilliamsonHallAnisotropyQ(
@@ -445,13 +455,17 @@ export const WilliamsonHallModule: React.FC = () => {
         ch00Param
       );
       optQ = opt.optimalQ;
+      skipDirtyRef.current = true;
       setDislocationQParam(optQ);
     }
     const prelim = executeCalculation(excludedIndices, optQ, strainModel);
     const best = prelim?.modelComparisons?.find(m => m.isBestFit);
     const targetModel = (best?.modelName as typeof strainModel) || strainModel;
-    handleSelectStrainModel(targetModel);
+    skipDirtyRef.current = true;
+    handleSelectStrainModel(targetModel, false);
     const finalRes = executeCalculation(excludedIndices, optQ, targetModel);
+    setHasPendingChanges(false);
+    setTimeout(() => setIsCalculating(false), 180);
     if (finalRes) {
       setRecomputeFeedback({
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
@@ -493,14 +507,23 @@ export const WilliamsonHallModule: React.FC = () => {
     return pts.reduce((acc, p) => acc + p.singlePeakSizeNm, 0) / pts.length;
   }, [result]);
 
-  // Instant recalculation on parameter changes
+  // Initial calculation + manual/auto parameter tracking
   useEffect(() => {
     if (isFirstRender.current) {
       isFirstRender.current = false;
       executeCalculation();
       return;
     }
-    executeCalculation();
+    if (skipDirtyRef.current) {
+      skipDirtyRef.current = false;
+      return;
+    }
+    if (autoCalculate) {
+      executeCalculation();
+      setHasPendingChanges(false);
+    } else {
+      setHasPendingChanges(true);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     wavelength, 
@@ -517,18 +540,19 @@ export const WilliamsonHallModule: React.FC = () => {
     selectedMaterial,
     isModulusEnabled, 
     strainModel,
-    excludedIndices,
     burgersVectorNm,
     isDensityEnabled,
     materialDensityGcm3,
     dislocationQParam,
-    ch00Param
+    ch00Param,
+    autoCalculate
   ]);
 
-  // Outlier toggle per peak
+  // Outlier toggle per peak (updates regression immediately when toggling rows in the diagnostic table)
   const toggleExcludePeak = (index: number) => {
     setExcludedIndices(prev => {
       const next = prev.includes(index) ? prev.filter(i => i !== index) : [...prev, index];
+      executeCalculation(next);
       return next;
     });
   };
@@ -543,90 +567,7 @@ export const WilliamsonHallModule: React.FC = () => {
     });
     if (toExclude.length > 0 && result.pointsExtended.length - toExclude.length >= 2) {
       setExcludedIndices(toExclude);
-    }
-  };
-
-  // Server-Side AI Smart Generation / Synthetic Data Retrieval
-  const handleAiSmartGenerate = async (promptOverride?: string) => {
-    const textToRun = promptOverride || aiPrompt;
-    if (!textToRun.trim()) return;
-
-    setIsAiLoading(true);
-    setAiSuccessMessage('');
-    try {
-      const res = await fetch('/api/gemini/generate-wh-data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ query: textToRun, wavelength })
-      });
-
-      const json = await res.json();
-      if (json.success && json.data) {
-        const parsed = json.data;
-        if (parsed.peaks && parsed.peaks.length > 0) {
-          const lines = parsed.peaks.map((p: any) => `${p.twoTheta.toFixed(3)}, ${p.fwhm.toFixed(4)}, ${p.h}, ${p.k}, ${p.l}`).join('\n');
-          setInputData(lines);
-          if (parsed.wavelength) setWavelength(parsed.wavelength);
-          if (parsed.youngsModulusGPa) {
-            setYoungsModulusGPa(parsed.youngsModulusGPa);
-            setIsModulusEnabled(true);
-          }
-          if (parsed.densityGcm3) setMaterialDensityGcm3(parsed.densityGcm3);
-          if (parsed.strainModel) setStrainModel(parsed.strainModel);
-          setExcludedIndices([]);
-          setAiSuccessMessage(`Loaded ${parsed.materialName || 'dataset'}: ${parsed.rationale || 'Data successfully structured.'}`);
-          setAdvisorReport(null);
-        }
-      } else {
-        setAiSuccessMessage(json.error || 'Failed to generate peak parameters.');
-      }
-    } catch (err: any) {
-      setAiSuccessMessage('Error invoking AI Assistant: ' + err.message);
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
-
-  // Server-Side AI Crystallographic Line-Profile Advisor
-  const handleGenerateAdvisorReport = async () => {
-    if (!result) return;
-    setIsAdvisorLoading(true);
-    setAdvisorError(null);
-    setActiveTab('advisor');
-
-    try {
-      const payload = {
-        modelApplied: strainModel,
-        broadeningCorrection: broadeningModel,
-        radiationWavelengthA: wavelength,
-        shapeFactorK: constantK,
-        crystalliteSizeNm: result.sizeInterceptNm,
-        latticeMicrostrainPercent: result.strainPercent,
-        internalStressMPa: result.stressMPa,
-        strainEnergyDensityKjM3: result.energyDensityKjM3,
-        dislocationDensity10_14_m2: result.dislocationDensity10_14,
-        specificSurfaceAreaM2g: result.specificSurfaceAreaM2g,
-        regression: result.regression,
-        modelComparisons: result.modelComparisons,
-        peaks: result.pointsExtended
-      };
-
-      const res = await fetch('/api/gemini/williamson-hall-advisor', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ payload })
-      });
-
-      const json = await res.json();
-      if (json.success && json.text) {
-        setAdvisorReport(json.text);
-      } else {
-        setAdvisorError(json.error || 'Failed to generate advisory report.');
-      }
-    } catch (err: any) {
-      setAdvisorError(err.message || 'Network error communicating with AI Advisor.');
-    } finally {
-      setIsAdvisorLoading(false);
+      executeCalculation(toExclude);
     }
   };
 
@@ -866,22 +807,19 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
         <div className="h-0.5 w-full bg-gradient-to-r from-cyan-500 via-emerald-500 to-amber-500" />
         <div className="p-4 sm:p-5 flex flex-col xl:flex-row items-start xl:items-center justify-between gap-4 border-b border-slate-800/80">
           <div className="flex items-center gap-3.5">
-            <div className="p-2.5 rounded bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
+            <div className="p-2.5 rounded-md bg-cyan-500/10 border border-cyan-500/30 text-cyan-400">
               <TrendingUp className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h2 className="text-base sm:text-lg font-bold text-white uppercase tracking-wider font-mono">
-                  WILLIAMSON–HALL STUDIO // SIZE–STRAIN DECOUPLING & ANISOTROPY SOLVER
+              <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1">
+                <h2 className="text-base sm:text-lg font-bold text-white tracking-tight">
+                  Williamson–Hall Size–Strain Studio
                 </h2>
-                <span className="px-2 py-0.5 rounded-xs bg-emerald-500/15 border border-emerald-500/30 text-[10px] font-mono font-bold text-emerald-300 uppercase">
-                  8 SOLVER MODELS
-                </span>
-                <span className="px-2 py-0.5 rounded-xs bg-cyan-500/15 border border-cyan-500/30 text-[10px] font-mono font-bold text-cyan-300 uppercase">
-                  STUDENT-T 95% CI
+                <span className="text-xs font-mono text-slate-400 tabular-nums">
+                  8 Solver Models · Student-t 95% CI{result ? ` · R² = ${result.regression.rSquared.toFixed(4)}` : ''}
                 </span>
               </div>
-              <p className="text-xs text-slate-400 font-mono mt-0.5">
+              <p className="text-xs text-slate-400 mt-0.5">
                 Separates coherent crystallite size broadening (β_D ∝ 1/cosθ) from lattice microstrain broadening (β_ε ∝ 4ε·tanθ) across multiple (hkl) reflections.
               </p>
             </div>
@@ -891,18 +829,18 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             {bestFitModelItem && bestFitModelItem.modelName !== strainModel && (
               <button
                 type="button"
-                onClick={() => handleSelectStrainModel(bestFitModelItem.modelName as any)}
-                className="px-3 py-1.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+                onClick={() => handleSelectStrainModel(bestFitModelItem.modelName as any, true)}
+                className="px-3 py-1.5 rounded-md bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 text-xs font-mono font-semibold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap shrink-0"
                 title="Automatically switch to the model with the highest R² fit quality for this dataset"
               >
                 <Sparkles className="w-3.5 h-3.5 text-emerald-400" />
-                <span>Auto-Select Best Model ({bestFitModelItem.modelName})</span>
+                <span>Apply Best ({bestFitModelItem.modelName})</span>
               </button>
             )}
             <button
               type="button"
               onClick={handleImportFromScherrer}
-              className="px-3 py-1.5 rounded bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-300 text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-700 text-amber-300 text-xs font-mono font-semibold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap shrink-0"
             >
               <Layers className="w-3.5 h-3.5 text-amber-400" />
               <span>Import Scherrer</span>
@@ -910,7 +848,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             <button
               type="button"
               onClick={handleCopyReport}
-              className="px-3 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-mono font-semibold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap shrink-0"
             >
               <Copy className="w-3.5 h-3.5 text-cyan-400" />
               <span>{copiedNotice ? 'Copied!' : 'Copy Report'}</span>
@@ -918,10 +856,10 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             <button
               type="button"
               onClick={handleDownloadCSV}
-              className="px-3 py-1.5 rounded bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-[11px] font-mono font-bold uppercase tracking-wider flex items-center gap-1.5 cursor-pointer transition-colors"
+              className="px-3 py-1.5 rounded-md bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 text-xs font-mono font-semibold flex items-center gap-1.5 cursor-pointer transition-colors whitespace-nowrap shrink-0"
             >
               <Download className="w-3.5 h-3.5 text-emerald-400" />
-              <span>CSV</span>
+              <span>Export CSV</span>
             </button>
           </div>
         </div>
@@ -1037,7 +975,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
         <WHCadSchematic
           result={result}
           strainModel={strainModel}
-          onSelectStrainModel={handleSelectStrainModel}
+          onSelectStrainModel={(m) => handleSelectStrainModel(m, true)}
           wavelength={wavelength}
           constantK={constantK}
           broadeningModel={broadeningModel}
@@ -1048,678 +986,73 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
         />
       </div>
 
-      {/* ================= LEFT CONFIGURATION PANEL (4 Cols) ================= */}
-      <div className="lg:col-span-4 space-y-6">
-        <div className="bg-[#0B0F19] p-5 sm:p-6 rounded-md shadow-2xl border border-slate-800 relative overflow-hidden group transition-all">
-          <div className="absolute top-0 left-0 right-0 h-0.5 bg-cyan-500" />
-          
-          <div className="flex items-center justify-between gap-4 mb-5 relative z-10 pb-4 border-b border-slate-800">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 bg-cyan-500/10 rounded border border-cyan-500/30 flex items-center justify-center shrink-0">
-                <Settings className="w-5 h-5 text-cyan-400" />
-              </div>
-              <div>
-                <h2 className="text-base font-bold text-white uppercase tracking-wider font-mono">
-                  Solver & Optics Configuration
-                </h2>
-                <p className="text-[10px] font-mono tabular-nums text-cyan-400 uppercase tracking-widest mt-0.5">
-                  Model: {strainModel} · λ = {wavelength.toFixed(4)} Å
-                </p>
-              </div>
-            </div>
-            <button 
-              onClick={handleReset}
-              className="text-[10px] font-mono font-bold uppercase tracking-wider text-slate-300 hover:text-cyan-300 bg-slate-900 hover:bg-slate-800 px-2.5 py-1.5 rounded border border-slate-700 transition-all flex items-center gap-1.5 cursor-pointer"
-              title="Reset config to default values"
-            >
-              <RefreshCw className="w-3 h-3 text-cyan-400" /> Reset
-            </button>
-          </div>
-
-          <div className="space-y-5 relative z-10">
-            {/* Model Selector Group */}
-            <div className="bg-[#070A12] p-3.5 rounded border border-slate-800">
-              <label className="block text-[10px] font-mono font-bold text-emerald-400 mb-2 uppercase tracking-wider flex items-center justify-between">
-                <span className="flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5" />
-                  1. Select Size–Strain Model
-                </span>
-                <span className="text-[9px] font-mono font-bold text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded-xs border border-emerald-500/30">
-                  {strainModel}
-                </span>
-              </label>
-              
-              <div className="grid grid-cols-4 gap-1.5">
-                {[
-                  { id: 'UDM', label: 'UDM', title: 'Uniform Deformation Model (Isotropic Strain)' },
-                  { id: 'USDM', label: 'USDM', title: 'Uniform Stress Deformation Model (Anisotropic E_hkl)' },
-                  { id: 'UDEDM', label: 'UDEDM', title: 'Uniform Deformation Energy Density Model' },
-                  { id: 'SSP', label: 'SSP', title: 'Size-Strain Plot (High Angle Weighted)' },
-                  { id: 'Halder-Wagner', label: 'H-W', title: 'Halder-Wagner Voigt Parabolic Decoupling' },
-                  { id: 'mWH', label: 'mWH', title: 'Ungár Modified W-H (Dislocation Contrast C_hkl)' },
-                  { id: 'Stephens', label: 'Stephens', title: 'Stephens Anisotropic Microstrain Tensor' },
-                  { id: 'Monshi-Scherrer', label: 'Monshi', title: 'Monshi-Scherrer Logarithmic Linearization' }
-                ].map(m => (
-                  <button
-                    key={m.id}
-                    type="button"
-                    onClick={() => handleSelectStrainModel(m.id as any)}
-                    className={`py-1.5 px-1 rounded text-[10px] font-mono font-bold uppercase tracking-wider transition-all border cursor-pointer truncate ${
-                      strainModel === m.id
-                        ? 'bg-emerald-500 text-slate-950 border-emerald-400 font-bold'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200 hover:border-slate-700'
-                    }`}
-                    title={m.title}
-                  >
-                    {m.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Memoized KaTeX Formula Display */}
-              <div className="mt-3 p-2.5 bg-slate-950 rounded border border-slate-800 text-center">
-                <div 
-                  className="text-xs text-emerald-300 font-sans py-0.5 overflow-x-auto"
-                  dangerouslySetInnerHTML={{ __html: renderedModelFormulaHtml }}
-                />
-              </div>
-
-              {/* Ungár Dislocation Contrast Parameter Controls for mWH / Stephens */}
-              {(strainModel === 'mWH' || strainModel === 'Stephens') && (
-                <div className="mt-3 pt-3 border-t border-emerald-500/20 space-y-2.5">
-                  <div className="flex items-center justify-between text-[9px] font-mono">
-                    <span className="text-emerald-300 font-bold uppercase">Dislocation Contrast C_hkl = C_h00(1 - q·H²)</span>
-                    <button
-                      type="button"
-                      onClick={handleRefineDislocationQ}
-                      className="px-2 py-0.5 rounded bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-300 font-bold uppercase text-[8px] cursor-pointer transition-colors"
-                      title="Numerically optimize q across [-1.8, 2.75] to maximize linear correlation R²"
-                    >
-                      Auto-Refine q (Max R²)
-                    </button>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="flex justify-between text-[8px] font-mono text-slate-400 mb-1">
-                        <span>Anisotropy q:</span>
-                        <span className="text-emerald-300 font-bold">{dislocationQParam.toFixed(2)}</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="-2.0"
-                        max="2.8"
-                        step="0.05"
-                        value={dislocationQParam}
-                        onChange={(e) => setDislocationQParam(parseFloat(e.target.value))}
-                        className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-400"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-[8px] font-mono text-slate-400 mb-1">
-                        <span>Base C_h00:</span>
-                        <span className="text-emerald-300 font-bold">{ch00Param.toFixed(3)}</span>
-                      </div>
-                      <input
-                        type="number"
-                        step="0.005"
-                        min="0.05"
-                        max="0.60"
-                        value={ch00Param}
-                        onChange={(e) => setCh00Param(parseFloat(e.target.value) || 0.285)}
-                        className="w-full px-2 py-1 bg-[#0A101C] text-emerald-300 border border-white/10 rounded-lg font-mono text-[10px] font-bold"
-                      />
-                    </div>
-                  </div>
-                  <div className="flex flex-wrap gap-1">
-                    {[
-                      { label: 'Cu Screw (q=2.26)', q: 2.26, c: 0.304 },
-                      { label: 'Cu Edge (q=1.65)', q: 1.65, c: 0.304 },
-                      { label: 'Fe BCC Screw (q=2.67)', q: 2.67, c: 0.285 },
-                      { label: 'Si Isotropic (q=1.35)', q: 1.35, c: 0.215 }
-                    ].map(preset => (
-                      <button
-                        key={preset.label}
-                        type="button"
-                        onClick={() => {
-                          setDislocationQParam(preset.q);
-                          setCh00Param(preset.c);
-                        }}
-                        className="px-1.5 py-0.5 rounded bg-black/50 hover:bg-emerald-500/20 border border-white/10 text-[8px] font-mono text-slate-300 hover:text-emerald-300 cursor-pointer"
-                      >
-                        {preset.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Wavelength & Shape Factor */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="bg-[#070D18] p-3.5 rounded-2xl border border-white/10 hover:border-cyan-500/40 transition-all">
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                    <Zap className="w-3 h-3 text-cyan-400" />
-                    Wavelength (λ)
-                  </label>
-                </div>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={String(wavelength) === 'NaN' ? '' : wavelength}
-                    onChange={(e) => setWavelength(parseFloat(e.target.value) || 1.5406)}
-                    className="w-full px-3 py-2 bg-[#0A101C] text-cyan-300 border border-white/10 focus:border-cyan-500/60 rounded-xl outline-none font-mono text-xs font-bold"
-                  />
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-[9px] font-black text-slate-500 font-mono">Å</div>
-                </div>
-                <div className="mt-2 grid grid-cols-3 gap-1">
-                  {['Cu Kα', 'Mo Kα', 'Co Kα'].map(name => (
-                    <button
-                      key={name}
-                      onClick={() => setWavelength(XRAY_WAVELENGTHS[name] || 1.5406)}
-                      className={`py-1 px-0.5 rounded-lg border text-[7px] font-black uppercase tracking-tight transition-all cursor-pointer ${
-                        Math.abs(wavelength - (XRAY_WAVELENGTHS[name] || 0)) < 0.001
-                          ? 'bg-cyan-500 text-black border-cyan-400 font-extrabold'
-                          : 'bg-black/40 border-white/5 text-slate-400'
-                      }`}
-                    >
-                      {name.split(' ')[0]}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {/* Shape Factor K */}
-              <div className="bg-[#070D18] p-3.5 rounded-2xl border border-white/10 hover:border-rose-500/40 transition-all">
-                <div className="flex justify-between items-center mb-1.5">
-                  <label className="block text-[9px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                    <Ruler className="w-3 h-3 text-rose-400" />
-                    Shape Factor (K)
-                  </label>
-                </div>
-                <div className="relative">
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={String(constantK) === 'NaN' ? '' : constantK}
-                    onChange={(e) => setConstantK(parseFloat(e.target.value) || 0.9)}
-                    className="w-full px-3 py-2 bg-[#0A101C] text-rose-300 border border-white/10 focus:border-rose-500/60 rounded-xl outline-none font-mono text-xs font-bold"
-                  />
-                </div>
-                <div className="mt-2 grid grid-cols-3 gap-1">
-                  {[0.9, 0.94, 1.0].map(val => (
-                    <button
-                      key={val}
-                      onClick={() => setConstantK(val)}
-                      className={`py-1 px-0.5 rounded-lg border text-[8px] font-black transition-all cursor-pointer ${
-                        constantK === val
-                          ? 'bg-rose-500 text-black border-rose-400 font-extrabold'
-                          : 'bg-black/40 border-white/5 text-slate-400'
-                      }`}
-                    >
-                      K={val}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* Instrumental Broadening & Profile */}
-            <div className="bg-[#070D18] p-4 rounded-2xl border border-amber-500/30">
-              <div className="flex items-center justify-between mb-2.5">
-                <label className="text-[10px] font-black text-amber-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Activity className="w-3.5 h-3.5" />
-                  Instrumental Deconvolution
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setShowDecouplingExplanation(!showDecouplingExplanation)}
-                    className="text-[9px] text-amber-400 hover:text-amber-300 font-mono font-bold flex items-center gap-1 bg-amber-500/10 px-2 py-0.5 rounded border border-amber-500/30 cursor-pointer"
-                  >
-                    <Info className="w-3 h-3" />
-                    <span>Why?</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsDecouplingEnabled(!isDecouplingEnabled)}
-                    className={`px-2 py-0.5 text-[8px] font-black uppercase rounded-lg border transition-all cursor-pointer ${
-                      isDecouplingEnabled 
-                        ? 'bg-amber-500 text-black border-amber-400 font-extrabold shadow-[0_0_8px_rgba(245,158,11,0.4)]' 
-                        : 'bg-black/30 border-white/5 text-slate-500'
-                    }`}
-                  >
-                    {isDecouplingEnabled ? 'Correction ON' : 'Raw / Off'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Decoupling Explanation Banner */}
-              <AnimatePresence>
-                {showDecouplingExplanation && (
-                  <motion.div
-                    key="wh-decoupling-explanation"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mb-3 p-3 bg-amber-950/30 rounded-xl border border-amber-500/30 text-xs space-y-1.5 overflow-hidden"
-                  >
-                    <div className="flex items-center justify-between text-amber-300 font-bold">
-                      <span className="flex items-center gap-1">
-                        <BookOpen className="w-3.5 h-3.5" />
-                        Why Decouple Instrumental Broadening?
-                      </span>
-                      <button onClick={() => setShowDecouplingExplanation(false)} className="text-slate-400 hover:text-white text-[10px]">✕</button>
-                    </div>
-                    <p className="text-[10px] text-slate-300 leading-relaxed font-sans">
-                      Diffractometer optical components (X-ray tube focus, divergence slits, monochromators) introduce non-sample line broadening <code className="text-amber-300 font-mono">β_inst</code>.
-                    </p>
-                    <div className="bg-black/60 p-1.5 rounded font-mono text-[9px] text-center text-amber-200 border border-white/5">
-                      Gaussian: β_sample² = β_obs² - β_inst² | Lorentzian: β_sample = β_obs - β_inst
-                    </div>
-                    <p className="text-[9px] text-slate-400">
-                      <strong>Without decoupling:</strong> Peaks appear broader than true crystal domains, underestimating size D and artificially altering regression slopes. Turning it off is suitable when evaluating raw uncalibrated diffractograms.
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              {isDecouplingEnabled ? (
-                <>
-                  <div className="flex items-center justify-between gap-1 mb-2">
-                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Model:</span>
-                    <div className="flex gap-1">
-                      {(['Gaussian', 'Lorentzian', 'Pseudo-Voigt'] as const).map(bm => (
-                        <button
-                          key={bm}
-                          onClick={() => setBroadeningModel(bm)}
-                          className={`px-2 py-0.5 rounded-lg text-[8px] font-black uppercase transition-all cursor-pointer ${
-                            broadeningModel === bm
-                              ? 'bg-amber-500 text-black font-bold'
-                              : 'bg-black/40 text-slate-400 border border-white/5 hover:text-slate-200'
-                          }`}
-                        >
-                          {bm === 'Gaussian' ? 'Gauss' : bm === 'Lorentzian' ? 'Lorentz' : 'P-Voigt'}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-2 mb-3">
-                    {(['constant', 'caglioti'] as const).map(mode => (
-                      <button
-                        key={mode}
-                        onClick={() => setInstrumentalMode(mode)}
-                        className={`py-1.5 px-2 rounded-xl border text-[9px] font-black uppercase tracking-wider transition-all cursor-pointer ${
-                          instrumentalMode === mode 
-                            ? 'bg-amber-500 text-black border-amber-400 font-extrabold shadow-[0_0_10px_rgba(245,158,11,0.3)]' 
-                            : 'bg-black/40 border-white/5 text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        {mode === 'constant' ? 'Constant FWHM' : 'Caglioti Curve'}
-                      </button>
-                    ))}
-                  </div>
-
-                  {instrumentalMode === 'constant' ? (
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="number"
-                        step="0.01"
-                        min="0"
-                        value={String(instFwhm) === 'NaN' ? '' : instFwhm}
-                        onChange={(e) => setInstFwhm(Math.max(0, parseFloat(e.target.value) || 0))}
-                        className="w-full px-3 py-2 bg-[#0A101C] text-amber-300 border border-white/10 rounded-xl font-mono text-xs font-bold outline-none"
-                        placeholder="FWHM (deg)"
-                      />
-                      <div className="flex gap-1 shrink-0">
-                        {[0, 0.05, 0.1].map(v => (
-                          <button
-                            key={v}
-                            onClick={() => setInstFwhm(v)}
-                            className="px-2 py-1 bg-black/40 border border-white/5 rounded-lg text-[8px] font-mono text-amber-400 hover:bg-amber-500/20 cursor-pointer"
-                          >
-                            {v === 0 ? '0°' : `${v}°`}
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="grid grid-cols-3 gap-1.5">
-                      <div>
-                        <label className="block text-[8px] font-mono text-slate-400 text-center">U (tan²θ)</label>
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={cagliotiU}
-                          onChange={(e) => setCagliotiU(parseFloat(e.target.value) || 0)}
-                          className="w-full px-1.5 py-1 bg-[#0A101C] text-amber-300 border border-white/10 rounded-lg text-center font-mono text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[8px] font-mono text-slate-400 text-center">V (tanθ)</label>
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={cagliotiV}
-                          onChange={(e) => setCagliotiV(parseFloat(e.target.value) || 0)}
-                          className="w-full px-1.5 py-1 bg-[#0A101C] text-amber-300 border border-white/10 rounded-lg text-center font-mono text-xs"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-[8px] font-mono text-slate-400 text-center">W (const)</label>
-                        <input
-                          type="number"
-                          step="0.001"
-                          value={cagliotiW}
-                          onChange={(e) => setCagliotiW(parseFloat(e.target.value) || 0)}
-                          className="w-full px-1.5 py-1 bg-[#0A101C] text-amber-300 border border-white/10 rounded-lg text-center font-mono text-xs"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <div className="p-2.5 bg-black/40 rounded-xl border border-dashed border-white/10 text-center text-[9px] text-slate-500 font-mono">
-                  Deconvolution disabled (β_sample = β_obs).
-                </div>
-              )}
-            </div>
-
-            {/* Elastic Stress, Burgers Vector & Material Density */}
-            <div className="bg-[#070D18] p-4 rounded-2xl border border-purple-500/30">
-              <div className="flex items-center justify-between mb-2.5">
-                <label className="text-[10px] font-black text-purple-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Atom className="w-3.5 h-3.5" />
-                  Elasticity & SSA Density
-                </label>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    type="button"
-                    onClick={() => setShowDensityExplanation(!showDensityExplanation)}
-                    className="text-purple-400 hover:text-purple-300 cursor-pointer"
-                    title="Why use Material Density?"
-                  >
-                    <Info className="w-3 h-3" />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setIsModulusEnabled(!isModulusEnabled)}
-                    className={`px-2 py-0.5 text-[8px] font-black uppercase rounded-lg border transition-colors cursor-pointer ${
-                      isModulusEnabled 
-                        ? 'bg-purple-500 text-black border-purple-400 font-bold' 
-                        : 'bg-black/30 border-white/5 text-slate-500'
-                    }`}
-                  >
-                    {isModulusEnabled ? 'Stress ON' : 'Modulus Off'}
-                  </button>
-                </div>
-              </div>
-
-              {/* Density Explanation Box */}
-              <AnimatePresence>
-                {showDensityExplanation && (
-                  <motion.div
-                    key="wh-density-explanation"
-                    initial={{ opacity: 0, height: 0 }}
-                    animate={{ opacity: 1, height: 'auto' }}
-                    exit={{ opacity: 0, height: 0 }}
-                    className="mb-3 p-3 bg-purple-950/40 rounded-xl border border-purple-500/30 text-xs space-y-1.5 overflow-hidden font-mono"
-                  >
-                    <div className="flex items-center justify-between text-purple-300 font-bold">
-                      <span>Why use Material Density ρ (g/cm³)?</span>
-                      <button onClick={() => setShowDensityExplanation(false)} className="text-slate-400 hover:text-white">✕</button>
-                    </div>
-                    <p className="text-[10px] text-slate-300 leading-normal font-sans">
-                      Converts XRD crystallite diameter D into <strong>Specific Surface Area (m²/g)</strong>:
-                    </p>
-                    <div className="bg-black/60 p-1.5 rounded text-center text-purple-300 text-[10px] border border-white/5">
-                      SSA = (6 × 10³) / (ρ × D_volume) [m²/g]
-                    </div>
-                    <p className="text-[9px] text-slate-400 font-sans">
-                      <strong>Why optional?</strong> W-H size (nm), microstrain (ε), and stress (MPa) are independent of material density.
-                    </p>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-
-              <div className="grid grid-cols-2 gap-2.5 mb-3">
-                <div>
-                  <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Young's Modulus (E)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      value={youngsModulusGPa}
-                      onChange={(e) => setYoungsModulusGPa(parseFloat(e.target.value) || 130)}
-                      className="w-full px-2.5 py-1.5 bg-[#0A101C] text-purple-300 border border-white/10 rounded-xl font-mono text-xs font-bold"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-slate-500 font-mono">GPa</span>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[8px] font-bold text-slate-400 uppercase tracking-wider mb-1">
-                    Burgers Vector (b)
-                  </label>
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={burgersVectorNm}
-                      onChange={(e) => setBurgersVectorNm(parseFloat(e.target.value) || 0.25)}
-                      className="w-full px-2.5 py-1.5 bg-[#0A101C] text-purple-300 border border-white/10 rounded-xl font-mono text-xs font-bold"
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-slate-500 font-mono">nm</span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Material Density Section */}
-              <div className="pt-2.5 border-t border-white/5">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider">
-                    Material Density ρ (SSA)
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setIsDensityEnabled(!isDensityEnabled)}
-                    className={`px-1.5 py-0.5 text-[7px] font-black uppercase rounded border transition-colors cursor-pointer ${
-                      isDensityEnabled ? 'bg-purple-500 text-black border-purple-400' : 'bg-black/30 border-white/5 text-slate-500'
-                    }`}
-                  >
-                    {isDensityEnabled ? 'SSA ON' : 'Optional Off'}
-                  </button>
-                </div>
-                {isDensityEnabled ? (
-                  <div className="relative">
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0.1"
-                      value={String(materialDensityGcm3) === 'NaN' ? '' : materialDensityGcm3}
-                      onChange={(e) => setMaterialDensityGcm3(parseFloat(e.target.value) || 2.33)}
-                      className="w-full px-2.5 py-1.5 bg-[#0A101C] text-purple-300 border border-white/10 rounded-xl font-mono text-xs font-bold"
-                      placeholder="Density in g/cm³..."
-                    />
-                    <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-[8px] text-slate-500 font-mono">g/cm³</span>
-                  </div>
-                ) : (
-                  <div className="p-1.5 bg-black/40 rounded-lg text-center text-[8px] text-slate-500 font-mono">
-                    SSA Calculation Disabled
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* AI Assistant & Dataset Loader */}
-            <div className="bg-[#070D18] p-4 rounded-2xl border border-cyan-500/30">
-              <div className="flex items-center justify-between mb-2">
-                <label className="text-[10px] font-black text-cyan-400 uppercase tracking-widest flex items-center gap-1.5">
-                  <Sparkles className="w-3.5 h-3.5" />
-                  AI Dataset Assistant
-                </label>
-                <button
-                  type="button"
-                  onClick={handleImportFromScherrer}
-                  className="px-2 py-1 rounded-lg bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-[8px] font-black uppercase tracking-wider text-amber-300 transition-colors cursor-pointer"
-                  title="Import active peak list & instrument parameters from Scherrer Studio"
-                >
-                  Import Scherrer Studio
-                </button>
-              </div>
-              {transferNotice && (
-                <p className="text-[8px] font-mono text-amber-300 bg-amber-500/10 p-1.5 rounded-lg border border-amber-500/20 mb-2">
-                  {transferNotice}
-                </p>
-              )}
-              <div className="flex gap-1.5 mb-2">
-                <input
-                  type="text"
-                  value={aiPrompt}
-                  onChange={(e) => setAiPrompt(e.target.value)}
-                  placeholder="e.g. Nanocrystalline Anatase TiO2"
-                  className="flex-1 px-3 py-1.5 bg-[#0A101C] text-cyan-300 border border-white/10 rounded-xl text-xs outline-none focus:border-cyan-500/60 font-mono placeholder:text-slate-600"
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter') handleAiSmartGenerate();
-                  }}
-                />
-                <button
-                  type="button"
-                  onClick={() => handleAiSmartGenerate()}
-                  disabled={isAiLoading || !aiPrompt.trim()}
-                  className="px-3 py-1.5 bg-cyan-500 hover:bg-cyan-400 disabled:opacity-50 text-black text-[9px] font-black uppercase tracking-wider rounded-xl transition-all flex items-center gap-1 cursor-pointer shrink-0"
-                >
-                  {isAiLoading ? <Loader2 className="w-3 h-3 animate-spin" /> : <Zap className="w-3 h-3" />}
-                  Load
-                </button>
-              </div>
-
-              {aiSuccessMessage && (
-                <p className="text-[8px] font-mono text-cyan-300 bg-cyan-500/10 p-2 rounded-lg border border-cyan-500/20 mb-2">
-                  {aiSuccessMessage}
-                </p>
-              )}
-
-              {/* Quick Preset Badges */}
-              <div className="flex flex-wrap gap-1 mt-2">
-                {WH_PRESETS.slice(0, 6).map(p => (
-                  <button
-                    key={p.name}
-                    type="button"
-                    onClick={() => {
-                      setInputData(p.data);
-                      setWavelength(p.wavelength);
-                      setConstantK(p.k);
-                      if (p.material) setSelectedMaterial(p.material);
-                      if (p.youngsModulus) {
-                        setYoungsModulusGPa(p.youngsModulus);
-                        setIsModulusEnabled(true);
-                      }
-                      if (p.density) setMaterialDensityGcm3(p.density);
-                      setExcludedIndices([]);
-                      setAdvisorReport(null);
-                      setRecomputeFeedback(null);
-                    }}
-                    className="px-2 py-1 bg-black/40 hover:bg-cyan-500/10 border border-white/5 hover:border-cyan-500/30 rounded-lg text-[8px] font-mono text-slate-400 hover:text-cyan-300 transition-colors flex items-center gap-1 cursor-pointer"
-                  >
-                    <span>{p.icon}</span>
-                    <span>{p.name.split(' ')[0]}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Peak Data Manager (Dual Grid/Raw Editor with HKL indexing and Synthetic Synthesis) */}
-            <WHPeakDataManager
-              inputData={inputData}
-              onInputChange={(newVal) => setInputData(newVal)}
-              wavelength={wavelength}
-              constantK={constantK}
-              instFwhm={instFwhm}
-              isDecouplingEnabled={isDecouplingEnabled}
-              broadeningModel={broadeningModel}
-              excludedIndices={excludedIndices}
-              onToggleExcludePeak={toggleExcludePeak}
-              onSelectPreset={(data, name, ym, den) => {
-                setInputData(data);
-                if (name) setSelectedMaterial(name);
-                if (ym) {
-                  setYoungsModulusGPa(ym);
-                  setIsModulusEnabled(true);
-                }
-                if (den) setMaterialDensityGcm3(den);
-                setExcludedIndices([]);
-                setRecomputeFeedback(null);
-              }}
-            />
-
-            {/* Action Buttons & Live Recompute Verification Banner */}
-            <div className="space-y-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <button
-                  type="button"
-                  onClick={handleCalculateWithSimulation}
-                  className="py-3 px-3 bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-mono font-bold uppercase tracking-wider rounded border border-cyan-400 transition-colors flex items-center justify-center gap-1.5 cursor-pointer text-[11px]"
-                  title="Validate peaks, sort ascending 2θ, refine anisotropy contrast q (if mWH/Stephens), and recompute all 8 W-H models"
-                >
-                  <TrendingUp className="w-4 h-4 shrink-0" />
-                  <span>Recompute W–H Size–Strain Fit</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={handleAutoOptimizeAll}
-                  className="py-3 px-3 bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 font-mono font-bold uppercase tracking-wider rounded border border-emerald-500/40 transition-colors flex items-center justify-center gap-1.5 cursor-pointer text-[11px]"
-                  title="Automatically optimize dislocation contrast q and select the highest-R² physically valid Size-Strain model"
-                >
-                  <Sparkles className="w-4 h-4 text-emerald-400 shrink-0" />
-                  <span>Auto-Optimize Model &amp; q</span>
-                </button>
-              </div>
-
-              {recomputeFeedback && (
-                <div className="p-3 rounded bg-[#070A12] border border-cyan-500/40 font-mono text-[10px] space-y-1.5">
-                  <div className="flex items-center justify-between text-cyan-300 font-bold">
-                    <span className="flex items-center gap-1.5">
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span>SOLVER RECOMPUTED [{recomputeFeedback.timestamp}]</span>
-                    </span>
-                    <button
-                      type="button"
-                      onClick={() => setRecomputeFeedback(null)}
-                      className="text-slate-500 hover:text-white cursor-pointer"
-                    >
-                      ✕
-                    </button>
-                  </div>
-                  <p className="text-slate-200 leading-relaxed tabular-nums">
-                    {recomputeFeedback.message}
-                  </p>
-                  {recomputeFeedback.warnings.length > 0 && (
-                    <div className="pt-1 border-t border-slate-800 space-y-1 text-amber-300 text-[9.5px]">
-                      {recomputeFeedback.warnings.map((w, idx) => (
-                        <p key={idx}>⚠ {w}</p>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleGenerateAdvisorReport}
-                disabled={isAdvisorLoading || !result}
-                className="w-full py-2.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-cyan-300 font-mono font-bold uppercase tracking-wider rounded transition-colors flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 text-xs"
-              >
-                {isAdvisorLoading ? <Loader2 className="w-4 h-4 animate-spin text-cyan-400" /> : <BrainCircuit className="w-4 h-4 text-cyan-400" />}
-                <span>{isAdvisorLoading ? 'Analyzing Line Profiles...' : 'AI Crystallographic Advisor'}</span>
-              </button>
-            </div>
-          </div>
-        </div>
+      {/* ================= LEFT CONFIGURATION PANEL — SOLVER & OPTICS CONSOLE (4 Cols) ================= */}
+      <div className="lg:col-span-4 space-y-5">
+        <WHSolverOpticsConsole
+          presets={WH_PRESETS}
+          strainModel={strainModel}
+          onSelectStrainModel={handleSelectStrainModel}
+          wavelength={wavelength}
+          setWavelength={setWavelength}
+          constantK={constantK}
+          setConstantK={setConstantK}
+          instFwhm={instFwhm}
+          setInstFwhm={setInstFwhm}
+          instrumentalMode={instrumentalMode}
+          setInstrumentalMode={setInstrumentalMode}
+          isDecouplingEnabled={isDecouplingEnabled}
+          setIsDecouplingEnabled={setIsDecouplingEnabled}
+          broadeningModel={broadeningModel}
+          setBroadeningModel={setBroadeningModel}
+          cagliotiU={cagliotiU}
+          setCagliotiU={setCagliotiU}
+          cagliotiV={cagliotiV}
+          setCagliotiV={setCagliotiV}
+          cagliotiW={cagliotiW}
+          setCagliotiW={setCagliotiW}
+          youngsModulusGPa={youngsModulusGPa}
+          setYoungsModulusGPa={setYoungsModulusGPa}
+          selectedMaterial={selectedMaterial}
+          setSelectedMaterial={setSelectedMaterial}
+          isModulusEnabled={isModulusEnabled}
+          setIsModulusEnabled={setIsModulusEnabled}
+          burgersVectorNm={burgersVectorNm}
+          setBurgersVectorNm={setBurgersVectorNm}
+          isDensityEnabled={isDensityEnabled}
+          setIsDensityEnabled={setIsDensityEnabled}
+          materialDensityGcm3={materialDensityGcm3}
+          setMaterialDensityGcm3={setMaterialDensityGcm3}
+          dislocationQParam={dislocationQParam}
+          setDislocationQParam={setDislocationQParam}
+          ch00Param={ch00Param}
+          setCh00Param={setCh00Param}
+          inputData={inputData}
+          setInputData={setInputData}
+          excludedIndices={excludedIndices}
+          setExcludedIndices={setExcludedIndices}
+          onToggleExcludePeak={toggleExcludePeak}
+          configSection={configSection}
+          setConfigSection={setConfigSection}
+          autoCalculate={autoCalculate}
+          setAutoCalculate={setAutoCalculate}
+          hasPendingChanges={hasPendingChanges}
+          isCalculating={isCalculating}
+          result={result}
+          bestFitModelItem={bestFitModelItem}
+          renderedModelFormulaHtml={renderedModelFormulaHtml}
+          transferNotice={transferNotice}
+          showDecouplingExplanation={showDecouplingExplanation}
+          setShowDecouplingExplanation={setShowDecouplingExplanation}
+          showDensityExplanation={showDensityExplanation}
+          setShowDensityExplanation={setShowDensityExplanation}
+          recomputeFeedback={recomputeFeedback}
+          setRecomputeFeedback={setRecomputeFeedback}
+          onReset={handleReset}
+          onImportFromScherrer={handleImportFromScherrer}
+          onRefineDislocationQ={handleRefineDislocationQ}
+          onStartCalculation={handleStartCalculation}
+          onAutoOptimizeAll={handleAutoOptimizeAll}
+        />
       </div>
 
       {/* ================= RIGHT RESULTS & DIAGNOSTIC STUDIO (8 Cols) ================= */}
@@ -1763,8 +1096,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                 { id: 'pattern', label: '04. XRD Pattern', icon: Zap },
                 { id: 'residuals', label: '05. Residuals', icon: Activity },
                 { id: 'dislocationTensor', label: '06. Elasticity & ρ', icon: Atom },
-                { id: 'nanoSim', label: '07. Forward Sim', icon: Sliders },
-                { id: 'advisor', label: '08. AI Advisor', icon: BrainCircuit }
+                { id: 'nanoSim', label: '07. Forward Sim', icon: Sliders }
               ].map(tab => {
                 const Icon = tab.icon;
                 return (
@@ -1808,10 +1140,14 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             <div className="space-y-3">
               {/* Interactive Plot HUD Controls */}
               {result && (
-                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[#070D18] rounded-xl border border-white/5 font-mono tabular-nums text-[9px]">
+                <div className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 bg-[#070D18] rounded-md border border-slate-800 font-mono tabular-nums text-[10px]">
                   <div className="flex flex-wrap items-center gap-3 text-slate-400">
                     <span>
                       Equation: <strong className="text-white">Y = ({result.regression.slope.toExponential(3)})·X + ({result.regression.intercept.toExponential(3)})</strong>
+                    </span>
+                    <span className="text-slate-600">|</span>
+                    <span>
+                      R²: <strong className="text-emerald-300">{result.regression.rSquared.toFixed(5)}</strong>
                     </span>
                     <span className="text-slate-600">|</span>
                     <span>
@@ -2222,7 +1558,7 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                         </td>
                         <td className="py-2.5 px-3 text-right">
                           <button
-                            onClick={() => handleSelectStrainModel(m.modelName as any)}
+                            onClick={() => handleSelectStrainModel(m.modelName as any, true)}
                             disabled={strainModel === m.modelName}
                             className={`px-2 py-1 rounded text-[8px] font-black uppercase tracking-wider transition-all cursor-pointer ${
                               strainModel === m.modelName
@@ -2266,60 +1602,6 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
             </div>
           )}
 
-          {/* TAB 6: AI CRYSTALLOGRAPHIC ADVISOR */}
-          {activeTab === 'advisor' && (
-            <div className="h-[420px] w-full overflow-y-auto custom-scrollbar p-3">
-              {isAdvisorLoading ? (
-                <div className="h-full flex flex-col items-center justify-center space-y-3 text-cyan-400 font-mono text-xs">
-                  <Loader2 className="w-8 h-8 animate-spin text-cyan-400" />
-                  <p className="text-center font-bold uppercase tracking-widest text-xs">
-                    Gemini 3.1 Pro Thinking: Performing Line-Profile Microstructural Evaluation...
-                  </p>
-                  <p className="text-[10px] text-slate-400">
-                    Evaluating anisotropic broadening, dislocation contrast factors, and strain energy density.
-                  </p>
-                </div>
-              ) : advisorError ? (
-                <div className="p-4 bg-rose-950/30 rounded-2xl border border-rose-500/30 text-rose-300 text-xs font-mono">
-                  <p className="font-bold mb-1">Advisory Generation Error</p>
-                  <p className="text-[10px] text-rose-400">{advisorError}</p>
-                </div>
-              ) : advisorReport ? (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between pb-2 border-b border-white/10">
-                    <div className="flex items-center gap-2">
-                      <BrainCircuit className="w-4 h-4 text-cyan-400" />
-                      <span className="text-xs font-black uppercase text-cyan-400 tracking-wider">
-                        AI Line-Profile Expert Analysis
-                      </span>
-                    </div>
-                    <span className="text-[9px] font-mono text-slate-400 bg-white/5 px-2 py-0.5 rounded">
-                      Model: Gemini 3.1 Pro Preview (High Thinking)
-                    </span>
-                  </div>
-                  <div className="prose prose-invert prose-xs max-w-none text-slate-300 text-[11px] leading-relaxed font-sans space-y-3">
-                    <Markdown>{advisorReport}</Markdown>
-                  </div>
-                </div>
-              ) : (
-                <div className="h-full flex flex-col items-center justify-center text-center p-6 text-slate-400 space-y-3 font-mono text-xs">
-                  <BrainCircuit className="w-10 h-10 text-cyan-500/40" />
-                  <div>
-                    <h4 className="font-black text-white uppercase text-sm mb-1">AI Line-Profile Advisor</h4>
-                    <p className="text-[10px] text-slate-400 max-w-md">
-                      Generate an in-depth crystallographic and dislocation report comparing all Williamson-Hall models, identifying anisotropic strain scatter, and providing publication-ready microstructural insights.
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleGenerateAdvisorReport}
-                    className="px-4 py-2 bg-cyan-500 hover:bg-cyan-400 text-black font-black uppercase tracking-wider text-xs rounded-xl transition-all cursor-pointer shadow-[0_0_15px_rgba(34,211,238,0.3)]"
-                  >
-                    Generate Report Now
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
         </div>
 
         {/* Peak-by-Peak Table with Outlier Toggles */}
@@ -2352,7 +1634,10 @@ ${result.pointsExtended?.map((p, i) => `  [${i + 1}] 2θ = ${p.twoTheta.toFixed(
                 {excludedIndices.length > 0 && (
                   <button
                     type="button"
-                    onClick={() => setExcludedIndices([])}
+                    onClick={() => {
+                      setExcludedIndices([]);
+                      executeCalculation([]);
+                    }}
                     className="text-[8px] font-black uppercase tracking-wider px-2.5 py-1 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 text-emerald-300 border border-emerald-500/30 transition-colors cursor-pointer"
                   >
                     Include All

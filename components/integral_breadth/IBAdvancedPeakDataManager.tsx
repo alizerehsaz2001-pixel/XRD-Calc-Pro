@@ -29,7 +29,12 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { IBAdvancedInput, IBAdvancedResult } from '../../types';
-import { parseIBAdvancedInput } from '../../utils/physics';
+import {
+  parseIBAdvancedInput,
+  IBDecouplingMethodKey,
+  computeDeKeijserVoigtFractions,
+  computeLangfordVoigtBreadth
+} from '../../utils/physics';
 import { IBAdvancedSyntheticModal } from './IBAdvancedSyntheticModal';
 import { IBAdvancedHKLModal } from './IBAdvancedHKLModal';
 import { IBAdvancedProfileCalcModal } from './IBAdvancedProfileCalcModal';
@@ -42,7 +47,7 @@ interface IBAdvancedPeakDataManagerProps {
   instBetaIB: number;
   instrumentalMode: 'constant' | 'caglioti';
   cagliotiParams: { U: number; V: number; W: number };
-  decouplingMethod: 'linear' | 'squared' | 'hw_voigt' | 'none';
+  decouplingMethod: IBDecouplingMethodKey;
   materialDensityGcm3: number;
   youngsModulusGPa: number;
   excludedIndices: number[];
@@ -136,7 +141,16 @@ export const IBAdvancedPeakDataManager: React.FC<IBAdvancedPeakDataManagerProps>
 
       // Sample deconvolved breadth
       let betaSampleDeg = betaObs;
-      if (decouplingMethod === 'squared') {
+      if (result?.pointsExtended?.[idx] && Math.abs(result.pointsExtended[idx].twoTheta - peak.twoTheta) < 0.01) {
+        betaSampleDeg = result.pointsExtended[idx].betaSampleDeg;
+      } else if (decouplingMethod === 'voigt_exact') {
+        const obsPhi = peak.fwhm && betaObs > 0 ? peak.fwhm / betaObs : 0.78;
+        const obsFrac = computeDeKeijserVoigtFractions(obsPhi);
+        const instFrac = computeDeKeijserVoigtFractions(0.8226);
+        const bCs = Math.max(0, betaObs * obsFrac.fCauchy - betaInstDeg * instFrac.fCauchy);
+        const bGs = Math.sqrt(Math.max(0, Math.pow(betaObs * obsFrac.fGauss, 2) - Math.pow(betaInstDeg * instFrac.fGauss, 2)));
+        betaSampleDeg = computeLangfordVoigtBreadth(bCs, bGs);
+      } else if (decouplingMethod === 'squared') {
         betaSampleDeg = Math.sqrt(Math.max(0, betaObs * betaObs - betaInstDeg * betaInstDeg));
       } else if (decouplingMethod === 'hw_voigt') {
         if (betaObs > betaInstDeg) {
@@ -175,7 +189,7 @@ export const IBAdvancedPeakDataManager: React.FC<IBAdvancedPeakDataManagerProps>
         relArea: (peak.area / maxArea) * 100
       };
     });
-  }, [parsedPeaks, excludedIndices, wavelength, constantK, instBetaIB, instrumentalMode, cagliotiParams, decouplingMethod]);
+  }, [parsedPeaks, excludedIndices, wavelength, constantK, instBetaIB, instrumentalMode, cagliotiParams, decouplingMethod, result]);
 
   // Syntax validation for raw mode & health checks
   const validationInfo = useMemo(() => {

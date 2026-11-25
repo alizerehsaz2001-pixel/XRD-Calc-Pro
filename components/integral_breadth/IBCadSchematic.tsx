@@ -1,13 +1,24 @@
 import React, { useState, useMemo } from 'react';
 import { IBAdvancedResult } from '../../types';
 import {
+  IB_PHI_CAUCHY,
+  IB_PHI_GAUSS,
+  IBSeparationMethodKey,
+  IBDecouplingMethodKey,
+  computeExactPseudoVoigtEtaFromPhi,
+  computeDeKeijserVoigtFractions,
+  computeVoigtH,
+  computeErfcx,
+  computeLangfordVoigtBreadth
+} from '../../utils/physics';
+import {
   Layers,
   Sliders,
   Compass
 } from 'lucide-react';
 
-export type IBSeparationMethod = 'udm' | 'usdm' | 'udedm' | 'ssp' | 'hw' | 'mwh';
-export type IBDecouplingMethod = 'none' | 'linear' | 'squared' | 'hw_voigt';
+export type IBSeparationMethod = IBSeparationMethodKey;
+export type IBDecouplingMethod = IBDecouplingMethodKey;
 
 interface IBCadSchematicProps {
   result: IBAdvancedResult | null;
@@ -15,6 +26,7 @@ interface IBCadSchematicProps {
   wavelength: number;
   constantK: number;
   instBetaIB: number;
+  instVoigtPhi?: number;
   instrumentalMode: 'constant' | 'caglioti';
   cagliotiU: number;
   cagliotiV: number;
@@ -33,6 +45,7 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
   wavelength,
   constantK,
   instBetaIB,
+  instVoigtPhi = 0.8226,
   instrumentalMode,
   cagliotiU,
   cagliotiV,
@@ -57,23 +70,29 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
     return validPoints[idx] || validPoints[0];
   }, [validPoints, selectedPeakIdx]);
 
-  // Mode 1: Pseudo-Voigt + Equivalent Stokes-Wilson Box geometry
+  // Mode 1: Exact Faddeeva-Voigt + Pseudo-Voigt + Equivalent Stokes-Wilson Box geometry
   const stokesCurveData = useMemo(() => {
-    const phi = Math.min(0.9394, Math.max(0.6366, voigtShapePhi));
-    // Mixing parameter eta from phi (Langford approximation)
-    const eta = Math.min(1, Math.max(0, (0.939437 - phi) / (0.939437 - 0.63662)));
+    const phi = Math.min(IB_PHI_GAUSS, Math.max(IB_PHI_CAUCHY, voigtShapePhi));
+    // Exact 1/phi inversion for Pseudo-Voigt mixing parameter eta
+    const eta = computeExactPseudoVoigtEtaFromPhi(phi);
+    // Exact Faddeeva-Voigt component fractions (f_C, f_G, k)
+    const voigtFrac = computeDeKeijserVoigtFractions(phi);
     const betaDeg = activePeak ? Math.max(0.08, activePeak.betaSampleDeg || activePeak.betaObsDeg) : 0.35;
     const fwhmDeg = betaDeg * phi;
+    const betaCDeg = betaDeg * voigtFrac.fCauchy;
+    const betaGDeg = betaDeg * voigtFrac.fGauss;
+    const voigtK = voigtFrac.voigtK;
+    const h0 = voigtK > 100 ? 1 : computeErfcx(voigtK);
 
-    // SVG coordinate space: x in [70, 510], center = 290, baseline = 205, peak top = 45 (height = 160)
+    // SVG coordinate space: x in [65, 515], center = 290, baseline = 205, peak top = 53 (height = 152)
     const cx = 290;
     const baseY = 205;
     const peakH = 152;
-    // Scale so betaDeg corresponds to 136 px width -> 1 deg = 136 / betaDeg px
     const pxPerDeg = 136 / betaDeg;
     const boxHalfW = (betaDeg * pxPerDeg) / 2; // 68 px
     const fwhmHalfW = (fwhmDeg * pxPerDeg) / 2; // 68 * phi px
 
+    const voigtPts: string[] = [];
     const totalPts: string[] = [];
     const lorentzPts: string[] = [];
     const gaussPts: string[] = [];
@@ -88,10 +107,24 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
       const lVal = 1 / (1 + u * u);
       const pvVal = eta * lVal + (1 - eta) * gVal;
 
+      let vVal = pvVal;
+      if (betaGDeg < 1e-6) {
+        const gammaL = Math.max(1e-6, betaCDeg / Math.PI);
+        vVal = 1 / (1 + (dxDeg / gammaL) * (dxDeg / gammaL));
+      } else if (betaCDeg < 1e-6) {
+        const uG = (Math.sqrt(Math.PI) * dxDeg) / betaGDeg;
+        vVal = Math.exp(-uG * uG);
+      } else {
+        const uV = (Math.sqrt(Math.PI) * dxDeg) / betaGDeg;
+        vVal = Math.min(1, Math.max(0, computeVoigtH(voigtK, uV) / Math.max(1e-12, h0)));
+      }
+
+      const yVoigt = baseY - vVal * peakH;
       const yTotal = baseY - pvVal * peakH;
       const yL = baseY - eta * lVal * peakH;
       const yG = baseY - (1 - eta) * gVal * peakH;
 
+      voigtPts.push(`${xPx.toFixed(1)},${yVoigt.toFixed(1)}`);
       totalPts.push(`${xPx.toFixed(1)},${yTotal.toFixed(1)}`);
       lorentzPts.push(`${xPx.toFixed(1)},${yL.toFixed(1)}`);
       gaussPts.push(`${xPx.toFixed(1)},${yG.toFixed(1)}`);
@@ -100,6 +133,7 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
     return {
       phi,
       eta,
+      voigtFrac,
       betaDeg,
       fwhmDeg,
       cx,
@@ -107,6 +141,8 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
       peakH,
       boxHalfW,
       fwhmHalfW,
+      voigtPolyline: voigtPts.join(' '),
+      voigtAreaPolygon: `65,${baseY} ${voigtPts.join(' ')} 515,${baseY}`,
       totalPolyline: totalPts.join(' '),
       totalAreaPolygon: `65,${baseY} ${totalPts.join(' ')} 515,${baseY}`,
       lorentzPolyline: lorentzPts.join(' '),
@@ -114,12 +150,16 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
     };
   }, [voigtShapePhi, activePeak]);
 
-  // Mode 3: Log-Normal Column Length Distribution curve
+  // Mode 3: Krill-Birringer Log-Normal Column Length Distribution curve
   const logNormalCurve = useMemo(() => {
     const dVol = result?.sizeInterceptNm && result.sizeInterceptNm > 0 ? result.sizeInterceptNm : 36;
     const dArea = result?.areaWeightedSizeNm && result.areaWeightedSizeNm > 0 ? result.areaWeightedSizeNm : dVol * 0.66;
     const sigmaG = result?.logNormalSigmaG && result.logNormalSigmaG > 1.0 ? result.logNormalSigmaG : 1.38;
-    const d0 = dArea * Math.exp(-2.5 * Math.pow(Math.log(sigmaG), 2));
+    // Exact Krill-Birringer (1998) median sphere diameter: D0 = (3/2) * <D>_A * exp(-2.5 ln^2(sigma_g))
+    const d0 =
+      result?.logNormalMedianD0Nm && result.logNormalMedianD0Nm > 0
+        ? result.logNormalMedianD0Nm
+        : 1.5 * dArea * Math.exp(-2.5 * Math.pow(Math.log(sigmaG), 2));
     const lnSigma = Math.max(0.12, Math.log(sigmaG));
 
     const maxD = Math.max(80, dVol * 2.4);
@@ -175,6 +215,14 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
           </span>
           <span className="text-[10px] font-mono text-slate-400 border-l border-slate-800 pl-2.5">
             {selectedMaterial} &bull; λ = {wavelength.toFixed(4)} Å &bull; K_IB = {constantK.toFixed(2)}
+            {result && (
+              <>
+                {' '}&bull;{' '}
+                <span className="text-purple-300 font-bold">
+                  R² = {result.regression.rSquared.toFixed(4)}
+                </span>
+              </>
+            )}
           </span>
         </div>
 
@@ -214,7 +262,7 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
             }`}
           >
             <Compass className="w-3 h-3" />
-            03. 6-Model Separation &amp; P(L)
+            03. 7-Model Separation &amp; P(L)
           </button>
         </div>
       </div>
@@ -268,21 +316,22 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
 
         {activeMode === 'deconv' && (
           <>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5 flex-wrap">
               <span className="text-slate-400 uppercase font-bold">Active Deconvolution Law:</span>
               {(
                 [
-                  { id: 'hw_voigt', label: 'Voigt Parabolic (Halder–Wagner)', eq: 'β_s = β_o[1 - (β_i/β_o)²]' },
-                  { id: 'linear', label: 'Cauchy Linear (Lorentz)', eq: 'β_s = β_o - β_i' },
-                  { id: 'squared', label: 'Gaussian Quadratic', eq: 'β_s = √(β_o² - β_i²)' },
-                  { id: 'none', label: 'No Subtraction', eq: 'β_s = β_o' }
-                ] as { id: IBDecouplingMethod; label: string; eq: string }[]
+                  { id: 'voigt_exact', label: 'Exact Voigt (Langford)' },
+                  { id: 'hw_voigt', label: 'Parabolic Voigt (H-W)' },
+                  { id: 'linear', label: 'Cauchy Linear' },
+                  { id: 'squared', label: 'Gaussian Quad' },
+                  { id: 'none', label: 'Raw' }
+                ] as { id: IBDecouplingMethod; label: string }[]
               ).map(m => (
                 <button
                   key={m.id}
                   type="button"
                   onClick={() => onSelectDecouplingMethod(m.id)}
-                  className={`px-2.5 py-0.5 rounded border transition-colors cursor-pointer ${
+                  className={`px-2 py-0.5 rounded border transition-colors cursor-pointer ${
                     decouplingMethod === m.id
                       ? 'bg-cyan-500/20 border-cyan-500/50 text-cyan-200 font-bold'
                       : 'bg-[#0B0F19] border-slate-800 text-slate-400 hover:text-slate-200'
@@ -296,7 +345,7 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
               IRF Mode: <span className="text-amber-300 font-bold uppercase">{instrumentalMode}</span>{' '}
               {instrumentalMode === 'caglioti'
                 ? `(U=${cagliotiU.toFixed(3)}, V=${cagliotiV.toFixed(3)}, W=${cagliotiW.toFixed(3)})`
-                : `(β_inst = ${instBetaIB.toFixed(4)}°)`}
+                : `(β_inst = ${instBetaIB.toFixed(4)}° · φ_i = ${instVoigtPhi.toFixed(2)})`}
             </div>
           </>
         )}
@@ -307,12 +356,13 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
               <span className="text-slate-400 uppercase font-bold mr-1">Switch Formalism:</span>
               {(
                 [
-                  { id: 'udm', label: 'UDM (Isotropic)' },
-                  { id: 'usdm', label: 'USDM (E_hkl)' },
-                  { id: 'udedm', label: 'UDEDM (Energy u)' },
-                  { id: 'ssp', label: 'SSP (Size–Strain)' },
-                  { id: 'hw', label: 'H-W (Halder–Wagner)' },
-                  { id: 'mwh', label: 'mWH (Ungár C_hkl)' }
+                  { id: 'udm', label: 'UDM' },
+                  { id: 'usdm', label: 'USDM' },
+                  { id: 'udedm', label: 'UDEDM' },
+                  { id: 'ssp', label: 'SSP' },
+                  { id: 'hw', label: 'H-W' },
+                  { id: 'mwh', label: 'mWH' },
+                  { id: 'gwh', label: 'GWH (Gauss²)' }
                 ] as { id: IBSeparationMethod; label: string }[]
               ).map(m => (
                 <button
@@ -370,8 +420,8 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
             {/* Baseline */}
             <line x1="45" y1={stokesCurveData.baseY} x2="520" y2={stokesCurveData.baseY} stroke="#475569" strokeWidth="1.2" />
 
-            {/* Diffraction Peak Shaded Area */}
-            <polygon points={stokesCurveData.totalAreaPolygon} fill="url(#ibPeakFill)" />
+            {/* Diffraction Peak Shaded Area (Exact Faddeeva-Voigt) */}
+            <polygon points={stokesCurveData.voigtAreaPolygon} fill="url(#ibPeakFill)" />
 
             {/* Equivalent Stokes-Wilson Box (Same Area, Height = I_max, Width = beta_IB) */}
             <rect
@@ -389,24 +439,34 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
             <polyline
               fill="none"
               stroke="#38BDF8"
-              strokeWidth="1.3"
+              strokeWidth="1.2"
               strokeDasharray="3 3"
               points={stokesCurveData.lorentzPolyline}
             />
             <polyline
               fill="none"
               stroke="#F59E0B"
-              strokeWidth="1.3"
+              strokeWidth="1.2"
               strokeDasharray="2 2"
               points={stokesCurveData.gaussPolyline}
             />
 
-            {/* Total Pseudo-Voigt Profile Curve */}
+            {/* Pseudo-Voigt Reference Curve */}
+            <polyline
+              fill="none"
+              stroke="#A855F7"
+              strokeWidth="1.2"
+              strokeDasharray="4 2"
+              strokeOpacity="0.8"
+              points={stokesCurveData.totalPolyline}
+            />
+
+            {/* Exact Faddeeva-Voigt Profile Curve */}
             <polyline
               fill="none"
               stroke="#F472B6"
               strokeWidth="2.4"
-              points={stokesCurveData.totalPolyline}
+              points={stokesCurveData.voigtPolyline}
             />
 
             {/* Centerline Bragg 2theta_0 */}
@@ -499,17 +559,15 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
               0.9394 (Pure Gaussian / Strain)
             </text>
 
-            {/* 4 Metrology Readout Boxes */}
+            {/* Exact Faddeeva-Voigt Component Readout Boxes */}
             {(() => {
               const phi = stokesCurveData.phi;
               const betaIB = stokesCurveData.betaDeg;
-              const betaC = Math.max(0.001, betaIB * (2.0207 - 0.4803 * phi - 1.7756 * phi * phi));
-              const betaG = Math.max(
-                0.001,
-                betaIB * (0.6442 + 1.4187 * Math.sqrt(Math.max(0, phi - 2 / Math.PI)) - 2.2043 * phi + 1.8706 * phi * phi)
-              );
+              const { fCauchy, fGauss, voigtK } = stokesCurveData.voigtFrac;
+              const betaC = Math.max(0.0001, betaIB * fCauchy);
+              const betaG = Math.max(0.0001, betaIB * fGauss);
               const thetaRad = ((activePeak ? activePeak.twoTheta : 28.44) * Math.PI) / 360;
-              const voigtDvNm = (constantK * (wavelength * 0.1)) / ((betaC * Math.PI) / 180 * Math.cos(thetaRad));
+              const voigtDvNm = (constantK * (wavelength * 0.1)) / (((betaC * Math.PI) / 180) * Math.cos(thetaRad));
               const voigtStrain = ((betaG * Math.PI) / 180) / (4 * Math.tan(thetaRad));
 
               return (
@@ -517,43 +575,43 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
                   <g transform="translate(562, 92)">
                     <rect x="0" y="0" width="176" height="58" rx="3" fill="#070A12" stroke="#1E293B" />
                     <text x="10" y="16" fill="#94A3B8" fontSize="8.5" fontWeight="bold">
-                      CAUCHY BREADTH β_C (SIZE)
+                      EXACT CAUCHY β_C (SIZE)
                     </text>
                     <text x="10" y="35" fill="#38BDF8" fontSize="13" fontWeight="bold">
                       {betaC.toFixed(4)}°
                     </text>
                     <text x="10" y="49" fill="#64748B" fontSize="8">
-                      D_v(Voigt) = Kλ / (β_C cosθ) = {voigtDvNm > 0 && voigtDvNm < 1000 ? `${voigtDvNm.toFixed(1)} nm` : 'Bulk'}
+                      D_v = Kλ/(β_C cosθ) = {voigtDvNm > 0 && voigtDvNm < 1000 ? `${voigtDvNm.toFixed(1)} nm` : 'Bulk'}
                     </text>
                   </g>
 
                   <g transform="translate(750, 92)">
                     <rect x="0" y="0" width="176" height="58" rx="3" fill="#070A12" stroke="#1E293B" />
                     <text x="10" y="16" fill="#94A3B8" fontSize="8.5" fontWeight="bold">
-                      GAUSSIAN BREADTH β_G (STRAIN)
+                      EXACT GAUSS β_G (STRAIN)
                     </text>
                     <text x="10" y="35" fill="#F59E0B" fontSize="13" fontWeight="bold">
                       {betaG.toFixed(4)}°
                     </text>
                     <text x="10" y="49" fill="#64748B" fontSize="8">
-                      ε(Voigt) = β_G / (4 tanθ) = {(voigtStrain * 1000).toFixed(2)}×10⁻³
+                      ε = β_G/(4 tanθ) = {(voigtStrain * 1000).toFixed(2)}×10⁻³
                     </text>
                   </g>
+
+                  {/* Bottom Exact Langford–Voigt Reference Box */}
+                  <rect x="562" y="160" width="364" height="60" rx="3" fill="#070A12" stroke="#1E293B" />
+                  <text x="572" y="176" fill="#10B981" fontSize="8.5" fontWeight="bold">
+                    EXACT FADDEEVA–VOIGT INVERSION (Langford 1978 · k = β_C / (√π·β_G)):
+                  </text>
+                  <text x="572" y="192" fill="#CBD5E1" fontSize="8.5">
+                    k = {voigtK < 50 ? voigtK.toFixed(4) : '∞'}  |  f_C = {(fCauchy * 100).toFixed(1)}%  |  f_G = {(fGauss * 100).toFixed(1)}%  |  η(1/φ) = {(stokesCurveData.eta * 100).toFixed(1)}%
+                  </text>
+                  <text x="572" y="208" fill="#94A3B8" fontSize="8">
+                    β_V = β_G / erfcx(k)  |  erfcx(k) = {voigtK < 50 ? computeErfcx(voigtK).toFixed(4) : '0.0000'}  |  φ(k) = {phi.toFixed(4)}
+                  </text>
                 </>
               );
             })()}
-
-            {/* Bottom Formula Reference Box */}
-            <rect x="562" y="160" width="364" height="60" rx="3" fill="#070A12" stroke="#1E293B" />
-            <text x="572" y="176" fill="#10B981" fontSize="8.5" fontWeight="bold">
-              DE KEIJSER POLYNOMIAL DECONVOLUTION RELATIONS (J. Appl. Cryst. 15, 308):
-            </text>
-            <text x="572" y="192" fill="#CBD5E1" fontSize="8.5">
-              β_C / β_IB = 2.0207 − 0.4803·φ − 1.7756·φ²   |   Lorentz Fraction η = {(stokesCurveData.eta * 100).toFixed(1)}%
-            </text>
-            <text x="572" y="208" fill="#CBD5E1" fontSize="8.5">
-              β_G / β_IB = 0.6442 + 1.4187·√(φ − 2/π) − 2.2043·φ + 1.8706·φ²
-            </text>
           </svg>
         )}
 
@@ -645,7 +703,7 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
               <text x="118" y="7.5" fill="#22D3EE" fontSize="8" fontWeight="bold">β_sample ({decouplingMethod.toUpperCase()})</text>
             </g>
 
-            {/* Right Frame: Side-by-Side Comparison of the 3 Deconvolution Laws on Active Peak */}
+            {/* Right Frame: Side-by-Side Comparison of the 4 Deconvolution Laws on Active Peak */}
             <rect x="572" y="12" width="368" height="220" rx="4" fill="#0B0F19" stroke="#1E293B" strokeWidth="1" />
             <text x="586" y="30" fill="#F8FAFC" fontSize="10" fontWeight="bold">
               DECONVOLUTION OPERATOR COMPARISON ({activePeak?.hkl ? `(${activePeak.hkl.join(' ')})` : 'PEAK #1'})
@@ -657,26 +715,38 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
               const bInst = activePeak ? activePeak.betaInstDeg : instBetaIB;
               const bCauchy = Math.max(0, bObs - bInst);
               const bGauss = bObs > bInst ? Math.sqrt(bObs * bObs - bInst * bInst) : 0;
-              const bVoigt = bObs > bInst ? bObs * (1 - (bInst * bInst) / (bObs * bObs)) : 0;
+              const bVoigtHW = bObs > bInst ? bObs * (1 - (bInst * bInst) / (bObs * bObs)) : 0;
+              const obsFrac = computeDeKeijserVoigtFractions(activePeak?.shapeFactorPhi ?? voigtShapePhi);
+              const instFrac = computeDeKeijserVoigtFractions(instVoigtPhi);
+              const bCs = Math.max(0, bObs * obsFrac.fCauchy - bInst * instFrac.fCauchy);
+              const bGs = Math.sqrt(Math.max(0, Math.pow(bObs * obsFrac.fGauss, 2) - Math.pow(bInst * instFrac.fGauss, 2)));
+              const bVoigtExact = computeLangfordVoigtBreadth(bCs, bGs);
 
               const laws: { id: IBDecouplingMethod; title: string; eq: string; val: number; color: string }[] = [
                 {
+                  id: 'voigt_exact',
+                  title: '1. Exact Langford–Voigt (Component)',
+                  eq: 'β_C,s = β_C,o−β_C,i ; β_G,s = √(β_G,o²−β_G,i²)',
+                  val: bVoigtExact,
+                  color: '#22D3EE'
+                },
+                {
+                  id: 'hw_voigt',
+                  title: '2. Halder–Wagner Parabolic Voigt',
+                  eq: 'β_s = β_obs · [1 − (β_inst / β_obs)²]',
+                  val: bVoigtHW,
+                  color: '#10B981'
+                },
+                {
                   id: 'linear',
-                  title: '1. Cauchy Linear (Pure Lorentzian)',
+                  title: '3. Cauchy Linear (Pure Lorentzian)',
                   eq: 'β_s = β_obs − β_inst',
                   val: bCauchy,
                   color: '#38BDF8'
                 },
                 {
-                  id: 'hw_voigt',
-                  title: '2. Halder–Wagner Voigt Parabolic',
-                  eq: 'β_s = β_obs · [1 − (β_inst / β_obs)²]',
-                  val: bVoigt,
-                  color: '#10B981'
-                },
-                {
                   id: 'squared',
-                  title: '3. Gaussian Quadratic (Root-Mean-Square)',
+                  title: '4. Gaussian Quadratic (RMS)',
                   eq: 'β_s = √(β_obs² − β_inst²)',
                   val: bGauss,
                   color: '#F472B6'
@@ -684,7 +754,7 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
               ];
 
               return laws.map((law, i) => {
-                const y0 = 48 + i * 56;
+                const y0 = 44 + i * 45;
                 const isSel = decouplingMethod === law.id;
                 const ratio = bObs > 0 ? Math.min(1, law.val / bObs) : 0;
                 return (
@@ -698,23 +768,23 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
                       x="0"
                       y="0"
                       width="340"
-                      height="48"
+                      height="40"
                       rx="3"
                       fill={isSel ? '#0F172A' : '#070A12'}
                       stroke={isSel ? law.color : '#1E293B'}
                       strokeWidth={isSel ? '1.4' : '1'}
                     />
-                    <text x="10" y="16" fill={isSel ? '#F8FAFC' : '#94A3B8'} fontSize="9" fontWeight="bold">
+                    <text x="9" y="14" fill={isSel ? '#F8FAFC' : '#94A3B8'} fontSize="8.5" fontWeight="bold">
                       {law.title}
                     </text>
-                    <text x="330" y="16" textAnchor="end" fill={law.color} fontSize="10.5" fontWeight="bold">
+                    <text x="331" y="14" textAnchor="end" fill={law.color} fontSize="10" fontWeight="bold">
                       β_s = {law.val.toFixed(4)}°
                     </text>
-                    <text x="10" y="30" fill="#64748B" fontSize="8">
+                    <text x="9" y="26" fill="#64748B" fontSize="7.5">
                       {law.eq}
                     </text>
-                    <rect x="10" y="36" width="320" height="5" rx="1.5" fill="#1E293B" />
-                    <rect x="10" y="36" width={Math.max(4, ratio * 320)} height="5" rx="1.5" fill={law.color} />
+                    <rect x="9" y="31" width="322" height="4" rx="1.5" fill="#1E293B" />
+                    <rect x="9" y="31" width={Math.max(4, ratio * 322)} height="4" rx="1.5" fill={law.color} />
                   </g>
                 );
               });
@@ -727,7 +797,7 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
             viewBox="0 0 960 245"
             className="w-full h-auto block select-none font-mono"
             role="img"
-            aria-label="6-Model Size-Strain Separation Matrix and Log-Normal Column Length Distribution"
+            aria-label="7-Model Size-Strain Separation Matrix and Log-Normal Column Length Distribution"
           >
             <defs>
               <pattern id="ibCadGrid3" width="24" height="24" patternUnits="userSpaceOnUse">
@@ -739,17 +809,21 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
               </linearGradient>
             </defs>
 
-            {/* Left Panel: 6-Model Comparative R^2 & D_v Bars */}
+            {/* Left Panel: 7-Model Comparative R^2 & D_v Bars */}
             <rect x="20" y="12" width="510" height="220" rx="4" fill="#0B0F19" stroke="#1E293B" strokeWidth="1" />
-            <text x="32" y="30" fill="#F8FAFC" fontSize="10" fontWeight="bold">
-              SIMULTANEOUS 6-MODEL SEPARATION SOLVER (CLICK ROW TO ACTIVATE)
+            <text x="32" y="29" fill="#F8FAFC" fontSize="9.5" fontWeight="bold">
+              SIMULTANEOUS 7-MODEL SEPARATION SOLVER (CLICK ROW TO ACTIVATE)
             </text>
-            <line x1="32" y1="37" x2="516" y2="37" stroke="#1E293B" strokeWidth="1" />
+            <line x1="32" y1="35" x2="516" y2="35" stroke="#1E293B" strokeWidth="1" />
 
-            {(result?.modelComparisons || []).slice(0, 6).map((m, idx) => {
-              const y = 44 + idx * 30;
+            {(result?.modelComparisons || []).slice(0, 7).map((m, idx) => {
+              const y = 41 + idx * 26.5;
               const methodKey: IBSeparationMethod =
-                m.modelName === 'Halder-Wagner' ? 'hw' : (m.modelName.toLowerCase() as IBSeparationMethod);
+                m.modelName === 'Halder-Wagner'
+                  ? 'hw'
+                  : m.modelName === 'Gaussian-WH'
+                  ? 'gwh'
+                  : (m.modelName.toLowerCase() as IBSeparationMethod);
               const isSel = separationMethod === methodKey;
               const r2 = Math.max(0, Math.min(1, m.rSquared || 0));
 
@@ -764,32 +838,32 @@ export const IBCadSchematic: React.FC<IBCadSchematicProps> = ({
                     x="0"
                     y="0"
                     width="484"
-                    height="25"
+                    height="22.5"
                     rx="2.5"
                     fill={isSel ? '#1E293B' : '#070A12'}
                     stroke={m.isBestFit ? '#10B981' : isSel ? '#EC4899' : '#1E293B'}
                     strokeWidth={isSel || m.isBestFit ? '1.2' : '0.8'}
                   />
-                  <text x="8" y="16" fill={isSel ? '#F472B6' : '#E2E8F0'} fontSize="9" fontWeight="bold">
+                  <text x="8" y="14.5" fill={isSel ? '#F472B6' : '#E2E8F0'} fontSize="8.5" fontWeight="bold">
                     {m.modelName} {m.isBestFit ? '★' : ''}
                   </text>
-                  <text x="125" y="16" fill="#10B981" fontSize="9" fontWeight="bold">
+                  <text x="125" y="14.5" fill="#10B981" fontSize="8.5" fontWeight="bold">
                     D_v = {m.sizeNm > 0 ? `${m.sizeNm.toFixed(1)} nm` : 'Bulk'}
                   </text>
-                  <text x="235" y="16" fill="#38BDF8" fontSize="9">
+                  <text x="235" y="14.5" fill="#38BDF8" fontSize="8.5">
                     ε = {((m.strainPercent / 100) * 1000).toFixed(2)}×10⁻³
                   </text>
                   {/* R^2 bar */}
-                  <rect x="335" y="8" width="82" height="8" rx="1.5" fill="#0F172A" stroke="#334155" strokeWidth="0.6" />
+                  <rect x="335" y="7" width="82" height="7.5" rx="1.5" fill="#0F172A" stroke="#334155" strokeWidth="0.6" />
                   <rect
                     x="335"
-                    y="8"
+                    y="7"
                     width={Math.max(3, r2 * 82)}
-                    height="8"
+                    height="7.5"
                     rx="1.5"
                     fill={m.isBestFit ? '#10B981' : isSel ? '#EC4899' : '#38BDF8'}
                   />
-                  <text x="476" y="16" textAnchor="end" fill="#CBD5E1" fontSize="8.5" fontWeight="bold">
+                  <text x="476" y="14.5" textAnchor="end" fill="#CBD5E1" fontSize="8.5" fontWeight="bold">
                     R²={r2.toFixed(3)}
                   </text>
                 </g>

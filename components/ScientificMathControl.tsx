@@ -62,7 +62,7 @@ const wavelengthToNmFactor = (lambda: number, unit: string): { factor: number; u
 
 const inferDimensionalTag = (title: string, unit: string): string => {
   const t = title.toLowerCase();
-  if (t.includes('scherrer') || t.includes('bragg') || t.includes('d-spacing') || t.includes('lattice')) {
+  if (t.includes('scherrer') || t.includes('bragg') || t.includes('d-spacing') || t.includes('lattice') || t.includes('size-strain separation')) {
     return unit ? `[L] · ${unit}` : '[L]';
   }
   if (t.includes('williamson') || t.includes('integral breadth') || t.includes('deconvolution') || t.includes('caglioti')) {
@@ -124,6 +124,101 @@ d_{hkl} &= \\frac{n\\,\\lambda}{2\\sin\\theta} = \\frac{${n} \\times ${lambda.to
       steps: `\\begin{aligned}
 D_{hkl} &= \\frac{K_{hkl}\\,\\lambda}{\\beta_{\\mathrm{s}}\\cos\\theta} = \\frac{${K.toFixed(3)} \\times ${lambda.toFixed(5)}\\,${unitTex}${factor !== 1 ? ` \\times ${factor}` : ''}}{${beta.toFixed(5)}\\,\\mathrm{rad} \\times \\cos(${theta.toFixed(4)}\\,\\mathrm{rad})} \\\\[4pt]
 &= \\frac{${num.toFixed(5)}\\,\\mathrm{nm}}{${den.toFixed(6)}} = \\mathbf{${Dv.toFixed(2)}\\,\\mathrm{nm}}
+\\end{aligned}`,
+    };
+  }
+
+  if (titleLower.includes('size-strain separation')) {
+    const K = getVar(vars, ['K', 'K_hkl'], 1.0);
+    const lambda = getVar(vars, ['λ', 'lambda'], 1.5406);
+    const m = getVar(vars, ['m', 'Slope'], 0.001);
+    const c = getVar(vars, ['c', 'Intercept'], 0.002);
+    const E_GPa = getVar(vars, ['E', 'E_0'], 130);
+    const lambdaUnit = getUnitByKeys(variables, ['λ', 'lambda']);
+    const { factor, unitTex } = wavelengthToNmFactor(lambda, lambdaUnit);
+    const lambdaNm = lambda * factor;
+    const lambdaAngstrom = lambdaNm * 10;
+    const fmtSci = (v: number) =>
+      v === 0 ? '0' : Math.abs(v) < 1e-3 || Math.abs(v) >= 1e5 ? v.toExponential(4) : v.toFixed(5);
+
+    if (titleLower.includes('(hw ') || titleLower.includes('halder-wagner')) {
+      const Dv = m > 1e-12 ? (K * lambdaNm) / m : 0;
+      const eps = c > 0 ? Math.sqrt(c) / 4 : 0;
+      return {
+        value: Dv,
+        unit: 'nm',
+        steps: `\\begin{aligned}
+D_V &= \\frac{K\\lambda}{m} = \\frac{${K.toFixed(3)} \\times ${lambda.toFixed(4)}\\,${unitTex}${factor !== 1 ? `\\times ${factor}` : ''}}{${fmtSci(m)}} = \\mathbf{${Dv.toFixed(2)}\\,\\mathrm{nm}} \\\\[4pt]
+\\varepsilon &= \\frac{\\sqrt{\\max(0, c)}}{4} = \\frac{\\sqrt{${fmtSci(Math.max(0, c))}}}{4} = ${(eps * 1000).toFixed(3)}\\times 10^{-3}\\;(${(eps * 100).toFixed(4)}\\%)
+\\end{aligned}`,
+      };
+    }
+
+    if (titleLower.includes('(ssp ')) {
+      const Dv = m > 1e-12 ? (K * lambdaNm) / m : 0;
+      const eps = c > 0 && lambdaAngstrom > 0 ? Math.sqrt(c) / (2 * lambdaAngstrom) : 0;
+      return {
+        value: Dv,
+        unit: 'nm',
+        steps: `\\begin{aligned}
+D_V &= \\frac{K\\lambda}{m} = \\frac{${K.toFixed(3)} \\times ${lambdaNm.toFixed(5)}\\,\\mathrm{nm}}{${fmtSci(m)}} = \\mathbf{${Dv.toFixed(2)}\\,\\mathrm{nm}} \\\\[4pt]
+\\varepsilon &= \\frac{\\sqrt{\\max(0, c)}}{2\\lambda} = \\frac{\\sqrt{${fmtSci(Math.max(0, c))}}}{2 \\times ${lambdaAngstrom.toFixed(4)}\\,\\text{\\AA}} = ${(eps * 1000).toFixed(3)}\\times 10^{-3}\\;(${(eps * 100).toFixed(4)}\\%)
+\\end{aligned}`,
+      };
+    }
+
+    if (titleLower.includes('(gwh ') || titleLower.includes('gaussian-wh')) {
+      const Dv = c > 1e-16 ? (K * lambdaNm) / Math.sqrt(c) : 0;
+      const eps = m > 0 ? Math.sqrt(m) : 0;
+      return {
+        value: Dv,
+        unit: 'nm',
+        steps: `\\begin{aligned}
+D_V &= \\frac{K\\lambda}{\\sqrt{c}} = \\frac{${K.toFixed(3)} \\times ${lambdaNm.toFixed(5)}\\,\\mathrm{nm}}{\\sqrt{${fmtSci(Math.max(0, c))}}} = \\mathbf{${Dv.toFixed(2)}\\,\\mathrm{nm}} \\\\[4pt]
+\\varepsilon &= \\sqrt{\\max(0, m)} = \\sqrt{${fmtSci(Math.max(0, m))}} = ${(eps * 1000).toFixed(3)}\\times 10^{-3}\\;(${(eps * 100).toFixed(4)}\\%)
+\\end{aligned}`,
+      };
+    }
+
+    if (titleLower.includes('(usdm ')) {
+      const Dv = c > 1e-12 ? (K * lambdaNm) / c : 0;
+      const sigmaPa = Math.max(0, m);
+      const sigmaMPa = sigmaPa / 1e6;
+      const eps = E_GPa > 0 ? sigmaPa / (E_GPa * 1e9) : 0;
+      return {
+        value: Dv,
+        unit: 'nm',
+        steps: `\\begin{aligned}
+D_V &= \\frac{K\\lambda}{c} = \\frac{${K.toFixed(3)} \\times ${lambdaNm.toFixed(5)}\\,\\mathrm{nm}}{${fmtSci(c)}} = \\mathbf{${Dv.toFixed(2)}\\,\\mathrm{nm}} \\\\[4pt]
+\\sigma &= m = ${sigmaMPa.toFixed(2)}\\,\\mathrm{MPa}, \\qquad \\varepsilon = \\frac{\\sigma}{E_0} = \\frac{${sigmaMPa.toFixed(2)}\\,\\mathrm{MPa}}{${E_GPa.toFixed(1)}\\,\\mathrm{GPa}} = ${(eps * 1000).toFixed(3)}\\times 10^{-3}
+\\end{aligned}`,
+      };
+    }
+
+    if (titleLower.includes('(udedm ')) {
+      const Dv = c > 1e-12 ? (K * lambdaNm) / c : 0;
+      const uJm3 = Math.max(0, m) * Math.max(0, m);
+      const uKjM3 = uJm3 / 1000;
+      const eps = E_GPa > 0 ? Math.sqrt((2 * uJm3) / (E_GPa * 1e9)) : 0;
+      return {
+        value: Dv,
+        unit: 'nm',
+        steps: `\\begin{aligned}
+D_V &= \\frac{K\\lambda}{c} = \\frac{${K.toFixed(3)} \\times ${lambdaNm.toFixed(5)}\\,\\mathrm{nm}}{${fmtSci(c)}} = \\mathbf{${Dv.toFixed(2)}\\,\\mathrm{nm}} \\\\[4pt]
+u &= m^2 = ${uKjM3.toFixed(3)}\\,\\mathrm{kJ/m}^3, \\qquad \\varepsilon = \\sqrt{\\frac{2u}{E_0}} = ${(eps * 1000).toFixed(3)}\\times 10^{-3}
+\\end{aligned}`,
+      };
+    }
+
+    // UDM & mWH
+    const Dv = c > 1e-12 ? (K * lambdaNm) / c : 0;
+    const eps = Math.max(0, m);
+    return {
+      value: Dv,
+      unit: 'nm',
+      steps: `\\begin{aligned}
+D_V &= \\frac{K\\lambda}{c} = \\frac{${K.toFixed(3)} \\times ${lambdaNm.toFixed(5)}\\,\\mathrm{nm}}{${fmtSci(c)}} = \\mathbf{${Dv.toFixed(2)}\\,\\mathrm{nm}} \\\\[4pt]
+\\varepsilon &= m = ${(eps * 1000).toFixed(3)}\\times 10^{-3}\\;(${(eps * 100).toFixed(4)}\\%)
 \\end{aligned}`,
     };
   }
@@ -466,6 +561,16 @@ export const ScientificMathControl: React.FC<ScientificMathControlProps> = ({
       const lambdaUnit = getUnitByKeys(variables, ['λ', 'lambda']);
       const { factor } = wavelengthToNmFactor(getVar(currentVariablesMap, ['λ', 'lambda'], 1.54056), lambdaUnit);
       pythonCode += `d_hkl_nm = (k_hkl * lambda_val * ${factor}) / (beta_s * np.cos(theta))\nprint(f"D_hkl = {d_hkl_nm:.3f} nm")\n`;
+    } else if (titleLower.includes('size-strain separation')) {
+      const lambdaUnit = getUnitByKeys(variables, ['λ', 'lambda']);
+      const { factor } = wavelengthToNmFactor(getVar(currentVariablesMap, ['λ', 'lambda'], 1.5406), lambdaUnit);
+      if (titleLower.includes('(hw ') || titleLower.includes('(ssp ')) {
+        pythonCode += `d_v_nm = (k * lambda_val * ${factor}) / m if m > 0 else 0.0\nprint(f"D_v = {d_v_nm:.3f} nm")\n`;
+      } else if (titleLower.includes('(gwh ')) {
+        pythonCode += `d_v_nm = (k * lambda_val * ${factor}) / np.sqrt(c) if c > 0 else 0.0\neps = np.sqrt(max(0.0, m))\nprint(f"D_v = {d_v_nm:.3f} nm, epsilon = {eps:.5e}")\n`;
+      } else {
+        pythonCode += `d_v_nm = (k * lambda_val * ${factor}) / c if c > 0 else 0.0\nprint(f"D_v = {d_v_nm:.3f} nm")\n`;
+      }
     } else if (titleLower.includes('williamson') || titleLower.includes('advanced integral breadth')) {
       pythonCode += `y_val = (k * lambda_val * 0.1) / d + 4.0 * epsilon * np.sin(theta)\nprint(f"beta * cos(theta) = {y_val:.6f} rad")\n`;
     } else if (titleLower.includes('mass-energy equivalence') || titleLower.includes('einstein')) {

@@ -118,8 +118,8 @@ export const MODULE_MATH_CATALOG: Record<string, ModuleMathEntry> = {
   },
   integral_adv: {
     symbolTex: '\\mathrm{HW}',
-    compactTex: '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{K}{D}\\frac{\\beta^*}{(d^*)^2} + \\left(\\frac{\\varepsilon}{2}\\right)^2',
-    displayTex: '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{K}{D}\\left(\\frac{\\beta^*}{(d^*)^2}\\right) + \\left(\\frac{\\varepsilon}{2}\\right)^2',
+    compactTex: '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{K}{D}\\frac{\\beta^*}{(d^*)^2} + (2\\varepsilon)^2',
+    displayTex: '\\left(\\frac{\\beta^*}{d^*}\\right)^2 = \\frac{K}{D}\\left(\\frac{\\beta^*}{(d^*)^2}\\right) + (2\\varepsilon)^2',
     dimension: 'Halder–Wagner & SSP',
   },
   wa: {
