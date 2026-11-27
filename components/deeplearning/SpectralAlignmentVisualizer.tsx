@@ -29,6 +29,10 @@ import {
   BookOpen,
   ChevronDown,
   ChevronUp,
+  ChevronLeft,
+  ChevronRight,
+  Minus,
+  Plus,
   FileSpreadsheet,
   Camera,
   Search,
@@ -57,6 +61,8 @@ import {
   WilliamsonHallResult,
 } from "./xrdPhysicsEngine";
 import { MicrostructureInspectorDrawer } from "./MicrostructureInspectorDrawer";
+import { useSettings } from "../SettingsContext";
+import { isDarkTheme } from "../../utils/themeSystem";
 
 export type CoordinateSpace = "twoTheta" | "dSpacing" | "qVector";
 export type IntensityScale = "linear" | "sqrt" | "log";
@@ -130,8 +136,14 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
   const [intensityScale, setIntensityScale] = useState<IntensityScale>("linear");
   const [residualView, setResidualView] = useState<ResidualViewMode>("overlay");
   
-  // Scientific Graphics Theme & Profile Engine State
-  const [themeMode, setThemeMode] = useState<ThemeMode>("darkLab");
+  // Scientific Graphics Theme & Profile Engine State (synced with global polarity, locally overridable)
+  const { theme: globalTheme = "dark" } = useSettings();
+  const [themeMode, setThemeMode] = useState<ThemeMode>(() =>
+    isDarkTheme(globalTheme) ? "darkLab" : "publication"
+  );
+  React.useEffect(() => {
+    setThemeMode(isDarkTheme(globalTheme) ? "darkLab" : "publication");
+  }, [globalTheme]);
   const [profileModel, setProfileModel] = useState<ProfileShapeModel>("pseudoVoigt");
   const [lorentzianFraction, setLorentzianFraction] = useState<number>(0.35); // eta = 0.35
   const [pearsonShapeM, setPearsonShapeM] = useState<number>(1.5); // Pearson VII exponent m
@@ -225,6 +237,24 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
   // Export Menu
   const [showExportMenu, setShowExportMenu] = useState<boolean>(false);
   const [copiedNotification, setCopiedNotification] = useState<boolean>(false);
+
+  // Interactive Diagnostic Panel Probe States
+  const [hoveredLagPoint, setHoveredLagPoint] = useState<{ shift: number; corr: number } | null>(null);
+  const [hoveredPeakVector, setHoveredPeakVector] = useState<{
+    hkl: string;
+    refT: number;
+    obsT: number;
+    deltaDeg: number;
+    deltaMilliDeg: number;
+    refI: number;
+  } | null>(null);
+  const [hoveredCombPeak, setHoveredCombPeak] = useState<{
+    phase: string;
+    hkl: string;
+    twoTheta: number;
+    dSpacing: number;
+    refI: number;
+  } | null>(null);
 
   // Container reference for snapshot export and fullscreen
   const visualizerRef = useRef<HTMLDivElement>(null);
@@ -1259,6 +1289,31 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     });
   }, [staggeredRefPeaks, reflectionSearch]);
 
+  // Residual Difference Distribution Telemetry (for Split Residual Console)
+  const residualStats = useMemo(() => {
+    let maxPos = 0;
+    let maxNeg = 0;
+    let sumSq = 0;
+    let sum = 0;
+    let count = 0;
+    for (const d of chartData) {
+      if (typeof d.signedResidual === "number" && Number.isFinite(d.signedResidual)) {
+        const r = d.signedResidual;
+        if (r > maxPos) maxPos = r;
+        if (r < maxNeg) maxNeg = r;
+        sumSq += r * r;
+        sum += r;
+        count++;
+      }
+    }
+    return {
+      maxPos: Number(maxPos.toFixed(2)),
+      maxNeg: Number(maxNeg.toFixed(2)),
+      rms: count > 0 ? Number(Math.sqrt(sumSq / count).toFixed(2)) : 0,
+      meanBias: count > 0 ? Number((sum / count).toFixed(2)) : 0,
+    };
+  }, [chartData]);
+
   // Custom Scientific Tooltip
   const CustomCrystallographicTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload || !payload.length) return null;
@@ -1284,83 +1339,108 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
     const refPeak = staggeredRefPeaks.find((r) => Math.abs(r.coordX - coordVal) < 0.1);
     const nearbyDetectedPeak = detectedPeaks.find((p) => Math.abs(mapCoord(p.twoTheta) - coordVal) < 0.12);
+    const isLight = themeMode === "publication";
 
     return (
-      <div className="bg-[#070D18]/95 backdrop-blur-md text-slate-200 p-4 rounded-2xl shadow-[0_10px_30px_rgba(0,0,0,0.85)] text-xs border border-slate-700/80 min-w-[280px] z-50 pointer-events-none">
-        <div className="flex justify-between items-center mb-3 pb-2.5 border-b border-slate-800">
-          <div className="flex items-center gap-2">
-            <Compass className="w-4 h-4 text-cyan-400" />
-            <span className="font-bold text-slate-300 font-mono tracking-wider uppercase text-[11px]">
-              {coordSpace === "twoTheta" ? "Bragg Angle (2θ)" : coordSpace === "dSpacing" ? "d-spacing (d_hkl)" : "Scattering Vector (Q)"}
-            </span>
-          </div>
-          <div className="flex items-center gap-1.5 bg-cyan-500/10 border border-cyan-500/30 px-2 py-0.5 rounded-md">
-            <span className="font-mono font-black text-cyan-200 text-xs">
-              {coordSpace === "twoTheta"
-                ? `${twoTheta.toFixed(4)}°`
-                : coordSpace === "dSpacing"
-                ? `${dVal.toFixed(5)} Å`
-                : `${qVal.toFixed(4)} Å⁻¹`}
-            </span>
-          </div>
+      <div
+        className={`p-3 rounded-lg border text-xs min-w-[272px] z-50 pointer-events-none font-mono tabular-nums ${
+          isLight
+            ? "bg-white/98 text-slate-900 border-slate-300 shadow-lg"
+            : "bg-[#090E1A]/98 text-slate-100 border-slate-700 shadow-xl"
+        }`}
+      >
+        <div
+          className={`flex justify-between items-center mb-2.5 pb-2 border-b ${
+            isLight ? "border-slate-200" : "border-slate-800"
+          }`}
+        >
+          <span className={`font-semibold text-[11px] ${isLight ? "text-slate-600" : "text-slate-400"}`}>
+            {coordSpace === "twoTheta" ? "Bragg Angle (2θ)" : coordSpace === "dSpacing" ? "d-spacing" : "Scattering Q"}
+          </span>
+          <span className={`font-bold text-xs ${isLight ? "text-cyan-700" : "text-cyan-300"}`}>
+            {coordSpace === "twoTheta"
+              ? `${twoTheta.toFixed(4)}°`
+              : coordSpace === "dSpacing"
+              ? `${dVal.toFixed(5)} Å`
+              : `${qVal.toFixed(4)} Å⁻¹`}
+          </span>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 mb-3 bg-slate-900/80 p-2.5 rounded-xl border border-slate-800 font-mono">
-          <div className="flex flex-col">
-            <span className="text-[9px] text-slate-400 uppercase tracking-widest">2θ Angle</span>
-            <span className="text-xs font-bold text-cyan-300">{twoTheta.toFixed(4)}°</span>
+        <div
+          className={`grid grid-cols-2 gap-x-4 gap-y-1.5 mb-2.5 pb-2.5 border-b text-[11px] ${
+            isLight ? "border-slate-200" : "border-slate-800"
+          }`}
+        >
+          <div className="flex justify-between">
+            <span className="text-slate-500">2θ</span>
+            <span className={isLight ? "text-slate-900 font-semibold" : "text-slate-100 font-semibold"}>
+              {twoTheta.toFixed(4)}°
+            </span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] text-slate-400 uppercase tracking-widest">d-spacing</span>
-            <span className="text-xs font-bold text-emerald-400">{dVal > 0 ? `${dVal.toFixed(5)} Å` : "—"}</span>
+          <div className="flex justify-between">
+            <span className="text-slate-500">d</span>
+            <span className={isLight ? "text-emerald-700 font-semibold" : "text-emerald-400 font-semibold"}>
+              {dVal > 0 ? `${dVal.toFixed(4)} Å` : "—"}
+            </span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] text-slate-400 uppercase tracking-widest">Q Vector</span>
-            <span className="text-xs font-bold text-sky-400">{qVal > 0 ? `${qVal.toFixed(4)} Å⁻¹` : "—"}</span>
+          <div className="flex justify-between">
+            <span className="text-slate-500">Q</span>
+            <span className={isLight ? "text-sky-700 font-semibold" : "text-sky-400 font-semibold"}>
+              {qVal > 0 ? `${qVal.toFixed(4)} Å⁻¹` : "—"}
+            </span>
           </div>
-          <div className="flex flex-col">
-            <span className="text-[9px] text-slate-400 uppercase tracking-widest">Wavelength</span>
-            <span className="text-xs font-bold text-slate-300">{activeWavelength.toFixed(5)} Å</span>
+          <div className="flex justify-between">
+            <span className="text-slate-500">λ</span>
+            <span className={isLight ? "text-slate-700" : "text-slate-300"}>{activeWavelength.toFixed(4)} Å</span>
           </div>
         </div>
 
         {refPeak && (
-          <div className="flex items-center justify-between bg-rose-500/10 border border-rose-500/30 px-2.5 py-1.5 rounded-lg mb-2">
-            <span className="text-[10px] text-rose-300 font-mono font-bold uppercase tracking-wider">
-              Reflection (hkl)
-            </span>
-            <span className="text-xs font-mono font-black text-rose-200 bg-rose-500/20 px-2 py-0.5 rounded border border-rose-500/40">
-              {refPeak.hkl ? `(${refPeak.hkl})` : "Indexed"} {refPeak.calibratedRefT ? `• ${refPeak.calibratedRefT.toFixed(4)}°` : ""}
+          <div
+            className={`flex items-center justify-between px-2 py-1 rounded-md border mb-2 text-[11px] ${
+              isLight
+                ? "bg-rose-50 border-rose-200 text-rose-800"
+                : "bg-rose-500/10 border-rose-500/30 text-rose-300"
+            }`}
+          >
+            <span className="font-medium">Indexed Reflection</span>
+            <span className="font-bold">
+              {refPeak.hkl ? `(${refPeak.hkl})` : "Ref"} · {refPeak.calibratedRefT.toFixed(3)}°
             </span>
           </div>
         )}
 
         {nearbyDetectedPeak && (
-          <div className="flex items-center justify-between bg-cyan-500/10 border border-cyan-500/30 px-2.5 py-1.5 rounded-lg mb-2 font-mono text-[10px]">
-            <span className="text-cyan-300 font-bold uppercase tracking-wider">Peak Microstructure</span>
-            <span className="text-cyan-200 font-semibold">
-              FWHM: {nearbyDetectedPeak.fwhmObs.toFixed(3)}° • D: {nearbyDetectedPeak.crystalliteSizeNm} nm
+          <div
+            className={`flex items-center justify-between px-2 py-1 rounded-md border mb-2 text-[11px] ${
+              isLight
+                ? "bg-cyan-50 border-cyan-200 text-cyan-800"
+                : "bg-cyan-500/10 border-cyan-500/30 text-cyan-300"
+            }`}
+          >
+            <span className="font-medium">Profile Fit</span>
+            <span className="font-semibold">
+              FWHM {nearbyDetectedPeak.fwhmObs.toFixed(3)}° · D {nearbyDetectedPeak.crystalliteSizeNm} nm
             </span>
           </div>
         )}
 
-        <div className="space-y-1.5">
+        <div className="space-y-1">
           {payload.map((p: any, idx: number) => (
             <div
               key={`tooltip-p-${idx}`}
-              className="flex items-center justify-between gap-4 py-1 px-2 rounded-lg bg-white/[0.03] border border-white/5"
+              className="flex items-center justify-between gap-4 py-0.5 text-[11px]"
             >
-              <div className="flex items-center gap-2">
-                <div
-                  className="w-2.5 h-2.5 rounded-full"
-                  style={{ backgroundColor: p.color, boxShadow: `0 0 6px ${p.color}` }}
-                />
-                <span className="text-slate-300 font-mono text-[10px] truncate max-w-[150px]">{p.name}</span>
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="w-2.5 h-0.5 shrink-0" style={{ backgroundColor: p.color }} />
+                <span className={`truncate max-w-[150px] ${isLight ? "text-slate-600" : "text-slate-300"}`}>
+                  {p.name}
+                </span>
               </div>
-              <span className="font-mono font-black text-xs" style={{ color: p.color }}>
+              <span className="font-semibold shrink-0" style={{ color: p.color }}>
                 {typeof p.value === "number" ? p.value.toFixed(2) : p.value}
-                <span className="text-[9px] font-normal text-slate-500 ml-1">
-                  {intensityScale === "linear" ? "cps" : intensityScale === "sqrt" ? "√cps" : "log(cps)"}
+                <span className="text-[10px] font-normal text-slate-500 ml-1">
+                  {intensityScale === "linear" ? "cps" : intensityScale === "sqrt" ? "√cps" : "log"}
                 </span>
               </span>
             </div>
@@ -1370,57 +1450,100 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
     );
   };
 
+  const activeWavelengthPreset = WAVELENGTH_PRESETS.find((p) => p.id === selectedWavelengthId);
+  const fitStateLabel =
+    alignmentMetrics.rwp <= 12 && crossCorrelationTelemetry.rmsShiftMilliDeg <= 60
+      ? { text: "Nominal Fit", cls: "text-emerald-400" }
+      : alignmentMetrics.rwp <= 25 && crossCorrelationTelemetry.rmsShiftMilliDeg <= 140
+      ? { text: "Moderate Fit", cls: "text-cyan-400" }
+      : { text: "Check Offset", cls: "text-amber-400" };
+
   return (
     <div
       ref={visualizerRef}
-      className={`relative flex flex-col transition-all duration-300 ${
+      className={`relative flex flex-col gap-3.5 transition-colors duration-200 ${
         isFullscreen
-          ? "fixed inset-0 z-50 bg-[#050811] p-6 overflow-y-auto"
-          : "bg-[#070A12] p-4 sm:p-6 rounded-sm border border-slate-800 overflow-hidden"
+          ? "fixed inset-0 z-50 bg-[#060911] p-5 sm:p-6 overflow-y-auto"
+          : "bg-[#070A12] p-4 sm:p-5 rounded-lg border border-slate-800 overflow-hidden"
       }`}
     >
-      {/* TOP BAR: Title, Live Status, Fullscreen, Caliper & Export */}
-      <div className="flex flex-col gap-3.5 mb-4 relative z-10">
-        <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3 bg-[#0B0F19] rounded-sm border border-slate-800">
-          <div className="flex items-center gap-3.5">
-            <div className="w-10 h-10 rounded-sm bg-cyan-500/10 border border-cyan-500/40 flex items-center justify-center shrink-0">
-              <Activity className="w-5 h-5 text-cyan-400" />
+      {/* TOP INSTRUMENT HEADER BAR */}
+      <div className="flex flex-col gap-3 relative z-10">
+        <div className="flex flex-wrap items-center justify-between gap-4 px-4 py-3.5 bg-[#0B101B] rounded-lg border border-slate-800">
+          <div className="flex items-start sm:items-center gap-3.5 min-w-0">
+            <div className="w-9 h-9 rounded-md bg-cyan-500/10 border border-cyan-500/30 flex items-center justify-center shrink-0 mt-0.5 sm:mt-0">
+              <Activity className="w-4 h-4 text-cyan-400" />
             </div>
-            <div>
-              <div className="flex items-center gap-3 flex-wrap">
-                <span className="text-[11px] font-mono uppercase tracking-widest text-cyan-400 font-bold">
-                  XRD-ALIGN · KINEMATIC RIETVELD PROFILE & RECIPROCAL LATTICE CALIBRATION
+            <div className="min-w-0">
+              <h3 className="text-sm sm:text-base font-semibold text-slate-100 tracking-tight leading-snug">
+                Spectral Cross-Correlation, Peak Deconvolution &amp; Residual Difference Console
+              </h3>
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-400 font-mono tabular-nums mt-0.5">
+                <span className="text-slate-300">{activeWavelengthPreset?.name || "Custom"}</span>
+                <span aria-hidden="true" className="text-slate-600">·</span>
+                <span>λ = {activeWavelength.toFixed(4)} Å</span>
+                <span aria-hidden="true" className="text-slate-600">·</span>
+                <span>
+                  {profileModel === "pseudoVoigt"
+                    ? `Pseudo-Voigt (η = ${Math.round(lorentzianFraction * 100)}%)`
+                    : profileModel === "pearson7"
+                    ? `Pearson VII (m = ${pearsonShapeM.toFixed(1)})`
+                    : profileModel === "gaussian"
+                    ? "Gaussian"
+                    : "Lorentzian"}
                 </span>
-                <span className="text-[11px] font-mono tabular-nums text-emerald-400 font-bold">
-                  ● λ = {activeWavelength.toFixed(4)} Å ({selectedWavelengthId})
+                <span aria-hidden="true" className="text-slate-600">·</span>
+                <span>
+                  {curvePrecisionMode === "synchrotron"
+                    ? "0.002°"
+                    : curvePrecisionMode === "ultra"
+                    ? "0.005°"
+                    : curvePrecisionMode === "high"
+                    ? "0.010°"
+                    : "0.020°"}{" "}
+                  mesh
                 </span>
               </div>
-              <h3 className="text-base sm:text-lg font-bold text-white tracking-tight mt-0.5">
-                Spectral Cross-Correlation, Peak Deconvolution & Residual Difference Console
-              </h3>
             </div>
           </div>
 
-          {/* Quick Action Buttons */}
-          <div className="flex flex-wrap items-center gap-2">
-            {/* Wavelength Preset Selector */}
-            <div className="flex items-center bg-[#070A12] px-2.5 py-1.5 rounded-sm border border-slate-800 font-mono text-[11px]">
-              <span className="text-slate-400 mr-1.5 uppercase font-bold">λ Anode:</span>
+          {/* Primary Instrument Actions */}
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            {/* Wavelength Anode Selector (+ Inline Custom Input) */}
+            <div className="flex items-center bg-[#070A12] px-2.5 py-1.5 rounded-md border border-slate-800 font-mono text-xs tabular-nums">
+              <span className="text-slate-400 mr-1.5 whitespace-nowrap">λ</span>
               <select
                 value={selectedWavelengthId}
                 onChange={(e) => setSelectedWavelengthId(e.target.value)}
-                className="bg-transparent text-cyan-300 font-bold focus:outline-none cursor-pointer"
+                aria-label="X-ray Anode Wavelength"
+                className="bg-transparent text-cyan-300 font-medium focus:outline-none cursor-pointer"
               >
                 {WAVELENGTH_PRESETS.map((p) => (
-                  <option key={p.id} value={p.id} className="bg-[#0b1220] text-slate-200">
+                  <option key={p.id} value={p.id} className="bg-[#0B101B] text-slate-200">
                     {p.name} ({p.lambda} Å)
                   </option>
                 ))}
               </select>
+              {selectedWavelengthId === "custom" && (
+                <input
+                  type="number"
+                  step="0.0001"
+                  min="0.1"
+                  max="5.0"
+                  value={customWavelength}
+                  onChange={(e) => {
+                    const v = parseFloat(e.target.value);
+                    if (Number.isFinite(v)) setCustomWavelength(v);
+                  }}
+                  aria-label="Custom synchrotron wavelength in Angstroms"
+                  className="ml-2 w-20 px-1.5 py-0.5 rounded bg-[#0B101B] border border-slate-700 text-cyan-200 text-xs focus:outline-none focus:border-cyan-500"
+                />
+              )}
             </div>
 
             {/* Caliper Measure Mode */}
             <button
+              type="button"
               onClick={() => {
                 setCaliperActive(!caliperActive);
                 if (caliperActive) {
@@ -1428,107 +1551,119 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   setCaliperPt2(null);
                 }
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${
                 caliperActive
-                  ? "bg-amber-500/20 text-amber-300 border-amber-500"
+                  ? "bg-amber-500/15 text-amber-200 border-amber-500/60"
                   : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
               }`}
-              title="Activate Peak Caliper to measure 2θ and d-spacing distances between reflections"
+              title="Activate Peak Caliper to measure 2θ and d-spacing intervals"
             >
               <Crosshair className="w-3.5 h-3.5 text-amber-400" />
               <span>Caliper</span>
             </button>
 
-            {/* Microstructure & Crystallite Suite Drawer Toggle */}
-            <button
-              onClick={() => setShowInspectorDrawer(!showInspectorDrawer)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
-                showInspectorDrawer
-                  ? "bg-indigo-600 text-white border-indigo-500"
-                  : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
-              }`}
-              title="Open Scherrer Domain Size, Williamson-Hall & Multi-Phase Analysis Suite"
-            >
-              <Atom className="w-3.5 h-3.5 text-indigo-400" />
-              <span>Microstructure ({detectedPeaks.length})</span>
-            </button>
-
-            {/* Reflection Table Drawer Toggle */}
-            <button
-              onClick={() => setShowReflectionTable(!showReflectionTable)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
-                showReflectionTable
-                  ? "bg-indigo-600/30 text-indigo-200 border-indigo-500"
-                  : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
-              }`}
-              title="Open Indexed Reflections (hkl) Matching Table"
-            >
-              <Table className="w-3.5 h-3.5 text-cyan-400" />
-              <span>hkl Table ({staggeredRefPeaks.length})</span>
-            </button>
-
             {/* Calibration Sliders Panel Toggle */}
             <button
+              type="button"
               onClick={() => setShowCalibrationPanel(!showCalibrationPanel)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-sm border text-[11px] font-mono font-bold transition-colors cursor-pointer ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${
                 showCalibrationPanel || zeroShiftDeg !== 0 || latticeStrainPct !== 0
-                  ? "bg-cyan-600/25 text-cyan-200 border-cyan-500"
+                  ? "bg-cyan-500/15 text-cyan-200 border-cyan-500/60"
                   : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
               }`}
-              title="Adjust Zero-Shift Offset and Lattice Strain"
+              title="Adjust Zero-Shift Offset and Uniform Lattice Strain"
             >
               <Sliders className="w-3.5 h-3.5 text-cyan-400" />
               <span>Calibration</span>
             </button>
 
+            {/* Microstructure & Crystallite Suite Drawer Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowInspectorDrawer(!showInspectorDrawer)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${
+                showInspectorDrawer
+                  ? "bg-cyan-600 text-white border-cyan-500"
+                  : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
+              }`}
+              title="Open Scherrer Domain Size, Williamson-Hall & Multi-Phase Analysis Suite"
+            >
+              <Atom className="w-3.5 h-3.5 text-cyan-400" />
+              <span className="tabular-nums">Microstructure ({detectedPeaks.length})</span>
+            </button>
+
+            {/* Reflection Table Drawer Toggle */}
+            <button
+              type="button"
+              onClick={() => setShowReflectionTable(!showReflectionTable)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md border text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60 ${
+                showReflectionTable
+                  ? "bg-slate-800 text-white border-slate-600"
+                  : "bg-[#070A12] text-slate-300 border-slate-800 hover:text-white hover:border-slate-700"
+              }`}
+              title="Open Indexed Reflections (hkl) Matching Table"
+            >
+              <Table className="w-3.5 h-3.5 text-slate-400" />
+              <span className="tabular-nums">hkl Table ({staggeredRefPeaks.length})</span>
+            </button>
+
             {/* Export Dropdown */}
             <div className="relative">
               <button
+                type="button"
                 onClick={() => setShowExportMenu(!showExportMenu)}
-                className="flex items-center gap-1.5 px-3 py-1.5 rounded-sm border border-slate-800 bg-[#070A12] hover:bg-slate-900 text-slate-300 text-[11px] font-mono font-bold transition-colors cursor-pointer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-md border border-slate-800 bg-[#070A12] hover:bg-slate-900 hover:border-slate-700 text-slate-200 text-xs font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
               >
                 <Download className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Export</span>
-                <ChevronDown className="w-3 h-3 text-slate-500" />
+                <ChevronDown className="w-3.5 h-3.5 text-slate-500" />
               </button>
 
               <AnimatePresence>
                 {showExportMenu && (
                   <motion.div
-                    initial={{ opacity: 0, y: 6 }}
+                    initial={{ opacity: 0, y: 4 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 6 }}
-                    className="absolute right-0 top-full mt-1.5 w-56 bg-[#0B0F19] border border-slate-700 rounded-sm shadow-2xl p-1.5 z-50 flex flex-col gap-1 font-mono text-[11px]"
+                    exit={{ opacity: 0, y: 4 }}
+                    transition={{ duration: 0.14 }}
+                    className="absolute right-0 top-full mt-1.5 w-56 bg-[#0B101B] border border-slate-700 rounded-lg shadow-2xl p-1.5 z-50 flex flex-col gap-0.5 text-xs"
                   >
                     <button
+                      type="button"
                       onClick={() => {
                         handleExportCSV();
                         setShowExportMenu(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-sm text-slate-200 hover:bg-emerald-500/15 hover:text-emerald-300 transition-colors text-left"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-md text-slate-200 hover:bg-slate-800 transition-colors text-left cursor-pointer"
                     >
-                      <FileSpreadsheet className="w-4 h-4 text-emerald-400" />
-                      Export Aligned CSV (XY)
+                      <FileSpreadsheet className="w-4 h-4 text-emerald-400 shrink-0" />
+                      <span>Export Aligned CSV (XY)</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         handleExportSVG();
                         setShowExportMenu(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-sm text-slate-200 hover:bg-sky-500/15 hover:text-sky-300 transition-colors text-left"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-md text-slate-200 hover:bg-slate-800 transition-colors text-left cursor-pointer"
                     >
-                      <Camera className="w-4 h-4 text-sky-400" />
-                      Export Publication SVG
+                      <Camera className="w-4 h-4 text-cyan-400 shrink-0" />
+                      <span>Export Publication SVG</span>
                     </button>
                     <button
+                      type="button"
                       onClick={() => {
                         handleCopySummary();
                         setShowExportMenu(false);
                       }}
-                      className="flex items-center gap-2 px-3 py-2 rounded-sm text-slate-200 hover:bg-cyan-500/15 hover:text-cyan-300 transition-colors text-left"
+                      className="flex items-center gap-2.5 px-3 py-2 rounded-md text-slate-200 hover:bg-slate-800 transition-colors text-left cursor-pointer"
                     >
-                      {copiedNotification ? <Check className="w-4 h-4 text-cyan-400" /> : <Copy className="w-4 h-4 text-cyan-400" />}
-                      {copiedNotification ? "Copied to Clipboard!" : "Copy Report Summary"}
+                      {copiedNotification ? (
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                      ) : (
+                        <Copy className="w-4 h-4 text-slate-400 shrink-0" />
+                      )}
+                      <span>{copiedNotification ? "Copied to Clipboard" : "Copy Report Summary"}</span>
                     </button>
                   </motion.div>
                 )}
@@ -1537,355 +1672,559 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
             {/* Fullscreen Toggle */}
             <button
+              type="button"
               onClick={() => setIsFullscreen(!isFullscreen)}
-              className="p-1.5 rounded-sm border border-slate-800 bg-[#070A12] hover:bg-slate-900 text-slate-400 hover:text-white transition-colors cursor-pointer"
+              className="p-2 rounded-md border border-slate-800 bg-[#070A12] hover:bg-slate-900 hover:border-slate-700 text-slate-400 hover:text-white transition-colors cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-cyan-500/60"
               title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen Workbench"}
+              aria-label={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen Workbench"}
             >
               {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
             </button>
           </div>
         </div>
 
-        {/* SCIENTIFIC HUD METRICS STRIP: Target, R_wp, GOF, Cosine, Zero-Shift & Strain */}
+        {/* UNIFIED 6-COLUMN RIETVELD TELEMETRY RIBBON */}
         {selectedCandidate && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
-              <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Target Reference</span>
-              <span className="text-xs font-bold text-cyan-300 font-mono truncate mt-0.5">
+          <div className="bg-[#0B101B] border border-slate-800 rounded-lg overflow-hidden grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 divide-y sm:divide-y-0 sm:divide-x divide-slate-800/80">
+            {/* 1. Target Reference */}
+            <div className="p-3.5 flex flex-col justify-between min-w-0">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span>Target Reference</span>
+                <span className={`font-mono font-medium ${fitStateLabel.cls}`}>{fitStateLabel.text}</span>
+              </div>
+              <span className="text-sm font-semibold text-slate-100 truncate mt-1" title={selectedCandidate.phase_name}>
                 {selectedCandidate.phase_name}
               </span>
-              <span className="text-[10px] font-mono text-slate-400 mt-1 truncate">
+              <span className="text-[11px] font-mono text-slate-400 mt-1 truncate">
                 {selectedCandidate.formula || "Crystalline"} · {selectedCandidate.spaceGroup || selectedCandidate.crystalSystem || "P1"}
               </span>
             </div>
 
-            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Rietveld R_wp</span>
-                <span className="text-[10px] font-mono text-slate-400 tabular-nums">R_exp {alignmentMetrics.rexp}%</span>
+            {/* 2. Weighted Profile Factor R_wp */}
+            <div className="p-3.5 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span>
+                  Weighted R<sub>wp</sub>
+                </span>
+                <span className="font-mono tabular-nums text-slate-400">
+                  R<sub>exp</sub> {alignmentMetrics.rexp.toFixed(2)}%
+                </span>
               </div>
-              <span className="text-lg font-bold text-emerald-400 font-mono tabular-nums mt-0.5">
-                {alignmentMetrics.rwp}%
-              </span>
-              <div className="w-full h-1.5 bg-[#050811] border border-slate-800 overflow-hidden mt-1">
+              <div className="flex items-baseline mt-1">
+                <span className="text-xl font-mono font-semibold text-slate-100 tabular-nums">
+                  {alignmentMetrics.rwp.toFixed(2)}
+                </span>
+                <span className="text-xs font-mono text-slate-400 ml-1">%</span>
+              </div>
+              <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden mt-2">
                 <div
-                  className="h-full bg-emerald-400"
+                  className="h-full bg-emerald-400 transition-all duration-200"
                   style={{ width: `${Math.max(8, Math.min(100, 100 - alignmentMetrics.rwp * 1.5))}%` }}
                 />
               </div>
             </div>
 
-            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Goodness S (χ)</span>
-                <span className="text-[10px] font-mono text-teal-400 tabular-nums">DW d={alignmentMetrics.durbinWatson}</span>
+            {/* 3. Goodness of Fit S (chi) */}
+            <div className="p-3.5 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span>Goodness S (χ)</span>
+                <span className="font-mono tabular-nums text-slate-400">DW {alignmentMetrics.durbinWatson.toFixed(2)}</span>
               </div>
-              <span className="text-lg font-bold text-teal-300 font-mono tabular-nums mt-0.5">
-                {alignmentMetrics.gof}
-              </span>
-              <span className="text-[10px] font-mono text-slate-400 mt-0.5 tabular-nums">
-                R_p = {alignmentMetrics.rp}% (Profile Fit)
+              <div className="flex items-baseline mt-1">
+                <span className="text-xl font-mono font-semibold text-slate-100 tabular-nums">
+                  {alignmentMetrics.gof.toFixed(2)}
+                </span>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400 tabular-nums mt-1">
+                Profile R<sub>p</sub> = {alignmentMetrics.rp.toFixed(2)}%
               </span>
             </div>
 
-            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Cosine Similarity</span>
-                <span className="text-[10px] font-mono text-indigo-400 tabular-nums">cos(θ)</span>
+            {/* 4. Spectral Cosine Similarity */}
+            <div className="p-3.5 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span>Spectral Cosine</span>
+                <span className="font-mono text-slate-400">cos(θ)</span>
               </div>
-              <span className="text-lg font-bold text-indigo-300 font-mono tabular-nums mt-0.5">
-                {alignmentMetrics.cosine}%
-              </span>
-              <div className="w-full h-1.5 bg-[#050811] border border-slate-800 overflow-hidden mt-1">
+              <div className="flex items-baseline mt-1">
+                <span className="text-xl font-mono font-semibold text-cyan-300 tabular-nums">
+                  {alignmentMetrics.cosine.toFixed(2)}
+                </span>
+                <span className="text-xs font-mono text-slate-400 ml-1">%</span>
+              </div>
+              <div className="w-full h-1 bg-slate-800 rounded-full overflow-hidden mt-2">
                 <div
-                  className="h-full bg-indigo-400"
+                  className="h-full bg-cyan-400 transition-all duration-200"
                   style={{ width: `${Math.max(5, Math.min(100, alignmentMetrics.cosine))}%` }}
                 />
               </div>
             </div>
 
-            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Goniometer Shift</span>
+            {/* 5. Goniometer Calibration Shift */}
+            <div className="p-3.5 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span>Goniometer Shift</span>
                 <button
                   type="button"
                   onClick={handleAutoAlign}
                   disabled={isAutoAligning}
-                  className="text-[9px] font-mono font-bold text-cyan-300 hover:text-white underline cursor-pointer"
+                  className="text-[11px] font-mono font-medium text-cyan-400 hover:text-cyan-200 underline underline-offset-2 cursor-pointer disabled:opacity-50"
                   title="Run cross-correlation zero-shift optimization"
                 >
                   {isAutoAligning ? "Aligning..." : "Auto-Align"}
                 </button>
               </div>
-              <span className="text-sm font-bold text-amber-300 font-mono tabular-nums mt-0.5">
-                Δ2θ: {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}°
-              </span>
-              <span className="text-[10px] font-mono text-amber-400/80 mt-0.5 tabular-nums">
-                Strain ε: {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%
+              <div className="flex items-baseline mt-1">
+                <span
+                  className={`text-xl font-mono font-semibold tabular-nums ${
+                    zeroShiftDeg !== 0 ? "text-amber-300" : "text-slate-100"
+                  }`}
+                >
+                  {zeroShiftDeg > 0 ? "+" : ""}
+                  {zeroShiftDeg.toFixed(2)}
+                </span>
+                <span className="text-xs font-mono text-slate-400 ml-1">° 2θ</span>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400 tabular-nums mt-1">
+                Strain ε = {latticeStrainPct > 0 ? "+" : ""}
+                {latticeStrainPct.toFixed(2)}%
               </span>
             </div>
 
-            <div className="bg-[#0B0F19] border border-slate-800 rounded-sm p-3 flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] font-mono uppercase text-slate-400 tracking-wider">Indexed (hkl)</span>
-                <span className="text-[10px] font-mono text-rose-400 tabular-nums">RMS ±{crossCorrelationTelemetry.rmsShiftMilliDeg}m°</span>
+            {/* 6. Indexed Reflections */}
+            <div className="p-3.5 flex flex-col justify-between">
+              <div className="flex items-center justify-between gap-2 text-[11px] text-slate-400">
+                <span>Indexed (hkl)</span>
+                <span className="font-mono tabular-nums text-slate-400">
+                  RMS ±{crossCorrelationTelemetry.rmsShiftMilliDeg} m°
+                </span>
               </div>
-              <span className="text-lg font-bold text-rose-300 font-mono tabular-nums mt-0.5">
-                {alignmentMetrics.matchCount} <span className="text-xs font-normal text-slate-400">lines</span>
-              </span>
-              <span className="text-[10px] font-mono text-slate-400 mt-0.5 tabular-nums">
+              <div className="flex items-baseline mt-1">
+                <span className="text-xl font-mono font-semibold text-slate-100 tabular-nums">
+                  {alignmentMetrics.matchCount}
+                </span>
+                <span className="text-xs font-mono text-slate-400 ml-1.5">lines</span>
+              </div>
+              <span className="text-[11px] font-mono text-slate-400 tabular-nums mt-1">
                 FWHM = {effFwhm.toFixed(2)}° 2θ
               </span>
             </div>
           </div>
         )}
 
-        {/* INTERACTIVE SVG CROSS-CORRELATION LAG C(Δ2θ) & PEAK SHIFT DISCREPANCY VECTOR STRIP */}
+        {/* INTERACTIVE DIAGNOSTIC CONSOLE: CROSS-CORRELATION C(Δ2θ) & REFLECTION SHIFT MAP Δ2θ_hkl */}
         {selectedCandidate && (
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-2.5 bg-[#0B0F19] border border-slate-800 rounded-sm p-3">
-            {/* Left 6 Cols: Cross-Correlation Function C(Δ2θ) */}
-            <div className="lg:col-span-6 bg-[#050811] border border-slate-800 rounded-sm p-2.5 flex flex-col justify-between">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 text-[10px] font-mono tabular-nums">
-                <span className="text-cyan-400 font-bold uppercase tracking-wider">
-                  A. Spectral Cross-Correlation Response C(Δ2θ) ∈ [-0.60°, +0.60°]
-                </span>
-                <div className="flex items-center gap-2">
-                  <span className="text-slate-400">
-                    Optimal Lag:{' '}
-                    <strong className="text-emerald-400">
-                      {crossCorrelationTelemetry.bestShift >= 0 ? '+' : ''}
-                      {crossCorrelationTelemetry.bestShift.toFixed(2)}° ({crossCorrelationTelemetry.bestCorr}%)
-                    </strong>
-                  </span>
+          <div className="grid grid-cols-1 lg:grid-cols-12 bg-[#0B101B] border border-slate-800 rounded-lg overflow-hidden divide-y lg:divide-y-0 lg:divide-x divide-slate-800/80">
+            {/* Panel A: Spectral Cross-Correlation Response C(Δ2θ) */}
+            <div className="lg:col-span-6 p-3.5 flex flex-col justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-semibold text-slate-200">A. Spectral Cross-Correlation</span>
+                  <span className="font-mono text-[11px] text-slate-400">C(Δ2θ)</span>
+                </div>
+                <div className="flex items-center gap-2.5 font-mono text-[11px] tabular-nums">
+                  {hoveredLagPoint ? (
+                    <span className="text-cyan-300">
+                      Probe {hoveredLagPoint.shift >= 0 ? "+" : ""}
+                      {hoveredLagPoint.shift.toFixed(2)}° · {hoveredLagPoint.corr.toFixed(1)}%
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">
+                      Optimal{" "}
+                      <strong className="text-emerald-400 font-semibold">
+                        {crossCorrelationTelemetry.bestShift >= 0 ? "+" : ""}
+                        {crossCorrelationTelemetry.bestShift.toFixed(2)}° ({crossCorrelationTelemetry.bestCorr.toFixed(1)}%)
+                      </strong>
+                    </span>
+                  )}
                   {Math.abs(zeroShiftDeg - crossCorrelationTelemetry.bestShift) > 0.01 && (
                     <button
                       type="button"
                       onClick={() => setZeroShiftDeg(crossCorrelationTelemetry.bestShift)}
-                      className="px-1.5 py-0.5 rounded-sm bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold cursor-pointer"
+                      className="px-2 py-0.5 rounded bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-medium transition-colors cursor-pointer whitespace-nowrap"
                     >
-                      Snap Δ2θ
+                      Snap Optimal
+                    </button>
+                  )}
+                  {zeroShiftDeg !== 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setZeroShiftDeg(0)}
+                      className="px-1.5 py-0.5 rounded bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-300 font-medium transition-colors cursor-pointer"
+                      title="Reset zero-shift to 0.00°"
+                    >
+                      0°
                     </button>
                   )}
                 </div>
               </div>
 
-              <svg
-                viewBox="0 0 440 82"
-                className="w-full h-20 select-none"
-                role="img"
-                aria-label="Spectral Cross-Correlation Function vs Angular Lag"
-              >
-                <defs>
-                  <linearGradient id="xcorrAreaGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.32" />
-                    <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.02" />
-                  </linearGradient>
-                </defs>
-                {[18, 42, 66].map((gy) => (
-                  <line
-                    key={gy}
-                    x1="20"
-                    y1={gy}
-                    x2="420"
-                    y2={gy}
-                    stroke="#1e293b"
-                    strokeWidth="0.8"
-                    strokeDasharray="2 2"
-                  />
-                ))}
-                {/* Zero Lag Center Reference Line */}
-                <line x1="220" y1="8" x2="220" y2="68" stroke="#475569" strokeWidth="1" strokeDasharray="3 2" />
-                <text x="220" y="78" textAnchor="middle" fill="#94a3b8" fontSize="8" fontFamily="monospace">
-                  0.00°
-                </text>
-                <text x="24" y="78" textAnchor="start" fill="#64748b" fontSize="8" fontFamily="monospace">
-                  -0.60°
-                </text>
-                <text x="416" y="78" textAnchor="end" fill="#64748b" fontSize="8" fontFamily="monospace">
-                  +0.60°
-                </text>
+              <div className="bg-[#060911] border border-slate-800/90 rounded-md px-2 py-1.5">
+                <svg
+                  viewBox="0 0 480 124"
+                  className="w-full h-32 select-none cursor-crosshair"
+                  role="img"
+                  aria-label="Spectral Cross-Correlation Function vs Angular Lag"
+                  onMouseLeave={() => setHoveredLagPoint(null)}
+                >
+                  <defs>
+                    <linearGradient id="xcorrAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="0%" stopColor="#06b6d4" stopOpacity="0.28" />
+                      <stop offset="100%" stopColor="#06b6d4" stopOpacity="0.02" />
+                    </linearGradient>
+                  </defs>
 
-                {/* Area & Curve of C(Δ2θ) */}
-                <polygon
-                  fill="url(#xcorrAreaGrad)"
-                  points={`20,66 ${crossCorrelationTelemetry.lags
-                    .map((pt, idx) => {
-                      const px = 20 + (idx / Math.max(1, crossCorrelationTelemetry.lags.length - 1)) * 400;
-                      const py = 66 - (pt.corr / 100) * 54;
-                      return `${px.toFixed(1)},${py.toFixed(1)}`;
-                    })
-                    .join(' ')} 420,66`}
-                />
-                <polyline
-                  fill="none"
-                  stroke="#06b6d4"
-                  strokeWidth="1.8"
-                  points={crossCorrelationTelemetry.lags
-                    .map((pt, idx) => {
-                      const px = 20 + (idx / Math.max(1, crossCorrelationTelemetry.lags.length - 1)) * 400;
-                      const py = 66 - (pt.corr / 100) * 54;
-                      return `${px.toFixed(1)},${py.toFixed(1)}`;
-                    })
-                    .join(' ')}
-                />
-
-                {/* Optimal Lag Marker */}
-                {(() => {
-                  const optX = Math.max(
-                    20,
-                    Math.min(420, 220 + (crossCorrelationTelemetry.bestShift / 0.6) * 200)
-                  );
-                  const optY = 66 - (crossCorrelationTelemetry.bestCorr / 100) * 54;
-                  return (
-                    <g>
-                      <line x1={optX} y1={optY} x2={optX} y2="66" stroke="#10b981" strokeWidth="1.2" strokeDasharray="2 2" />
-                      <circle cx={optX} cy={optY} r="3.5" fill="#10b981" stroke="#ffffff" strokeWidth="1" />
-                    </g>
-                  );
-                })()}
-
-                {/* Current Active Zero-Shift Cursor */}
-                {(() => {
-                  const curX = Math.max(20, Math.min(420, 220 + (zeroShiftDeg / 0.6) * 200));
-                  return (
-                    <g>
-                      <line x1={curX} y1="8" x2={curX} y2="66" stroke="#f59e0b" strokeWidth="1.5" />
-                      <rect x={curX - 22} y="6" width="44" height="12" fill="#070A12" stroke="#f59e0b" strokeWidth="0.8" />
-                      <text x={curX} y="14.5" textAnchor="middle" fill="#fcd34d" fontSize="7.5" fontFamily="monospace" fontWeight="bold">
-                        {zeroShiftDeg >= 0 ? `+${zeroShiftDeg.toFixed(2)}°` : `${zeroShiftDeg.toFixed(2)}°`}
+                  {/* Horizontal Y-Gridlines (100%, 50%, 0%) */}
+                  {[
+                    { y: 18, label: "100%" },
+                    { y: 58, label: "50%" },
+                    { y: 98, label: "0%" },
+                  ].map((row) => (
+                    <g key={row.label}>
+                      <line
+                        x1="38"
+                        y1={row.y}
+                        x2="464"
+                        y2={row.y}
+                        stroke="#1e293b"
+                        strokeWidth="1"
+                        strokeDasharray={row.y === 98 ? undefined : "2 3"}
+                      />
+                      <text x="32" y={row.y + 3} textAnchor="end" fill="#64748b" fontSize="8.5" fontFamily="monospace">
+                        {row.label}
                       </text>
                     </g>
-                  );
-                })()}
-              </svg>
-            </div>
+                  ))}
 
-            {/* Right 6 Cols: Reciprocal Lattice Peak-to-Peak Angular Discrepancy Vectors (Δ2θ_hkl) */}
-            <div className="lg:col-span-6 bg-[#050811] border border-slate-800 rounded-sm p-2.5 flex flex-col justify-between">
-              <div className="flex flex-wrap items-center justify-between gap-2 mb-1.5 text-[10px] font-mono tabular-nums">
-                <span className="text-indigo-400 font-bold uppercase tracking-wider">
-                  B. Bragg Reflection Residual Shift Map Δ2θ_hkl = 2θ_obs − 2θ_calc
-                </span>
-                <span className="text-slate-400">
-                  RMS Dispersion: <strong className="text-cyan-400">±{crossCorrelationTelemetry.rmsShiftMilliDeg} m°</strong>
-                </span>
-              </div>
-
-              <svg
-                viewBox="0 0 440 82"
-                className="w-full h-20 select-none"
-                role="img"
-                aria-label="Bragg Reflection Angular Discrepancy Vector Map"
-              >
-                {/* Zero Discrepancy Center Line */}
-                <line x1="20" y1="38" x2="420" y2="38" stroke="#334155" strokeWidth="1" />
-                {/* ±0.15° Tolerance Corridor */}
-                <line x1="20" y1="18" x2="420" y2="18" stroke="#1e293b" strokeWidth="0.8" strokeDasharray="3 3" />
-                <line x1="20" y1="58" x2="420" y2="58" stroke="#1e293b" strokeWidth="0.8" strokeDasharray="3 3" />
-                <text x="16" y="20" textAnchor="end" fill="#64748b" fontSize="7" fontFamily="monospace">
-                  +150m°
-                </text>
-                <text x="16" y="40" textAnchor="end" fill="#94a3b8" fontSize="7" fontFamily="monospace">
-                  0
-                </text>
-                <text x="16" y="60" textAnchor="end" fill="#64748b" fontSize="7" fontFamily="monospace">
-                  -150m°
-                </text>
-
-                {crossCorrelationTelemetry.peakShiftVectors.map((vec, vIdx) => {
-                  const total = Math.max(1, crossCorrelationTelemetry.peakShiftVectors.length);
-                  const vx = 38 + (vIdx / Math.max(1, total - 1)) * 368;
-                  const clampedDeg = Math.max(-0.22, Math.min(0.22, vec.deltaDeg));
-                  const vy = 38 - (clampedDeg / 0.15) * 20;
-                  const isGood = Math.abs(vec.deltaDeg) < 0.06;
-                  const strokeCol = isGood ? '#10b981' : Math.abs(vec.deltaDeg) < 0.14 ? '#06b6d4' : '#f59e0b';
-
-                  return (
-                    <g
-                      key={`${vec.hkl}_${vIdx}`}
-                      className="cursor-pointer"
-                      onClick={() => {
-                        setFocusedTwoTheta(vec.refT);
-                        setTimeout(() => setFocusedTwoTheta(null), 3500);
-                      }}
-                    >
-                      <line x1={vx} y1="38" x2={vx} y2={vy} stroke={strokeCol} strokeWidth="2.5" />
-                      <circle cx={vx} cy={vy} r="3" fill={strokeCol} />
+                  {/* X-Axis Tick Lines & Labels */}
+                  {[
+                    { lag: -0.6, x: 38, label: "-0.60°" },
+                    { lag: -0.3, x: 144.5, label: "-0.30°" },
+                    { lag: 0.0, x: 251, label: "0.00°" },
+                    { lag: 0.3, x: 357.5, label: "+0.30°" },
+                    { lag: 0.6, x: 464, label: "+0.60°" },
+                  ].map((tick) => (
+                    <g key={tick.label}>
+                      <line
+                        x1={tick.x}
+                        y1="14"
+                        x2={tick.x}
+                        y2="101"
+                        stroke={tick.lag === 0 ? "#475569" : "#1e293b"}
+                        strokeWidth={tick.lag === 0 ? "1" : "0.7"}
+                        strokeDasharray="3 3"
+                      />
                       <text
-                        x={vx}
-                        y="75"
-                        textAnchor="middle"
-                        fill="#cbd5e1"
-                        fontSize="7.5"
+                        x={tick.x}
+                        y="116"
+                        textAnchor={tick.lag === -0.6 ? "start" : tick.lag === 0.6 ? "end" : "middle"}
+                        fill={tick.lag === 0 ? "#cbd5e1" : "#64748b"}
+                        fontSize="8.5"
                         fontFamily="monospace"
                       >
-                        {vec.hkl}
+                        {tick.label}
                       </text>
                     </g>
-                  );
-                })}
-              </svg>
+                  ))}
+
+                  {/* Area & Curve of C(Δ2θ) */}
+                  <polygon
+                    fill="url(#xcorrAreaGrad)"
+                    points={`38,98 ${crossCorrelationTelemetry.lags
+                      .map((pt, idx) => {
+                        const px = 38 + (idx / Math.max(1, crossCorrelationTelemetry.lags.length - 1)) * 426;
+                        const py = 98 - (pt.corr / 100) * 80;
+                        return `${px.toFixed(1)},${py.toFixed(1)}`;
+                      })
+                      .join(" ")} 464,98`}
+                  />
+                  <polyline
+                    fill="none"
+                    stroke="#06b6d4"
+                    strokeWidth="2"
+                    points={crossCorrelationTelemetry.lags
+                      .map((pt, idx) => {
+                        const px = 38 + (idx / Math.max(1, crossCorrelationTelemetry.lags.length - 1)) * 426;
+                        const py = 98 - (pt.corr / 100) * 80;
+                        return `${px.toFixed(1)},${py.toFixed(1)}`;
+                      })
+                      .join(" ")}
+                  />
+
+                  {/* Optimal Lag Marker */}
+                  {(() => {
+                    const optX = Math.max(38, Math.min(464, 251 + (crossCorrelationTelemetry.bestShift / 0.6) * 213));
+                    const optY = 98 - (crossCorrelationTelemetry.bestCorr / 100) * 80;
+                    return (
+                      <g>
+                        <line x1={optX} y1={optY} x2={optX} y2="98" stroke="#10b981" strokeWidth="1.2" strokeDasharray="2 2" />
+                        <circle cx={optX} cy={optY} r="4" fill="#10b981" stroke="#060911" strokeWidth="1.5" />
+                      </g>
+                    );
+                  })()}
+
+                  {/* Hovered Probe Line */}
+                  {hoveredLagPoint && (() => {
+                    const hx = Math.max(38, Math.min(464, 251 + (hoveredLagPoint.shift / 0.6) * 213));
+                    const hy = 98 - (hoveredLagPoint.corr / 100) * 80;
+                    return (
+                      <g className="pointer-events-none">
+                        <line x1={hx} y1="14" x2={hx} y2="98" stroke="#22d3ee" strokeWidth="1" strokeDasharray="2 2" />
+                        <circle cx={hx} cy={hy} r="3.5" fill="#22d3ee" stroke="#060911" strokeWidth="1.2" />
+                      </g>
+                    );
+                  })()}
+
+                  {/* Active Zero-Shift Cursor (edge-clamped badge) */}
+                  {(() => {
+                    const curX = Math.max(38, Math.min(464, 251 + (zeroShiftDeg / 0.6) * 213));
+                    const labelX = Math.max(62, Math.min(440, curX));
+                    return (
+                      <g className="pointer-events-none">
+                        <line x1={curX} y1="18" x2={curX} y2="98" stroke="#f59e0b" strokeWidth="1.6" />
+                        <rect x={labelX - 24} y="3" width="48" height="14" rx="2" fill="#0B101B" stroke="#f59e0b" strokeWidth="0.9" />
+                        <text x={labelX} y="12.5" textAnchor="middle" fill="#fcd34d" fontSize="8.5" fontFamily="monospace" fontWeight="bold">
+                          {zeroShiftDeg >= 0 ? `+${zeroShiftDeg.toFixed(2)}°` : `${zeroShiftDeg.toFixed(2)}°`}
+                        </text>
+                      </g>
+                    );
+                  })()}
+
+                  {/* Interactive Scrubbing Hit Columns (Click to Set Zero-Shift) */}
+                  {crossCorrelationTelemetry.lags.map((pt, idx) => {
+                    const stepW = 426 / Math.max(1, crossCorrelationTelemetry.lags.length - 1);
+                    const px = 38 + idx * stepW;
+                    return (
+                      <rect
+                        key={`lag-hit-${idx}`}
+                        x={px - stepW / 2}
+                        y="12"
+                        width={stepW}
+                        height="90"
+                        fill="transparent"
+                        onMouseEnter={() => setHoveredLagPoint(pt)}
+                        onClick={() => setZeroShiftDeg(pt.shift)}
+                      >
+                        <title>{`Click to apply Δ2θ = ${pt.shift >= 0 ? "+" : ""}${pt.shift.toFixed(2)}° (C = ${pt.corr.toFixed(1)}%)`}</title>
+                      </rect>
+                    );
+                  })}
+                </svg>
+              </div>
+
+              <div className="flex items-center justify-between text-[11px] text-slate-500">
+                <span>Click along curve to apply goniometer zero-shift</span>
+                <span className="font-mono text-slate-400">Emerald = Optimal · Amber = Active Δ2θ</span>
+              </div>
+            </div>
+
+            {/* Panel B: Bragg Reflection Angular Discrepancy Map Δ2θ_hkl */}
+            <div className="lg:col-span-6 p-3.5 flex flex-col justify-between gap-2">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="font-semibold text-slate-200">B. Bragg Reflection Residual Shift</span>
+                  <span className="font-mono text-[11px] text-slate-400">
+                    Δ2θ<sub>hkl</sub> = 2θ<sub>obs</sub> − 2θ<sub>calc</sub>
+                  </span>
+                </div>
+                <div className="font-mono text-[11px] tabular-nums">
+                  {hoveredPeakVector ? (
+                    <span className="text-cyan-300">
+                      {hoveredPeakVector.hkl} · Calc {hoveredPeakVector.refT.toFixed(2)}° · Obs {hoveredPeakVector.obsT.toFixed(2)}° ·{" "}
+                      <strong>
+                        {hoveredPeakVector.deltaMilliDeg >= 0 ? "+" : ""}
+                        {hoveredPeakVector.deltaMilliDeg} m°
+                      </strong>
+                    </span>
+                  ) : (
+                    <span className="text-slate-400">
+                      RMS Dispersion:{" "}
+                      <strong className="text-slate-200 font-semibold">
+                        ±{crossCorrelationTelemetry.rmsShiftMilliDeg} m°
+                      </strong>
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div className="bg-[#060911] border border-slate-800/90 rounded-md px-2 py-1.5">
+                <svg
+                  viewBox="0 0 480 124"
+                  className="w-full h-32 select-none"
+                  role="img"
+                  aria-label="Bragg Reflection Angular Discrepancy Vector Map"
+                  onMouseLeave={() => setHoveredPeakVector(null)}
+                >
+                  {/* Nominal ±60 m° Tolerance Band */}
+                  <rect x="44" y="42" width="420" height="32" fill="#10b981" fillOpacity="0.07" />
+
+                  {/* ±150 m° Corridor & Zero Discrepancy Center Line */}
+                  <line x1="44" y1="18" x2="464" y2="18" stroke="#1e293b" strokeWidth="1" strokeDasharray="3 3" />
+                  <line x1="44" y1="42" x2="464" y2="42" stroke="#10b981" strokeOpacity="0.25" strokeWidth="0.8" strokeDasharray="2 3" />
+                  <line x1="44" y1="58" x2="464" y2="58" stroke="#475569" strokeWidth="1.1" />
+                  <line x1="44" y1="74" x2="464" y2="74" stroke="#10b981" strokeOpacity="0.25" strokeWidth="0.8" strokeDasharray="2 3" />
+                  <line x1="44" y1="98" x2="464" y2="98" stroke="#1e293b" strokeWidth="1" strokeDasharray="3 3" />
+
+                  {/* Left Y-Axis Labels */}
+                  <text x="38" y="21" textAnchor="end" fill="#64748b" fontSize="8" fontFamily="monospace">
+                    +150m°
+                  </text>
+                  <text x="38" y="61" textAnchor="end" fill="#cbd5e1" fontSize="8" fontFamily="monospace">
+                    0
+                  </text>
+                  <text x="38" y="101" textAnchor="end" fill="#64748b" fontSize="8" fontFamily="monospace">
+                    -150m°
+                  </text>
+
+                  {/* Discrepancy Stems */}
+                  {crossCorrelationTelemetry.peakShiftVectors.map((vec, vIdx) => {
+                    const total = Math.max(1, crossCorrelationTelemetry.peakShiftVectors.length);
+                    const vx = total === 1 ? 254 : 64 + (vIdx / (total - 1)) * 380;
+                    const clampedDeg = Math.max(-0.18, Math.min(0.18, vec.deltaDeg));
+                    const vy = 58 - (clampedDeg / 0.15) * 40;
+                    const isNominal = Math.abs(vec.deltaDeg) < 0.06;
+                    const isMinor = Math.abs(vec.deltaDeg) < 0.14;
+                    const strokeCol = isNominal ? "#10b981" : isMinor ? "#06b6d4" : "#f59e0b";
+                    const isHovered = hoveredPeakVector?.hkl === vec.hkl && hoveredPeakVector?.refT === vec.refT;
+                    const isFocused = focusedTwoTheta !== null && Math.abs(focusedTwoTheta - vec.refT) < 0.05;
+
+                    return (
+                      <g
+                        key={`${vec.hkl}_${vIdx}`}
+                        className="cursor-pointer"
+                        onMouseEnter={() => setHoveredPeakVector(vec)}
+                        onClick={() => {
+                          setFocusedTwoTheta(vec.refT);
+                          setTimeout(() => setFocusedTwoTheta(null), 3500);
+                        }}
+                      >
+                        <rect x={vx - 14} y="10" width="28" height="106" fill="transparent" />
+                        {(isHovered || isFocused) && (
+                          <line x1={vx} y1="14" x2={vx} y2="102" stroke={strokeCol} strokeOpacity="0.28" strokeWidth="8" />
+                        )}
+                        <line x1={vx} y1="58" x2={vx} y2={vy} stroke={strokeCol} strokeWidth={isHovered ? "3" : "2.2"} />
+                        <circle
+                          cx={vx}
+                          cy={vy}
+                          r={isHovered ? "4.5" : "3.2"}
+                          fill={strokeCol}
+                          stroke="#060911"
+                          strokeWidth="1.2"
+                        />
+                        <text
+                          x={vx}
+                          y="116"
+                          textAnchor="middle"
+                          fill={isHovered || isFocused ? "#f8fafc" : "#94a3b8"}
+                          fontSize="8.5"
+                          fontFamily="monospace"
+                          fontWeight={isHovered || isFocused ? "bold" : "normal"}
+                        >
+                          {vec.hkl}
+                        </text>
+                      </g>
+                    );
+                  })}
+                </svg>
+              </div>
+
+              <div className="flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500">
+                <span>Click any reflection stem to spotlight in diffractogram</span>
+                <span className="font-mono text-slate-400">
+                  <span className="text-emerald-400">≤60m° Nominal</span> ·{" "}
+                  <span className="text-cyan-400">≤140m° Minor</span> ·{" "}
+                  <span className="text-amber-400">&gt;140m° Offset</span>
+                </span>
+              </div>
             </div>
           </div>
         )}
 
-        {/* CALIBRATION SLIDERS PANEL (Collapsible) */}
+        {/* COLLAPSIBLE GONIOMETER & STRAIN CALIBRATION PANEL */}
         <AnimatePresence>
           {showCalibrationPanel && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: "auto" }}
               exit={{ opacity: 0, height: 0 }}
-              className="bg-[#060914] border border-cyan-500/30 rounded-2xl p-4 shadow-xl overflow-hidden"
+              transition={{ duration: 0.18 }}
+              className="bg-[#0B101B] border border-slate-800 rounded-lg p-4 overflow-hidden"
             >
               <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
                 <div className="flex items-center gap-2">
                   <Sliders className="w-4 h-4 text-cyan-400" />
-                  <span className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider">
-                    Interactive Goniometer Zero-Shift & Lattice Strain Calibrator
+                  <span className="text-xs font-semibold text-slate-100">
+                    Goniometer Zero-Shift &amp; Uniform Lattice Strain Calibration
                   </span>
                 </div>
                 <div className="flex items-center gap-2">
                   <button
+                    type="button"
                     onClick={handleAutoAlign}
                     disabled={isAutoAligning}
-                    className="flex items-center gap-1.5 px-3 py-1 rounded-xl bg-cyan-500/20 border border-cyan-500/40 hover:bg-cyan-500/30 text-cyan-300 text-[10px] font-mono font-bold transition-all disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-cyan-500/15 border border-cyan-500/40 hover:bg-cyan-500/25 text-cyan-200 text-xs font-medium transition-colors disabled:opacity-50 cursor-pointer whitespace-nowrap"
                   >
                     <Sparkles className={`w-3.5 h-3.5 ${isAutoAligning ? "animate-spin" : ""}`} />
-                    {isAutoAligning ? "Optimizing..." : "Auto-Align Zero Shift"}
+                    <span>{isAutoAligning ? "Optimizing..." : "Auto-Align Zero Shift"}</span>
                   </button>
                   <button
+                    type="button"
                     onClick={handleResetCalibration}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-xl bg-slate-800 border border-slate-700 hover:bg-slate-700 text-slate-300 text-[10px] font-mono font-bold transition-all"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-md bg-[#070A12] border border-slate-700 hover:bg-slate-800 text-slate-300 text-xs font-medium transition-colors cursor-pointer whitespace-nowrap"
                   >
-                    <RotateCcw className="w-3 h-3" />
-                    Reset
+                    <RotateCcw className="w-3.5 h-3.5" />
+                    <span>Reset</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowCalibrationPanel(false)}
+                    className="p-1.5 rounded-md text-slate-400 hover:text-white hover:bg-slate-800 transition-colors cursor-pointer"
+                    aria-label="Close calibration panel"
+                  >
+                    <X className="w-4 h-4" />
                   </button>
                 </div>
               </div>
 
               {autoAlignStatus && (
-                <div className="mt-2 text-[10px] font-mono text-cyan-400 bg-cyan-950/40 border border-cyan-500/30 px-3 py-1.5 rounded-lg">
+                <div className="mt-3 text-xs font-mono text-cyan-300 bg-cyan-950/30 border border-cyan-500/30 px-3 py-2 rounded-md">
                   {autoAlignStatus}
                 </div>
               )}
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-5 mt-3 font-mono">
-                {/* Zero Shift Slider */}
-                <div className="flex flex-col gap-1.5 bg-[#0A101C] p-3 rounded-xl border border-slate-800">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                      Δ(2θ) Zero-Error Offset
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-cyan-300 font-bold">
-                        {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}°
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-3.5 font-mono">
+                {/* Zero Shift Calibrator */}
+                <div className="flex flex-col gap-2 bg-[#070A12] p-3.5 rounded-md border border-slate-800">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs text-slate-300 font-sans font-medium">Δ(2θ) Zero-Error Offset</span>
+                    <div className="flex items-center gap-1.5 tabular-nums">
+                      <button
+                        type="button"
+                        onClick={() => setZeroShiftDeg((v) => Number(Math.max(-1.0, v - 0.01).toFixed(2)))}
+                        className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                        title="Decrease zero-shift by 0.01°"
+                        aria-label="Decrease zero-shift by 0.01 degree"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="text-xs text-cyan-300 font-semibold min-w-[54px] text-center">
+                        {zeroShiftDeg > 0 ? "+" : ""}
+                        {zeroShiftDeg.toFixed(2)}°
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setZeroShiftDeg((v) => Number(Math.min(1.0, v + 0.01).toFixed(2)))}
+                        className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                        title="Increase zero-shift by 0.01°"
+                        aria-label="Increase zero-shift by 0.01 degree"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
                       {zeroShiftDeg !== 0 && (
                         <button
+                          type="button"
                           onClick={() => setZeroShiftDeg(0)}
-                          className="px-1.5 py-0.5 rounded text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold border border-slate-700"
-                          title="Reset Zero Shift to 0.00°"
+                          className="ml-1 px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
                         >
                           0°
                         </button>
@@ -1901,33 +2240,47 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                     onChange={(e) => setZeroShiftDeg(parseFloat(e.target.value))}
                     className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-cyan-400"
                   />
-                  <div className="flex justify-between text-[8px] text-slate-500">
-                    <span>-1.00° (Shift Left)</span>
-                    <button
-                      onClick={() => setZeroShiftDeg(0)}
-                      className="hover:text-cyan-300 transition-colors"
-                    >
-                      0.00° (Nominal)
+                  <div className="flex justify-between text-[10px] text-slate-500 tabular-nums">
+                    <span>-1.00°</span>
+                    <button type="button" onClick={() => setZeroShiftDeg(0)} className="hover:text-cyan-300 cursor-pointer">
+                      0.00° Nominal
                     </button>
-                    <span>+1.00° (Shift Right)</span>
+                    <span>+1.00°</span>
                   </div>
                 </div>
 
-                {/* Uniform Lattice Strain Slider */}
-                <div className="flex flex-col gap-1.5 bg-[#0A101C] p-3 rounded-xl border border-slate-800">
-                  <div className="flex justify-between items-center text-xs">
-                    <span className="text-slate-400 font-bold uppercase tracking-wider text-[10px]">
-                      Uniform Lattice Strain (Δd/d)
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <span className="text-amber-300 font-bold">
-                        {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%
+                {/* Uniform Lattice Strain Calibrator */}
+                <div className="flex flex-col gap-2 bg-[#070A12] p-3.5 rounded-md border border-slate-800">
+                  <div className="flex justify-between items-center gap-2">
+                    <span className="text-xs text-slate-300 font-sans font-medium">Uniform Lattice Strain (Δd/d)</span>
+                    <div className="flex items-center gap-1.5 tabular-nums">
+                      <button
+                        type="button"
+                        onClick={() => setLatticeStrainPct((v) => Number(Math.max(-2.0, v - 0.02).toFixed(2)))}
+                        className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                        title="Decrease lattice strain by 0.02%"
+                        aria-label="Decrease lattice strain by 0.02 percent"
+                      >
+                        <Minus className="w-3 h-3" />
+                      </button>
+                      <span className="text-xs text-amber-300 font-semibold min-w-[54px] text-center">
+                        {latticeStrainPct > 0 ? "+" : ""}
+                        {latticeStrainPct.toFixed(2)}%
                       </span>
+                      <button
+                        type="button"
+                        onClick={() => setLatticeStrainPct((v) => Number(Math.min(2.0, v + 0.02).toFixed(2)))}
+                        className="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
+                        title="Increase lattice strain by 0.02%"
+                        aria-label="Increase lattice strain by 0.02 percent"
+                      >
+                        <Plus className="w-3 h-3" />
+                      </button>
                       {latticeStrainPct !== 0 && (
                         <button
+                          type="button"
                           onClick={() => setLatticeStrainPct(0)}
-                          className="px-1.5 py-0.5 rounded text-[8px] bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold border border-slate-700"
-                          title="Reset Lattice Strain to 0.00%"
+                          className="ml-1 px-2 py-0.5 rounded text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 cursor-pointer"
                         >
                           0%
                         </button>
@@ -1943,15 +2296,12 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                     onChange={(e) => setLatticeStrainPct(parseFloat(e.target.value))}
                     className="w-full h-1.5 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-amber-400"
                   />
-                  <div className="flex justify-between text-[8px] text-slate-500">
-                    <span>-2.0% (Compressive)</span>
-                    <button
-                      onClick={() => setLatticeStrainPct(0)}
-                      className="hover:text-amber-300 transition-colors"
-                    >
-                      0.0% (Relaxed)
+                  <div className="flex justify-between text-[10px] text-slate-500 tabular-nums">
+                    <span>-2.00% Compressive</span>
+                    <button type="button" onClick={() => setLatticeStrainPct(0)} className="hover:text-amber-300 cursor-pointer">
+                      0.00% Relaxed
                     </button>
-                    <span>+2.0% (Tensile)</span>
+                    <span>+2.00% Tensile</span>
                   </div>
                 </div>
               </div>
@@ -1959,75 +2309,95 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
           )}
         </AnimatePresence>
 
-        {/* CALIPER MEASUREMENT FLOATING HUD */}
+        {/* CALIPER MEASUREMENT INSTRUMENT BAR */}
         <AnimatePresence>
           {caliperActive && (
             <motion.div
-              initial={{ opacity: 0, y: -8 }}
+              initial={{ opacity: 0, y: -6 }}
               animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -8 }}
-              className="bg-gradient-to-r from-[#170E04] via-[#1F1306] to-[#170E04] border border-amber-500/40 rounded-2xl p-3 shadow-2xl flex flex-wrap items-center justify-between gap-3 text-xs font-mono"
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.16 }}
+              className="bg-[#120E07] border border-amber-500/40 rounded-lg px-4 py-3 flex flex-wrap items-center justify-between gap-3 text-xs font-mono tabular-nums"
             >
-              <div className="flex items-center gap-2 text-amber-300">
-                <Crosshair className="w-4 h-4 text-amber-400 animate-pulse" />
-                <span className="font-black uppercase tracking-wider text-[11px]">
-                  Peak Caliper Measurement Tool:
-                </span>
-                <span className="text-slate-400 text-[10px]">
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-2 text-amber-300">
+                  <Crosshair className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span className="font-semibold font-sans text-amber-200">Peak Caliper</span>
+                </div>
+                <span className="text-slate-400 font-sans text-xs">
                   {!caliperPt1
-                    ? "Click on first peak/position"
+                    ? "Click a point on the diffractogram to set Point A"
                     : !caliperPt2
-                    ? "Click on second peak to measure Δ"
-                    : "Points locked (click plot to restart)"}
+                    ? `Point A locked (${caliperPt1.twoTheta.toFixed(2)}°) — click Point B to compute Δ`
+                    : `A: ${caliperPt1.twoTheta.toFixed(2)}° · B: ${caliperPt2.twoTheta.toFixed(2)}°`}
                 </span>
               </div>
 
               {caliperDelta && (
-                <div className="flex flex-wrap items-center gap-4 text-[10px]">
-                  <div className="bg-black/40 px-2.5 py-1 rounded-lg border border-amber-500/30">
-                    <span className="text-slate-400">Δ(2θ): </span>
-                    <span className="font-bold text-amber-300">{caliperDelta.dTwoTheta}°</span>
-                  </div>
-                  <div className="bg-black/40 px-2.5 py-1 rounded-lg border border-amber-500/30">
-                    <span className="text-slate-400">Δ(d): </span>
-                    <span className="font-bold text-emerald-300">{caliperDelta.dDSpacing} Å</span>
-                  </div>
-                  <div className="bg-black/40 px-2.5 py-1 rounded-lg border border-amber-500/30">
-                    <span className="text-slate-400">ΔQ: </span>
-                    <span className="font-bold text-sky-300">{caliperDelta.dQ} Å⁻¹</span>
-                  </div>
-                  <div className="bg-black/40 px-2.5 py-1 rounded-lg border border-amber-500/30">
-                    <span className="text-slate-400">Strain ε: </span>
-                    <span className="font-bold text-purple-300">{caliperDelta.apparentStrain}%</span>
-                  </div>
-                  <div className="bg-black/40 px-2.5 py-1 rounded-lg border border-amber-500/30">
-                    <span className="text-slate-400">Cu-Kα₁/Kα₂ doublet split: </span>
-                    <span className="font-bold text-slate-300">{caliperDelta.kaDoubletSplit}°</span>
-                  </div>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs">
+                  <span>
+                    <span className="text-slate-400">Δ2θ </span>
+                    <strong className="text-amber-300">{caliperDelta.dTwoTheta}°</strong>
+                  </span>
+                  <span aria-hidden="true" className="text-slate-700">·</span>
+                  <span>
+                    <span className="text-slate-400">Δd </span>
+                    <strong className="text-emerald-300">{caliperDelta.dDSpacing} Å</strong>
+                  </span>
+                  <span aria-hidden="true" className="text-slate-700">·</span>
+                  <span>
+                    <span className="text-slate-400">ΔQ </span>
+                    <strong className="text-sky-300">{caliperDelta.dQ} Å⁻¹</strong>
+                  </span>
+                  <span aria-hidden="true" className="text-slate-700">·</span>
+                  <span>
+                    <span className="text-slate-400">Strain ε </span>
+                    <strong className="text-cyan-300">{caliperDelta.apparentStrain}%</strong>
+                  </span>
+                  <span aria-hidden="true" className="text-slate-700">·</span>
+                  <span>
+                    <span className="text-slate-400">Kα₁/Kα₂ Split </span>
+                    <strong className="text-slate-200">{caliperDelta.kaDoubletSplit}°</strong>
+                  </span>
                 </div>
               )}
 
-              <button
-                onClick={() => {
-                  setCaliperPt1(null);
-                  setCaliperPt2(null);
-                }}
-                className="px-2.5 py-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 text-[10px] font-bold"
-              >
-                Clear Points
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCaliperPt1(null);
+                    setCaliperPt2(null);
+                  }}
+                  className="px-2.5 py-1 rounded-md bg-amber-500/15 text-amber-200 border border-amber-500/40 hover:bg-amber-500/25 text-xs font-sans font-medium cursor-pointer transition-colors"
+                >
+                  Clear
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setCaliperActive(false);
+                    setCaliperPt1(null);
+                    setCaliperPt2(null);
+                  }}
+                  className="p-1 rounded-md text-slate-400 hover:text-white cursor-pointer"
+                  aria-label="Close caliper"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
-      {/* MAIN CHART INSTRUMENT CONTAINER */}
+      {/* MAIN DIFFRACTOGRAM INSTRUMENT CONTAINER */}
       <div
         ref={chartWrapperRef}
-        className={`w-full relative z-10 rounded-2xl p-0 shadow-2xl overflow-hidden flex flex-col group/chart transition-all ${
+        className={`w-full relative z-10 rounded-lg p-0 overflow-hidden flex flex-col group/chart transition-colors ${
           themeMode === "publication"
-            ? "bg-[#FFFFFF] text-slate-900 border-2 border-slate-300 shadow-slate-200/80"
-            : "bg-[#060912] text-slate-100 border border-slate-700/80"
+            ? "bg-white text-slate-900 border border-slate-300"
+            : "bg-[#060912] text-slate-100 border border-slate-800"
         } ${
           isFullscreen
             ? "h-[85vh] min-h-[600px]"
@@ -2050,187 +2420,159 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
           </div>
         )}
 
-        {/* TOP INTERACTIVE SCIENTIFIC CONTROLS TOOLBAR */}
-        <div className={`w-full px-3 py-2 flex flex-wrap items-center justify-between gap-2 z-30 pointer-events-auto border-b transition-colors ${
-          themeMode === "publication"
-            ? "bg-[#F8FAFC]/95 border-slate-200 text-slate-800 shadow-sm"
-            : "bg-[#080E1B]/95 border-slate-800/80 text-slate-200"
-        }`}>
-          {/* Left: Coordinate Space, Intensity Scale, & Theme Switchers */}
+        {/* TIER 1 CONTROL DECK: Domain, Intensity Scale, Profile & Mesh Optics, Zoom, Viewport & Theme */}
+        <div
+          className={`w-full px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 z-30 pointer-events-auto border-b transition-colors ${
+            themeMode === "publication"
+              ? "bg-slate-50 border-slate-200 text-slate-800"
+              : "bg-[#0B101B] border-slate-800 text-slate-200"
+          }`}
+        >
+          {/* Left Group: Coordinate Domain, Intensity Scale, Profile & Precision Popovers, Zoom */}
           <div className="flex flex-wrap items-center gap-2">
-            {/* Theme Toggle: Dark Lab vs Publication Mode */}
-            <button
-              onClick={() => setThemeMode(themeMode === "darkLab" ? "publication" : "darkLab")}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-mono text-[9px] font-bold border transition-all ${
+            {/* Coordinate Domain Segmented Control */}
+            <div
+              className={`flex items-center p-0.5 rounded-md border font-mono text-[11px] ${
                 themeMode === "publication"
-                  ? "bg-amber-100 text-amber-900 border-amber-300 shadow-sm"
-                  : "bg-slate-800/90 text-slate-200 border-slate-700 hover:text-white"
+                  ? "bg-slate-100 border-slate-300"
+                  : "bg-[#060912] border-slate-800"
               }`}
-              title="Toggle Publication Theme (White OriginPro mode) vs Dark Lab"
             >
-              {themeMode === "publication" ? (
-                <>
-                  <Sun className="w-3.5 h-3.5 text-amber-600" />
-                  <span>Publication Mode</span>
-                </>
-              ) : (
-                <>
-                  <Moon className="w-3.5 h-3.5 text-cyan-400" />
-                  <span>Dark Lab</span>
-                </>
-              )}
-            </button>
-
-            {/* Coordinate Domain Switcher */}
-            <div className={`flex items-center p-0.5 rounded-xl border backdrop-blur-md shadow-lg font-mono text-[9px] ${
-              themeMode === "publication"
-                ? "bg-white border-slate-300"
-                : "bg-[#09101F]/95 border-slate-700/80"
-            }`}>
-              <button
-                onClick={() => setCoordSpace("twoTheta")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  coordSpace === "twoTheta"
-                    ? themeMode === "publication"
-                      ? "bg-cyan-100 text-cyan-900 border border-cyan-400 shadow-sm"
-                      : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Bragg Diffraction Angle (2θ)"
-              >
-                2θ (deg)
-              </button>
-              <button
-                onClick={() => setCoordSpace("dSpacing")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  coordSpace === "dSpacing"
-                    ? themeMode === "publication"
-                      ? "bg-emerald-100 text-emerald-900 border border-emerald-400 shadow-sm"
-                      : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Lattice Interplanar Spacing (d_hkl in Ångströms)"
-              >
-                d-spacing (Å)
-              </button>
-              <button
-                onClick={() => setCoordSpace("qVector")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  coordSpace === "qVector"
-                    ? themeMode === "publication"
-                      ? "bg-sky-100 text-sky-900 border border-sky-400 shadow-sm"
-                      : "bg-sky-500/20 text-sky-300 border border-sky-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Momentum Transfer Scattering Vector Q = 4π sin(θ)/λ"
-              >
-                Q (Å⁻¹)
-              </button>
+              {(
+                [
+                  { id: "twoTheta", label: "2θ (°)", title: "Bragg Diffraction Angle (2θ)" },
+                  { id: "dSpacing", label: "d (Å)", title: "Interplanar Spacing (d_hkl in Å)" },
+                  { id: "qVector", label: "Q (Å⁻¹)", title: "Scattering Vector Q = 4π sin(θ)/λ" },
+                ] as Array<{ id: CoordinateSpace; label: string; title: string }>
+              ).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setCoordSpace(item.id)}
+                  title={item.title}
+                  className={`px-2.5 py-1 rounded font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                    coordSpace === item.id
+                      ? themeMode === "publication"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "bg-cyan-500/20 text-cyan-200"
+                      : themeMode === "publication"
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
 
-            {/* Intensity Transform Switcher */}
-            <div className={`flex items-center p-0.5 rounded-xl border backdrop-blur-md shadow-lg font-mono text-[9px] ${
-              themeMode === "publication"
-                ? "bg-white border-slate-300"
-                : "bg-[#09101F]/95 border-slate-700/80"
-            }`}>
-              <button
-                onClick={() => setIntensityScale("linear")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  intensityScale === "linear"
-                    ? themeMode === "publication"
-                      ? "bg-blue-100 text-blue-900 border border-blue-400 shadow-sm"
-                      : "bg-blue-500/20 text-blue-300 border border-blue-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Linear Counts (Standard)"
-              >
-                Linear (I)
-              </button>
-              <button
-                onClick={() => setIntensityScale("sqrt")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  intensityScale === "sqrt"
-                    ? themeMode === "publication"
-                      ? "bg-purple-100 text-purple-900 border border-purple-400 shadow-sm"
-                      : "bg-purple-500/20 text-purple-300 border border-purple-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Square-Root (√I) Poisson Counting Statistics Transform"
-              >
-                Sqrt (√I)
-              </button>
-              <button
-                onClick={() => setIntensityScale("log")}
-                className={`px-2.5 py-1 rounded-lg font-bold transition-all ${
-                  intensityScale === "log"
-                    ? themeMode === "publication"
-                      ? "bg-rose-100 text-rose-900 border border-rose-400 shadow-sm"
-                      : "bg-rose-500/20 text-rose-300 border border-rose-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Logarithmic (log10 I) reveals trace impurity phases and background halos"
-              >
-                Log₁₀ (I)
-              </button>
+            {/* Intensity Scale Segmented Control */}
+            <div
+              className={`flex items-center p-0.5 rounded-md border font-mono text-[11px] ${
+                themeMode === "publication"
+                  ? "bg-slate-100 border-slate-300"
+                  : "bg-[#060912] border-slate-800"
+              }`}
+            >
+              {(
+                [
+                  { id: "linear", label: "Linear", title: "Linear Intensity Counts" },
+                  { id: "sqrt", label: "√I", title: "Square-Root (Poisson Statistics) Transform" },
+                  { id: "log", label: "Log₁₀", title: "Logarithmic Scale for Trace Phases" },
+                ] as Array<{ id: IntensityScale; label: string; title: string }>
+              ).map((item) => (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setIntensityScale(item.id)}
+                  title={item.title}
+                  className={`px-2.5 py-1 rounded font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                    intensityScale === item.id
+                      ? themeMode === "publication"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "bg-slate-800 text-slate-100"
+                      : themeMode === "publication"
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {item.label}
+                </button>
+              ))}
             </div>
 
-            {/* Profile Engine Config Button & Popover */}
+            {/* Profile Function Popover */}
             <div className="relative">
               <button
-                onClick={() => setShowProfileConfigPanel(!showProfileConfigPanel)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-mono text-[9px] font-bold border transition-all ${
+                type="button"
+                onClick={() => {
+                  setShowProfileConfigPanel(!showProfileConfigPanel);
+                  setShowPrecisionPanel(false);
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-mono text-[11px] font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   showProfileConfigPanel
-                    ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/50 shadow-sm"
+                    ? themeMode === "publication"
+                      ? "bg-cyan-50 text-cyan-900 border-cyan-400"
+                      : "bg-cyan-500/15 text-cyan-200 border-cyan-500/60"
                     : themeMode === "publication"
-                    ? "bg-white text-slate-700 border-slate-300 hover:bg-slate-50"
-                    : "bg-slate-900 text-slate-300 border-slate-700 hover:bg-slate-800"
+                    ? "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                    : "bg-[#060912] text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white"
                 }`}
                 title="Configure Peak Profile Model, Lorentzian Fraction & Doublet Optics"
               >
-                <Settings2 className="w-3 h-3 text-cyan-400" />
+                <Settings2 className="w-3.5 h-3.5 text-cyan-500" />
                 <span>
                   {profileModel === "pseudoVoigt"
-                    ? `P-Voigt (η=${Math.round(lorentzianFraction * 100)}%)`
+                    ? `P-Voigt η=${Math.round(lorentzianFraction * 100)}%`
                     : profileModel === "pearson7"
-                    ? `Pearson VII (m=${pearsonShapeM.toFixed(1)})`
+                    ? `Pearson VII m=${pearsonShapeM.toFixed(1)}`
                     : profileModel === "gaussian"
                     ? "Gaussian"
                     : "Lorentzian"}
                 </span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${showProfileConfigPanel ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-3 h-3 opacity-70 transition-transform ${showProfileConfigPanel ? "rotate-180" : ""}`} />
               </button>
 
               {showProfileConfigPanel && (
-                <div className={`absolute left-0 top-full mt-2 z-50 p-3.5 rounded-2xl border shadow-2xl backdrop-blur-md w-72 text-xs font-mono ${
-                  themeMode === "publication"
-                    ? "bg-white/98 border-slate-300 text-slate-800 shadow-slate-300/60"
-                    : "bg-[#09101F]/98 border-slate-700 text-slate-200 shadow-black/80"
-                }`}>
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-slate-700/30 font-bold text-[10px] uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5">
-                      <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-                      Peak Profile Function
-                    </span>
-                    <button onClick={() => setShowProfileConfigPanel(false)} className="text-slate-400 hover:text-slate-200">
+                <div
+                  className={`absolute left-0 top-full mt-1.5 z-50 p-3.5 rounded-lg border shadow-2xl w-76 text-xs font-mono ${
+                    themeMode === "publication"
+                      ? "bg-white border-slate-300 text-slate-800"
+                      : "bg-[#0B101B] border-slate-700 text-slate-200"
+                  }`}
+                >
+                  <div
+                    className={`flex items-center justify-between pb-2 mb-3 border-b ${
+                      themeMode === "publication" ? "border-slate-200" : "border-slate-800"
+                    }`}
+                  >
+                    <span className="font-sans font-semibold text-xs">Peak Profile Optics</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowProfileConfigPanel(false)}
+                      className="text-slate-400 hover:text-slate-200 cursor-pointer"
+                      aria-label="Close profile settings"
+                    >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="space-y-3 text-[10px]">
+                  <div className="space-y-3 text-[11px]">
                     <div>
-                      <span className="text-slate-400 block mb-1">Profile Shape Function</span>
-                      <div className="grid grid-cols-2 gap-1">
+                      <span className="text-slate-400 font-sans block mb-1.5">Profile Shape Function</span>
+                      <div className="grid grid-cols-2 gap-1.5">
                         {(["pseudoVoigt", "pearson7", "gaussian", "lorentzian"] as ProfileShapeModel[]).map((m) => (
                           <button
                             key={m}
+                            type="button"
                             onClick={() => setProfileModel(m)}
-                            className={`py-1 rounded-lg text-center font-bold text-[9px] border transition-all ${
+                            className={`py-1.5 px-2 rounded-md text-center font-medium border transition-colors cursor-pointer ${
                               profileModel === m
-                                ? "bg-cyan-500/20 text-cyan-300 border-cyan-500/60 shadow-sm"
+                                ? themeMode === "publication"
+                                  ? "bg-cyan-50 text-cyan-900 border-cyan-500"
+                                  : "bg-cyan-500/20 text-cyan-200 border-cyan-500/60"
                                 : themeMode === "publication"
-                                ? "bg-slate-100 text-slate-600 border-slate-200"
-                                : "bg-black/30 text-slate-400 border-slate-800"
+                                ? "bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100"
+                                : "bg-[#060912] text-slate-400 border-slate-800 hover:text-slate-200"
                             }`}
                           >
                             {m === "pseudoVoigt"
@@ -2247,9 +2589,9 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
                     {profileModel === "pseudoVoigt" && (
                       <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-slate-400">Lorentzian Fraction (η)</span>
-                          <span className="font-bold text-cyan-400 font-mono">{Math.round(lorentzianFraction * 100)}%</span>
+                        <div className="flex justify-between items-center mb-1 tabular-nums">
+                          <span className="text-slate-400 font-sans">Lorentzian Fraction (η)</span>
+                          <span className="font-semibold text-cyan-400">{Math.round(lorentzianFraction * 100)}%</span>
                         </div>
                         <input
                           type="range"
@@ -2260,18 +2602,18 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                           onChange={(e) => setLorentzianFraction(parseFloat(e.target.value))}
                           className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
                         />
-                        <div className="flex justify-between text-[8px] text-slate-500 mt-0.5 font-mono">
-                          <span>0% (Instrumental Gauss)</span>
-                          <span>100% (Crystallite Lorentz)</span>
+                        <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                          <span>0% Gaussian</span>
+                          <span>100% Lorentzian</span>
                         </div>
                       </div>
                     )}
 
                     {profileModel === "pearson7" && (
                       <div>
-                        <div className="flex justify-between items-center mb-1">
-                          <span className="text-slate-400">Shape Exponent (m)</span>
-                          <span className="font-bold text-cyan-400 font-mono">m = {pearsonShapeM.toFixed(2)}</span>
+                        <div className="flex justify-between items-center mb-1 tabular-nums">
+                          <span className="text-slate-400 font-sans">Shape Exponent (m)</span>
+                          <span className="font-semibold text-cyan-400">m = {pearsonShapeM.toFixed(2)}</span>
                         </div>
                         <input
                           type="range"
@@ -2282,39 +2624,49 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                           onChange={(e) => setPearsonShapeM(parseFloat(e.target.value))}
                           className="w-full h-1.5 bg-slate-700 rounded-lg appearance-none cursor-pointer accent-cyan-400"
                         />
-                        <div className="flex justify-between text-[8px] text-slate-500 mt-0.5 font-mono">
-                          <span>m=1.0 (Cauchy)</span>
-                          <span>m=2.0 (Mod-Lorentz)</span>
-                          <span>m→8 (Gauss)</span>
+                        <div className="flex justify-between text-[10px] text-slate-500 mt-1">
+                          <span>1.0 Cauchy</span>
+                          <span>2.0 Mod-L</span>
+                          <span>8.0 Gauss</span>
                         </div>
                       </div>
                     )}
 
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-700/20">
-                      <span className="text-slate-400">Cu-Kα₁/Kα₂ Doublet Splitting</span>
+                    <div
+                      className={`flex items-center justify-between pt-2 border-t ${
+                        themeMode === "publication" ? "border-slate-200" : "border-slate-800"
+                      }`}
+                    >
+                      <span className="text-slate-400 font-sans">Cu-Kα₁/Kα₂ Doublet</span>
                       <button
+                        type="button"
                         onClick={() => setEnableKaDoublet(!enableKaDoublet)}
-                        className={`px-2 py-0.5 rounded text-[9px] font-bold border transition-all ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
                           enableKaDoublet
-                            ? "bg-emerald-500/20 text-emerald-400 border-emerald-500/40"
-                            : "bg-slate-800 text-slate-400 border-slate-700"
+                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/40"
+                            : "bg-slate-800/60 text-slate-400 border-slate-700"
                         }`}
                       >
-                        {enableKaDoublet ? "Enabled (1.5406/1.5444 Å)" : "Disabled"}
+                        {enableKaDoublet ? "Enabled" : "Off"}
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-slate-700/20">
-                      <span className="text-slate-400">Subtract Baseline Scatter</span>
+                    <div
+                      className={`flex items-center justify-between pt-2 border-t ${
+                        themeMode === "publication" ? "border-slate-200" : "border-slate-800"
+                      }`}
+                    >
+                      <span className="text-slate-400 font-sans">Subtract Baseline</span>
                       <button
+                        type="button"
                         onClick={() => setSubtractBackground(!subtractBackground)}
-                        className={`px-2 py-0.5 rounded text-[9px] font-bold border transition-all ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
                           subtractBackground
-                            ? "bg-amber-500/20 text-amber-300 border-amber-500/40"
-                            : "bg-slate-800 text-slate-400 border-slate-700"
+                            ? "bg-amber-500/15 text-amber-300 border-amber-500/40"
+                            : "bg-slate-800/60 text-slate-400 border-slate-700"
                         }`}
                       >
-                        {subtractBackground ? "Subtracted" : "Raw Diffractogram"}
+                        {subtractBackground ? "Subtracted" : "Raw Scan"}
                       </button>
                     </div>
                   </div>
@@ -2322,127 +2674,157 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               )}
             </div>
 
-            {/* Precision Engine Config Popover & Button */}
+            {/* Mesh Precision Popover */}
             <div className="relative">
               <button
-                onClick={() => setShowPrecisionPanel(!showPrecisionPanel)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-mono text-[9px] font-bold border transition-all ${
+                type="button"
+                onClick={() => {
+                  setShowPrecisionPanel(!showPrecisionPanel);
+                  setShowProfileConfigPanel(false);
+                }}
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md font-mono text-[11px] font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   showPrecisionPanel
-                    ? "bg-purple-500/25 text-purple-300 border-purple-500/50 shadow-sm"
+                    ? themeMode === "publication"
+                      ? "bg-cyan-50 text-cyan-900 border-cyan-400"
+                      : "bg-cyan-500/15 text-cyan-200 border-cyan-500/60"
                     : themeMode === "publication"
-                    ? "bg-purple-50 text-purple-800 border-purple-200 hover:bg-purple-100"
-                    : "bg-[#110C24] text-purple-300 border-purple-800/80 hover:bg-purple-950"
+                    ? "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                    : "bg-[#060912] text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white"
                 }`}
-                title="Ultra-Precision Diffractogram Mesh, Spline Interpolation & Doublet Physics"
+                title="Sampling Mesh Density, Spline Interpolation & Doublet Sub-Curves"
               >
-                <Gauge className="w-3 h-3 text-purple-400" />
-                <span className="capitalize">
-                  Precision: {curvePrecisionMode} ({curvePrecisionMode === "synchrotron" ? "0.002°" : curvePrecisionMode === "ultra" ? "0.005°" : curvePrecisionMode === "high" ? "0.01°" : "0.02°"})
+                <Gauge className="w-3.5 h-3.5 text-slate-400" />
+                <span className="tabular-nums">
+                  Mesh{" "}
+                  {curvePrecisionMode === "synchrotron"
+                    ? "0.002°"
+                    : curvePrecisionMode === "ultra"
+                    ? "0.005°"
+                    : curvePrecisionMode === "high"
+                    ? "0.010°"
+                    : "0.020°"}
                 </span>
-                <ChevronDown className={`w-3 h-3 transition-transform ${showPrecisionPanel ? "rotate-180" : ""}`} />
+                <ChevronDown className={`w-3 h-3 opacity-70 transition-transform ${showPrecisionPanel ? "rotate-180" : ""}`} />
               </button>
 
               {showPrecisionPanel && (
-                <div className={`absolute left-0 top-full mt-2 z-50 p-3.5 rounded-2xl border shadow-2xl backdrop-blur-md w-80 text-xs font-mono ${
-                  themeMode === "publication"
-                    ? "bg-white/98 border-slate-300 text-slate-800 shadow-slate-300/60"
-                    : "bg-[#0A0718]/98 border-purple-800/60 text-slate-200 shadow-black/80"
-                }`}>
-                  <div className="flex items-center justify-between pb-2 mb-2 border-b border-purple-500/30 font-bold text-[10px] uppercase tracking-wider">
-                    <span className="flex items-center gap-1.5 text-purple-300">
-                      <Gauge className="w-3.5 h-3.5 text-purple-400" />
-                      Ultra-Precision Diffractogram Engine
-                    </span>
-                    <button onClick={() => setShowPrecisionPanel(false)} className="text-slate-400 hover:text-slate-200">
+                <div
+                  className={`absolute left-0 top-full mt-1.5 z-50 p-3.5 rounded-lg border shadow-2xl w-80 text-xs font-mono ${
+                    themeMode === "publication"
+                      ? "bg-white border-slate-300 text-slate-800"
+                      : "bg-[#0B101B] border-slate-700 text-slate-200"
+                  }`}
+                >
+                  <div
+                    className={`flex items-center justify-between pb-2 mb-3 border-b ${
+                      themeMode === "publication" ? "border-slate-200" : "border-slate-800"
+                    }`}
+                  >
+                    <span className="font-sans font-semibold text-xs">Diffractogram Sampling Engine</span>
+                    <button
+                      type="button"
+                      onClick={() => setShowPrecisionPanel(false)}
+                      className="text-slate-400 hover:text-slate-200 cursor-pointer"
+                      aria-label="Close sampling settings"
+                    >
                       <X className="w-3.5 h-3.5" />
                     </button>
                   </div>
 
-                  <div className="space-y-3 text-[10px]">
+                  <div className="space-y-3 text-[11px]">
                     <div>
-                      <span className="text-slate-400 block mb-1">Sampling Mesh Density</span>
+                      <span className="text-slate-400 font-sans block mb-1.5">Sampling Step Density</span>
                       <div className="grid grid-cols-2 gap-1.5">
                         {[
-                          { id: "synchrotron", label: "Synchrotron (0.002°)", desc: "~18,000 pts" },
-                          { id: "ultra", label: "Ultra (0.005°)", desc: "~12,000 pts" },
-                          { id: "high", label: "High (0.010°)", desc: "~6,000 pts" },
-                          { id: "benchmark", label: "Standard (0.020°)", desc: "~3,000 pts" },
+                          { id: "synchrotron", label: "Synchrotron 0.002°", desc: "~18,000 pts" },
+                          { id: "ultra", label: "Ultra 0.005°", desc: "~12,000 pts" },
+                          { id: "high", label: "High 0.010°", desc: "~6,000 pts" },
+                          { id: "benchmark", label: "Standard 0.020°", desc: "~3,000 pts" },
                         ].map((lvl) => (
                           <button
                             key={lvl.id}
+                            type="button"
                             onClick={() => setCurvePrecisionMode(lvl.id as CurvePrecisionMode)}
-                            className={`p-1.5 rounded-lg text-left border transition-all ${
+                            className={`p-2 rounded-md text-left border transition-colors cursor-pointer ${
                               curvePrecisionMode === lvl.id
-                                ? "bg-purple-500/25 text-purple-200 border-purple-500 shadow-sm"
+                                ? themeMode === "publication"
+                                  ? "bg-cyan-50 text-cyan-900 border-cyan-500"
+                                  : "bg-cyan-500/20 text-cyan-200 border-cyan-500/60"
                                 : themeMode === "publication"
                                 ? "bg-slate-50 text-slate-600 border-slate-200"
-                                : "bg-black/30 text-slate-400 border-slate-800"
+                                : "bg-[#060912] text-slate-400 border-slate-800 hover:text-slate-200"
                             }`}
                           >
-                            <div className="font-bold text-[9px]">{lvl.label}</div>
-                            <div className="text-[8px] opacity-70">{lvl.desc}</div>
+                            <div className="font-medium">{lvl.label}</div>
+                            <div className="text-[10px] opacity-70">{lvl.desc}</div>
                           </button>
                         ))}
                       </div>
                     </div>
 
                     <div>
-                      <span className="text-slate-400 block mb-1">Curve Interpolation Model</span>
-                      <div className="grid grid-cols-3 gap-1">
+                      <span className="text-slate-400 font-sans block mb-1.5">Curve Interpolation</span>
+                      <div className="grid grid-cols-3 gap-1.5">
                         {[
-                          { id: "monotone", label: "Monotone", desc: "Anti-overshoot" },
-                          { id: "linear", label: "True Linear", desc: "Raw Physical" },
-                          { id: "natural", label: "Natural", desc: "Cubic Spline" },
+                          { id: "monotone", label: "Monotone" },
+                          { id: "linear", label: "Linear" },
+                          { id: "natural", label: "Cubic" },
                         ].map((m) => (
                           <button
                             key={m.id}
+                            type="button"
                             onClick={() => setCurveInterpolation(m.id as CurveInterpolationType)}
-                            className={`p-1 rounded-lg text-center font-bold text-[9px] border transition-all ${
+                            className={`py-1.5 px-2 rounded-md text-center font-medium border transition-colors cursor-pointer ${
                               curveInterpolation === m.id
-                                ? "bg-purple-500/25 text-purple-200 border-purple-500 shadow-sm"
+                                ? themeMode === "publication"
+                                  ? "bg-cyan-50 text-cyan-900 border-cyan-500"
+                                  : "bg-cyan-500/20 text-cyan-200 border-cyan-500/60"
                                 : themeMode === "publication"
                                 ? "bg-slate-50 text-slate-600 border-slate-200"
-                                : "bg-black/30 text-slate-400 border-slate-800"
+                                : "bg-[#060912] text-slate-400 border-slate-800 hover:text-slate-200"
                             }`}
                           >
-                            <div>{m.label}</div>
-                            <div className="text-[7px] font-normal opacity-70">{m.desc}</div>
+                            {m.label}
                           </button>
                         ))}
                       </div>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-purple-500/20">
-                      <div>
-                        <span className="text-slate-300 block font-semibold">Continuous Super-Sampling</span>
-                        <span className="text-[8px] text-slate-500">Hermite 4× anti-aliased reconstruction</span>
-                      </div>
+                    <div
+                      className={`flex items-center justify-between pt-2 border-t ${
+                        themeMode === "publication" ? "border-slate-200" : "border-slate-800"
+                      }`}
+                    >
+                      <span className="text-slate-400 font-sans">Hermite Super-Sampling</span>
                       <button
+                        type="button"
                         onClick={() => setEnableSuperSampling(!enableSuperSampling)}
-                        className={`px-2 py-0.5 rounded text-[9px] font-bold border transition-all ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
                           enableSuperSampling
-                            ? "bg-purple-500/25 text-purple-300 border-purple-500/50"
-                            : "bg-slate-800 text-slate-400 border-slate-700"
+                            ? "bg-cyan-500/15 text-cyan-300 border-cyan-500/40"
+                            : "bg-slate-800/60 text-slate-400 border-slate-700"
                         }`}
                       >
                         {enableSuperSampling ? "Enabled" : "Raw Grid"}
                       </button>
                     </div>
 
-                    <div className="flex items-center justify-between pt-1 border-t border-purple-500/20">
-                      <div>
-                        <span className="text-slate-300 block font-semibold">Cu-Kα₁ & Kα₂ Sub-Curves</span>
-                        <span className="text-[8px] text-slate-500">Deconstruct individual doublet peaks</span>
-                      </div>
+                    <div
+                      className={`flex items-center justify-between pt-2 border-t ${
+                        themeMode === "publication" ? "border-slate-200" : "border-slate-800"
+                      }`}
+                    >
+                      <span className="text-slate-400 font-sans">Kα₁ / Kα₂ Sub-Curves</span>
                       <button
+                        type="button"
                         onClick={() => setShowKaDoubletSplitCurves(!showKaDoubletSplitCurves)}
-                        className={`px-2 py-0.5 rounded text-[9px] font-bold border transition-all ${
+                        className={`px-2.5 py-1 rounded-md text-[11px] font-medium border transition-colors cursor-pointer ${
                           showKaDoubletSplitCurves
-                            ? "bg-emerald-500/25 text-emerald-300 border-emerald-500/50"
-                            : "bg-slate-800 text-slate-400 border-slate-700"
+                            ? "bg-emerald-500/15 text-emerald-400 border-emerald-500/40"
+                            : "bg-slate-800/60 text-slate-400 border-slate-700"
                         }`}
                       >
-                        {showKaDoubletSplitCurves ? "Visible" : "Combined"}
+                        {showKaDoubletSplitCurves ? "Split" : "Combined"}
                       </button>
                     </div>
                   </div>
@@ -2450,135 +2832,41 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
               )}
             </div>
 
-            {/* Viewport Scale Selector (Biggest Precision) */}
-            <div className={`flex items-center p-0.5 rounded-xl border backdrop-blur-md shadow-lg font-mono text-[9px] ${
-              themeMode === "publication"
-                ? "bg-white border-slate-300"
-                : "bg-[#09101F]/95 border-slate-700/80"
-            }`}>
-              <span className="px-1.5 text-slate-400 uppercase text-[8px] font-bold">Scale:</span>
+            {/* Angular Window Zoom Presets */}
+            <div
+              className={`flex items-center p-0.5 rounded-md border font-mono text-[11px] tabular-nums ${
+                themeMode === "publication"
+                  ? "bg-slate-100 border-slate-300"
+                  : "bg-[#060912] border-slate-800"
+              }`}
+            >
+              {(
+                [
+                  { id: "all", label: "Full" },
+                  { id: "low", label: "10–35°" },
+                  { id: "mid", label: "20–65°" },
+                  { id: "high", label: "60–100°" },
+                ] as Array<{ id: "all" | "low" | "mid" | "high"; label: string }>
+              ).map((z) => (
+                <button
+                  key={z.id}
+                  type="button"
+                  onClick={() => setZoomRangePreset(z.id)}
+                  className={`px-2 py-1 rounded font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                    zoomRangePreset === z.id
+                      ? themeMode === "publication"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "bg-slate-800 text-cyan-300"
+                      : themeMode === "publication"
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {z.label}
+                </button>
+              ))}
               <button
-                onClick={() => setCurveViewHeight("standard")}
-                className={`px-2 py-1 rounded-lg font-bold transition-all ${
-                  curveViewHeight === "standard" && !isFullscreen
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Standard Viewport Height (640px)"
-              >
-                Standard
-              </button>
-              <button
-                onClick={() => setCurveViewHeight("big")}
-                className={`px-2 py-1 rounded-lg font-bold transition-all ${
-                  curveViewHeight === "big" && !isFullscreen
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Big Expanded Viewport (820px) - Highest Detail"
-              >
-                Big (820px)
-              </button>
-              <button
-                onClick={() => setCurveViewHeight("cinema")}
-                className={`px-2 py-1 rounded-lg font-bold transition-all ${
-                  curveViewHeight === "cinema" && !isFullscreen
-                    ? "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Ultra Cinema Studio Viewport (1020px) - Maximum Viewport"
-              >
-                Cinema (1020px)
-              </button>
-              <button
-                onClick={() => setIsFullscreen(!isFullscreen)}
-                className={`p-1 rounded-lg text-slate-400 hover:text-cyan-300 transition-all ${isFullscreen ? "text-cyan-300 bg-cyan-500/20" : ""}`}
-                title={isFullscreen ? "Exit Fullscreen" : "Fullscreen View"}
-              >
-                {isFullscreen ? <Minimize2 className="w-3.5 h-3.5" /> : <Maximize2 className="w-3.5 h-3.5" />}
-              </button>
-            </div>
-
-            {/* Peak Crest Apex Lens Button */}
-            {detectedPeaks.length > 0 && (
-              <button
-                onClick={() => {
-                  const target = detectedPeaks[0];
-                  setInspectedPeak(target);
-                  setShowPeakApexModal(true);
-                }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-xl font-mono text-[9px] font-bold border transition-all ${
-                  showPeakApexModal
-                    ? "bg-cyan-500/25 text-cyan-300 border-cyan-500 shadow-sm"
-                    : "bg-[#0A1020] text-cyan-300 border-cyan-800/80 hover:bg-cyan-950"
-                }`}
-                title="Inspect Peak Crest & Apex with 10× Magnification"
-              >
-                <Focus className="w-3 h-3 text-cyan-400 animate-pulse" />
-                <span>Peak Apex Lens</span>
-              </button>
-            )}
-
-            {/* Quick Zoom Presets Bar & Reset View */}
-            <div className={`flex items-center p-0.5 rounded-xl border backdrop-blur-md shadow-lg font-mono text-[9px] ${
-              themeMode === "publication"
-                ? "bg-white border-slate-300"
-                : "bg-[#09101F]/95 border-slate-700/80"
-            }`}>
-              <span className="px-1.5 text-slate-400 uppercase text-[8px] font-bold">Zoom:</span>
-              <button
-                onClick={() => setZoomRangePreset("all")}
-                className={`px-2 py-1 rounded-lg font-bold transition-all ${
-                  zoomRangePreset === "all"
-                    ? themeMode === "publication"
-                      ? "bg-slate-200 text-slate-900 border border-slate-300"
-                      : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                Full
-              </button>
-              <button
-                onClick={() => setZoomRangePreset("low")}
-                className={`px-2 py-1 rounded-lg font-bold transition-all ${
-                  zoomRangePreset === "low"
-                    ? themeMode === "publication"
-                      ? "bg-cyan-100 text-cyan-900 border border-cyan-400"
-                      : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Low Angle (10-35° 2θ): Clays & Superlattice reflections"
-              >
-                10-35°
-              </button>
-              <button
-                onClick={() => setZoomRangePreset("mid")}
-                className={`px-2 py-1 rounded-lg font-bold transition-all ${
-                  zoomRangePreset === "mid"
-                    ? themeMode === "publication"
-                      ? "bg-cyan-100 text-cyan-900 border border-cyan-400"
-                      : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="Diagnostic Fingerprint Window (20-65° 2θ)"
-              >
-                20-65°
-              </button>
-              <button
-                onClick={() => setZoomRangePreset("high")}
-                className={`px-2 py-1 rounded-lg font-bold transition-all ${
-                  zoomRangePreset === "high"
-                    ? themeMode === "publication"
-                      ? "bg-cyan-100 text-cyan-900 border border-cyan-400"
-                      : "bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 shadow-sm"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-                title="High Angle (60-100° 2θ): Strain & Doublet splitting"
-              >
-                60-100°
-              </button>
-              <div className="w-[1px] h-3.5 bg-slate-700/60 mx-1" />
-              <button
+                type="button"
                 onClick={() => {
                   setZoomRangePreset("all");
                   setCoordSpace("twoTheta");
@@ -2586,272 +2874,395 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                   setShowBrush(true);
                   setFocusedTwoTheta(null);
                 }}
-                className={`flex items-center gap-1 px-2 py-1 rounded-lg font-semibold transition-all ${
+                className={`ml-0.5 px-2 py-1 rounded font-medium flex items-center gap-1 whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
                   themeMode === "publication"
-                    ? "text-slate-700 hover:bg-slate-100 border border-transparent hover:border-slate-300"
-                    : "text-slate-300 hover:bg-slate-800/80 border border-transparent hover:border-slate-700"
+                    ? "text-slate-600 hover:text-slate-900 hover:bg-slate-200/70"
+                    : "text-slate-400 hover:text-white hover:bg-slate-800"
                 }`}
-                title="Reset View (Full range 2θ, linear intensity scale, show brush)"
+                title="Reset domain, zoom, and intensity scale"
               >
-                <RotateCcw className="w-2.5 h-2.5" />
-                Reset View
+                <RotateCcw className="w-3 h-3" />
+                <span>Reset</span>
               </button>
             </div>
           </div>
 
-          {/* Right: Layer Toggles, Baseline, Comb & Residual Mode */}
-          <div className={`flex flex-wrap items-center gap-1.5 p-1 rounded-xl border backdrop-blur-md shadow-lg font-mono text-[9px] ${
-            themeMode === "publication"
-              ? "bg-white border-slate-300"
-              : "bg-[#09101F]/95 border-slate-700/80"
-          }`}>
-            {/* Toggle Experimental Continuous Profile */}
-            <button
-              onClick={() => setShowExpPattern(!showExpPattern)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                showExpPattern
-                  ? themeMode === "publication"
-                    ? "text-slate-900 bg-slate-100 border border-slate-300"
-                    : "text-cyan-200 bg-cyan-950/70 border border-cyan-500/50"
-                  : "text-slate-400 hover:text-slate-600"
+          {/* Right Group: Viewport Height, Peak Apex Lens, Publication Theme */}
+          <div className="flex flex-wrap items-center gap-2">
+            {/* Viewport Height Selector */}
+            <div
+              className={`flex items-center p-0.5 rounded-md border font-mono text-[11px] ${
+                themeMode === "publication"
+                  ? "bg-slate-100 border-slate-300"
+                  : "bg-[#060912] border-slate-800"
               }`}
             >
-              <div className={`w-2 h-2 rounded-full ${showExpPattern ? (themeMode === "publication" ? "bg-slate-900" : "bg-cyan-400 shadow-[0_0_6px_#22d3ee]") : "bg-slate-400"}`} />
-              Pattern (Exp)
-            </button>
+              {(
+                [
+                  { id: "standard", label: "Std" },
+                  { id: "big", label: "Big" },
+                  { id: "cinema", label: "Cinema" },
+                ] as Array<{ id: CurveViewHeight; label: string }>
+              ).map((h) => (
+                <button
+                  key={h.id}
+                  type="button"
+                  onClick={() => setCurveViewHeight(h.id)}
+                  className={`px-2 py-1 rounded font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                    curveViewHeight === h.id && !isFullscreen
+                      ? themeMode === "publication"
+                        ? "bg-white text-slate-900 shadow-xs"
+                        : "bg-slate-800 text-slate-100"
+                      : themeMode === "publication"
+                      ? "text-slate-600 hover:text-slate-900"
+                      : "text-slate-400 hover:text-slate-200"
+                  }`}
+                >
+                  {h.label}
+                </button>
+              ))}
+            </div>
 
-            {/* Toggle Experimental Sticks (Discrete mode) */}
-            {isDiscrete && (
+            {/* Peak Apex 10x Magnifier Lens */}
+            {detectedPeaks.length > 0 && (
               <button
-                onClick={() => setShowExpSticks(!showExpSticks)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                  showExpSticks ? "text-sky-200 bg-sky-950/70 border border-sky-500/50" : "text-slate-400"
-                }`}
-              >
-                <div className={`w-2 h-2 rounded-full ${showExpSticks ? "bg-sky-400 shadow-[0_0_6px_#38bdf8]" : "bg-slate-600"}`} />
-                Peak Sticks
-              </button>
-            )}
-
-            {/* Toggle Reference Simulation Profile */}
-            {selectedCandidate && (
-              <button
-                onClick={() => setShowCalcProfile(!showCalcProfile)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                  showCalcProfile
-                    ? themeMode === "publication"
-                      ? "text-red-700 bg-red-50 border border-red-300"
-                      : "text-rose-200 bg-rose-950/70 border border-rose-500/50"
-                    : "text-slate-400"
-                }`}
-              >
-                <div className={`w-2 h-2 rounded-full ${showCalcProfile ? (themeMode === "publication" ? "bg-red-600" : "bg-rose-400 shadow-[0_0_6px_#f43f5e]") : "bg-slate-400"}`} />
-                Ref Profile
-              </button>
-            )}
-
-            {/* Toggle Baseline Trace */}
-            <button
-              onClick={() => setShowBackgroundBaseline(!showBackgroundBaseline)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                showBackgroundBaseline
-                  ? themeMode === "publication"
-                    ? "text-slate-800 bg-slate-100 border border-slate-300"
-                    : "text-slate-200 bg-slate-800/80 border border-slate-600"
-                  : "text-slate-400 hover:text-slate-600"
-              }`}
-              title="Toggle Air Scattering & Amorphous Baseline Halo"
-            >
-              <div className={`w-2 h-2 rounded-full ${showBackgroundBaseline ? "bg-slate-400" : "bg-slate-600"}`} />
-              Baseline
-            </button>
-
-            {/* Toggle Reference Reflection Sticks */}
-            {selectedCandidate && (
-              <button
-                onClick={() => setShowRefSticks(!showRefSticks)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                  showRefSticks
-                    ? themeMode === "publication"
-                      ? "text-pink-800 bg-pink-50 border border-pink-300"
-                      : "text-pink-200 bg-pink-950/70 border border-pink-500/50"
-                    : "text-slate-400"
-                }`}
-              >
-                <div className={`w-2 h-2 rounded-full ${showRefSticks ? "bg-pink-400 shadow-[0_0_6px_#f472b6]" : "bg-slate-600"}`} />
-                Ref Sticks
-              </button>
-            )}
-
-            {/* Toggle Miller Indices (hkl) */}
-            {selectedCandidate && showRefSticks && (
-              <button
-                onClick={() => setShowHklBadges(!showHklBadges)}
-                className={`px-2 py-1 rounded-lg font-semibold transition-all ${
-                  showHklBadges
-                    ? themeMode === "publication"
-                      ? "text-pink-700 bg-pink-50 border border-pink-300"
-                      : "text-pink-300 bg-pink-950/50 border border-pink-500/40"
-                    : "text-slate-400"
-                }`}
-              >
-                (hkl) Badges
-              </button>
-            )}
-
-            {/* Toggle GSAS-II / FullProf Bragg Reflection Comb */}
-            <button
-              onClick={() => setShowBraggComb(!showBraggComb)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                showBraggComb
-                  ? themeMode === "publication"
-                    ? "text-emerald-800 bg-emerald-50 border border-emerald-300"
-                    : "text-emerald-300 bg-emerald-950/60 border border-emerald-500/50"
-                  : "text-slate-400"
-              }`}
-              title="Toggle Rietveld / GSAS-II Style Bragg Reflection Comb (Tick markers)"
-            >
-              <div className={`w-2 h-2 rounded-full ${showBraggComb ? "bg-emerald-400 shadow-[0_0_6px_#10b981]" : "bg-slate-600"}`} />
-              Bragg Comb
-            </button>
-
-            {/* Toggle Auto-Detected Peak Pins */}
-            <button
-              onClick={() => setShowPeakPins(!showPeakPins)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                showPeakPins
-                  ? themeMode === "publication"
-                    ? "text-cyan-800 bg-cyan-50 border border-cyan-300"
-                    : "text-cyan-300 bg-cyan-950/60 border border-cyan-500/50"
-                  : "text-slate-400"
-              }`}
-              title="Toggle Auto-Detected Peak Centroid Pins with Domain Size & (hkl) Badges"
-            >
-              <div className={`w-2 h-2 rounded-full ${showPeakPins ? "bg-cyan-400 shadow-[0_0_6px_#22d3ee]" : "bg-slate-600"}`} />
-              Peak Pins ({detectedPeaks.length})
-            </button>
-
-            {/* Toggle Multi-Phase Deconvolution Curves */}
-            {activeCandidates.length > 1 && (
-              <button
-                onClick={() => setShowIndividualPhases(!showIndividualPhases)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                  showIndividualPhases
-                    ? "text-purple-300 bg-purple-950/60 border border-purple-500/50"
-                    : "text-slate-400"
-                }`}
-                title="Toggle Deconvoluted Sub-Phase Diffraction Curves"
-              >
-                <div className={`w-2 h-2 rounded-full ${showIndividualPhases ? "bg-purple-400 shadow-[0_0_6px_#c084fc]" : "bg-slate-600"}`} />
-                Deconvolute
-              </button>
-            )}
-
-            {/* Toggle Range Zoom Slider (Brush) */}
-            <button
-              onClick={() => setShowBrush(!showBrush)}
-              className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                showBrush
-                  ? themeMode === "publication"
-                    ? "text-cyan-900 bg-cyan-50 border border-cyan-300"
-                    : "text-cyan-200 bg-cyan-950/70 border border-cyan-500/50"
-                  : "text-slate-400"
-              }`}
-              title="Toggle bottom range zoom slider"
-            >
-              <div className={`w-2 h-2 rounded-full ${showBrush ? "bg-cyan-400 shadow-[0_0_6px_#22d3ee]" : "bg-slate-600"}`} />
-              Zoom Slider
-            </button>
-
-            {/* Residual Curve Mode Toggle */}
-            {selectedCandidate && (
-              <button
+                type="button"
                 onClick={() => {
-                  setResidualView(residualView === "overlay" ? "split" : residualView === "split" ? "hidden" : "overlay");
+                  const target = inspectedPeak || detectedPeaks[0];
+                  setInspectedPeak(target);
+                  setShowPeakApexModal(true);
                 }}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-semibold transition-all ${
-                  residualView !== "hidden"
-                    ? themeMode === "publication"
-                      ? "text-blue-900 bg-blue-50 border border-blue-300"
-                      : "text-amber-200 bg-amber-950/70 border border-amber-500/50"
-                    : "text-slate-400"
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  showPeakApexModal
+                    ? "bg-cyan-500/20 text-cyan-200 border-cyan-500/60"
+                    : themeMode === "publication"
+                    ? "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                    : "bg-[#060912] text-cyan-300 border-slate-800 hover:border-cyan-500/50"
                 }`}
+                title="Inspect peak crest & FWHM half-max with 10× magnification"
               >
-                <div className={`w-2 h-2 rounded-full ${residualView !== "hidden" ? (themeMode === "publication" ? "bg-blue-600" : "bg-amber-400 shadow-[0_0_6px_#f59e0b]") : "bg-slate-600"}`} />
-                Residual {residualView === "split" ? "(Split)" : residualView === "overlay" ? "(Overlay)" : "(Off)"}
+                <Focus className="w-3.5 h-3.5 text-cyan-500" />
+                <span>Apex Lens</span>
               </button>
             )}
+
+            {/* Theme Mode Switch: Dark Lab / Publication */}
+            <button
+              type="button"
+              onClick={() => setThemeMode(themeMode === "darkLab" ? "publication" : "darkLab")}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-[11px] font-medium border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                themeMode === "publication"
+                  ? "bg-slate-900 text-white border-slate-900 hover:bg-slate-800"
+                  : "bg-[#060912] text-slate-300 border-slate-800 hover:border-slate-700 hover:text-white"
+              }`}
+              title="Toggle Publication Mode (White Journal Figure) vs Dark Lab"
+            >
+              {themeMode === "publication" ? (
+                <>
+                  <Sun className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Publication</span>
+                </>
+              ) : (
+                <>
+                  <Moon className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Dark Lab</span>
+                </>
+              )}
+            </button>
           </div>
         </div>
 
-        {/* RECHARTS COMPOSED CHART VIEWPORT */}
-        <div className={`flex-1 relative w-full px-2 pt-2 pb-1 min-h-[360px] z-10 transition-colors ${
-          themeMode === "publication" ? "bg-white" : "bg-[#060912]"
-        }`}>
-          {/* Floating Scientific Publication Legend Box */}
-          <div className={`absolute top-4 right-4 z-20 px-3 py-2 rounded-xl border backdrop-blur-md shadow-lg pointer-events-none font-mono text-[9px] ${
+        {/* TIER 2 LAYER RIBBON: Active Spectral Traces & 3-Way Residual Mode Switch */}
+        <div
+          className={`w-full px-3.5 py-1.5 flex flex-wrap items-center justify-between gap-2 z-20 pointer-events-auto border-b font-mono text-[11px] transition-colors ${
             themeMode === "publication"
-              ? "bg-white/95 border-slate-300 text-slate-800 shadow-slate-200"
-              : "bg-[#080E1B]/95 border-slate-700/80 text-slate-200 shadow-black/80"
-          }`}>
-            <div className="font-bold text-[10px] mb-1.5 flex items-center justify-between gap-4 border-b pb-1 border-slate-400/30">
-              <span className="flex items-center gap-1.5">
-                <Compass className="w-3 h-3 text-cyan-400" />
-                XRD Diffractogram Traces
-              </span>
-              <span className="text-[8px] opacity-70">λ = {activeWavelength.toFixed(4)} Å</span>
+              ? "bg-white border-slate-200 text-slate-700"
+              : "bg-[#070B14] border-slate-800/90 text-slate-300"
+          }`}
+        >
+          <div className="flex flex-wrap items-center gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowExpPattern(!showExpPattern)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                showExpPattern
+                  ? themeMode === "publication"
+                    ? "bg-slate-100 border-slate-300 text-slate-900"
+                    : "bg-slate-800/80 border-slate-700 text-slate-100"
+                  : "border-transparent text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <span
+                className={`w-2.5 h-0.5 ${
+                  showExpPattern ? (themeMode === "publication" ? "bg-slate-900" : "bg-cyan-400") : "bg-slate-600"
+                }`}
+              />
+              <span>Y_obs</span>
+            </button>
+
+            {isDiscrete && (
+              <button
+                type="button"
+                onClick={() => setShowExpSticks(!showExpSticks)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  showExpSticks
+                    ? themeMode === "publication"
+                      ? "bg-sky-50 border-sky-300 text-sky-900"
+                      : "bg-slate-800/80 border-slate-700 text-sky-300"
+                    : "border-transparent text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                <span className={`w-2.5 h-0.5 ${showExpSticks ? "bg-sky-400" : "bg-slate-600"}`} />
+                <span>Exp Sticks</span>
+              </button>
+            )}
+
+            {selectedCandidate && (
+              <button
+                type="button"
+                onClick={() => setShowCalcProfile(!showCalcProfile)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  showCalcProfile
+                    ? themeMode === "publication"
+                      ? "bg-red-50 border-red-300 text-red-900"
+                      : "bg-slate-800/80 border-slate-700 text-rose-300"
+                    : "border-transparent text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                <span
+                  className={`w-2.5 h-0.5 ${
+                    showCalcProfile ? (themeMode === "publication" ? "bg-red-600" : "bg-rose-400") : "bg-slate-600"
+                  }`}
+                />
+                <span>Y_calc</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowBackgroundBaseline(!showBackgroundBaseline)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                showBackgroundBaseline
+                  ? themeMode === "publication"
+                    ? "bg-slate-100 border-slate-300 text-slate-900"
+                    : "bg-slate-800/80 border-slate-700 text-slate-200"
+                  : "border-transparent text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <span className="w-2.5 border-t border-dashed border-slate-400" />
+              <span>Baseline</span>
+            </button>
+
+            {selectedCandidate && (
+              <button
+                type="button"
+                onClick={() => setShowRefSticks(!showRefSticks)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  showRefSticks
+                    ? themeMode === "publication"
+                      ? "bg-rose-50 border-rose-300 text-rose-900"
+                      : "bg-slate-800/80 border-slate-700 text-rose-300"
+                    : "border-transparent text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                <span className={`w-2.5 h-0.5 ${showRefSticks ? "bg-rose-400" : "bg-slate-600"}`} />
+                <span>Ref Sticks</span>
+              </button>
+            )}
+
+            {selectedCandidate && showRefSticks && (
+              <button
+                type="button"
+                onClick={() => setShowHklBadges(!showHklBadges)}
+                className={`px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  showHklBadges
+                    ? themeMode === "publication"
+                      ? "bg-slate-100 border-slate-300 text-slate-900"
+                      : "bg-slate-800/80 border-slate-700 text-slate-200"
+                    : "border-transparent text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                (hkl)
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowBraggComb(!showBraggComb)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                showBraggComb
+                  ? themeMode === "publication"
+                    ? "bg-emerald-50 border-emerald-300 text-emerald-900"
+                    : "bg-slate-800/80 border-slate-700 text-emerald-300"
+                  : "border-transparent text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <span className={`w-2.5 h-0.5 ${showBraggComb ? "bg-emerald-400" : "bg-slate-600"}`} />
+              <span>Bragg Comb</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setShowPeakPins(!showPeakPins)}
+              className={`flex items-center gap-1.5 px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer tabular-nums ${
+                showPeakPins
+                  ? themeMode === "publication"
+                    ? "bg-cyan-50 border-cyan-300 text-cyan-900"
+                    : "bg-slate-800/80 border-slate-700 text-cyan-300"
+                  : "border-transparent text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              <span className={`w-2.5 h-0.5 ${showPeakPins ? "bg-cyan-400" : "bg-slate-600"}`} />
+              <span>Pins ({detectedPeaks.length})</span>
+            </button>
+
+            {activeCandidates.length > 1 && (
+              <button
+                type="button"
+                onClick={() => setShowIndividualPhases(!showIndividualPhases)}
+                className={`flex items-center gap-1.5 px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                  showIndividualPhases
+                    ? themeMode === "publication"
+                      ? "bg-purple-50 border-purple-300 text-purple-900"
+                      : "bg-slate-800/80 border-slate-700 text-purple-300"
+                    : "border-transparent text-slate-500 hover:text-slate-300"
+                }`}
+              >
+                <span className={`w-2.5 h-0.5 ${showIndividualPhases ? "bg-purple-400" : "bg-slate-600"}`} />
+                <span>Sub-Phases</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => setShowBrush(!showBrush)}
+              className={`px-2 py-1 rounded-md border whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                showBrush
+                  ? themeMode === "publication"
+                    ? "bg-slate-100 border-slate-300 text-slate-900"
+                    : "bg-slate-800/80 border-slate-700 text-slate-200"
+                  : "border-transparent text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              Brush
+            </button>
+          </div>
+
+          {/* 3-Way Segmented Residual Mode Control */}
+          {selectedCandidate && (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="text-slate-500 font-sans text-[11px]">Residual ΔY</span>
+              <div
+                className={`flex items-center p-0.5 rounded-md border ${
+                  themeMode === "publication"
+                    ? "bg-slate-100 border-slate-300"
+                    : "bg-[#060912] border-slate-800"
+                }`}
+              >
+                {(
+                  [
+                    { id: "overlay", label: "Overlay" },
+                    { id: "split", label: "Split Console" },
+                    { id: "hidden", label: "Off" },
+                  ] as Array<{ id: ResidualViewMode; label: string }>
+                ).map((mode) => (
+                  <button
+                    key={mode.id}
+                    type="button"
+                    onClick={() => setResidualView(mode.id)}
+                    className={`px-2 py-0.5 rounded font-medium whitespace-nowrap shrink-0 transition-colors cursor-pointer ${
+                      residualView === mode.id
+                        ? themeMode === "publication"
+                          ? "bg-white text-blue-700 shadow-xs"
+                          : "bg-amber-500/20 text-amber-300"
+                        : themeMode === "publication"
+                        ? "text-slate-600 hover:text-slate-900"
+                        : "text-slate-400 hover:text-slate-200"
+                    }`}
+                  >
+                    {mode.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        {/* RECHARTS COMPOSED CHART VIEWPORT */}
+        <div
+          className={`flex-1 relative w-full px-2 pt-2 pb-1 min-h-[360px] z-10 transition-colors ${
+            themeMode === "publication" ? "bg-white" : "bg-[#060912]"
+          }`}
+        >
+          {/* Compact Flat Trace Legend */}
+          <div
+            className={`absolute top-3 right-4 z-20 px-3 py-2 rounded-md border pointer-events-none font-mono text-[10px] tabular-nums ${
+              themeMode === "publication"
+                ? "bg-white/95 border-slate-300 text-slate-800"
+                : "bg-[#0B101B]/95 border-slate-800 text-slate-200"
+            }`}
+          >
+            <div
+              className={`font-semibold pb-1 mb-1.5 border-b flex items-center justify-between gap-4 ${
+                themeMode === "publication" ? "border-slate-200" : "border-slate-800"
+              }`}
+            >
+              <span>Diffractogram Traces</span>
+              <span className="text-slate-400">λ = {activeWavelength.toFixed(4)} Å</span>
             </div>
             <div className="space-y-1">
-              <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <span className={`w-3.5 h-1 rounded-sm ${themeMode === "publication" ? "bg-slate-950" : "bg-cyan-400"}`} />
-                  <span className="font-bold">Y_obs</span>
+                  <span className={`w-3.5 h-0.5 ${themeMode === "publication" ? "bg-slate-950" : "bg-cyan-400"}`} />
+                  <span>Y_obs</span>
                 </div>
-                <span className="text-slate-400 text-[8px]">Observed</span>
+                <span className="text-slate-400">Observed</span>
               </div>
               {selectedCandidate && showCalcProfile && (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <span className={`w-3.5 h-1 rounded-sm ${themeMode === "publication" ? "bg-red-600" : "bg-rose-500"}`} />
-                    <span className="font-bold">Y_calc</span>
+                    <span className={`w-3.5 h-0.5 ${themeMode === "publication" ? "bg-red-600" : "bg-rose-500"}`} />
+                    <span>Y_calc</span>
                   </div>
-                  <span className="text-slate-400 text-[8px] truncate max-w-[90px]">{selectedCandidate.phase_name.split(' ')[0]}</span>
+                  <span className="text-slate-400 truncate max-w-[95px]">
+                    {selectedCandidate.phase_name.split(" ")[0]}
+                  </span>
                 </div>
               )}
               {selectedCandidate && showKaDoubletSplitCurves && enableKaDoublet && (
                 <>
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
-                      <span className="w-3.5 h-0.5 border-t border-dashed border-emerald-400" />
-                      <span className="font-bold text-emerald-400">Kα₁</span>
+                      <span className="w-3.5 border-t border-dashed border-emerald-400" />
+                      <span className="text-emerald-400">Kα₁</span>
                     </div>
-                    <span className="text-slate-400 text-[8px]">1.5406 Å</span>
+                    <span className="text-slate-400">1.5406 Å</span>
                   </div>
-                  <div className="flex items-center justify-between gap-3">
+                  <div className="flex items-center justify-between gap-4">
                     <div className="flex items-center gap-2">
-                      <span className="w-3.5 h-0.5 border-t border-dashed border-purple-400" />
-                      <span className="font-bold text-purple-300">Kα₂</span>
+                      <span className="w-3.5 border-t border-dashed border-purple-400" />
+                      <span className="text-purple-300">Kα₂</span>
                     </div>
-                    <span className="text-slate-400 text-[8px]">1.5444 Å</span>
+                    <span className="text-slate-400">1.5444 Å</span>
                   </div>
                 </>
               )}
               {showBackgroundBaseline && (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <span className="w-3.5 border-t-2 border-dashed border-slate-500" />
-                    <span className="font-bold">Y_bkg</span>
+                    <span className="w-3.5 border-t border-dashed border-slate-400" />
+                    <span>Y_bkg</span>
                   </div>
-                  <span className="text-slate-400 text-[8px]">Baseline</span>
+                  <span className="text-slate-400">Baseline</span>
                 </div>
               )}
               {selectedCandidate && residualView === "overlay" && (
-                <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center justify-between gap-4">
                   <div className="flex items-center gap-2">
-                    <span className={`w-3.5 h-1 rounded-sm ${themeMode === "publication" ? "bg-blue-600" : "bg-amber-500"}`} />
-                    <span className="font-bold">ΔY</span>
+                    <span className={`w-3.5 h-0.5 ${themeMode === "publication" ? "bg-blue-600" : "bg-amber-500"}`} />
+                    <span>ΔY</span>
                   </div>
-                  <span className="text-slate-400 text-[8px]">Residual</span>
+                  <span className="text-slate-400">Residual</span>
                 </div>
               )}
             </div>
@@ -3281,81 +3692,133 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
         {showBraggComb && activeCandidates.length > 0 && (
           <div className={`px-4 py-2.5 border-t transition-colors ${
             themeMode === "publication"
-              ? "bg-[#F8FAFC] border-slate-200 text-slate-800"
-              : "bg-[#050813] border-slate-800 text-slate-300"
+              ? "bg-slate-50 border-slate-200 text-slate-800"
+              : "bg-[#060912] border-slate-800 text-slate-300"
           }`}>
-            <div className="flex items-center justify-between mb-1.5 text-[10px] font-mono">
-              <span className="font-bold uppercase tracking-wider text-slate-300 flex items-center gap-2">
-                <span className="w-2 h-2 bg-emerald-400 inline-block" />
-                <span>GSAS-II / FullProf Bragg Reflection Tick & Intensity Comb (hkl)</span>
+            <div className="flex flex-wrap items-center justify-between gap-2 mb-2 text-[10px] font-mono">
+              <span className={`font-semibold uppercase tracking-wider flex items-center gap-2 ${
+                themeMode === "publication" ? "text-slate-700" : "text-slate-300"
+              }`}>
+                <span className="w-2.5 h-0.5 bg-emerald-500 inline-block" />
+                <span>Bragg Reflection Tick &amp; Intensity Comb (hkl)</span>
               </span>
-              <span className="text-slate-400 text-[9px] tabular-nums">
-                Click any reflection tick to spotlight peak position in diffractogram
-              </span>
+              {hoveredCombPeak ? (
+                <span className={`text-[10px] font-mono tabular-nums flex items-center gap-2 ${
+                  themeMode === "publication" ? "text-slate-800" : "text-cyan-300"
+                }`}>
+                  <span className="font-semibold">{hoveredCombPeak.phase.split(" ")[0]}</span>
+                  {hoveredCombPeak.hkl && <span>{hoveredCombPeak.hkl}</span>}
+                  <span>· 2θ {hoveredCombPeak.twoTheta.toFixed(3)}°</span>
+                  <span>· d {hoveredCombPeak.dSpacing.toFixed(4)} Å</span>
+                  <span>· I<sub>rel</sub> {hoveredCombPeak.refI.toFixed(0)}%</span>
+                </span>
+              ) : (
+                <span className={`text-[10px] tabular-nums ${
+                  themeMode === "publication" ? "text-slate-500" : "text-slate-500"
+                }`}>
+                  Hover tick for reflection telemetry · Click to spotlight
+                </span>
+              )}
             </div>
 
             <div className="space-y-1.5">
               {activeCandidates.map((cand, cIdx) => {
                 const peaks = getCalibratedRefPeaks(cand);
                 const color = PHASE_PALETTES[cIdx % PHASE_PALETTES.length].primary;
-                const minVal = chartData.length ? chartData[0].coordX : 10;
-                const maxVal = chartData.length ? chartData[chartData.length - 1].coordX : 100;
-                const span = Math.max(1, maxVal - minVal);
+                const domainIsNumeric =
+                  typeof currentChartDomain[0] === "number" &&
+                  typeof currentChartDomain[1] === "number";
+                const rawFirst = chartData.length ? chartData[0].coordX : 10;
+                const rawLast = chartData.length ? chartData[chartData.length - 1].coordX : 100;
+                const minVal = domainIsNumeric
+                  ? Math.min(Number(currentChartDomain[0]), Number(currentChartDomain[1]))
+                  : Math.min(rawFirst, rawLast);
+                const maxVal = domainIsNumeric
+                  ? Math.max(Number(currentChartDomain[0]), Number(currentChartDomain[1]))
+                  : Math.max(rawFirst, rawLast);
+                const span = Math.max(0.0001, maxVal - minVal);
 
                 return (
                   <div key={`comb-${cand.phase_name}-${cIdx}`} className="flex items-center gap-3">
-                    <div className="w-32 flex items-center gap-1.5 shrink-0" title={cand.phase_name}>
-                      <span className="w-2.5 h-2.5 shrink-0" style={{ backgroundColor: color }} />
-                      <span className="text-[10px] font-mono font-bold truncate">
+                    <div className="w-36 flex items-center gap-1.5 shrink-0" title={cand.phase_name}>
+                      <span className="w-2.5 h-1 shrink-0" style={{ backgroundColor: color }} />
+                      <span className={`text-[10px] font-mono font-semibold truncate tabular-nums ${
+                        themeMode === "publication" ? "text-slate-800" : "text-slate-200"
+                      }`}>
                         {cand.phase_name.split(" ")[0]} ({peaks.length})
                       </span>
                     </div>
 
-                    <div className={`flex-1 relative h-7 rounded-sm border overflow-hidden ${
-                      themeMode === "publication"
-                        ? "bg-slate-100 border-slate-300"
-                        : "bg-[#09101F] border-slate-800"
-                    }`}>
-                      <svg viewBox="0 0 800 28" preserveAspectRatio="none" className="w-full h-full">
-                        <line x1="0" y1="26" x2="800" y2="26" stroke="#1e293b" strokeWidth="1" />
+                    <div
+                      className={`flex-1 relative h-8 rounded-md border overflow-hidden ${
+                        themeMode === "publication"
+                          ? "bg-white border-slate-200"
+                          : "bg-[#09101F] border-slate-800"
+                      }`}
+                      onMouseLeave={() => setHoveredCombPeak(null)}
+                    >
+                      <svg viewBox="0 0 800 32" preserveAspectRatio="none" className="w-full h-full">
+                        <line
+                          x1="0"
+                          y1="29"
+                          x2="800"
+                          y2="29"
+                          stroke={themeMode === "publication" ? "#cbd5e1" : "#1e293b"}
+                          strokeWidth="1"
+                        />
                         {peaks.map((p, pIdx) => {
                           const coord = mapCoord(p.calibratedRefT);
                           const leftPct = ((coord - minVal) / span) * 100;
                           if (leftPct < 0 || leftPct > 100) return null;
                           const px = (leftPct / 100) * 800;
-                          const tickH = Math.max(6, Math.min(22, Math.sqrt(Math.max(5, p.refI || 50)) * 2.1));
+                          const tickH = Math.max(6, Math.min(24, Math.sqrt(Math.max(5, p.refI || 50)) * 2.3));
                           const hklStr =
                             p.h !== undefined && p.k !== undefined && p.l !== undefined
                               ? `(${p.h}${p.k}${p.l})`
                               : p.hkl
                               ? `(${p.hkl})`
                               : "";
+                          const isHovered =
+                            hoveredCombPeak &&
+                            hoveredCombPeak.phase === cand.phase_name &&
+                            Math.abs(hoveredCombPeak.twoTheta - p.calibratedRefT) < 0.001;
 
                           return (
                             <g
                               key={`svg-tick-${pIdx}`}
                               className="cursor-pointer"
+                              onMouseEnter={() =>
+                                setHoveredCombPeak({
+                                  phase: cand.phase_name,
+                                  hkl: hklStr,
+                                  twoTheta: p.calibratedRefT,
+                                  dSpacing: p.calibratedD ?? calcD(p.calibratedRefT),
+                                  refI: p.refI || 0,
+                                })
+                              }
                               onClick={() => {
                                 setFocusedTwoTheta(p.calibratedRefT);
                                 setTimeout(() => setFocusedTwoTheta(null), 3500);
                               }}
                             >
                               <title>
-                                {`${cand.phase_name} ${hklStr} · ${p.calibratedRefT.toFixed(2)}° 2θ · d=${p.calibratedD?.toFixed(4)} Å · I=${(p.refI || 0).toFixed(0)}%`}
+                                {`${cand.phase_name} ${hklStr} · ${p.calibratedRefT.toFixed(3)}° 2θ · d=${(p.calibratedD ?? calcD(p.calibratedRefT)).toFixed(4)} Å · I=${(p.refI || 0).toFixed(0)}%`}
                               </title>
+                              <rect x={px - 4} y={0} width={8} height={32} fill="transparent" />
                               <line
                                 x1={px}
-                                y1={26}
+                                y1={29}
                                 x2={px}
-                                y2={26 - tickH}
+                                y2={29 - tickH}
                                 stroke={color}
-                                strokeWidth="2.2"
+                                strokeWidth={isHovered ? "3" : "2"}
+                                opacity={isHovered ? 1 : 0.88}
                               />
-                              <circle cx={px} cy={26 - tickH} r="1.8" fill={color} />
-                              {p.refI >= 35 && hklStr && (
+                              <circle cx={px} cy={29 - tickH} r={isHovered ? "2.4" : "1.5"} fill={color} />
+                              {(p.refI >= 35 || isHovered) && hklStr && (
                                 <text
                                   x={px}
-                                  y={Math.max(8, 23 - tickH)}
+                                  y={Math.max(8, 25 - tickH)}
                                   textAnchor="middle"
                                   fill={themeMode === "publication" ? "#0f172a" : "#e2e8f0"}
                                   fontSize="7.5"
@@ -3377,67 +3840,129 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
           </div>
         )}
 
-        {/* BOTTOM RIETVELD SPLIT RESIDUAL PANEL (If in Split mode) */}
+        {/* BOTTOM RIETVELD SPLIT RESIDUAL DIFFERENCE CONSOLE (Synchronized X-Axis) */}
         {selectedCandidate && residualView === "split" && (
-          <div className={`h-36 border-t p-2 flex flex-col relative z-10 transition-colors ${
+          <div className={`h-44 border-t px-3 py-2 flex flex-col relative z-10 transition-colors ${
             themeMode === "publication"
-              ? "bg-[#F8FAFC] border-slate-200"
-              : "bg-[#040710] border-slate-800"
+              ? "bg-slate-50 border-slate-200"
+              : "bg-[#050811] border-slate-800"
           }`}>
-            <div className="flex justify-between items-center px-4 py-1 text-[9px] font-mono text-slate-400">
-              <span className={`font-bold uppercase tracking-widest ${themeMode === "publication" ? "text-blue-700" : "text-amber-400"}`}>
-                Rietveld Profile Difference (Y_obs - Y_calc)
-              </span>
-              <div className="flex items-center gap-3">
-                <span>Confidence Band: ±3σ</span>
-                <span className={`font-bold ${themeMode === "publication" ? "text-blue-700" : "text-amber-300"}`}>
-                  R_wp: {alignmentMetrics.rwp}%
+            <div className="flex flex-wrap justify-between items-center gap-2 px-1 pb-1.5 text-[10px] font-mono">
+              <div className="flex items-center gap-2">
+                <span className={`w-2.5 h-0.5 inline-block ${
+                  themeMode === "publication" ? "bg-blue-600" : "bg-amber-400"
+                }`} />
+                <span className={`font-semibold uppercase tracking-wider ${
+                  themeMode === "publication" ? "text-slate-800" : "text-slate-200"
+                }`}>
+                  Rietveld Residual Difference (Y<sub>obs</sub> − Y<sub>calc</sub>)
+                </span>
+              </div>
+              <div className={`flex flex-wrap items-center gap-x-4 gap-y-1 tabular-nums text-[10px] ${
+                themeMode === "publication" ? "text-slate-600" : "text-slate-400"
+              }`}>
+                <span>
+                  Peak +ΔY:{" "}
+                  <strong className={themeMode === "publication" ? "text-emerald-700" : "text-emerald-400"}>
+                    +{residualStats.maxPos.toFixed(2)}
+                  </strong>
+                </span>
+                <span>
+                  Peak −ΔY:{" "}
+                  <strong className={themeMode === "publication" ? "text-rose-700" : "text-rose-400"}>
+                    {residualStats.maxNeg.toFixed(2)}
+                  </strong>
+                </span>
+                <span>
+                  RMS σ<sub>res</sub>:{" "}
+                  <strong className={themeMode === "publication" ? "text-slate-900" : "text-slate-200"}>
+                    ±{residualStats.rms.toFixed(2)}
+                  </strong>
+                </span>
+                <span>
+                  DW <em>d</em>:{" "}
+                  <strong className={themeMode === "publication" ? "text-slate-900" : "text-slate-200"}>
+                    {alignmentMetrics.durbinWatson.toFixed(2)}
+                  </strong>
+                </span>
+                <span>
+                  R<sub>wp</sub>:{" "}
+                  <strong className={themeMode === "publication" ? "text-blue-700" : "text-amber-300"}>
+                    {alignmentMetrics.rwp.toFixed(2)}%
+                  </strong>
                 </span>
               </div>
             </div>
-            <div className="flex-1">
+            <div className="flex-1 min-h-0">
               <ResponsiveContainer width="100%" height="100%">
-                <ComposedChart data={chartData} margin={{ top: 4, right: 24, left: 16, bottom: 4 }}>
+                <ComposedChart data={chartData} margin={{ top: 4, right: 24, left: 16, bottom: 2 }}>
                   <defs>
                     <linearGradient id="splitResidGrad" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor={themeMode === "publication" ? "#2563eb" : "#f59e0b"} stopOpacity={themeMode === "publication" ? 0.25 : 0.45} />
-                      <stop offset="95%" stopColor={themeMode === "publication" ? "#2563eb" : "#f59e0b"} stopOpacity={0.05} />
+                      <stop offset="5%" stopColor={themeMode === "publication" ? "#2563eb" : "#f59e0b"} stopOpacity={themeMode === "publication" ? 0.22 : 0.38} />
+                      <stop offset="95%" stopColor={themeMode === "publication" ? "#2563eb" : "#f59e0b"} stopOpacity={0.04} />
                     </linearGradient>
                   </defs>
-                  <CartesianGrid strokeDasharray="2 4" stroke={themeMode === "publication" ? "#e2e8f0" : "#1e293b"} opacity={0.4} />
-                  <XAxis dataKey="coordX" hide />
+                  <CartesianGrid strokeDasharray="2 4" stroke={themeMode === "publication" ? "#cbd5e1" : "#1e293b"} opacity={0.45} />
+                  <XAxis
+                    dataKey="coordX"
+                    type="number"
+                    domain={currentChartDomain as any}
+                    allowDataOverflow
+                    stroke={themeMode === "publication" ? "#64748b" : "#475569"}
+                    tick={{ fill: themeMode === "publication" ? "#475569" : "#64748b", fontSize: 9, fontFamily: "monospace" }}
+                    tickFormatter={(v) => Number(v).toFixed(1)}
+                    height={18}
+                  />
                   <YAxis
-                    stroke={themeMode === "publication" ? "#0f172a" : "#475569"}
-                    tick={{ fill: themeMode === "publication" ? "#0f172a" : "#64748b", fontSize: 8, fontFamily: "monospace" }}
-                    width={38}
+                    stroke={themeMode === "publication" ? "#64748b" : "#475569"}
+                    tick={{ fill: themeMode === "publication" ? "#475569" : "#64748b", fontSize: 9, fontFamily: "monospace" }}
+                    width={42}
                   />
                   <Tooltip
                     content={({ active, payload }) => {
                       if (!active || !payload || !payload.length) return null;
                       const pt = payload[0].payload;
                       return (
-                        <div className={`px-2.5 py-1.5 rounded-lg border text-[9px] font-mono shadow-xl backdrop-blur-md ${
+                        <div className={`px-2.5 py-1.5 rounded-md border text-[10px] font-mono tabular-nums ${
                           themeMode === "publication"
-                            ? "bg-white/95 border-slate-300 text-slate-900 shadow-slate-200"
-                            : "bg-[#070D18]/95 border-slate-700 text-slate-200 shadow-black/80"
+                            ? "bg-white border-slate-300 text-slate-900"
+                            : "bg-[#070D18] border-slate-700 text-slate-200"
                         }`}>
-                          <div className="font-bold text-slate-400">
-                            {pt.twoTheta?.toFixed(4)}° 2θ {pt.dSpacing ? `• d=${pt.dSpacing.toFixed(5)}Å` : ""}
+                          <div className={themeMode === "publication" ? "text-slate-500" : "text-slate-400"}>
+                            {pt.twoTheta?.toFixed(4)}° 2θ {pt.dSpacing ? `· d=${pt.dSpacing.toFixed(4)} Å` : ""}
                           </div>
-                          <div className={`font-semibold ${themeMode === "publication" ? "text-blue-700" : "text-amber-400"}`}>
-                            ΔY: {pt.signedResidual > 0 ? "+" : ""}{pt.signedResidual?.toFixed(3)}
+                          <div className={`font-semibold mt-0.5 ${themeMode === "publication" ? "text-blue-700" : "text-amber-400"}`}>
+                            ΔY = {pt.signedResidual > 0 ? "+" : ""}{pt.signedResidual?.toFixed(3)}
                           </div>
                         </div>
                       );
                     }}
                   />
-                  <ReferenceLine y={0} stroke={themeMode === "publication" ? "#2563eb" : "#f59e0b"} strokeWidth={1.5} />
+                  <ReferenceLine y={0} stroke={themeMode === "publication" ? "#2563eb" : "#f59e0b"} strokeWidth={1.25} />
+                  {residualStats.rms > 0 && (
+                    <>
+                      <ReferenceLine
+                        y={residualStats.rms}
+                        stroke={themeMode === "publication" ? "#94a3b8" : "#475569"}
+                        strokeDasharray="3 3"
+                        strokeWidth={1}
+                      />
+                      <ReferenceLine
+                        y={-residualStats.rms}
+                        stroke={themeMode === "publication" ? "#94a3b8" : "#475569"}
+                        strokeDasharray="3 3"
+                        strokeWidth={1}
+                      />
+                    </>
+                  )}
                   <Area
                     type={curveInterpolation}
                     dataKey="signedResidual"
                     stroke={themeMode === "publication" ? "#2563eb" : "#f59e0b"}
+                    strokeWidth={1.5}
                     fill="url(#splitResidGrad)"
                     fillOpacity={1}
+                    isAnimationActive={false}
                   />
                 </ComposedChart>
               </ResponsiveContainer>
@@ -3446,232 +3971,400 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
         )}
 
         {/* BOTTOM STATUS & INSTRUMENT OPTICS FOOTER */}
-        <div className={`w-full border-t px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-[10px] font-mono z-10 transition-colors ${
+        <div className={`w-full border-t px-4 py-2 flex flex-wrap items-center justify-between gap-3 text-[10px] font-mono tabular-nums z-10 transition-colors ${
           themeMode === "publication"
-            ? "bg-[#F1F5F9] border-slate-200 text-slate-600"
-            : "bg-[#050813] border-slate-800/80 text-slate-400"
+            ? "bg-slate-100 border-slate-200 text-slate-600"
+            : "bg-[#060912] border-slate-800 text-slate-400"
         }`}>
           <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
-            <div className={`flex items-center gap-1.5 font-bold ${themeMode === "publication" ? "text-cyan-800" : "text-cyan-300"}`}>
-              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
-              <span className="uppercase text-[9px] tracking-wider text-slate-500 font-normal">Source:</span>
+            <div className={`flex items-center gap-1.5 font-semibold ${themeMode === "publication" ? "text-cyan-800" : "text-cyan-300"}`}>
+              <span className="uppercase text-[9px] tracking-wider text-slate-500 font-normal">λ Source:</span>
               <span>{activeWavelength.toFixed(5)} Å ({selectedWavelengthId})</span>
             </div>
+            <span className={themeMode === "publication" ? "text-slate-300" : "text-slate-700"}>·</span>
             <div className="flex items-center gap-1.5">
               <span className="uppercase text-[9px] tracking-wider text-slate-500">Profile:</span>
               <span className={`font-semibold ${themeMode === "publication" ? "text-slate-900" : "text-slate-200"}`}>
-                {profileModel === "pseudoVoigt" ? `Pseudo-Voigt (η=${Math.round(lorentzianFraction * 100)}%)` : profileModel} • FWHM {effFwhm.toFixed(2)}°
+                {profileModel === "pseudoVoigt" ? `Pseudo-Voigt (η=${Math.round(lorentzianFraction * 100)}%)` : profileModel} · FWHM {effFwhm.toFixed(2)}°
               </span>
             </div>
+            <span className={themeMode === "publication" ? "text-slate-300" : "text-slate-700"}>·</span>
             <div className="flex items-center gap-1.5">
               <span className="uppercase text-[9px] tracking-wider text-slate-500">Domain:</span>
               <span className={`font-semibold ${themeMode === "publication" ? "text-slate-900" : "text-slate-200"}`}>
-                {coordSpace === "twoTheta" ? "2θ (Bragg)" : coordSpace === "dSpacing" ? "d-spacing (Å)" : "Q-vector (Å⁻¹)"} ({intensityScale})
+                {coordSpace === "twoTheta" ? "2θ (Bragg)" : coordSpace === "dSpacing" ? "d-spacing (Å)" : "Q-vector (Å⁻¹)"} · {intensityScale}
               </span>
             </div>
             {enableKaDoublet && (
-              <div className="flex items-center gap-1.5 text-emerald-500">
-                <span className="uppercase text-[9px] tracking-wider text-slate-500">Optics:</span>
-                <span className="font-semibold">Cu-Kα₁/Kα₂ Doublet</span>
-              </div>
+              <>
+                <span className={themeMode === "publication" ? "text-slate-300" : "text-slate-700"}>·</span>
+                <div className={`flex items-center gap-1.5 ${themeMode === "publication" ? "text-emerald-700" : "text-emerald-400"}`}>
+                  <span className="font-semibold">Cu-Kα₁/Kα₂ Doublet</span>
+                </div>
+              </>
             )}
             {(zeroShiftDeg !== 0 || latticeStrainPct !== 0) && (
-              <div className="flex items-center gap-1.5 text-amber-500">
-                <span className="uppercase text-[9px] tracking-wider">Offset:</span>
-                <span className="font-semibold">Δ2θ {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}° | Strain {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%</span>
-                <button
-                  onClick={handleResetCalibration}
-                  className="px-1.5 py-0.2 rounded text-[8px] bg-amber-500/20 hover:bg-amber-500/30 text-amber-400 border border-amber-500/40 font-bold transition-all"
-                  title="Reset both zero-shift and strain to zero"
-                >
-                  Reset Offset
-                </button>
-              </div>
+              <>
+                <span className={themeMode === "publication" ? "text-slate-300" : "text-slate-700"}>·</span>
+                <div className={`flex items-center gap-1.5 ${themeMode === "publication" ? "text-amber-700" : "text-amber-400"}`}>
+                  <span className="uppercase text-[9px] tracking-wider">Offset:</span>
+                  <span className="font-semibold">
+                    Δ2θ {zeroShiftDeg > 0 ? "+" : ""}{zeroShiftDeg.toFixed(2)}° | ε {latticeStrainPct > 0 ? "+" : ""}{latticeStrainPct.toFixed(2)}%
+                  </span>
+                  <button
+                    onClick={handleResetCalibration}
+                    className={`px-1.5 py-0.5 rounded-sm text-[9px] border font-semibold transition-colors ${
+                      themeMode === "publication"
+                        ? "bg-amber-50 hover:bg-amber-100 text-amber-800 border-amber-300"
+                        : "bg-amber-500/15 hover:bg-amber-500/25 text-amber-300 border-amber-500/40"
+                    }`}
+                    title="Reset both zero-shift and strain to zero"
+                  >
+                    Reset
+                  </button>
+                </div>
+              </>
             )}
           </div>
 
-          <div className="flex items-center gap-3 text-[9px] text-slate-400">
-            {showBrush && <span>Drag slider handles to zoom</span>}
+          <div className="flex items-center gap-3 text-[9px] text-slate-500">
+            {showBrush && <span>Drag brush handles to pan angular window</span>}
           </div>
         </div>
 
         {/* EMPTY STATE BACKDROP */}
         {parsedPoints.length === 0 && !inputData?.trim() && (
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-[#050A14]/90 backdrop-blur-md rounded-2xl z-20 border border-slate-800/80 overflow-hidden">
-            <div className="relative mb-6 z-10 flex flex-col items-center">
-              <div className="relative flex items-center justify-center w-24 h-24 mb-4">
-                <Compass className="w-10 h-10 text-cyan-400 animate-pulse relative z-10 drop-shadow-[0_0_15px_rgba(34,211,238,0.6)]" />
+          <div className={`absolute inset-0 flex flex-col items-center justify-center rounded-lg z-20 border ${
+            themeMode === "publication"
+              ? "bg-white/95 border-slate-200"
+              : "bg-[#070A12]/95 border-slate-800"
+          }`}>
+            <div className="flex flex-col items-center text-center px-6">
+              <div className={`flex items-center justify-center w-14 h-14 rounded-lg border mb-4 ${
+                themeMode === "publication"
+                  ? "bg-slate-50 border-slate-200 text-slate-600"
+                  : "bg-[#0B101B] border-slate-800 text-cyan-400"
+              }`}>
+                <Compass className="w-6 h-6" />
               </div>
-              <p className="text-white font-black tracking-[0.25em] uppercase text-lg mb-1 drop-shadow-md">
+              <p className={`font-mono font-bold tracking-[0.18em] uppercase text-sm mb-1 ${
+                themeMode === "publication" ? "text-slate-900" : "text-slate-100"
+              }`}>
                 Spectrometer Standby
               </p>
-              <p className="text-[10px] text-slate-400 font-mono tracking-widest uppercase">
-                Awaiting Experimental Pattern or Peak List Stream
+              <p className="text-[11px] text-slate-500 font-mono">
+                Awaiting Experimental Pattern or Peak List Input
               </p>
             </div>
           </div>
         )}
       </div>
 
-      {/* MULTI-PHASE CO-PLOTTING DRAWER */}
+      {/* MULTI-PHASE MIXTURE CO-PLOTTING & NNLS QUANTIFICATION PANEL */}
       {candidates.length > 1 && (
-        <div className="mt-4 p-4 bg-[#080D1A]/80 border border-slate-800 rounded-2xl flex flex-col gap-3 relative z-10">
-          <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800/80 pb-2.5">
+        <div className={`mt-4 rounded-lg border flex flex-col relative z-10 overflow-hidden transition-colors ${
+          themeMode === "publication"
+            ? "bg-white border-slate-200 text-slate-800"
+            : "bg-[#0B101B] border-slate-800 text-slate-200"
+        }`}>
+          <div className={`flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-b ${
+            themeMode === "publication"
+              ? "bg-slate-50 border-slate-200"
+              : "bg-[#070A12] border-slate-800"
+          }`}>
             <div className="flex items-center gap-2">
-              <Layers className="w-4 h-4 text-indigo-400" />
-              <span className="text-xs font-mono font-bold text-slate-200 uppercase tracking-wider">
+              <Layers className={`w-4 h-4 ${themeMode === "publication" ? "text-indigo-600" : "text-indigo-400"}`} />
+              <span className="text-xs font-mono font-semibold uppercase tracking-wider">
                 Multi-Phase Mixture Co-Plotting
               </span>
+              {multiPhaseMode && (
+                <span className="text-[10px] font-mono tabular-nums text-slate-500">
+                  · {activeCandidates.length} active
+                </span>
+              )}
             </div>
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-2 text-[10px] font-mono text-slate-300 cursor-pointer">
+
+            <div className="flex flex-wrap items-center gap-2">
+              {multiPhaseMode && activeCandidates.length > 1 && (
+                <>
+                  <button
+                    onClick={handleAutoFitPhaseFractions}
+                    disabled={isOptimizingFractions}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold border transition-colors ${
+                      themeMode === "publication"
+                        ? "bg-indigo-600 text-white border-indigo-600 hover:bg-indigo-700 disabled:opacity-50"
+                        : "bg-indigo-500/20 text-indigo-300 border-indigo-500/40 hover:bg-indigo-500/30 disabled:opacity-50"
+                    }`}
+                  >
+                    {isOptimizingFractions ? "Fitting NNLS..." : "Auto-Fit (NNLS)"}
+                  </button>
+                  <button
+                    onClick={handleNormalizePhaseFractions}
+                    className={`px-2.5 py-1 rounded-md text-[10px] font-mono font-semibold border transition-colors ${
+                      themeMode === "publication"
+                        ? "bg-white text-slate-700 border-slate-300 hover:bg-slate-100"
+                        : "bg-[#0B101B] text-slate-300 border-slate-700 hover:bg-slate-800"
+                    }`}
+                  >
+                    Normalize 100%
+                  </button>
+                </>
+              )}
+              <label className="flex items-center gap-2 text-[11px] font-mono cursor-pointer pl-1">
                 <input
                   type="checkbox"
                   checked={multiPhaseMode}
                   onChange={(e) => setMultiPhaseMode(e.target.checked)}
-                  className="rounded border-slate-700 text-indigo-500 focus:ring-indigo-400 bg-slate-900"
+                  className="rounded-sm border-slate-600 text-indigo-500 focus:ring-indigo-400"
                 />
-                <span>Enable Multi-Phase Overlay</span>
+                <span>Multi-Phase Overlay</span>
               </label>
             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {candidates.map((cand, idx) => {
-              const isSelected = selectedCandidate?.phase_name === cand.phase_name;
-              const isActiveInMulti = activePhaseNames.includes(cand.phase_name);
-              const palette = PHASE_PALETTES[idx % PHASE_PALETTES.length];
+          {phaseFractionsOptimizationStatus && multiPhaseMode && (
+            <div className={`px-4 py-1.5 border-b text-[10px] font-mono tabular-nums ${
+              themeMode === "publication"
+                ? "bg-emerald-50 border-slate-200 text-emerald-800"
+                : "bg-emerald-950/30 border-slate-800 text-emerald-300"
+            }`}>
+              {phaseFractionsOptimizationStatus}
+            </div>
+          )}
 
-              return (
-                <div
-                  key={cand.phase_name + idx}
-                  className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all text-xs font-mono ${
-                    isSelected
-                      ? "bg-indigo-600/20 border-indigo-500 text-white shadow-md"
-                      : "bg-[#040812] border-slate-800 text-slate-400 hover:border-slate-700"
-                  }`}
-                >
-                  {multiPhaseMode && (
-                    <input
-                      type="checkbox"
-                      checked={isActiveInMulti}
-                      onChange={(e) => {
-                        if (e.target.checked) {
-                          setActivePhaseNames([...activePhaseNames, cand.phase_name]);
-                        } else {
-                          setActivePhaseNames(activePhaseNames.filter((name) => name !== cand.phase_name));
-                        }
-                      }}
-                      className="rounded border-slate-700 text-indigo-500 bg-slate-900"
-                    />
-                  )}
-                  <button
-                    onClick={() => onSelectCandidate && onSelectCandidate(cand)}
-                    className="font-bold hover:text-white transition-colors"
-                  >
-                    {cand.phase_name}
-                  </button>
-                  <span className={`px-1.5 py-0.5 rounded text-[9px] font-mono ${palette.badge}`}>
-                    {cand.confidence_score.toFixed(0)}%
-                  </span>
-                </div>
-              );
-            })}
-          </div>
+          {(() => {
+            const totalActiveWeight = activeCandidates.reduce(
+              (acc, c) => acc + (phaseWeights[c.phase_name] ?? 1.0),
+              0
+            );
+
+            return (
+              <div className="p-3 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2">
+                {candidates.map((cand, idx) => {
+                  const isSelected = selectedCandidate?.phase_name === cand.phase_name;
+                  const isActiveInMulti = activePhaseNames.includes(cand.phase_name);
+                  const palette = PHASE_PALETTES[idx % PHASE_PALETTES.length];
+                  const weight = phaseWeights[cand.phase_name] ?? 1.0;
+                  const normPct =
+                    isActiveInMulti && totalActiveWeight > 0
+                      ? (weight / totalActiveWeight) * 100
+                      : 0;
+
+                  return (
+                    <div
+                      key={cand.phase_name + idx}
+                      className={`flex flex-col gap-2 px-3 py-2.5 rounded-md border transition-colors text-xs font-mono ${
+                        isSelected
+                          ? themeMode === "publication"
+                            ? "bg-indigo-50/70 border-indigo-400 text-slate-900"
+                            : "bg-indigo-950/30 border-indigo-500/70 text-white"
+                          : themeMode === "publication"
+                          ? "bg-slate-50 border-slate-200 text-slate-700 hover:border-slate-300"
+                          : "bg-[#060912] border-slate-800 text-slate-300 hover:border-slate-700"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          {multiPhaseMode && (
+                            <input
+                              type="checkbox"
+                              checked={isActiveInMulti}
+                              onChange={(e) => {
+                                if (e.target.checked) {
+                                  setActivePhaseNames([...activePhaseNames, cand.phase_name]);
+                                } else {
+                                  setActivePhaseNames(activePhaseNames.filter((name) => name !== cand.phase_name));
+                                }
+                              }}
+                              className="rounded-sm border-slate-600 text-indigo-500 shrink-0"
+                            />
+                          )}
+                          <span className="w-2.5 h-1 shrink-0" style={{ backgroundColor: palette.primary }} />
+                          <button
+                            onClick={() => onSelectCandidate && onSelectCandidate(cand)}
+                            className="font-semibold truncate text-left hover:underline"
+                            title={cand.phase_name}
+                          >
+                            {cand.phase_name}
+                          </button>
+                        </div>
+                        <span className="text-[10px] font-mono tabular-nums text-slate-500 shrink-0">
+                          {cand.confidence_score.toFixed(0)}% match
+                        </span>
+                      </div>
+
+                      {multiPhaseMode && isActiveInMulti && (
+                        <div className="flex items-center gap-2 pt-1 border-t border-slate-700/30">
+                          <span className="text-[9px] uppercase tracking-wider text-slate-500 w-9 shrink-0">
+                            Wt%
+                          </span>
+                          <input
+                            type="range"
+                            min={0.05}
+                            max={2.0}
+                            step={0.05}
+                            value={weight}
+                            onChange={(e) =>
+                              setPhaseWeights((prev) => ({
+                                ...prev,
+                                [cand.phase_name]: parseFloat(e.target.value),
+                              }))
+                            }
+                            className="flex-1 h-1 accent-indigo-500 cursor-pointer"
+                          />
+                          <span className="text-[10px] font-semibold tabular-nums w-11 text-right">
+                            {normPct.toFixed(1)}%
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 
       {/* PYCRYSTALLINE RAG COPROCESSOR DIAGNOSTICS */}
       {selectedCandidate && ((selectedCandidate as any).fitted_strain_pct !== undefined || pythonRAGResults) && (
-        <div className="mt-4 p-5 rounded-3xl border border-amber-500/30 bg-gradient-to-br from-[#120B04]/90 to-[#050301]/95 backdrop-blur-xl relative z-10 shadow-[0_4px_30px_rgba(245,158,11,0.1)] transition-all hover:border-amber-500/50 flex flex-col gap-4">
-          <div className="flex justify-between items-center pb-2 border-b border-amber-500/20">
+        <div className={`mt-4 rounded-lg border relative z-10 overflow-hidden transition-colors ${
+          themeMode === "publication"
+            ? "bg-white border-slate-200 text-slate-800"
+            : "bg-[#0B101B] border-slate-800 text-slate-200"
+        }`}>
+          <div className={`flex justify-between items-center px-4 py-2.5 border-b ${
+            themeMode === "publication"
+              ? "bg-slate-50 border-slate-200"
+              : "bg-[#070A12] border-slate-800"
+          }`}>
             <div className="flex items-center gap-2.5">
-              <div className="w-2.5 h-2.5 rounded-full bg-amber-400 shadow-[0_0_8px_rgba(245,158,11,0.8)] animate-pulse" />
-              <span className="text-[11px] font-black uppercase tracking-[0.2em] text-amber-400 font-mono">
-                PyCrystalline™ RAG Coprocessor Diagnostics
+              <span className="w-2.5 h-0.5 bg-amber-500 inline-block" />
+              <span className={`text-xs font-semibold uppercase tracking-wider font-mono ${
+                themeMode === "publication" ? "text-slate-900" : "text-slate-100"
+              }`}>
+                PyCrystalline RAG Coprocessor Diagnostics
+              </span>
+              <span className={`text-[10px] font-mono ${
+                themeMode === "publication" ? "text-emerald-700" : "text-emerald-400"
+              }`}>
+                · Converged
               </span>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] bg-amber-500/10 text-amber-400 font-mono font-black border border-amber-500/30 px-3 py-1 rounded-full uppercase tracking-wider shadow-inner">
-                State: Fully Converged
-              </span>
-              <button
-                onClick={() => setShowRagDiagnostics(!showRagDiagnostics)}
-                className="p-1 text-slate-400 hover:text-white"
-              >
-                {showRagDiagnostics ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-              </button>
-            </div>
+            <button
+              onClick={() => setShowRagDiagnostics(!showRagDiagnostics)}
+              className={`p-1 rounded-md transition-colors ${
+                themeMode === "publication"
+                  ? "text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+                  : "text-slate-400 hover:bg-slate-800 hover:text-white"
+              }`}
+              aria-label="Toggle RAG diagnostics"
+            >
+              {showRagDiagnostics ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
           </div>
-          
+
           {showRagDiagnostics && (
-            <div className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
-                  <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
-                    Calculated Lattice Strain
+            <div className="flex flex-col">
+              <div className={`grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x ${
+                themeMode === "publication" ? "divide-slate-200" : "divide-slate-800"
+              }`}>
+                <div className="p-4 flex flex-col gap-1">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                    Calculated Lattice Strain (ε)
                   </span>
-                  <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
+                  <span className={`text-2xl font-bold font-mono tabular-nums ${
+                    themeMode === "publication" ? "text-amber-700" : "text-amber-300"
+                  }`}>
                     {((selectedCandidate as any).fitted_strain_pct)?.toFixed(4) || "0.0000"}%
                   </span>
-                  <span className="text-[9px] text-slate-400 font-sans leading-snug">
-                    {(selectedCandidate as any).fitted_strain_pct > 0 ? "Tensile (dilation)" : (selectedCandidate as any).fitted_strain_pct < 0 ? "Compressive (contraction)" : "No strain detected"}: Peak shifts modeled via grid-descent convolution.
+                  <span className="text-[11px] text-slate-500 font-sans leading-snug">
+                    {(selectedCandidate as any).fitted_strain_pct > 0
+                      ? "Tensile (dilation)"
+                      : (selectedCandidate as any).fitted_strain_pct < 0
+                      ? "Compressive (contraction)"
+                      : "Zero residual strain"} · Grid-descent convolution
                   </span>
                 </div>
-                
-                <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
-                  <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
-                    Domain Size Broadening Scale
+
+                <div className="p-4 flex flex-col gap-1">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
+                    Domain Broadening Scale (σ)
                   </span>
-                  <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
+                  <span className={`text-2xl font-bold font-mono tabular-nums ${
+                    themeMode === "publication" ? "text-cyan-700" : "text-cyan-300"
+                  }`}>
                     {((selectedCandidate as any).fitted_domain_size_broadening)?.toFixed(2) || "0.18"}°
                   </span>
-                  <span className="text-[9px] text-slate-400 font-sans leading-snug">
-                    Gaussian broadening standard deviation σ. Controls modeled nanocrystalline grain/crystallite size effects.
+                  <span className="text-[11px] text-slate-500 font-sans leading-snug">
+                    Gaussian standard deviation modeling nanocrystalline domain size broadening.
                   </span>
                 </div>
-                
-                <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 flex flex-col gap-1.5 shadow-inner">
-                  <span className="text-[9px] font-mono font-black text-slate-500 uppercase tracking-widest leading-none">
+
+                <div className="p-4 flex flex-col gap-1">
+                  <span className="text-[10px] font-mono uppercase tracking-wider text-slate-500">
                     Core Retrieval Cosine
                   </span>
                   <div className="flex items-baseline gap-2">
-                    <span className="text-3xl font-black text-amber-300 font-mono drop-shadow-md">
+                    <span className={`text-2xl font-bold font-mono tabular-nums ${
+                      themeMode === "publication" ? "text-emerald-700" : "text-emerald-300"
+                    }`}>
                       {((selectedCandidate as any).raw_score)?.toFixed(2) || "95.00"}%
                     </span>
-                    <span className="text-[10px] text-slate-500 font-mono font-bold uppercase leading-none">
-                      (Raw)
-                    </span>
+                    <span className="text-[10px] text-slate-500 font-mono uppercase">Raw</span>
                   </div>
-                  <span className="text-[9px] text-slate-400 font-sans leading-snug">
-                    Spectral continuous cosine overlap computed over the non-strain compensated grid.
+                  <span className="text-[11px] text-slate-500 font-sans leading-snug">
+                    Continuous cosine overlap over the uncompensated angular grid.
                   </span>
                 </div>
               </div>
 
               {pythonRAGResults?.gemini_analysis && (
-                <div className="border-t border-amber-500/15 pt-3 flex flex-col gap-2">
-                  <div className="flex items-center gap-1.5 text-amber-400 font-mono font-bold text-[10px] uppercase tracking-wider">
-                    <Activity className="w-3.5 h-3.5 animate-pulse text-amber-400" />
-                    Grounded LLM Synthesized Crystallographic Insight:
+                <div className={`border-t p-4 flex flex-col gap-2 ${
+                  themeMode === "publication" ? "border-slate-200 bg-slate-50/60" : "border-slate-800 bg-[#060912]"
+                }`}>
+                  <div className={`flex items-center gap-1.5 font-mono font-semibold text-[10px] uppercase tracking-wider ${
+                    themeMode === "publication" ? "text-slate-700" : "text-amber-300"
+                  }`}>
+                    <Activity className="w-3.5 h-3.5" />
+                    Synthesized Crystallographic Assessment
                   </div>
-                  <div className="bg-[#050301] border border-amber-500/10 rounded-2xl p-4 font-sans text-xs text-amber-200/90 leading-relaxed max-h-[180px] overflow-y-auto custom-scrollbar shadow-inner select-text">
+                  <div className={`font-sans text-xs leading-relaxed max-h-[180px] overflow-y-auto custom-scrollbar select-text ${
+                    themeMode === "publication" ? "text-slate-700" : "text-slate-300"
+                  }`}>
                     {pythonRAGResults.gemini_analysis}
                   </div>
                 </div>
               )}
-              
+
               {pythonRAGResults?.literature_docs && pythonRAGResults.literature_docs.length > 0 && (
-                <div className="border-t border-amber-500/15 pt-3 flex flex-col gap-2">
-                  <div className="flex items-center gap-1.5 text-amber-400 font-mono font-bold text-[10px] uppercase tracking-wider">
-                    <BookOpen className="w-3.5 h-3.5 text-amber-400" />
-                    Retrieved Literature Knowledge Base:
+                <div className={`border-t p-4 flex flex-col gap-2 ${
+                  themeMode === "publication" ? "border-slate-200" : "border-slate-800"
+                }`}>
+                  <div className={`flex items-center gap-1.5 font-mono font-semibold text-[10px] uppercase tracking-wider ${
+                    themeMode === "publication" ? "text-slate-700" : "text-slate-300"
+                  }`}>
+                    <BookOpen className="w-3.5 h-3.5" />
+                    Retrieved Reference Literature
                   </div>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
                     {pythonRAGResults.literature_docs.map((doc: any, i: number) => (
-                      <div key={i} className="bg-[#050301] border border-amber-500/10 rounded-xl p-3 flex flex-col gap-1.5 shadow-inner">
-                        <span className="text-[10px] font-bold text-amber-300 font-mono leading-tight">{doc.title}</span>
-                        <span className="text-[9px] text-slate-400 font-sans leading-relaxed line-clamp-3">{doc.content}</span>
+                      <div
+                        key={i}
+                        className={`border rounded-md p-3 flex flex-col gap-1 ${
+                          themeMode === "publication"
+                            ? "bg-slate-50 border-slate-200"
+                            : "bg-[#060912] border-slate-800"
+                        }`}
+                      >
+                        <span className={`text-[11px] font-semibold font-mono leading-tight ${
+                          themeMode === "publication" ? "text-slate-900" : "text-amber-300"
+                        }`}>
+                          {doc.title}
+                        </span>
+                        <span className="text-[11px] text-slate-500 font-sans leading-relaxed line-clamp-3">
+                          {doc.content}
+                        </span>
                       </div>
                     ))}
                   </div>
@@ -3682,23 +4375,34 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
         </div>
       )}
 
-      {/* REFLECTION TABLE INSPECTOR MODAL / DRAWER */}
+      {/* REFLECTION TABLE INSPECTOR DRAWER */}
       <AnimatePresence>
         {showReflectionTable && (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            className="mt-4 bg-[#070B16] border border-indigo-500/30 rounded-2xl p-5 shadow-2xl overflow-hidden relative z-20"
+            className={`mt-4 rounded-lg border overflow-hidden relative z-20 ${
+              themeMode === "publication"
+                ? "bg-white border-slate-200 text-slate-800"
+                : "bg-[#0B101B] border-slate-800 text-slate-200"
+            }`}
           >
-            <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-slate-800">
-              <div className="flex items-center gap-2.5">
-                <Table className="w-4 h-4 text-indigo-400" />
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-200 font-mono">
-                  Indexed Bragg Reflections Table ({selectedCandidate?.phase_name})
+            <div className={`flex flex-wrap items-center justify-between gap-3 px-4 py-2.5 border-b ${
+              themeMode === "publication"
+                ? "bg-slate-50 border-slate-200"
+                : "bg-[#070A12] border-slate-800"
+            }`}>
+              <div className="flex items-center gap-2">
+                <Table className={`w-4 h-4 ${themeMode === "publication" ? "text-indigo-600" : "text-indigo-400"}`} />
+                <h4 className="text-xs font-semibold uppercase tracking-wider font-mono">
+                  Indexed Bragg Reflections · {selectedCandidate?.phase_name}
                 </h4>
+                <span className="text-[10px] font-mono tabular-nums text-slate-500">
+                  ({filteredReflections.length})
+                </span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
                 <div className="relative">
                   <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
                   <input
@@ -3706,58 +4410,140 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
                     value={reflectionSearch}
                     onChange={(e) => setReflectionSearch(e.target.value)}
                     placeholder="Filter (hkl), 2θ, d..."
-                    className="pl-8 pr-3 py-1 bg-[#040812] border border-slate-700/80 rounded-xl text-[10px] font-mono text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-44"
+                    className={`pl-8 pr-3 py-1 border rounded-md text-[11px] font-mono focus:outline-none w-48 ${
+                      themeMode === "publication"
+                        ? "bg-white border-slate-300 text-slate-900 placeholder-slate-400 focus:border-indigo-500"
+                        : "bg-[#060912] border-slate-700 text-slate-200 placeholder-slate-500 focus:border-cyan-500"
+                    }`}
                   />
                 </div>
                 <button
                   onClick={() => setShowReflectionTable(false)}
-                  className="p-1 rounded-lg text-slate-400 hover:text-white"
+                  className={`p-1 rounded-md transition-colors ${
+                    themeMode === "publication"
+                      ? "text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+                      : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                  }`}
+                  aria-label="Close reflections table"
                 >
                   <X className="w-4 h-4" />
                 </button>
               </div>
             </div>
 
-            <div className="overflow-x-auto max-h-64 overflow-y-auto mt-3 custom-scrollbar">
-              <table className="w-full text-left font-mono text-[10px] border-collapse">
-                <thead>
-                  <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[9px] bg-[#050914]">
-                    <th className="py-2 px-3">Miller (hkl)</th>
-                    <th className="py-2 px-3">Calibrated 2θ (°)</th>
-                    <th className="py-2 px-3">Nominal 2θ (°)</th>
-                    <th className="py-2 px-3">d-spacing (Å)</th>
-                    <th className="py-2 px-3">Relative I (%)</th>
-                    <th className="py-2 px-3">Action</th>
+            <div className="overflow-x-auto max-h-72 overflow-y-auto custom-scrollbar">
+              <table className="w-full font-mono text-[11px] tabular-nums border-collapse">
+                <thead className="sticky top-0 z-10">
+                  <tr className={`border-b uppercase tracking-wider text-[9px] ${
+                    themeMode === "publication"
+                      ? "bg-slate-50 border-slate-200 text-slate-500"
+                      : "bg-[#070A12] border-slate-800 text-slate-400"
+                  }`}>
+                    <th className="py-2 px-3 text-left">Miller (hkl)</th>
+                    <th className="py-2 px-3 text-right">Calibrated 2θ (°)</th>
+                    <th className="py-2 px-3 text-right">Nominal 2θ (°)</th>
+                    <th className="py-2 px-3 text-right">Δ2θ (°)</th>
+                    <th className="py-2 px-3 text-right">d-spacing (Å)</th>
+                    <th className="py-2 px-3 text-right">Relative I (%)</th>
+                    <th className="py-2 px-3 text-right">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/50">
-                  {filteredReflections.map((ref, idx) => (
-                    <tr
-                      key={`ref-row-${idx}`}
-                      className={`hover:bg-indigo-500/10 transition-colors ${
-                        focusedTwoTheta === ref.twoTheta ? "bg-indigo-500/20" : ""
-                      }`}
-                    >
-                      <td className="py-2 px-3 font-bold text-rose-300">
-                        {ref.hkl ? `(${ref.hkl})` : "—"}
-                      </td>
-                      <td className="py-2 px-3 text-cyan-300 font-bold">{ref.twoTheta.toFixed(2)}°</td>
-                      <td className="py-2 px-3 text-slate-400">{ref.originalRefT.toFixed(2)}°</td>
-                      <td className="py-2 px-3 text-emerald-300">{ref.dSpacing.toFixed(4)} Å</td>
-                      <td className="py-2 px-3 text-slate-200">{ref.rawRefIntensity.toFixed(0)}</td>
-                      <td className="py-2 px-3">
-                        <button
-                          onClick={() => {
-                            setFocusedTwoTheta(ref.twoTheta);
-                            setTimeout(() => setFocusedTwoTheta(null), 3500);
-                          }}
-                          className="px-2 py-0.5 rounded bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 hover:bg-cyan-500/30 text-[9px]"
-                        >
-                          Focus Peak
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
+                <tbody className={`divide-y ${
+                  themeMode === "publication" ? "divide-slate-200" : "divide-slate-800/70"
+                }`}>
+                  {filteredReflections.map((ref, idx) => {
+                    const deltaTwoTheta = ref.twoTheta - ref.originalRefT;
+                    const barPct = Math.max(2, Math.min(100, ref.rawRefIntensity));
+                    return (
+                      <tr
+                        key={`ref-row-${idx}`}
+                        className={`transition-colors ${
+                          focusedTwoTheta === ref.twoTheta
+                            ? themeMode === "publication"
+                              ? "bg-cyan-50"
+                              : "bg-cyan-950/30"
+                            : themeMode === "publication"
+                            ? "hover:bg-slate-50"
+                            : "hover:bg-slate-800/40"
+                        }`}
+                      >
+                        <td className={`py-2 px-3 font-semibold text-left ${
+                          themeMode === "publication" ? "text-rose-700" : "text-rose-300"
+                        }`}>
+                          {ref.hkl ? `(${ref.hkl})` : "—"}
+                        </td>
+                        <td className={`py-2 px-3 text-right font-semibold ${
+                          themeMode === "publication" ? "text-cyan-800" : "text-cyan-300"
+                        }`}>
+                          {ref.twoTheta.toFixed(3)}°
+                        </td>
+                        <td className="py-2 px-3 text-right text-slate-500">
+                          {ref.originalRefT.toFixed(3)}°
+                        </td>
+                        <td className={`py-2 px-3 text-right ${
+                          Math.abs(deltaTwoTheta) < 0.001
+                            ? "text-slate-500"
+                            : themeMode === "publication"
+                            ? "text-amber-700"
+                            : "text-amber-300"
+                        }`}>
+                          {deltaTwoTheta >= 0 ? "+" : ""}{deltaTwoTheta.toFixed(3)}°
+                        </td>
+                        <td className={`py-2 px-3 text-right ${
+                          themeMode === "publication" ? "text-emerald-700" : "text-emerald-300"
+                        }`}>
+                          {ref.dSpacing.toFixed(4)}
+                        </td>
+                        <td className="py-2 px-3 text-right">
+                          <div className="inline-flex items-center gap-2 justify-end">
+                            <div className={`w-14 h-1.5 rounded-sm overflow-hidden ${
+                              themeMode === "publication" ? "bg-slate-200" : "bg-slate-800"
+                            }`}>
+                              <div
+                                className={themeMode === "publication" ? "h-full bg-indigo-600" : "h-full bg-cyan-400"}
+                                style={{ width: `${barPct}%` }}
+                              />
+                            </div>
+                            <span className="w-8 text-right">{ref.rawRefIntensity.toFixed(0)}</span>
+                          </div>
+                        </td>
+                        <td className="py-2 px-3 text-right">
+                          <div className="inline-flex items-center gap-1.5">
+                            <button
+                              onClick={() => {
+                                setFocusedTwoTheta(ref.twoTheta);
+                                setTimeout(() => setFocusedTwoTheta(null), 3500);
+                              }}
+                              className={`px-2 py-0.5 rounded-sm border text-[10px] font-semibold transition-colors ${
+                                themeMode === "publication"
+                                  ? "bg-white border-slate-300 text-slate-700 hover:bg-slate-100"
+                                  : "bg-[#060912] border-slate-700 text-cyan-300 hover:border-cyan-500/60"
+                              }`}
+                            >
+                              Focus
+                            </button>
+                            <button
+                              onClick={() =>
+                                handleSendToCaliper({
+                                  twoTheta: ref.twoTheta,
+                                  intensity: ref.rawRefIntensity,
+                                  dSpacing: ref.dSpacing,
+                                  q: calcQ(ref.twoTheta),
+                                })
+                              }
+                              className={`px-2 py-0.5 rounded-sm border text-[10px] font-semibold transition-colors ${
+                                themeMode === "publication"
+                                  ? "bg-amber-50 border-amber-300 text-amber-800 hover:bg-amber-100"
+                                  : "bg-amber-500/10 border-amber-500/40 text-amber-300 hover:bg-amber-500/20"
+                              }`}
+                            >
+                              Caliper
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -3767,202 +4553,319 @@ export const SpectralAlignmentVisualizer: React.FC<SpectralAlignmentVisualizerPr
 
       {/* PEAK APEX ULTRA-PRECISION INSPECTOR LENS MODAL */}
       <AnimatePresence>
-        {showPeakApexModal && inspectedPeak && (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-md"
-            onClick={() => setShowPeakApexModal(false)}
-          >
-            <div
-              className={`w-full max-w-2xl rounded-3xl border shadow-2xl p-6 font-mono text-xs flex flex-col gap-4 overflow-hidden relative ${
-                themeMode === "publication"
-                  ? "bg-white border-slate-300 text-slate-800"
-                  : "bg-gradient-to-br from-[#0B1124] to-[#070B18] border-cyan-500/40 text-slate-200"
-              }`}
-              onClick={(e) => e.stopPropagation()}
+        {showPeakApexModal && inspectedPeak && (() => {
+          const currentIdx = detectedPeaks.findIndex(
+            (p) => Math.abs(p.twoTheta - inspectedPeak.twoTheta) < 0.0005
+          );
+          const peakCount = detectedPeaks.length;
+          const canStep = peakCount > 1 && currentIdx >= 0;
+          const stepPeak = (dir: -1 | 1) => {
+            if (!canStep) return;
+            const nextIdx = (currentIdx + dir + peakCount) % peakCount;
+            setInspectedPeak(detectedPeaks[nextIdx]);
+          };
+
+          return (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm"
+              onClick={() => setShowPeakApexModal(false)}
             >
-              <div className="flex items-center justify-between pb-3 border-b border-cyan-500/30">
-                <div className="flex items-center gap-2.5">
-                  <div className="w-8 h-8 rounded-xl bg-cyan-500/20 border border-cyan-500/40 flex items-center justify-center">
-                    <Focus className="w-4 h-4 text-cyan-400 animate-pulse" />
+              <div
+                className={`w-full max-w-2xl rounded-lg border font-mono text-xs flex flex-col overflow-hidden relative ${
+                  themeMode === "publication"
+                    ? "bg-white border-slate-300 text-slate-900"
+                    : "bg-[#0B101B] border-slate-700 text-slate-200"
+                }`}
+                onClick={(e) => e.stopPropagation()}
+              >
+                {/* Modal Header */}
+                <div className={`flex items-center justify-between gap-3 px-5 py-3.5 border-b ${
+                  themeMode === "publication"
+                    ? "bg-slate-50 border-slate-200"
+                    : "bg-[#070A12] border-slate-800"
+                }`}>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className={`w-8 h-8 rounded-md border flex items-center justify-center shrink-0 ${
+                      themeMode === "publication"
+                        ? "bg-white border-slate-300 text-cyan-700"
+                        : "bg-[#0B101B] border-slate-700 text-cyan-400"
+                    }`}>
+                      <Focus className="w-4 h-4" />
+                    </div>
+                    <div className="min-w-0">
+                      <h4 className="font-bold text-xs uppercase tracking-wider truncate">
+                        Peak Apex Precision Lens (10× Magnifier)
+                      </h4>
+                      <p className="text-[10px] text-slate-500 truncate">
+                        Sub-millidegree centroid · FWHM half-max chord · Kα₁/Kα₂ doublet
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <h4 className="font-black text-sm uppercase tracking-wider text-white">
-                      Peak Apex Precision Inspector (10× Magnifier)
-                    </h4>
-                    <p className="text-[10px] text-cyan-400/80">
-                      Sub-milli-degree Centroid Fitting • FWHM Half-Max Chord • Doublet Deconvolution
-                    </p>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    {canStep && (
+                      <div className={`flex items-center rounded-md border overflow-hidden ${
+                        themeMode === "publication"
+                          ? "bg-white border-slate-300"
+                          : "bg-[#060912] border-slate-700"
+                      }`}>
+                        <button
+                          onClick={() => stepPeak(-1)}
+                          className={`p-1.5 transition-colors ${
+                            themeMode === "publication" ? "hover:bg-slate-100" : "hover:bg-slate-800"
+                          }`}
+                          title="Previous detected peak"
+                          aria-label="Previous peak"
+                        >
+                          <ChevronLeft className="w-3.5 h-3.5" />
+                        </button>
+                        <span className="px-2 text-[10px] tabular-nums text-slate-500 border-x border-slate-700/30">
+                          Peak {currentIdx + 1} / {peakCount}
+                        </span>
+                        <button
+                          onClick={() => stepPeak(1)}
+                          className={`p-1.5 transition-colors ${
+                            themeMode === "publication" ? "hover:bg-slate-100" : "hover:bg-slate-800"
+                          }`}
+                          title="Next detected peak"
+                          aria-label="Next peak"
+                        >
+                          <ChevronRight className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+                    )}
+                    <button
+                      onClick={() => setShowPeakApexModal(false)}
+                      className={`p-1.5 rounded-md transition-colors ${
+                        themeMode === "publication"
+                          ? "text-slate-500 hover:bg-slate-200 hover:text-slate-900"
+                          : "text-slate-400 hover:bg-slate-800 hover:text-white"
+                      }`}
+                      aria-label="Close peak apex lens"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
                   </div>
                 </div>
-                <button
-                  onClick={() => setShowPeakApexModal(false)}
-                  className="p-1.5 rounded-xl hover:bg-slate-800 text-slate-400 hover:text-white transition-colors"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
 
-              {/* Peak Parameter Grid with 4-5 Decimals */}
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
-                <div className="bg-[#050914] p-3 rounded-2xl border border-slate-800 flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400">Centroid (2θ)</span>
-                  <span className="text-base font-black text-cyan-300 mt-0.5">
-                    {inspectedPeak.twoTheta.toFixed(4)}°
-                  </span>
-                  <span className="text-[8px] text-slate-500">± 0.0002° fit error</span>
+                {/* Primary Telemetry Grid */}
+                <div className={`grid grid-cols-2 sm:grid-cols-4 divide-y sm:divide-y-0 sm:divide-x border-b tabular-nums ${
+                  themeMode === "publication"
+                    ? "border-slate-200 divide-slate-200"
+                    : "border-slate-800 divide-slate-800"
+                }`}>
+                  <div className="p-3.5 flex flex-col">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500">Centroid (2θ)</span>
+                    <span className={`text-base font-bold mt-0.5 ${
+                      themeMode === "publication" ? "text-cyan-800" : "text-cyan-300"
+                    }`}>
+                      {inspectedPeak.twoTheta.toFixed(4)}°
+                    </span>
+                    <span className="text-[9px] text-slate-500">±0.0002° fit</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500">d-spacing</span>
+                    <span className={`text-base font-bold mt-0.5 ${
+                      themeMode === "publication" ? "text-emerald-700" : "text-emerald-300"
+                    }`}>
+                      {calcD(inspectedPeak.twoTheta).toFixed(5)} Å
+                    </span>
+                    <span className="text-[9px] text-slate-500">λ={activeWavelength.toFixed(5)} Å</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500">Observed FWHM</span>
+                    <span className={`text-base font-bold mt-0.5 ${
+                      themeMode === "publication" ? "text-indigo-700" : "text-purple-300"
+                    }`}>
+                      {inspectedPeak.fwhmObs.toFixed(4)}°
+                    </span>
+                    <span className="text-[9px] text-slate-500">β<sub>sample</sub> {inspectedPeak.fwhmSample.toFixed(4)}°</span>
+                  </div>
+
+                  <div className="p-3.5 flex flex-col">
+                    <span className="text-[9px] uppercase tracking-wider text-slate-500">Scherrer Domain</span>
+                    <span className={`text-base font-bold mt-0.5 ${
+                      themeMode === "publication" ? "text-amber-700" : "text-amber-300"
+                    }`}>
+                      {inspectedPeak.crystalliteSizeNm} nm
+                    </span>
+                    <span className="text-[9px] text-slate-500">K={shapeFactorK}</span>
+                  </div>
                 </div>
 
-                <div className="bg-[#050914] p-3 rounded-2xl border border-slate-800 flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400">d-spacing</span>
-                  <span className="text-base font-black text-emerald-300 mt-0.5">
-                    {calcD(inspectedPeak.twoTheta).toFixed(5)} Å
-                  </span>
-                  <span className="text-[8px] text-slate-500">λ={activeWavelength.toFixed(5)}Å</span>
+                {/* Secondary Microstructure Telemetry */}
+                <div className={`grid grid-cols-3 divide-x border-b text-[10px] tabular-nums ${
+                  themeMode === "publication"
+                    ? "bg-slate-50 border-slate-200 divide-slate-200"
+                    : "bg-[#060912] border-slate-800 divide-slate-800"
+                }`}>
+                  <div className="px-4 py-2.5">
+                    <span className="text-slate-500 block text-[9px] uppercase tracking-wider">Net Intensity</span>
+                    <span className="font-semibold text-xs">
+                      {inspectedPeak.rawIntensity?.toLocaleString() || inspectedPeak.intensity?.toLocaleString()} cps
+                    </span>
+                  </div>
+                  <div className="px-4 py-2.5">
+                    <span className="text-slate-500 block text-[9px] uppercase tracking-wider">Integrated Area</span>
+                    <span className="font-semibold text-xs">
+                      {inspectedPeak.integratedArea?.toFixed(2)} counts·deg
+                    </span>
+                  </div>
+                  <div className="px-4 py-2.5">
+                    <span className="text-slate-500 block text-[9px] uppercase tracking-wider">Microstrain (ε)</span>
+                    <span className="font-semibold text-xs">
+                      {inspectedPeak.microstrainPct ? `${inspectedPeak.microstrainPct.toFixed(4)}%` : "N/A"}
+                    </span>
+                  </div>
                 </div>
 
-                <div className="bg-[#050914] p-3 rounded-2xl border border-slate-800 flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400">Observed FWHM</span>
-                  <span className="text-base font-black text-purple-300 mt-0.5">
-                    {inspectedPeak.fwhmObs.toFixed(4)}°
-                  </span>
-                  <span className="text-[8px] text-slate-500">β_sample: {inspectedPeak.fwhmSample.toFixed(4)}°</span>
-                </div>
-
-                <div className="bg-[#050914] p-3 rounded-2xl border border-slate-800 flex flex-col">
-                  <span className="text-[9px] uppercase tracking-wider text-slate-400">Scherrer Domain</span>
-                  <span className="text-base font-black text-amber-300 mt-0.5">
-                    {inspectedPeak.crystalliteSizeNm} nm
-                  </span>
-                  <span className="text-[8px] text-slate-500">Shape factor K={shapeFactorK}</span>
-                </div>
-              </div>
-
-              {/* Additional Microstructure Telemetry */}
-              <div className="grid grid-cols-3 gap-2.5 bg-[#050914]/80 p-3 rounded-2xl border border-slate-800/80 text-[10px]">
-                <div>
-                  <span className="text-slate-400 block">Peak Net Intensity:</span>
-                  <span className="font-bold text-white text-xs">
-                    {inspectedPeak.rawIntensity?.toLocaleString() || inspectedPeak.intensity?.toLocaleString()} cps
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">Integrated Area (AUC):</span>
-                  <span className="font-bold text-white text-xs">
-                    {inspectedPeak.integratedArea?.toFixed(2)} counts·deg
-                  </span>
-                </div>
-                <div>
-                  <span className="text-slate-400 block">Lattice Microstrain:</span>
-                  <span className="font-bold text-white text-xs">
-                    {inspectedPeak.microstrainPct ? `${inspectedPeak.microstrainPct.toFixed(4)}%` : "N/A"}
-                  </span>
-                </div>
-              </div>
-
-              {/* Peak Micro-Chart with 10x Zoom */}
-              <div className="h-48 w-full bg-[#040710] rounded-2xl border border-slate-800 p-2 relative overflow-hidden">
-                <ResponsiveContainer width="100%" height="100%">
-                  <ComposedChart
-                    data={chartData.filter(
-                      (d) => Math.abs(d.twoTheta - inspectedPeak.twoTheta) <= Math.max(1.0, inspectedPeak.fwhmObs * 4.5)
-                    )}
-                    margin={{ top: 10, right: 15, left: 10, bottom: 5 }}
-                  >
-                    <CartesianGrid strokeDasharray="2 4" stroke="#1e293b" opacity={0.6} />
-                    <XAxis
-                      dataKey="twoTheta"
-                      domain={["dataMin", "dataMax"]}
-                      stroke="#475569"
-                      tick={{ fill: "#94a3b8", fontSize: 9, fontFamily: "monospace" }}
-                      tickFormatter={(v) => Number(v).toFixed(3)}
-                    />
-                    <YAxis
-                      stroke="#475569"
-                      tick={{ fill: "#64748b", fontSize: 9, fontFamily: "monospace" }}
-                      width={36}
-                    />
-                    <ReferenceLine
-                      x={inspectedPeak.twoTheta}
-                      stroke="#22d3ee"
-                      strokeWidth={1.5}
-                      strokeDasharray="3 2"
-                      label={{ value: "Apex", position: "top", fill: "#22d3ee", fontSize: 8 }}
-                    />
-                    <Area
-                      type={curveInterpolation}
-                      dataKey="intensity"
-                      stroke="#06b6d4"
-                      fill="#06b6d4"
-                      fillOpacity={0.2}
-                      strokeWidth={2}
-                      name="Observed Diffractogram"
-                    />
-                    {showCalcProfile && (
-                      <Line
-                        type={curveInterpolation}
-                        dataKey="refIntensity"
-                        stroke="#f43f5e"
-                        strokeWidth={2}
-                        dot={false}
-                        name="Calculated Reference"
-                      />
-                    )}
-                    {showKaDoubletSplitCurves && enableKaDoublet && (
-                      <>
-                        <Line
-                          type={curveInterpolation}
-                          dataKey="refIntensityKa1"
-                          stroke="#10b981"
-                          strokeWidth={1.4}
+                {/* Peak Micro-Chart with 10x Zoom */}
+                <div className="p-4">
+                  <div className={`h-52 w-full rounded-md border p-2 relative overflow-hidden ${
+                    themeMode === "publication"
+                      ? "bg-white border-slate-200"
+                      : "bg-[#050811] border-slate-800"
+                  }`}>
+                    <ResponsiveContainer width="100%" height="100%">
+                      <ComposedChart
+                        data={chartData.filter(
+                          (d) => Math.abs(d.twoTheta - inspectedPeak.twoTheta) <= Math.max(1.0, inspectedPeak.fwhmObs * 4.5)
+                        )}
+                        margin={{ top: 12, right: 16, left: 8, bottom: 4 }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="2 4"
+                          stroke={themeMode === "publication" ? "#cbd5e1" : "#1e293b"}
+                          opacity={0.55}
+                        />
+                        <XAxis
+                          dataKey="twoTheta"
+                          type="number"
+                          domain={["dataMin", "dataMax"]}
+                          stroke={themeMode === "publication" ? "#64748b" : "#475569"}
+                          tick={{
+                            fill: themeMode === "publication" ? "#475569" : "#94a3b8",
+                            fontSize: 9,
+                            fontFamily: "monospace",
+                          }}
+                          tickFormatter={(v) => Number(v).toFixed(3)}
+                        />
+                        <YAxis
+                          stroke={themeMode === "publication" ? "#64748b" : "#475569"}
+                          tick={{
+                            fill: themeMode === "publication" ? "#475569" : "#64748b",
+                            fontSize: 9,
+                            fontFamily: "monospace",
+                          }}
+                          width={40}
+                        />
+                        <ReferenceLine
+                          x={inspectedPeak.twoTheta}
+                          stroke={themeMode === "publication" ? "#0284c7" : "#22d3ee"}
+                          strokeWidth={1.5}
                           strokeDasharray="3 2"
-                          dot={false}
-                          name="Kα1"
+                          label={{
+                            value: "Apex",
+                            position: "top",
+                            fill: themeMode === "publication" ? "#0284c7" : "#22d3ee",
+                            fontSize: 9,
+                          }}
                         />
-                        <Line
+                        <Area
                           type={curveInterpolation}
-                          dataKey="refIntensityKa2"
-                          stroke="#c084fc"
-                          strokeWidth={1.4}
-                          strokeDasharray="3 3"
-                          dot={false}
-                          name="Kα2"
+                          dataKey="intensity"
+                          stroke={themeMode === "publication" ? "#0f172a" : "#06b6d4"}
+                          fill={themeMode === "publication" ? "#0284c7" : "#06b6d4"}
+                          fillOpacity={themeMode === "publication" ? 0.12 : 0.2}
+                          strokeWidth={2}
+                          name="Observed Diffractogram"
+                          isAnimationActive={false}
                         />
-                      </>
-                    )}
-                  </ComposedChart>
-                </ResponsiveContainer>
-              </div>
+                        {showCalcProfile && (
+                          <Line
+                            type={curveInterpolation}
+                            dataKey="refIntensity"
+                            stroke="#e11d48"
+                            strokeWidth={2}
+                            dot={false}
+                            name="Calculated Reference"
+                            isAnimationActive={false}
+                          />
+                        )}
+                        {showKaDoubletSplitCurves && enableKaDoublet && (
+                          <>
+                            <Line
+                              type={curveInterpolation}
+                              dataKey="refIntensityKa1"
+                              stroke="#10b981"
+                              strokeWidth={1.4}
+                              strokeDasharray="3 2"
+                              dot={false}
+                              name="Kα1"
+                              isAnimationActive={false}
+                            />
+                            <Line
+                              type={curveInterpolation}
+                              dataKey="refIntensityKa2"
+                              stroke="#a855f7"
+                              strokeWidth={1.4}
+                              strokeDasharray="3 3"
+                              dot={false}
+                              name="Kα2"
+                              isAnimationActive={false}
+                            />
+                          </>
+                        )}
+                      </ComposedChart>
+                    </ResponsiveContainer>
+                  </div>
+                </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-800">
-                <button
-                  onClick={() => {
-                    handleSendToCaliper({
-                      twoTheta: inspectedPeak.twoTheta,
-                      intensity: inspectedPeak.intensity,
-                      dSpacing: calcD(inspectedPeak.twoTheta),
-                      q: calcQ(inspectedPeak.twoTheta),
-                    });
-                    setShowPeakApexModal(false);
-                  }}
-                  className="px-3.5 py-1.5 rounded-xl bg-amber-500/20 text-amber-300 border border-amber-500/40 hover:bg-amber-500/30 font-bold transition-all flex items-center gap-1.5"
-                >
-                  <Crosshair className="w-3.5 h-3.5" />
-                  Measure in Caliper
-                </button>
-                <button
-                  onClick={() => setShowPeakApexModal(false)}
-                  className="px-4 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold transition-all"
-                >
-                  Close Lens
-                </button>
+                {/* Action Footer */}
+                <div className={`flex items-center justify-between px-5 py-3 border-t ${
+                  themeMode === "publication"
+                    ? "bg-slate-50 border-slate-200"
+                    : "bg-[#070A12] border-slate-800"
+                }`}>
+                  <button
+                    onClick={() => {
+                      handleSendToCaliper({
+                        twoTheta: inspectedPeak.twoTheta,
+                        intensity: inspectedPeak.intensity,
+                        dSpacing: calcD(inspectedPeak.twoTheta),
+                        q: calcQ(inspectedPeak.twoTheta),
+                      });
+                      setShowPeakApexModal(false);
+                    }}
+                    className={`px-3 py-1.5 rounded-md border font-semibold transition-colors flex items-center gap-1.5 ${
+                      themeMode === "publication"
+                        ? "bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100"
+                        : "bg-amber-500/15 text-amber-300 border-amber-500/40 hover:bg-amber-500/25"
+                    }`}
+                  >
+                    <Crosshair className="w-3.5 h-3.5" />
+                    Measure in Caliper
+                  </button>
+                  <button
+                    onClick={() => setShowPeakApexModal(false)}
+                    className={`px-4 py-1.5 rounded-md border font-semibold transition-colors ${
+                      themeMode === "publication"
+                        ? "bg-white border-slate-300 text-slate-800 hover:bg-slate-100"
+                        : "bg-slate-800 border-slate-700 text-slate-200 hover:bg-slate-700"
+                    }`}
+                  >
+                    Close Lens
+                  </button>
+                </div>
               </div>
-            </div>
-          </motion.div>
-        )}
+            </motion.div>
+          );
+        })()}
       </AnimatePresence>
 
       {/* ADVANCED MICROSTRUCTURE & CRYSTALLITE DOMAIN SIZE INSPECTOR DRAWER */}

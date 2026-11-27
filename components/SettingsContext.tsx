@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { ColorVisionMode, ContrastLevel, ThemeId } from '../utils/themeSystem';
 
 export type LengthUnit = 'Å' | 'nm' | 'pm';
 
@@ -11,6 +12,14 @@ export interface SettingsState {
   animationsEnabled: boolean;
   lengthUnit: LengthUnit;
   setLengthUnit?: (unit: LengthUnit) => void;
+  theme?: ThemeId;
+  setTheme?: (theme: ThemeId) => void;
+  contrastBoost?: ContrastLevel;
+  setContrastBoost?: (level: ContrastLevel) => void;
+  colorVisionMode?: ColorVisionMode;
+  setColorVisionMode?: (mode: ColorVisionMode) => void;
+  followSystemTheme?: boolean;
+  setFollowSystemTheme?: (enabled: boolean) => void;
 }
 
 export const SettingsContext = createContext<SettingsState>({ 
@@ -22,6 +31,14 @@ export const SettingsContext = createContext<SettingsState>({
   animationsEnabled: true,
   lengthUnit: 'Å',
   setLengthUnit: () => {},
+  theme: 'light',
+  setTheme: () => {},
+  contrastBoost: 'standard',
+  setContrastBoost: () => {},
+  colorVisionMode: 'normal',
+  setColorVisionMode: () => {},
+  followSystemTheme: false,
+  setFollowSystemTheme: () => {},
 });
 
 export const useSettings = () => useContext(SettingsContext);
@@ -65,4 +82,3 @@ export const formatLength = (valueInAngstroms: number, unit: LengthUnit = 'Å', 
   const converted = convertLength(valueInAngstroms, unit);
   return `${converted.toFixed(precision)} ${unit}`;
 };
-

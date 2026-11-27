@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import { playSynthTone } from '../utils/sound';
 import { MathFormula, EquationPlate } from './common/MathFormula';
 import { getModuleMath } from './common/moduleMathCatalog';
+import { isDarkTheme } from '../utils/themeSystem';
 import {
   Search,
   X,
@@ -1275,7 +1276,7 @@ export const ScientificModuleNavigator: React.FC<ScientificModuleNavigatorProps>
 
   if (!isOpen) return null;
 
-  const isDark = theme === 'dark' || theme === 'cyberpunk';
+  const isDark = isDarkTheme(theme);
 
   return (
     <AnimatePresence mode="popLayout">

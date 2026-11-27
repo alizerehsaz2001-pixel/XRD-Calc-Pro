@@ -1,39 +1,23 @@
-import React, { useState, useMemo, useRef } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useCustomMaterialApply } from './CustomMaterialContext';
 import {
-  Layers,
-  FlaskConical,
-  Download,
-  Plus,
-  Trash2,
-  FileSpreadsheet,
-  Calculator,
-  Sparkles,
-  BarChart3,
-  PieChart as PieChartIcon,
-  Check,
-  BookOpen,
-  Scale,
-  Upload,
-  Database,
-  Sliders,
-  Copy,
-  CheckCircle2,
-  TrendingUp,
   AlertTriangle,
-  Cpu,
+  BarChart3,
+  BookOpen,
+  Calculator,
+  Check,
+  CheckCircle2,
   Code2,
-  GitMerge
+  Copy,
+  Cpu,
+  Database,
+  Download,
+  FileSpreadsheet,
+  FlaskConical,
+  GitMerge,
+  Layers
 } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'motion/react';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  Tooltip as RechartsTooltip
-} from 'recharts';
 import { playSynthTone } from '../utils/sound';
 import { RIRMatrixInspector, RIRMatrixPhase } from './rir/RIRMatrixInspector';
 import { RIRCalibrationStudio } from './rir/RIRCalibrationStudio';
@@ -43,14 +27,20 @@ import { RIRTheoryGuide } from './rir/RIRTheoryGuide';
 import { RIRScriptExport } from './rir/RIRScriptExport';
 import { RIRBrindleyInspector } from './rir/RIRBrindleyInspector';
 import { PawleyRIRBridge } from './rir/PawleyRIRBridge';
+import { RIRPhaseInputConsole } from './rir/RIRPhaseInputConsole';
+import { RIRVisualWorkbench, RIRVisualPhaseRow } from './rir/RIRVisualWorkbench';
 import {
-  computeRIRCovariance,
+  RADIATION_ANODES,
+  computeBraggReciprocal,
   computeDetectionLimits,
-  solveSelfConsistentBrindley,
-  computeSpikingUncertainty
+  computeHubbardSnyderI100,
+  computeRIRCovariance,
+  computeRIRDiagnostics,
+  computeSpikingAmorphousUncertainty,
+  computeSpikingUncertainty,
+  solveSelfConsistentBrindley
 } from './rir/rirMathUtils';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
-import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
 
 export interface RIRAssignedPeak {
   id: string;
@@ -66,29 +56,33 @@ export interface RIRPhase extends RIRMatrixPhase {
 }
 
 const COLOR_PALETTE = [
-  '#6366f1', // Indigo
+  '#06b6d4', // Cyan
   '#10b981', // Emerald
   '#f59e0b', // Amber
-  '#06b6d4', // Cyan
+  '#6366f1', // Indigo
   '#f43f5e', // Rose
   '#a855f7', // Purple
   '#3b82f6', // Blue
   '#ec4899', // Pink
   '#84cc16', // Lime
-  '#eab308', // Yellow
+  '#eab308'  // Yellow
 ];
 
 const MIXTURE_SCENARIOS = [
   {
+    id: 'titania',
+    shortName: 'TiO₂ Anatase/Rutile',
     name: 'Titania Photocatalyst Blend',
     description: 'Biphasic Anatase & Rutile nanoparticle synthesis mixture',
     amorphous: 5,
     phases: [
       { name: 'Anatase (TiO₂)', hkl: '(101)', twoTheta: 25.28, intensity: 7800, rir: 3.30, mac: 118.2, density: 3.89, notes: 'Photocatalytic phase' },
-      { name: 'Rutile (TiO₂)', hkl: '(110)', twoTheta: 27.44, intensity: 2100, rir: 3.40, mac: 118.2, density: 4.23, notes: 'Thermally stable phase' },
+      { name: 'Rutile (TiO₂)', hkl: '(110)', twoTheta: 27.44, intensity: 2100, rir: 3.40, mac: 118.2, density: 4.23, notes: 'Thermally stable phase' }
     ]
   },
   {
+    id: 'cement',
+    shortName: 'Portland Clinker',
     name: 'Portland Cement Clinker',
     description: 'Industrial anhydrous clinker phase distribution',
     amorphous: 2,
@@ -100,6 +94,8 @@ const MIXTURE_SCENARIOS = [
     ]
   },
   {
+    id: 'granite',
+    shortName: 'Granite Modal',
     name: 'Granite Rock Mineralogy',
     description: 'Igneous rock quantitative modal analysis with silica',
     amorphous: 0,
@@ -111,6 +107,8 @@ const MIXTURE_SCENARIOS = [
     ]
   },
   {
+    id: 'bioceramic',
+    shortName: 'HA / β-TCP Graft',
     name: 'Bone & Biomaterial Ceramic',
     description: 'Biphasic calcium phosphate (BCP) bone graft scaffold',
     amorphous: 10,
@@ -120,8 +118,10 @@ const MIXTURE_SCENARIOS = [
     ]
   },
   {
+    id: 'iron_ore',
+    shortName: 'Iron Ore Sinter',
     name: 'Iron Ore Sintering Powder',
-    description: 'Mining ore feed with oxides, carbonates and silica',
+    description: 'High-absorption-contrast Fe-oxide ore with quartz & calcite',
     amorphous: 0,
     phases: [
       { name: 'Hematite (α-Fe₂O₃)', hkl: '(104)', twoTheta: 33.15, intensity: 10500, rir: 2.70, mac: 211.2, density: 5.26, notes: 'Primary iron ore' },
@@ -133,72 +133,83 @@ const MIXTURE_SCENARIOS = [
 ];
 
 export const ReferenceIntensityRatioModule: React.FC = () => {
-  const { t } = useTranslation();
-  const fileInputRef = useRef<HTMLInputElement>(null);
-
   const [phases, setPhases] = useState<RIRPhase[]>([
     { id: '1', name: 'Quartz (α-SiO₂)', hkl: '(101)', twoTheta: 26.64, intensity: 8500, rir: 3.60, density: 2.65, mac: 34.9, notes: 'Primary Silica Phase', color: COLOR_PALETTE[0] },
     { id: '2', name: 'Calcite (CaCO₃)', hkl: '(104)', twoTheta: 29.40, intensity: 4200, rir: 2.00, density: 2.71, mac: 76.4, notes: 'Matrix Mineral', color: COLOR_PALETTE[1] },
-    { id: '3', name: 'Corundum (α-Al₂O₃)', hkl: '(113)', twoTheta: 43.36, intensity: 1500, rir: 1.00, density: 3.98, mac: 31.8, notes: 'Added Internal Standard (10 wt%)', color: COLOR_PALETTE[2] },
+    { id: '3', name: 'Corundum (α-Al₂O₃)', hkl: '(113)', twoTheta: 43.36, intensity: 1500, rir: 1.00, density: 3.98, mac: 31.8, notes: 'Added Internal Standard (10 wt%)', color: COLOR_PALETTE[2] }
   ]);
 
-  const [mainTab, setMainTab] = useState<'analysis' | 'pawley_bridge' | 'matrix' | 'calibration' | 'spectrum' | 'database' | 'microabsorption' | 'script' | 'theory'>('analysis');
+  const [activeScenarioId, setActiveScenarioId] = useState<string>('default');
+  const [anodeId, setAnodeId] = useState<'Cu' | 'Co' | 'Mo' | 'Cr'>('Cu');
+  const [mainTab, setMainTab] = useState<
+    'analysis' | 'pawley_bridge' | 'matrix' | 'calibration' | 'spectrum' | 'database' | 'microabsorption' | 'script' | 'theory'
+  >('analysis');
+
   const [amorphousWtPct, setAmorphousWtPct] = useState<number>(0);
   const [amorphousDensity, setAmorphousDensity] = useState<number>(2.2);
+  const [amorphousMac, setAmorphousMac] = useState<number>(30.0);
   const [internalStandardMode, setInternalStandardMode] = useState<boolean>(false);
   const [standardPhaseId, setStandardPhaseId] = useState<string>('3');
   const [standardAddedWtPct, setStandardAddedWtPct] = useState<number>(10.0);
   const [useBrindley, setUseBrindley] = useState<boolean>(false);
   const [particleDiameterUm, setParticleDiameterUm] = useState<number>(5.0);
 
-  // Uncertainty & Chart Mode State
   const [intensityUncertaintyPct, setIntensityUncertaintyPct] = useState<number>(3.0);
   const [rirUncertaintyPct, setRirUncertaintyPct] = useState<number>(5.0);
-  const [chartUnitMode, setChartUnitMode] = useState<'wt' | 'vol'>('wt');
   const [actionNotification, setActionNotification] = useState<string | null>(null);
   const [copiedReport, setCopiedReport] = useState(false);
   const [expandedMultiPeakPhases, setExpandedMultiPeakPhases] = useState<Record<string, boolean>>({});
+  const [calculationFlash, setCalculationFlash] = useState<boolean>(false);
+
+  const activeAnode = useMemo(
+    () => RADIATION_ANODES.find((a) => a.id === anodeId) || RADIATION_ANODES[0],
+    [anodeId]
+  );
+
+  const notify = (msg: string) => {
+    setActionNotification(msg);
+    setTimeout(() => setActionNotification(null), 3200);
+  };
 
   useCustomMaterialApply('rir', (mat) => {
     const strongest = [...mat.peaks].sort((a, b) => b.intensity - a.intensity)[0] || mat.peaks[0];
     const hklStr = strongest ? `(${strongest.h}${strongest.k}${strongest.l})` : '(111)';
+    const customPeaks: RIRAssignedPeak[] = mat.peaks.slice(0, 5).map((p, idx) => ({
+      id: `cpk-${idx}`,
+      hkl: `(${p.h}${p.k}${p.l})`,
+      twoTheta: Number(p.twoTheta.toFixed(2)),
+      intensity: Math.round(p.intensity * 80),
+      relIntensity: Math.max(1, Math.round(p.intensity))
+    }));
+    const hs = computeHubbardSnyderI100(customPeaks);
     const customPhase: RIRPhase = {
       id: `custom-rir-${mat.id}`,
       name: `${mat.name} (${mat.formula})`,
       hkl: hklStr,
       twoTheta: Number((strongest?.twoTheta || 32.0).toFixed(2)),
-      intensity: Math.round((strongest?.intensity || 100) * 80),
+      intensity: hs.equivI100 || Math.round((strongest?.intensity || 100) * 80),
       rir: Number((mat.rir || 2.5).toFixed(2)),
       density: Number((mat.density || 5.0).toFixed(2)),
       mac: Number((mat.massAttenuation || 65.0).toFixed(1)),
-      notes: `Custom Material (${mat.crystalSystem} • ${mat.spaceGroup})`,
+      notes: `Custom Material (${mat.crystalSystem} · ${mat.spaceGroup})`,
       color: '#0891b2',
-      peaks: mat.peaks.slice(0, 5).map((p, idx) => ({
-        id: `cpk-${idx}`,
-        hkl: `(${p.h}${p.k}${p.l})`,
-        twoTheta: Number(p.twoTheta.toFixed(2)),
-        intensity: Math.round(p.intensity * 80),
-        relIntensity: Math.max(1, Math.round(p.intensity)),
-      })),
+      peaks: customPeaks
     };
     setPhases((prev) => {
       const existsIdx = prev.findIndex((p) => p.id === customPhase.id);
-      if (existsIdx >= 0) {
-        return prev.map((p, i) => (i === existsIdx ? customPhase : p));
-      }
+      if (existsIdx >= 0) return prev.map((p, i) => (i === existsIdx ? customPhase : p));
       return [customPhase, ...prev];
     });
-    setActionNotification(`Added / updated custom phase "${mat.name}" (RIR = ${customPhase.rir}, μ/ρ = ${customPhase.mac} cm²/g)`);
-    setTimeout(() => setActionNotification(null), 3500);
+    setActiveScenarioId('custom');
+    notify(`Added custom phase "${mat.name}" (RIR = ${customPhase.rir}, μ/ρ = ${customPhase.mac} cm²/g).`);
     playSynthTone('tick');
   });
 
-  // Add Phase
+  // Phase management handlers
   const addPhase = () => {
     playSynthTone('tick');
     const newId = Math.random().toString(36).substring(2, 9);
-    const colorIndex = phases.length % COLOR_PALETTE.length;
-    setPhases(prev => [
+    setPhases((prev) => [
       ...prev,
       {
         id: newId,
@@ -210,17 +221,16 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         density: 3.0,
         mac: 50.0,
         notes: 'User defined phase',
-        color: COLOR_PALETTE[colorIndex]
+        color: COLOR_PALETTE[prev.length % COLOR_PALETTE.length]
       }
     ]);
+    setActiveScenarioId('custom');
   };
 
-  // Add Preset from Database
   const addPresetPhase = (preset: RIRDatabaseItem) => {
     playSynthTone('success');
     const newId = Math.random().toString(36).substring(2, 9);
-    const colorIndex = phases.length % COLOR_PALETTE.length;
-    setPhases(prev => [
+    setPhases((prev) => [
       ...prev,
       {
         id: newId,
@@ -232,20 +242,20 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         density: preset.density || 3.0,
         mac: preset.macCu,
         notes: `PDF ${preset.pdfCard} (${preset.crystalSystem})`,
-        color: COLOR_PALETTE[colorIndex]
+        color: COLOR_PALETTE[prev.length % COLOR_PALETTE.length]
       }
     ]);
-    setActionNotification(`Added ${preset.name} to mixture.`);
-    setTimeout(() => setActionNotification(null), 3000);
+    setActiveScenarioId('custom');
+    notify(`Added ${preset.name} (RIR = ${preset.rir}) to mixture.`);
   };
 
-  // Load Preset Scenario
   const loadScenario = (scenario: typeof MIXTURE_SCENARIOS[0]) => {
     playSynthTone('success');
+    setActiveScenarioId(scenario.id);
     setAmorphousWtPct(scenario.amorphous);
     setInternalStandardMode(false);
     const loadedPhases: RIRPhase[] = scenario.phases.map((p, idx) => ({
-      id: Math.random().toString(36).substring(2, 9),
+      id: `${scenario.id}-${idx + 1}`,
       name: p.name,
       hkl: p.hkl,
       twoTheta: p.twoTheta,
@@ -257,152 +267,193 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       color: COLOR_PALETTE[idx % COLOR_PALETTE.length]
     }));
     setPhases(loadedPhases);
-    setActionNotification(`Loaded "${scenario.name}" scenario!`);
-    setTimeout(() => setActionNotification(null), 3000);
+    setStandardPhaseId(loadedPhases[loadedPhases.length - 1]?.id || '1');
+    notify(`Loaded "${scenario.name}" benchmark mixture.`);
   };
 
   const updatePhase = (id: string, field: keyof RIRPhase, value: string | number) => {
-    setPhases(prev => prev.map(p => p.id === id ? { ...p, [field]: value } : p));
+    setPhases((prev) => prev.map((p) => (p.id === id ? { ...p, [field]: value } : p)));
+    setActiveScenarioId('custom');
   };
 
-  const toggleMultiPeakDrawer = (phaseId: string) => {
-    playSynthTone('tick');
-    setExpandedMultiPeakPhases(prev => ({ ...prev, [phaseId]: !prev[phaseId] }));
+  const applyDBPresetToPhase = (id: string, presetName: string) => {
+    const selected = DATABASE_PRESETS.find((p) => p.name === presetName);
+    if (!selected) return;
+    playSynthTone('success');
+    setPhases((prev) =>
+      prev.map((p) =>
+        p.id === id
+          ? {
+              ...p,
+              name: selected.name,
+              hkl: selected.hkl,
+              twoTheta: selected.twoTheta,
+              rir: selected.rir,
+              density: selected.density || 3.0,
+              mac: selected.macCu,
+              notes: `PDF ${selected.pdfCard}`
+            }
+          : p
+      )
+    );
+    setActiveScenarioId('custom');
   };
 
-  const addAssignedPeakToPhase = (phaseId: string) => {
-    playSynthTone('tick');
-    setPhases(prev => prev.map(p => {
-      if (p.id !== phaseId) return p;
-      const existingPeaks: RIRAssignedPeak[] = p.peaks && p.peaks.length > 0
-        ? p.peaks
-        : [{
-            id: `${p.id}-pk1`,
-            hkl: p.hkl || '(100)',
-            twoTheta: p.twoTheta || 30.0,
-            intensity: p.intensity || 0,
-            relIntensity: p.relIntensity || 100
-          }];
-      const nextIdx = existingPeaks.length + 1;
-      const newPeaks: RIRAssignedPeak[] = [
-        ...existingPeaks,
-        {
-          id: `${p.id}-pk-${Math.random().toString(36).substring(2, 7)}`,
-          hkl: `(00${nextIdx})`,
-          twoTheta: Number(((p.twoTheta || 25) + nextIdx * 6.5).toFixed(2)),
-          intensity: Math.round((p.intensity || 1000) * 0.5),
-          relIntensity: 50
-        }
-      ];
-      const activePeaks = newPeaks.filter(pk => (pk.intensity || 0) > 0);
-      const equivI100 = activePeaks.length > 0
-        ? Math.round(activePeaks.reduce((sum, pk) => sum + pk.intensity / ((pk.relIntensity || 100) / 100), 0) / activePeaks.length)
-        : 0;
-      return {
-        ...p,
-        peaks: newPeaks,
-        intensity: equivI100,
-        relIntensity: 100
-      };
+  const applyBulkPhases = (newPhases: Omit<RIRPhase, 'id' | 'color'>[]) => {
+    if (newPhases.length === 0) return;
+    playSynthTone('success');
+    const built: RIRPhase[] = newPhases.map((np, idx) => ({
+      ...np,
+      id: `bulk-${idx + 1}-${Math.random().toString(36).substring(2, 5)}`,
+      color: COLOR_PALETTE[idx % COLOR_PALETTE.length]
     }));
-  };
-
-  const updateAssignedPeak = (phaseId: string, peakId: string, field: keyof RIRAssignedPeak, val: string | number) => {
-    setPhases(prev => prev.map(p => {
-      if (p.id !== phaseId || !p.peaks) return p;
-      const updatedPeaks = p.peaks.map(pk => pk.id === peakId ? { ...pk, [field]: val } : pk);
-      const activePeaks = updatedPeaks.filter(pk => (pk.intensity || 0) > 0);
-      const equivI100 = activePeaks.length > 0
-        ? Math.round(activePeaks.reduce((sum, pk) => sum + pk.intensity / (Math.max(1, pk.relIntensity || 100) / 100), 0) / activePeaks.length)
-        : 0;
-      return {
-        ...p,
-        peaks: updatedPeaks,
-        hkl: updatedPeaks[0]?.hkl || p.hkl,
-        twoTheta: updatedPeaks[0]?.twoTheta || p.twoTheta,
-        intensity: equivI100,
-        relIntensity: 100
-      };
-    }));
-  };
-
-  const removeAssignedPeak = (phaseId: string, peakId: string) => {
-    playSynthTone('tick');
-    setPhases(prev => prev.map(p => {
-      if (p.id !== phaseId || !p.peaks) return p;
-      const updatedPeaks = p.peaks.filter(pk => pk.id !== peakId);
-      if (updatedPeaks.length === 0) {
-        return { ...p, peaks: undefined };
-      }
-      const activePeaks = updatedPeaks.filter(pk => (pk.intensity || 0) > 0);
-      const equivI100 = activePeaks.length > 0
-        ? Math.round(activePeaks.reduce((sum, pk) => sum + pk.intensity / (Math.max(1, pk.relIntensity || 100) / 100), 0) / activePeaks.length)
-        : 0;
-      return {
-        ...p,
-        peaks: updatedPeaks,
-        hkl: updatedPeaks[0].hkl,
-        twoTheta: updatedPeaks[0].twoTheta,
-        intensity: equivI100,
-        relIntensity: 100
-      };
-    }));
+    setPhases(built);
+    setStandardPhaseId(built[built.length - 1]?.id || built[0].id);
+    setActiveScenarioId('custom');
+    notify(`Imported ${built.length} phases from bulk CSV data.`);
   };
 
   const removePhase = (id: string) => {
     playSynthTone('tick');
-    setPhases(prev => prev.filter(p => p.id !== id));
+    setPhases((prev) => prev.filter((p) => p.id !== id));
+    setActiveScenarioId('custom');
   };
 
-  // Normalize peak intensities
+  // Multi-Peak Hubbard-Snyder handlers
+  const toggleMultiPeakDrawer = (phaseId: string) => {
+    playSynthTone('tick');
+    setExpandedMultiPeakPhases((prev) => ({ ...prev, [phaseId]: !prev[phaseId] }));
+  };
+
+  const addAssignedPeakToPhase = (phaseId: string) => {
+    playSynthTone('tick');
+    setPhases((prev) =>
+      prev.map((p) => {
+        if (p.id !== phaseId) return p;
+        const existingPeaks: RIRAssignedPeak[] =
+          p.peaks && p.peaks.length > 0
+            ? p.peaks
+            : [
+                {
+                  id: `${p.id}-pk1`,
+                  hkl: p.hkl || '(100)',
+                  twoTheta: p.twoTheta || 30.0,
+                  intensity: p.intensity || 0,
+                  relIntensity: p.relIntensity || 100
+                }
+              ];
+        const nextIdx = existingPeaks.length + 1;
+        const newPeaks: RIRAssignedPeak[] = [
+          ...existingPeaks,
+          {
+            id: `${p.id}-pk-${Math.random().toString(36).substring(2, 7)}`,
+            hkl: `(00${nextIdx})`,
+            twoTheta: Number(((p.twoTheta || 25) + nextIdx * 6.5).toFixed(2)),
+            intensity: Math.round((p.intensity || 1000) * 0.5),
+            relIntensity: 50
+          }
+        ];
+        const hs = computeHubbardSnyderI100(newPeaks);
+        return {
+          ...p,
+          peaks: newPeaks,
+          intensity: hs.equivI100,
+          relIntensity: 100
+        };
+      })
+    );
+  };
+
+  const updateAssignedPeak = (phaseId: string, peakId: string, field: keyof RIRAssignedPeak, val: string | number) => {
+    setPhases((prev) =>
+      prev.map((p) => {
+        if (p.id !== phaseId || !p.peaks) return p;
+        const updatedPeaks = p.peaks.map((pk) => (pk.id === peakId ? { ...pk, [field]: val } : pk));
+        const hs = computeHubbardSnyderI100(updatedPeaks);
+        return {
+          ...p,
+          peaks: updatedPeaks,
+          hkl: updatedPeaks[0]?.hkl || p.hkl,
+          twoTheta: updatedPeaks[0]?.twoTheta || p.twoTheta,
+          intensity: hs.equivI100,
+          relIntensity: 100
+        };
+      })
+    );
+  };
+
+  const removeAssignedPeak = (phaseId: string, peakId: string) => {
+    playSynthTone('tick');
+    setPhases((prev) =>
+      prev.map((p) => {
+        if (p.id !== phaseId || !p.peaks) return p;
+        const updatedPeaks = p.peaks.filter((pk) => pk.id !== peakId);
+        if (updatedPeaks.length === 0) return { ...p, peaks: undefined };
+        const hs = computeHubbardSnyderI100(updatedPeaks);
+        return {
+          ...p,
+          peaks: updatedPeaks,
+          hkl: updatedPeaks[0].hkl,
+          twoTheta: updatedPeaks[0].twoTheta,
+          intensity: hs.equivI100,
+          relIntensity: 100
+        };
+      })
+    );
+  };
+
   const normalizeIntensities = () => {
     if (phases.length === 0) return;
     playSynthTone('success');
-    const maxInt = Math.max(...phases.map(p => p.intensity || 0));
+    const maxInt = Math.max(...phases.map((p) => p.intensity || 0));
     if (maxInt <= 0) return;
-    setPhases(prev => prev.map(p => ({
-      ...p,
-      intensity: Math.round(((p.intensity || 0) / maxInt) * 10000)
-    })));
-    setActionNotification('Normalized Bragg peak intensities to 10,000 max.');
-    setTimeout(() => setActionNotification(null), 3000);
+    setPhases((prev) =>
+      prev.map((p) => ({
+        ...p,
+        intensity: Math.round(((p.intensity || 0) / maxInt) * 10000)
+      }))
+    );
+    notify('Normalized peak intensities to 10,000 cps maximum.');
   };
 
-  // Apply Calibrated RIR
   const handleApplyCalibratedRIR = (targetId: string, calibratedRIRValue: number) => {
     playSynthTone('success');
     updatePhase(targetId, 'rir', calibratedRIRValue);
+    notify(`Applied calibrated RIR = ${calibratedRIRValue.toFixed(3)} to phase.`);
   };
 
-  // Pawley/Le Bail Bridge Handlers
   const handleImportPawleyPhase = (newPhase: RIRMatrixPhase & { peaks?: RIRAssignedPeak[] }) => {
     playSynthTone('success');
-    const colorIndex = phases.length % COLOR_PALETTE.length;
-    setPhases(prev => [
+    setPhases((prev) => [
       ...prev,
       {
         ...newPhase,
-        notes: `Imported from Pawley Whole-Pattern Refinement (${newPhase.hkl})`,
-        color: COLOR_PALETTE[colorIndex]
+        notes: `Imported from Pawley Refinement (${newPhase.hkl})`,
+        color: COLOR_PALETTE[prev.length % COLOR_PALETTE.length]
       }
     ]);
-    setActionNotification(`Imported ${newPhase.name} from Pawley deconvolution.`);
-    setTimeout(() => setActionNotification(null), 3500);
+    notify(`Imported ${newPhase.name} from Pawley deconvolution.`);
   };
 
   const handleUpdatePawleyIntensity = (phaseId: string, refinedIntensity: number) => {
     playSynthTone('success');
     updatePhase(phaseId, 'intensity', refinedIntensity);
-    const pName = phases.find(p => p.id === phaseId)?.name || 'Phase';
-    setActionNotification(`Updated ${pName} peak intensity to ${refinedIntensity} cps.`);
-    setTimeout(() => setActionNotification(null), 3500);
+    const pName = phases.find((p) => p.id === phaseId)?.name || 'Phase';
+    notify(`Updated ${pName} intensity to ${refinedIntensity} cps.`);
   };
 
-  // Real-time Quantitative Calculations (Self-Consistent Brindley + Adiabatic / Internal Standard Spiking)
+  const handleRunQuantification = () => {
+    playSynthTone('success');
+    setCalculationFlash(true);
+    setTimeout(() => setCalculationFlash(false), 1200);
+    setTimeout(() => {
+      document.getElementById('rir-results-summary-table')?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }, 80);
+  };
+
+  // Core Quantitative Engine (Volume-Weighted Brindley + Exact Density-Jacobian Covariance + Hubbard-Snyder)
   const calculations = useMemo(() => {
-    const brindleySol = useBrindley
-      ? solveSelfConsistentBrindley(phases, particleDiameterUm)
-      : null;
+    const brindleySol = useBrindley ? solveSelfConsistentBrindley(phases, particleDiameterUm) : null;
 
     const effPhases = phases.map((p, idx) => {
       const rho = p.density && p.density > 0 ? p.density : 3.0;
@@ -411,12 +462,16 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       const relIntensityPct = p.relIntensity && p.relIntensity > 0 ? p.relIntensity : 100;
       const relScale = relIntensityPct / 100;
       const normI100 = (p.intensity || 0) / relScale;
-      const tau = brindleySol ? (brindleySol.phaseStates[idx]?.tau ?? 1.0) : 1.0;
+      const tau = brindleySol ? brindleySol.phaseStates[idx]?.tau ?? 1.0 : 1.0;
       const effI = normI100 / tau;
       const rI = effI / (p.rir > 0 ? p.rir : 1.0);
-      const assignedPeakCount = p.peaks && p.peaks.length > 0
-        ? p.peaks.filter(pk => (pk.intensity || 0) > 0).length
-        : ((p.intensity || 0) > 0 ? 1 : 0);
+      const assignedPeakCount =
+        p.peaks && p.peaks.length > 0
+          ? p.peaks.filter((pk) => (pk.intensity || 0) > 0).length
+          : (p.intensity || 0) > 0
+          ? 1
+          : 0;
+      const hs = p.peaks && p.peaks.length > 1 ? computeHubbardSnyderI100(p.peaks) : null;
 
       return {
         ...p,
@@ -428,7 +483,8 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         tau,
         effI,
         rI,
-        assignedPeakCount
+        assignedPeakCount,
+        textureCvPct: hs?.textureCvPct ?? 0
       };
     });
 
@@ -439,31 +495,45 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     const relErrRIR = (rirUncertaintyPct || 0) / 100;
     const baseRelError = Math.sqrt(relErrI * relErrI + relErrRIR * relErrRIR);
 
-    // Check internal standard spiking mode
-    const standardPhase = internalStandardMode ? effPhases.find(p => p.id === standardPhaseId) : null;
+    // Internal standard spiking evaluation
+    const standardPhase = internalStandardMode ? effPhases.find((p) => p.id === standardPhaseId) : null;
     const standardSpikedFrac = Math.min(0.95, Math.max(0.01, (standardAddedWtPct || 10.0) / 100));
     const isInternalStandardActive = !!(standardPhase && standardPhase.rI > 0);
 
     let measuredAmorphousPct = amorphousWtPct;
-    let originalSampleCrystSum = 0;
+    let rawOriginalSampleCrystSum = 100 - amorphousWtPct;
+    const spikingAnalyteWeights: number[] = [];
 
     if (isInternalStandardActive && standardPhase) {
+      rawOriginalSampleCrystSum = 0;
       const mult = standardSpikedFrac / (1 - standardSpikedFrac);
-      effPhases.forEach(p => {
+      effPhases.forEach((p) => {
         if (p.id !== standardPhase.id) {
-          originalSampleCrystSum += mult * (p.rI / standardPhase.rI) * 100;
+          const wOrig = mult * (p.rI / standardPhase.rI) * 100;
+          rawOriginalSampleCrystSum += wOrig;
+          spikingAnalyteWeights.push(wOrig);
         }
       });
-      measuredAmorphousPct = Math.max(0, Number((100 - originalSampleCrystSum).toFixed(2)));
+      measuredAmorphousPct = Math.max(0, Number((100 - rawOriginalSampleCrystSum).toFixed(2)));
     }
+
+    const amorphousErrWtPct = isInternalStandardActive
+      ? computeSpikingAmorphousUncertainty(
+          spikingAnalyteWeights,
+          standardAddedWtPct,
+          intensityUncertaintyPct,
+          rirUncertaintyPct
+        )
+      : 0;
 
     const effectiveAmorphousWtPct = isInternalStandardActive ? measuredAmorphousPct : amorphousWtPct;
     const amorphousFactor = Math.max(0, (100 - Math.min(99.5, Math.max(0, effectiveAmorphousWtPct))) / 100);
     const rhoAmorphous = amorphousDensity > 0 ? amorphousDensity : 2.2;
+    const macAmorphous = amorphousMac > 0 ? amorphousMac : 30.0;
 
-    // Covariance analysis for adiabatic Chung normalization
+    // Exact Jacobian covariance for both wt% and density-weighted vol%
     const covarAnalysis = computeRIRCovariance(
-      effPhases.map(p => ({
+      effPhases.map((p) => ({
         id: p.id,
         name: p.name,
         hkl: p.hkl,
@@ -477,21 +547,21 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       rirUncertaintyPct
     );
 
-    // Phase weight fractions (crystalline basis & bulk total sample basis)
     const rawWeights = effPhases.map((p, idx) => {
       if (isInternalStandardActive && standardPhase) {
         if (p.id === standardPhase.id) {
           return {
             crystWt: 0,
-            totalWt: 0, // excluded from unspiked sample basis
+            totalWt: 0,
             spikedBlendWt: standardSpikedFrac * 100,
             errCryst: 0,
-            errTotal: 0
+            errTotal: 0,
+            errCrystVol: 0
           };
         }
         const mult = standardSpikedFrac / (1 - standardSpikedFrac);
         const wOrig = mult * (p.rI / standardPhase.rI) * 100;
-        const wCryst = originalSampleCrystSum > 0 ? (wOrig / originalSampleCrystSum) * 100 : 0;
+        const wCryst = rawOriginalSampleCrystSum > 0 ? (wOrig / rawOriginalSampleCrystSum) * 100 : 0;
         const sigmaTotal = computeSpikingUncertainty(
           p.effI,
           standardPhase.effI,
@@ -502,35 +572,38 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
           intensityUncertaintyPct,
           rirUncertaintyPct
         );
-        const sigmaCryst = originalSampleCrystSum > 0 ? (sigmaTotal / Math.max(1e-6, originalSampleCrystSum / 100)) : 0;
+        const sigmaCryst =
+          rawOriginalSampleCrystSum > 0 ? sigmaTotal / Math.max(1e-6, rawOriginalSampleCrystSum / 100) : 0;
         return {
           crystWt: wCryst,
           totalWt: wOrig,
           spikedBlendWt: wOrig * (1 - standardSpikedFrac),
           errCryst: sigmaCryst,
-          errTotal: sigmaTotal
+          errTotal: sigmaTotal,
+          errCrystVol: sigmaCryst
         };
       }
 
       const wCryst = totalReducedIntensity > 0 ? (p.rI / totalReducedIntensity) * 100 : 0;
       const wTotal = wCryst * amorphousFactor;
-      const analyticalSigmaCryst = covarAnalysis.stdDevW?.[idx] !== undefined
-        ? covarAnalysis.stdDevW[idx] * 100
-        : wCryst * baseRelError;
+      const analyticalSigmaCryst =
+        covarAnalysis.stdDevW?.[idx] !== undefined ? covarAnalysis.stdDevW[idx] * 100 : wCryst * baseRelError;
+      const analyticalSigmaVol =
+        covarAnalysis.stdDevV?.[idx] !== undefined ? covarAnalysis.stdDevV[idx] * 100 : wCryst * baseRelError;
       return {
         crystWt: wCryst,
         totalWt: wTotal,
         spikedBlendWt: wTotal,
         errCryst: analyticalSigmaCryst,
-        errTotal: analyticalSigmaCryst * amorphousFactor
+        errTotal: analyticalSigmaCryst * amorphousFactor,
+        errCrystVol: analyticalSigmaVol
       };
     });
 
-    // True bulk mixture MAC & bulk density for crystalline + amorphous composite
+    // Bulk MAC & Density
     const crystOnlyMac = rawWeights.reduce((acc, rw, i) => acc + (rw.crystWt / 100) * effPhases[i].mac, 0);
-    const totalSampleMAC = crystOnlyMac * amorphousFactor + (effectiveAmorphousWtPct / 100) * 30.0;
+    const totalSampleMAC = crystOnlyMac * amorphousFactor + (effectiveAmorphousWtPct / 100) * macAmorphous;
 
-    // Crystalline & bulk volume fractions
     const crystVolRaw = rawWeights.map((rw, i) => rw.crystWt / effPhases[i].rho);
     const sumCrystVolRaw = crystVolRaw.reduce((s, v) => s + v, 0);
 
@@ -538,11 +611,13 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     const amorphousVolRaw = effectiveAmorphousWtPct > 0 ? effectiveAmorphousWtPct / rhoAmorphous : 0;
     const sumBulkVolRaw = bulkVolRaw.reduce((s, v) => s + v, 0) + amorphousVolRaw;
     const amorphousVolPct = sumBulkVolRaw > 0 ? (amorphousVolRaw / sumBulkVolRaw) * 100 : 0;
-    const bulkDensity = sumBulkVolRaw > 0 ? 100 / sumBulkVolRaw : 3.0;
 
-    // Concentration-calibrated LOD/LOQ and mixture-absorption penetration depths
+    const totalSampleWtSum =
+      rawWeights.reduce((s, rw) => s + rw.totalWt, 0) + effectiveAmorphousWtPct;
+    const bulkDensity = sumBulkVolRaw > 0 ? totalSampleWtSum / sumBulkVolRaw : 3.0;
+
     const detectionLimits = computeDetectionLimits(
-      effPhases.map(p => ({
+      effPhases.map((p) => ({
         id: p.id,
         name: p.name,
         hkl: p.hkl,
@@ -554,21 +629,35 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       })),
       80,
       totalSampleMAC || 65.0,
-      rawWeights.map(rw => rw.totalWt),
+      rawWeights.map((rw) => rw.totalWt),
       bulkDensity
     );
 
-    const phaseResults = effPhases.map((p, idx) => {
+    const bulkVolScale = sumBulkVolRaw > 0 ? (sumBulkVolRaw - amorphousVolRaw) / sumBulkVolRaw : 1;
+
+    const phaseResults: RIRVisualPhaseRow[] = effPhases.map((p, idx) => {
       const rw = rawWeights[idx];
       const crystallineVolFraction = sumCrystVolRaw > 0 ? (crystVolRaw[idx] / sumCrystVolRaw) * 100 : 0;
       const totalSampleVolFraction = sumBulkVolRaw > 0 ? (bulkVolRaw[idx] / sumBulkVolRaw) * 100 : 0;
-      const errMarginVol = crystallineVolFraction * baseRelError;
+      const errMarginVol = rw.errCrystVol;
+      const errMarginBulkVol = isInternalStandardActive
+        ? totalSampleVolFraction > 0 && rw.totalWt > 0
+          ? rw.errTotal * (totalSampleVolFraction / rw.totalWt)
+          : 0
+        : errMarginVol * bulkVolScale;
       const dl = detectionLimits[idx];
 
       return {
-        ...p,
-        reducedIntensity: p.rI,
+        id: p.id,
+        name: p.name,
+        hkl: p.hkl,
+        twoTheta: p.twoTheta,
+        intensity: p.intensity,
+        rir: p.rir,
         tau: p.tau,
+        density: p.rho,
+        mac: p.mac,
+        reducedIntensity: p.rI,
         crystallineFraction: rw.crystWt,
         totalSampleFraction: rw.totalWt,
         crystallineVolFraction,
@@ -576,16 +665,29 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         errMarginCrystalline: rw.errCryst,
         errMarginTotal: rw.errTotal,
         errMarginVol,
+        errMarginBulkVol,
         lodWtPct: dl?.lodWtPct ?? 0.5,
-        loqWtPct: dl?.loqWtPct ?? 1.5,
         penetrationDepthUm: dl?.penetrationDepthUm ?? 25.0,
+        textureCvPct: p.textureCvPct,
         isInternalStandard: p.id === standardPhaseId && isInternalStandardActive,
         color: p.color || COLOR_PALETTE[idx % COLOR_PALETTE.length]
       };
     });
 
-    const assignedPhasesCount = phaseResults.filter(p => (p.intensity || 0) > 0).length;
-    const assignedPeaksCount = phaseResults.reduce((acc, p) => acc + p.assignedPeakCount, 0);
+    const diagnostics = computeRIRDiagnostics({
+      phases: phaseResults,
+      anodeId,
+      useBrindley,
+      particleDiameterUm,
+      isInternalStandardActive,
+      rawOriginalSampleCrystSum
+    });
+
+    const assignedPhasesCount = phaseResults.filter((p) => (p.intensity || 0) > 0).length;
+    const assignedPeaksCount = effPhases.reduce((acc, p) => acc + p.assignedPeakCount, 0);
+    const sumCrystallineWtPct = phaseResults.reduce((s, p) => s + p.crystallineFraction, 0);
+    const sumBulkWtPct = phaseResults.reduce((s, p) => s + p.totalSampleFraction, 0) + effectiveAmorphousWtPct;
+    const sumBulkVolPct = phaseResults.reduce((s, p) => s + p.totalSampleVolFraction, 0) + amorphousVolPct;
 
     return {
       totalObservedIntensity,
@@ -594,7 +696,9 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       amorphousFactor,
       effectiveAmorphousWtPct,
       amorphousVolPct,
+      amorphousErrWtPct,
       measuredAmorphousPct,
+      rawOriginalSampleCrystSum,
       isInternalStandardActive,
       totalSampleMAC,
       bulkDensity,
@@ -602,121 +706,76 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
       brindleyIterations: brindleySol?.iterations ?? 0,
       assignedPhasesCount,
       assignedPeaksCount,
-      hasAssignedIntensities: assignedPhasesCount > 0
+      hasAssignedIntensities: assignedPhasesCount > 0,
+      sumCrystallineWtPct,
+      sumBulkWtPct,
+      sumBulkVolPct,
+      diagnostics
     };
   }, [
     phases,
     amorphousWtPct,
     amorphousDensity,
+    amorphousMac,
     intensityUncertaintyPct,
     rirUncertaintyPct,
     useBrindley,
     particleDiameterUm,
     internalStandardMode,
     standardPhaseId,
-    standardAddedWtPct
+    standardAddedWtPct,
+    anodeId
   ]);
 
-  const dominantPhase = useMemo(() => {
-    if (!calculations.phaseResults || calculations.phaseResults.length === 0) return null;
-    return [...calculations.phaseResults].sort((a, b) => b.crystallineFraction - a.crystallineFraction)[0];
-  }, [calculations]);
-
-  // Chart data on Total Bulk Sample basis (accurate wt% and true density-weighted vol%)
-  const pieChartData = useMemo(() => {
-    const data = calculations.phaseResults
-      .filter(p => !(calculations.isInternalStandardActive && p.isInternalStandard))
-      .map(p => ({
-        name: p.name,
-        value: Number((chartUnitMode === 'wt' ? p.totalSampleFraction : p.totalSampleVolFraction).toFixed(2)),
-        color: p.color,
-        rir: p.rir,
-        intensity: p.intensity,
-        density: p.density,
-        crystWtPct: p.crystallineFraction,
-        crystVolPct: p.crystallineVolFraction
-      }));
-
-    if (calculations.effectiveAmorphousWtPct > 0) {
-      const amVal = chartUnitMode === 'wt' ? calculations.effectiveAmorphousWtPct : calculations.amorphousVolPct;
-      data.push({
-        name: 'Amorphous Matrix',
-        value: Number(amVal.toFixed(2)),
-        color: '#64748b',
-        rir: 0,
-        intensity: 0,
-        density: amorphousDensity,
-        crystWtPct: calculations.effectiveAmorphousWtPct,
-        crystVolPct: calculations.amorphousVolPct
-      });
-    }
-
-    return data;
-  }, [calculations, amorphousDensity, chartUnitMode]);
-
-  // Copy Summary Report
+  // Export & Report Actions
   const copyReportToClipboard = () => {
     playSynthTone('success');
     let report = `XRD QUANTITATIVE PHASE ANALYSIS REPORT (RIR METHOD)\n`;
-    report += `====================================================================================\n`;
-    report += `Date/Time: ${new Date().toLocaleString()}\n`;
-    report += `Quantification Mode: ${calculations.isInternalStandardActive ? `Internal Standard Spiking (${standardAddedWtPct} wt%)` : 'Chung Adiabatic Normalization'}\n`;
-    report += `Brindley Microabsorption: ${useBrindley ? `Active (D = ${particleDiameterUm} µm, converged in ${calculations.brindleyIterations} iter)` : 'Disabled'}\n`;
-    report += `Amorphous Matrix: ${calculations.effectiveAmorphousWtPct.toFixed(2)} wt% (${calculations.amorphousVolPct.toFixed(2)} vol%)\n`;
-    report += `Sample Mass Attenuation Coefficient (Cu Kα): ${calculations.totalSampleMAC.toFixed(2)} cm²/g\n`;
-    report += `Assumed Uncertainty: ±${intensityUncertaintyPct}% (Int), ±${rirUncertaintyPct}% (RIR)\n\n`;
+    report += `============================================================================================\n`;
+    report += `Radiation: ${activeAnode.label} (lambda = ${activeAnode.wavelengthA.toFixed(4)} A)\n`;
+    report += `Regime: ${calculations.isInternalStandardActive ? `Internal Standard Spiking (${standardAddedWtPct} wt%)` : 'Chung Adiabatic Normalization'}\n`;
+    report += `Brindley Microabsorption: ${useBrindley ? `Active (D = ${particleDiameterUm} um, volume-weighted muBar, ${calculations.brindleyIterations} iter)` : 'Off'}\n`;
+    report += `Amorphous Matrix: ${calculations.effectiveAmorphousWtPct.toFixed(2)} wt% (${calculations.amorphousVolPct.toFixed(2)} vol%, rho = ${amorphousDensity} g/cm3)\n`;
+    report += `Composite Sample MAC: ${calculations.totalSampleMAC.toFixed(2)} cm2/g | Bulk Density: ${calculations.bulkDensity.toFixed(2)} g/cm3\n`;
+    report += `Assumed Uncertainties: ±${intensityUncertaintyPct}% (I), ±${rirUncertaintyPct}% (RIR)\n\n`;
+    report += `Phase Name              | hkl   | 2Theta | d (A)  | Int (I) | RIR   | Cryst wt%      | Bulk wt%       | Bulk vol%\n`;
+    report += `---------------------------------------------------------------------------------------------------------------------\n`;
 
-    report += `PHASE QUANTITATIVE SUMMARY:\n`;
-    report += `------------------------------------------------------------------------------------------------\n`;
-    report += `Phase Name              | hkl   | 2-Theta | Int (I) | RIR   | Cryst. wt%     | Total Bulk wt%\n`;
-    report += `------------------------------------------------------------------------------------------------\n`;
-
-    calculations.phaseResults.forEach(p => {
-      const namePad = p.name.padEnd(23, ' ').substring(0, 23);
-      const hklPad = p.hkl.padEnd(5, ' ').substring(0, 5);
-      const ttPad = p.twoTheta.toFixed(2).padStart(7, ' ');
-      const intPad = p.intensity.toString().padStart(7, ' ');
-      const rirPad = p.rir.toFixed(2).padStart(5, ' ');
-      const crystPad = `${p.crystallineFraction.toFixed(1)} ± ${p.errMarginCrystalline.toFixed(1)}%`.padStart(14, ' ');
-      const totPad = `${p.totalSampleFraction.toFixed(1)} ± ${p.errMarginTotal.toFixed(1)}%`.padStart(14, ' ');
-
-      report += `${namePad} | ${hklPad} | ${ttPad} | ${intPad} | ${rirPad} | ${crystPad} | ${totPad}\n`;
+    calculations.phaseResults.forEach((p) => {
+      const { dSpacingA } = computeBraggReciprocal(p.twoTheta, activeAnode.wavelengthA);
+      report += `${p.name.padEnd(23, ' ').substring(0, 23)} | ${p.hkl.padEnd(5, ' ').substring(0, 5)} | ${p.twoTheta.toFixed(2).padStart(6, ' ')} | ${dSpacingA.toFixed(3).padStart(6, ' ')} | ${p.intensity.toString().padStart(7, ' ')} | ${p.rir.toFixed(2).padStart(5, ' ')} | ${(p.crystallineFraction.toFixed(1) + ' ± ' + p.errMarginCrystalline.toFixed(1) + '%').padStart(14, ' ')} | ${(p.totalSampleFraction.toFixed(1) + ' ± ' + p.errMarginTotal.toFixed(1) + '%').padStart(14, ' ')} | ${(p.totalSampleVolFraction.toFixed(1) + ' ± ' + p.errMarginBulkVol.toFixed(1) + '%').padStart(14, ' ')}\n`;
     });
 
-    report += `------------------------------------------------------------------------------------------------\n`;
     if (calculations.effectiveAmorphousWtPct > 0) {
-      report += `Amorphous Matrix        | ---   | ---     | ---     | ---   | ---            | ${calculations.effectiveAmorphousWtPct.toFixed(2)} wt% (${calculations.amorphousVolPct.toFixed(2)} vol%)\n`;
+      report += `Amorphous Matrix        | ---   | ---    | ---    | ---     | ---   | 0.0%           | ${calculations.effectiveAmorphousWtPct.toFixed(2).padStart(13, ' ')}% | ${calculations.amorphousVolPct.toFixed(2).padStart(13, ' ')}%\n`;
     }
-    report += `================================================================================================\n`;
 
     navigator.clipboard.writeText(report);
     setCopiedReport(true);
     setTimeout(() => setCopiedReport(false), 2500);
   };
 
-  // CSV Export
   const exportCSV = () => {
     playSynthTone('success');
     const timestamp = new Date().toISOString();
     let csvContent = `data:text/csv;charset=utf-8,`;
-
     csvContent += `# XRD Quantitative Phase Analysis via Reference Intensity Ratio (RIR)\n`;
     csvContent += `# Generated: ${timestamp}\n`;
-    csvContent += `# Mode: ${calculations.isInternalStandardActive ? 'Internal Standard Spiking' : 'Chung Adiabatic'}\n`;
-    csvContent += `# Amorphous Matrix Content: ${calculations.effectiveAmorphousWtPct.toFixed(2)} wt% (${calculations.amorphousVolPct.toFixed(2)} vol%)\n`;
-    csvContent += `# Total Sample Mass Attenuation Coeff (Cu K-alpha): ${calculations.totalSampleMAC.toFixed(2)} cm2/g\n\n`;
+    csvContent += `# Radiation: ${activeAnode.label} (${activeAnode.wavelengthA} A)\n`;
+    csvContent += `# Regime: ${calculations.isInternalStandardActive ? 'Internal Standard Spiking' : 'Chung Adiabatic'}\n`;
+    csvContent += `# Amorphous Matrix: ${calculations.effectiveAmorphousWtPct.toFixed(2)} wt% (${calculations.amorphousVolPct.toFixed(2)} vol%)\n`;
+    csvContent += `# Composite Sample MAC: ${calculations.totalSampleMAC.toFixed(2)} cm2/g | Bulk Density: ${calculations.bulkDensity.toFixed(2)} g/cm3\n\n`;
+    csvContent += `Phase Name,hkl,2-Theta (deg),d-Spacing (A),Intensity (cps),RIR (I/Ic),Brindley Tau,Density (g/cm3),MAC (cm2/g),Reduced (I/RIR),Crystalline Wt (%),Err Cryst (%),Total Bulk Wt (%),Err Bulk Wt (%),Total Bulk Vol (%),Err Bulk Vol (%),LOD (wt%),Depth_99 (um)\n`;
 
-    csvContent += `Phase Name,Reflection (hkl),2-Theta (deg),Integrated Intensity (I),RIR (I/Ic),Brindley Tau,Density (g/cm3),MAC (cm2/g),Reduced Intensity (I/RIR),Crystalline Wt (%),Err Margin (%),Total Bulk Wt (%),Total Bulk Vol (%),LOD (wt%),Depth_99 (um),Notes\n`;
-
-    calculations.phaseResults.forEach(p => {
-      const nameEscaped = `"${p.name.replace(/"/g, '""')}"`;
-      const hklEscaped = `"${p.hkl.replace(/"/g, '""')}"`;
-      const notesEscaped = `"${(p.notes || '').replace(/"/g, '""')}"`;
-      csvContent += `${nameEscaped},${hklEscaped},${p.twoTheta},${p.intensity},${p.rir},${p.tau.toFixed(4)},${p.density || 3.0},${p.mac || 0},${p.reducedIntensity.toFixed(2)},${p.crystallineFraction.toFixed(2)},${p.errMarginCrystalline.toFixed(2)},${p.totalSampleFraction.toFixed(2)},${p.totalSampleVolFraction.toFixed(2)},${p.lodWtPct},${p.penetrationDepthUm},${notesEscaped}\n`;
+    calculations.phaseResults.forEach((p) => {
+      const { dSpacingA } = computeBraggReciprocal(p.twoTheta, activeAnode.wavelengthA);
+      const nameEsc = `"${p.name.replace(/"/g, '""')}"`;
+      const hklEsc = `"${p.hkl.replace(/"/g, '""')}"`;
+      csvContent += `${nameEsc},${hklEsc},${p.twoTheta.toFixed(2)},${dSpacingA.toFixed(4)},${p.intensity},${p.rir.toFixed(2)},${p.tau.toFixed(4)},${p.density.toFixed(2)},${p.mac.toFixed(1)},${p.reducedIntensity.toFixed(2)},${p.crystallineFraction.toFixed(2)},${p.errMarginCrystalline.toFixed(2)},${p.totalSampleFraction.toFixed(2)},${p.errMarginTotal.toFixed(2)},${p.totalSampleVolFraction.toFixed(2)},${p.errMarginBulkVol.toFixed(2)},${p.lodWtPct},${p.penetrationDepthUm}\n`;
     });
 
     if (calculations.effectiveAmorphousWtPct > 0) {
-      csvContent += `Amorphous Matrix,---,---,---,---,---,${amorphousDensity},30.0,---,0.00,---,${calculations.effectiveAmorphousWtPct.toFixed(2)},${calculations.amorphousVolPct.toFixed(2)},---,---,Diffuse Halo\n`;
+      csvContent += `Amorphous Matrix,---,---,---,---,---,---,${amorphousDensity.toFixed(2)},${amorphousMac.toFixed(1)},---,0.00,---,${calculations.effectiveAmorphousWtPct.toFixed(2)},${calculations.amorphousErrWtPct.toFixed(2)},${calculations.amorphousVolPct.toFixed(2)},---,---,---\n`;
     }
 
     const encodedUri = encodeURI(csvContent);
@@ -728,38 +787,45 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // JSON Export
   const exportJSON = () => {
     playSynthTone('success');
     const sessionData = {
-      version: '2.0',
+      version: '3.0',
       timestamp: new Date().toISOString(),
+      anodeId,
       amorphousWtPct,
+      amorphousDensity,
+      amorphousMac,
+      internalStandardMode,
+      standardPhaseId,
+      standardAddedWtPct,
+      useBrindley,
+      particleDiameterUm,
       intensityUncertaintyPct,
       rirUncertaintyPct,
       phases,
       calculations: {
         totalReducedIntensity: calculations.totalReducedIntensity,
         totalSampleMAC: calculations.totalSampleMAC,
+        bulkDensity: calculations.bulkDensity,
         phaseResults: calculations.phaseResults
       }
     };
 
     const blob = new Blob([JSON.stringify(sessionData, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const link = document.createElement('a');
     link.href = url;
-    link.download = `RIR_Session_Data_${new Date().toISOString().slice(0,10)}.json`;
+    link.download = `RIR_Session_${new Date().toISOString().slice(0, 10)}.json`;
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
-  // JSON Import
   const handleJSONImport = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
@@ -767,16 +833,17 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         if (data.phases && Array.isArray(data.phases)) {
           setPhases(data.phases);
           if (data.amorphousWtPct !== undefined) setAmorphousWtPct(data.amorphousWtPct);
+          if (data.amorphousDensity !== undefined) setAmorphousDensity(data.amorphousDensity);
+          if (data.amorphousMac !== undefined) setAmorphousMac(data.amorphousMac);
           if (data.intensityUncertaintyPct !== undefined) setIntensityUncertaintyPct(data.intensityUncertaintyPct);
           if (data.rirUncertaintyPct !== undefined) setRirUncertaintyPct(data.rirUncertaintyPct);
+          if (data.anodeId) setAnodeId(data.anodeId);
           playSynthTone('success');
-          setActionNotification('Successfully imported RIR session file.');
-          setTimeout(() => setActionNotification(null), 3000);
+          notify('Imported RIR session JSON successfully.');
         }
-      } catch (err) {
+      } catch {
         playSynthTone('error');
-        setActionNotification('Invalid RIR session JSON file.');
-        setTimeout(() => setActionNotification(null), 3000);
+        notify('Invalid RIR session JSON file.');
       }
     };
     reader.readAsText(file);
@@ -784,138 +851,173 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
 
   const rirWalkthroughSteps: WizardStep[] = [
     {
-      title: 'Define Crystalline Phases & Corundum Scaling (I/I_cor)',
-      subtitle: 'Chung’s Generalized Normalization Matrix',
-      explanation: 'Every phase is characterized by its reference intensity ratio RIR = I_phase / I_corundum measured against standard α-Al₂O₃ (50:50 wt% mixture). Reduced intensity is defined as r_i = I_i / RIR_i.',
-      tip: 'The standard 100% peak intensity must be used; if secondary reflections are used, scale by the relative peak intensity factor (I_rel / 100).'
+      title: 'Corundum Scaling (I/I_c) & Multi-Peak Hubbard–Snyder Weighting',
+      subtitle: 'r_i = Î_100,i / (RIR_i · τ_i)',
+      explanation:
+        'Each phase is scaled by its Reference Intensity Ratio against 50:50 α-Al₂O₃ (NIST SRM 676a). When multiple reflections are entered, Hubbard–Snyder summed scaling Î_100 = ΣI_j / Σ(I_rel,j/100) prevents weak peaks from amplifying noise and flags preferred orientation via Texture CV%.',
+      tip: 'Assign 2–3 reflections for cleavage-prone minerals (Calcite, Mica, Clays) to monitor Texture CV%.'
     },
     {
-      title: 'Weight Fraction Extraction (Chung Normalization)',
-      subtitle: 'w_i = (I_i / RIR_i) / ∑ (I_j / RIR_j)',
-      explanation: 'In the Chung adiabatic method without internal standard, the sum of all crystalline phase weight fractions is constrained to 100%: w_i = r_i / ∑ r_j. No absorption coefficient measurement is necessary.',
-      tip: 'Ensure that all crystalline phases present in the pattern are included in the summation.'
+      title: 'Chung Adiabatic vs. Internal Standard Spiking',
+      subtitle: 'w_i = r_i / Σr_j  or  w_orig,i = [W_s/(1−W_s)]·(r_i/r_s)',
+      explanation:
+        'Adiabatic normalization constrains crystalline phases to 100% without measuring MAC. Spiking a known wt% of an internal standard (Corundum, Si, ZnO) directly quantifies the amorphous matrix and detects mass-balance excess (>100%).',
+      tip: 'Use 10–20 wt% internal standard for optimal error propagation in the W_s(1−W_s) denominator.'
     },
     {
-      title: 'Amorphous Content Correction (Spiking or PONKCS)',
-      subtitle: 'Internal Standard or Direct Background Subtraction',
-      explanation: 'If an amorphous halo (glass, polymer, disordered binder) is present, the true total sample weight fractions are scaled: w_total,i = w_cryst,i · (1 - w_amorphous).',
-      tip: 'Spiking with 10–20 wt% highly crystalline Corundum standard allows direct measurement of the amorphous weight fraction.'
-    },
-    {
-      title: 'Mass Attenuation Coefficient (MAC) & Volume Conversions',
-      subtitle: 'V_i = (w_i / ρ_i) / ∑ (w_j / ρ_j)',
-      explanation: 'Converts quantitative weight percentages into phase volume fractions using theoretical crystallographic densities ρ (g/cm³) and computes the effective linear absorption coefficient μ.',
-      tip: 'Volume fraction is critical for mechanical and thermal property prediction in multiphase ceramics and composite alloys.'
+      title: 'Volume-Weighted Brindley Microabsorption & Density Jacobian',
+      subtitle: 'μ̄ = Σ v_i μ_i  ·  Σ_v = J_v Σ_w J_vᵀ',
+      explanation:
+        'When phases differ strongly in linear absorption (e.g., Hematite vs. Quartz under Cu Kα), self-consistent Brindley spherical-grain transmission factors τ_i correct intensity bias. Volume fractions and their exact ±1σ uncertainties propagate analytically through the density Jacobian.',
+      tip: 'Switch radiation anode to Co Kα₁ for iron-bearing ores to eliminate Fe K-edge fluorescence.'
     }
   ];
 
+  const TABS = [
+    { id: 'analysis', label: 'Phase Engine', icon: <FlaskConical className="w-3.5 h-3.5" /> },
+    { id: 'pawley_bridge', label: 'Pawley Bridge', icon: <GitMerge className="w-3.5 h-3.5" /> },
+    { id: 'matrix', label: 'Matrix & Covariance', icon: <Cpu className="w-3.5 h-3.5" /> },
+    { id: 'calibration', label: 'Calibration', icon: <Calculator className="w-3.5 h-3.5" /> },
+    { id: 'spectrum', label: 'XRD Spectrum', icon: <BarChart3 className="w-3.5 h-3.5" /> },
+    { id: 'database', label: 'Reference DB', icon: <Database className="w-3.5 h-3.5" /> },
+    { id: 'microabsorption', label: useBrindley ? 'Brindley (On)' : 'Brindley', icon: <Layers className="w-3.5 h-3.5" /> },
+    { id: 'script', label: 'Script Export', icon: <Code2 className="w-3.5 h-3.5" /> },
+    { id: 'theory', label: 'Theory', icon: <BookOpen className="w-3.5 h-3.5" /> }
+  ] as const;
+
   return (
-    <div className="w-full flex flex-col gap-6 p-4 md:p-6 lg:p-8 animate-in fade-in duration-500 max-w-7xl mx-auto">
-      {/* 0. Guided Walkthrough Wizard */}
+    <div className="w-full flex flex-col gap-5 p-4 md:p-6 lg:p-7 max-w-[1440px] mx-auto">
+      {/* Compact Collapsible Guided Walkthrough */}
       <GuidedWalkthroughWizard
-        moduleName="Reference Intensity Ratio (RIR) & Chung Quantitative Engine"
-        description="Master Corundum scaling factors (I/I_cor), adiabatic Chung normalization, amorphous fraction correction, and phase volume fractions."
+        moduleName="Reference Intensity Ratio (RIR) Quantitative Phase Engine"
+        description="Chung adiabatic & internal-standard spiking quantification with Hubbard–Snyder multi-peak weighting, volume-weighted Brindley microabsorption, and exact Jacobian covariance."
         steps={rirWalkthroughSteps}
-        presetNames={MIXTURE_SCENARIOS.map(p => p.name)}
+        presetNames={MIXTURE_SCENARIOS.map((p) => p.name)}
         onLoadBenchmarkPreset={(idx) => {
-          const p = MIXTURE_SCENARIOS[idx];
-          if (p && p.phases) {
-            setPhases(p.phases.map((ph, i) => ({
-              id: String(i + 1),
-              name: ph.name,
-              hkl: ph.hkl || '100',
-              twoTheta: ph.twoTheta || 25.0,
-              intensity: ph.intensity || 1000,
-              rir: ph.rir || 1.0,
-              density: ph.density || 3.0,
-              mac: ph.mac || 45.0,
-              notes: ph.notes,
-              color: COLOR_PALETTE[i % COLOR_PALETTE.length]
-            })));
-            setAmorphousWtPct(p.amorphous || 0);
-          }
+          const scen = MIXTURE_SCENARIOS[idx];
+          if (scen) loadScenario(scen);
         }}
       />
 
-      {/* 0.5 Physical Meaning Verdict Banner */}
-      {dominantPhase && (
-        <PhysicalMeaningSummary
-          title="Quantitative Phase Composition Verdict"
-          tone={calculations.effectiveAmorphousWtPct > 20 ? 'warning' : 'success'}
-          statement={`Sample is dominantly ${dominantPhase.name} at ${dominantPhase.crystallineFraction.toFixed(1)} wt% (crystalline basis) with composite sample MAC μ* = ${calculations.totalSampleMAC.toFixed(1)} cm²/g.`}
-          contextNote={`Quantified ${calculations.phaseResults.length} phases (${calculations.isInternalStandardActive ? 'Internal Standard Spiking' : 'Chung Adiabatic'}). ${calculations.effectiveAmorphousWtPct > 0 ? `Amorphous matrix: ${calculations.effectiveAmorphousWtPct.toFixed(1)} wt% (${calculations.amorphousVolPct.toFixed(1)} vol%).` : '100% crystalline mixture.'}`}
-          metrics={[
-            { label: 'Dominant Phase', value: dominantPhase.name, unit: '' },
-            { label: 'Cryst. wt%', value: dominantPhase.crystallineFraction.toFixed(1), unit: '%' },
-            { label: 'Amorphous', value: calculations.effectiveAmorphousWtPct.toFixed(1), unit: 'wt%' },
-            { label: 'Sample MAC', value: calculations.totalSampleMAC.toFixed(1), unit: 'cm²/g' }
-          ]}
-        />
-      )}
+      {/* Precision Instrumentation Header & Scenario / Anode Control Ribbon */}
+      <div className="bg-[#0B0F17] border border-slate-800 rounded-2xl p-5 space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-4 border-b border-slate-800">
+          <div>
+            <h1 className="text-lg font-semibold text-slate-100 tracking-tight">
+              Reference Intensity Ratio (RIR) Quantitative Workbench
+            </h1>
+            <div className="flex flex-wrap items-center gap-2 text-xs font-mono text-slate-400 mt-1 tabular-nums">
+              <span>{calculations.isInternalStandardActive ? 'Internal Standard Spiking' : 'Chung Adiabatic Method'}</span>
+              <span aria-hidden="true">·</span>
+              <span>NIST SRM 676a Corundum Scale (I/I<sub>c</sub>)</span>
+              <span aria-hidden="true">·</span>
+              <span>{activeAnode.label} (λ = {activeAnode.wavelengthA.toFixed(4)} Å)</span>
+            </div>
+          </div>
 
-      {/* Top Instrumentation Telemetry Strip */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5">
-        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Regime</span>
-          <span className="text-xs font-mono font-bold text-indigo-300 truncate block mt-0.5">
-            {calculations.isInternalStandardActive ? 'Internal Std Spike' : 'Chung Adiabatic'}
-          </span>
+          {/* Radiation Anode Switcher */}
+          <div className="flex items-center gap-2 flex-wrap">
+            <span className="text-[11px] font-mono text-slate-400">Anode:</span>
+            <div className="flex items-center gap-1 p-1 bg-[#070B12] border border-slate-800 rounded-lg">
+              {RADIATION_ANODES.map((anode) => (
+                <button
+                  key={anode.id}
+                  type="button"
+                  onClick={() => { playSynthTone('tick'); setAnodeId(anode.id); }}
+                  title={`${anode.label} (${anode.wavelengthA} Å, ${anode.energyKeV} keV) — ${anode.fluorescenceNote}`}
+                  className={`px-2.5 py-1 text-[11px] font-mono font-medium rounded-md transition-colors whitespace-nowrap shrink-0 ${
+                    anodeId === anode.id
+                      ? 'bg-cyan-600 text-slate-950 font-semibold'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  {anode.label}
+                </button>
+              ))}
+            </div>
+          </div>
         </div>
-        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Active Phases</span>
-          <span className="text-sm font-mono tabular-nums font-black text-slate-100 block mt-0.5">
-            {calculations.assignedPhasesCount}/{phases.length} <span className="text-[10px] font-normal text-slate-400">({calculations.assignedPeaksCount} pks)</span>
-          </span>
+
+        {/* 1-Click Benchmark Mixture Selector Strip */}
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[11px] font-mono text-slate-400 mr-1">Benchmarks:</span>
+          {MIXTURE_SCENARIOS.map((scen) => (
+            <button
+              key={scen.id}
+              type="button"
+              onClick={() => loadScenario(scen)}
+              title={scen.description}
+              className={`px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors whitespace-nowrap shrink-0 ${
+                activeScenarioId === scen.id
+                  ? 'bg-slate-800 border-cyan-500/60 text-cyan-300'
+                  : 'bg-[#070B12] border-slate-800 text-slate-300 hover:border-slate-700 hover:text-slate-100'
+              }`}
+            >
+              {scen.shortName}
+              <span className="ml-1.5 text-[10px] font-mono text-slate-500">{scen.phases.length}p</span>
+            </button>
+          ))}
         </div>
-        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Crystalline Bulk</span>
-          <span className="text-sm font-mono tabular-nums font-black text-emerald-400 block mt-0.5">
-            {(100 - calculations.effectiveAmorphousWtPct).toFixed(1)} wt%
-          </span>
-        </div>
-        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Amorphous Matrix</span>
-          <span className="text-sm font-mono tabular-nums font-black text-rose-400 block mt-0.5">
-            {calculations.effectiveAmorphousWtPct.toFixed(1)} wt%
-          </span>
-        </div>
-        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Microabsorption</span>
-          <span className="text-xs font-mono tabular-nums font-bold text-cyan-300 block mt-0.5">
-            {useBrindley ? `Brindley ${particleDiameterUm}µm (${calculations.brindleyIterations}i)` : 'Ideal (Off)'}
-          </span>
-        </div>
-        <div className="bg-slate-950/90 border border-slate-800 px-3.5 py-2.5 rounded-xl">
-          <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500 block">Cond. Ratio κ</span>
-          <span className="text-sm font-mono tabular-nums font-black text-amber-400 block mt-0.5">
-            {calculations.conditionNumber.toFixed(2)}
-          </span>
+
+        {/* 6-Metric Quantitative Telemetry Ribbon */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 pt-1 font-mono tabular-nums">
+          <div className="bg-[#070B12] border border-slate-800 px-3.5 py-2.5 rounded-xl">
+            <span className="text-[10px] text-slate-400 block">Crystalline Bulk</span>
+            <span className="text-base font-semibold text-emerald-400 block mt-0.5">
+              {(100 - calculations.effectiveAmorphousWtPct).toFixed(1)}
+              <span className="text-[11px] text-slate-500 ml-1">wt%</span>
+            </span>
+          </div>
+          <div className="bg-[#070B12] border border-slate-800 px-3.5 py-2.5 rounded-xl">
+            <span className="text-[10px] text-slate-400 block">Amorphous Matrix</span>
+            <span className="text-base font-semibold text-rose-400 block mt-0.5">
+              {calculations.effectiveAmorphousWtPct.toFixed(1)}
+              <span className="text-[11px] text-slate-500 ml-1">wt%</span>
+            </span>
+          </div>
+          <div className="bg-[#070B12] border border-slate-800 px-3.5 py-2.5 rounded-xl">
+            <span className="text-[10px] text-slate-400 block">Composite MAC μ*</span>
+            <span className="text-base font-semibold text-cyan-400 block mt-0.5">
+              {calculations.totalSampleMAC.toFixed(1)}
+              <span className="text-[11px] text-slate-500 ml-1">cm²/g</span>
+            </span>
+          </div>
+          <div className="bg-[#070B12] border border-slate-800 px-3.5 py-2.5 rounded-xl">
+            <span className="text-[10px] text-slate-400 block">Bulk Density ρ</span>
+            <span className="text-base font-semibold text-slate-100 block mt-0.5">
+              {calculations.bulkDensity.toFixed(2)}
+              <span className="text-[11px] text-slate-500 ml-1">g/cm³</span>
+            </span>
+          </div>
+          <div className="bg-[#070B12] border border-slate-800 px-3.5 py-2.5 rounded-xl">
+            <span className="text-[10px] text-slate-400 block">Microabsorption</span>
+            <span className="text-sm font-semibold text-slate-200 block mt-1 truncate">
+              {useBrindley ? `Brindley ${particleDiameterUm}µm` : 'Ideal (Off)'}
+            </span>
+          </div>
+          <div className="bg-[#070B12] border border-slate-800 px-3.5 py-2.5 rounded-xl">
+            <span className="text-[10px] text-slate-400 block">Dynamic Ratio κ</span>
+            <span className="text-base font-semibold text-amber-400 block mt-0.5">
+              {calculations.conditionNumber.toFixed(2)}
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Top Module Navigation Bar */}
-      <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-1.5 backdrop-blur-md flex flex-wrap gap-1 shadow-xl">
-        {[
-          { id: 'analysis', label: 'Phase Engine', icon: <FlaskConical className="w-3.5 h-3.5 text-indigo-300" /> },
-          { id: 'pawley_bridge', label: 'Pawley Bridge', icon: <GitMerge className="w-3.5 h-3.5 text-violet-300" /> },
-          { id: 'matrix', label: 'Matrix & Covariance', icon: <Cpu className="w-3.5 h-3.5 text-cyan-300" /> },
-          { id: 'calibration', label: 'Calibration', icon: <Calculator className="w-3.5 h-3.5 text-amber-300" /> },
-          { id: 'spectrum', label: 'XRD Spectrum', icon: <BarChart3 className="w-3.5 h-3.5 text-emerald-300" /> },
-          { id: 'database', label: 'Reference DB', icon: <Database className="w-3.5 h-3.5 text-purple-300" /> },
-          { id: 'microabsorption', label: `Brindley${useBrindley ? ' •' : ''}`, icon: <Layers className="w-3.5 h-3.5 text-cyan-400" /> },
-          { id: 'script', label: 'Script Export', icon: <Code2 className="w-3.5 h-3.5 text-purple-400" /> },
-          { id: 'theory', label: 'Theory', icon: <BookOpen className="w-3.5 h-3.5 text-rose-300" /> }
-        ].map(tab => (
+      {/* Single-Row Module Navigation Tabs */}
+      <div className="bg-[#0B0F17] border border-slate-800 rounded-xl p-1 flex items-center gap-1 overflow-x-auto custom-scrollbar">
+        {TABS.map((tab) => (
           <button
             key={tab.id}
+            type="button"
             onClick={() => {
               playSynthTone('tick');
-              setMainTab(tab.id as typeof mainTab);
+              setMainTab(tab.id);
             }}
-            className={`flex-1 min-w-[115px] py-2 px-3 text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
+            className={`px-3 py-2 text-xs font-medium rounded-lg transition-colors flex items-center justify-center gap-1.5 whitespace-nowrap shrink-0 ${
               mainTab === tab.id
-                ? 'bg-indigo-600 text-white shadow-md ring-1 ring-indigo-500/50'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/80'
+                ? 'bg-slate-800 text-cyan-300 font-semibold'
+                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
             }`}
           >
             {tab.icon}
@@ -924,1008 +1026,391 @@ export const ReferenceIntensityRatioModule: React.FC = () => {
         ))}
       </div>
 
-          {/* Action Notification */}
-          <AnimatePresence>
-            {actionNotification && (
-              <motion.div
-                key="rir-action-notification"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 p-4 rounded-2xl flex items-center justify-between text-xs font-medium shadow-lg"
-              >
-                <div className="flex items-center gap-2.5">
-                  <CheckCircle2 className="w-5 h-5 text-emerald-400 shrink-0" />
-                  <span>{actionNotification}</span>
-                </div>
-                <button onClick={() => setActionNotification(null)} className="text-emerald-400 hover:text-emerald-200 font-bold px-2 py-1">✕</button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+      {/* Action Feedback Toast */}
+      <AnimatePresence>
+        {actionNotification && (
+          <motion.div
+            key="rir-action-notification"
+            initial={{ opacity: 0, y: -6 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.16 }}
+            className="bg-[#0B0F17] border border-emerald-500/40 text-emerald-300 px-4 py-2.5 rounded-xl flex items-center justify-between text-xs font-mono"
+          >
+            <div className="flex items-center gap-2">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+              <span>{actionNotification}</span>
+            </div>
+            <button
+              type="button"
+              onClick={() => setActionNotification(null)}
+              className="text-slate-400 hover:text-slate-200 px-1.5"
+            >
+              ✕
+            </button>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
-          {/* TAB 1: PHASE ANALYSIS ENGINE */}
-          {mainTab === 'analysis' && (
-            <div className="space-y-6 animate-in fade-in duration-300">
-              {/* Preset Scenarios */}
-              <div className="bg-gradient-to-br from-slate-900/60 to-slate-900/40 border border-slate-800/80 rounded-3xl p-5 shadow-xl backdrop-blur-sm">
-                <label className="text-[11px] font-bold text-slate-400 uppercase tracking-widest mb-3 flex items-center gap-2">
-                  <Sparkles className="w-4 h-4 text-amber-400" />
-                  <span>Laboratory Benchmark Scenarios</span>
-                </label>
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
-                  {MIXTURE_SCENARIOS.map((scen, sIdx) => (
-                    <button
-                      key={sIdx}
-                      onClick={() => loadScenario(scen)}
-                      className="p-3.5 bg-slate-950/50 hover:bg-indigo-950/30 border border-slate-800/60 hover:border-indigo-500/50 rounded-2xl text-left transition-all duration-300 flex flex-col justify-between group hover:shadow-lg hover:shadow-indigo-500/5 hover:-translate-y-0.5"
-                    >
-                      <div>
-                        <span className="font-bold text-slate-200 text-xs block group-hover:text-indigo-300 transition-colors">
-                          {scen.name}
-                        </span>
-                        <span className="text-[10px] text-slate-500 leading-relaxed block mt-1 line-clamp-2">
-                          {scen.description}
-                        </span>
-                      </div>
-                      <span className="mt-2.5 text-[10px] font-mono text-indigo-400 font-bold bg-indigo-500/10 px-2 py-0.5 rounded border border-indigo-500/20 self-start">
-                        {scen.phases.length} Phases
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
+      {/* TAB 1: PHASE ENGINE */}
+      {mainTab === 'analysis' && (
+        <div className="space-y-5">
+          {/* Asymmetric 2-Column Split: Phase Configuration Console (7) + Quantitative Visual Stage (5) */}
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+            <div className="lg:col-span-7">
+              <RIRPhaseInputConsole
+                phases={phases}
+                phaseResults={calculations.phaseResults}
+                wavelengthA={activeAnode.wavelengthA}
+                anodeLabel={activeAnode.label}
+                onAddPhase={addPhase}
+                onUpdatePhase={updatePhase}
+                onApplyDBPresetToPhase={applyDBPresetToPhase}
+                onRemovePhase={removePhase}
+                onApplyBulkPhases={applyBulkPhases}
+                expandedMultiPeakPhases={expandedMultiPeakPhases}
+                onToggleMultiPeakDrawer={toggleMultiPeakDrawer}
+                onAddAssignedPeak={addAssignedPeakToPhase}
+                onUpdateAssignedPeak={updateAssignedPeak}
+                onRemoveAssignedPeak={removeAssignedPeak}
+                internalStandardMode={internalStandardMode}
+                setInternalStandardMode={setInternalStandardMode}
+                standardPhaseId={standardPhaseId}
+                setStandardPhaseId={setStandardPhaseId}
+                standardAddedWtPct={standardAddedWtPct}
+                setStandardAddedWtPct={setStandardAddedWtPct}
+                measuredAmorphousPct={calculations.measuredAmorphousPct}
+                amorphousErrWtPct={calculations.amorphousErrWtPct}
+                rawOriginalSampleCrystSum={calculations.rawOriginalSampleCrystSum}
+                amorphousWtPct={amorphousWtPct}
+                setAmorphousWtPct={setAmorphousWtPct}
+                amorphousDensity={amorphousDensity}
+                setAmorphousDensity={setAmorphousDensity}
+                amorphousMac={amorphousMac}
+                setAmorphousMac={setAmorphousMac}
+                useBrindley={useBrindley}
+                setUseBrindley={setUseBrindley}
+                particleDiameterUm={particleDiameterUm}
+                setParticleDiameterUm={setParticleDiameterUm}
+                brindleyIterations={calculations.brindleyIterations}
+                onOpenBrindleyInspector={() => setMainTab('microabsorption')}
+                intensityUncertaintyPct={intensityUncertaintyPct}
+                setIntensityUncertaintyPct={setIntensityUncertaintyPct}
+                rirUncertaintyPct={rirUncertaintyPct}
+                setRirUncertaintyPct={setRirUncertaintyPct}
+                onNormalizeIntensities={normalizeIntensities}
+                onImportJSON={handleJSONImport}
+                onRunQuantification={handleRunQuantification}
+                calculationFlash={calculationFlash}
+              />
+            </div>
 
-              {/* Main 2-Column Split */}
-              <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                {/* Left Column: Phase Table & Amorphous Tuning (7 cols) */}
-                <div className="lg:col-span-7 flex flex-col gap-6">
-                  {/* Phase List Box */}
-                  <div className="bg-gradient-to-br from-slate-900/80 to-slate-900/40 border border-slate-800/80 rounded-3xl p-6 shadow-xl backdrop-blur-sm space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-800/80 pb-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400">
-                          <FlaskConical className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <h2 className="text-base font-bold text-slate-200">
-                            Crystalline Mixture Components
-                          </h2>
-                          <p className="text-xs text-slate-400">
-                            {phases.length} active crystalline phases identified
-                          </p>
-                        </div>
-                      </div>
+            <div className="lg:col-span-5">
+              <RIRVisualWorkbench
+                phaseResults={calculations.phaseResults}
+                effectiveAmorphousWtPct={calculations.effectiveAmorphousWtPct}
+                amorphousVolPct={calculations.amorphousVolPct}
+                amorphousErrWtPct={calculations.amorphousErrWtPct}
+                amorphousDensity={amorphousDensity}
+                isInternalStandardActive={calculations.isInternalStandardActive}
+                rawOriginalSampleCrystSum={calculations.rawOriginalSampleCrystSum}
+                totalSampleMAC={calculations.totalSampleMAC}
+                bulkDensity={calculations.bulkDensity}
+                wavelengthA={activeAnode.wavelengthA}
+                anodeLabel={activeAnode.label}
+                useBrindley={useBrindley}
+                diagnostics={calculations.diagnostics}
+                copiedReport={copiedReport}
+                onCopyReport={copyReportToClipboard}
+                onExportCSV={exportCSV}
+                onExportJSON={exportJSON}
+                onJumpToTab={(tab) => setMainTab(tab)}
+              />
+            </div>
+          </div>
 
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <input
-                          ref={fileInputRef}
-                          type="file"
-                          accept=".json"
-                          onChange={handleJSONImport}
-                          className="hidden"
-                        />
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
-                          title="Import saved RIR JSON session"
-                        >
-                          <Upload className="w-3.5 h-3.5 text-cyan-400" />
-                          <span>Import JSON</span>
-                        </button>
-                        <button
-                          onClick={normalizeIntensities}
-                          className="px-2.5 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold transition-all flex items-center gap-1.5 whitespace-nowrap"
-                          title="Normalize max peak to 10,000 cps"
-                        >
-                          <TrendingUp className="w-3.5 h-3.5 text-amber-400" />
-                          <span>Normalize</span>
-                        </button>
-                        <button
-                          onClick={addPhase}
-                          className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition-all shadow-md active:scale-95 flex items-center gap-1.5 whitespace-nowrap"
-                        >
-                          <Plus className="w-3.5 h-3.5" />
-                          <span>Add Phase</span>
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Phase Cards */}
-                    <div className="space-y-3 max-h-[560px] overflow-y-auto pr-1 scrollbar-thin scrollbar-thumb-slate-700">
-                      {phases.map((phase, idx) => {
-                        const isCleavageProne = /mica|kaolinite|graphite|calcite|gypsum|clay/i.test(phase.name);
-                        return (
-                          <div
-                            key={phase.id}
-                            className="bg-slate-950/70 border border-slate-800/80 hover:border-slate-700 rounded-2xl p-4 transition-all space-y-3"
-                          >
-                            <div className="flex items-center justify-between gap-2">
-                              <div className="flex items-center gap-2.5 flex-1">
-                                <span className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: phase.color }} />
-                                <input
-                                  type="text"
-                                  value={phase.name}
-                                  onChange={(e) => updatePhase(phase.id, 'name', e.target.value)}
-                                  className="bg-transparent font-bold text-sm text-slate-200 outline-none border-b border-transparent focus:border-indigo-500/60 transition-colors w-full"
-                                />
-                              </div>
-
-                              <div className="flex items-center gap-2">
-                                {/* Quick DB autofill dropdown */}
-                                <select
-                                  onChange={(e) => {
-                                    const selected = DATABASE_PRESETS.find(p => p.name === e.target.value);
-                                    if (selected) {
-                                      playSynthTone('success');
-                                      updatePhase(phase.id, 'name', selected.name);
-                                      updatePhase(phase.id, 'hkl', selected.hkl);
-                                      updatePhase(phase.id, 'twoTheta', selected.twoTheta);
-                                      updatePhase(phase.id, 'rir', selected.rir);
-                                      updatePhase(phase.id, 'density', selected.density || 3.0);
-                                      updatePhase(phase.id, 'mac', selected.macCu);
-                                    }
-                                  }}
-                                  defaultValue=""
-                                  className="bg-slate-900 border border-slate-700 hover:border-purple-500/50 text-slate-300 text-[11px] rounded-lg px-2 py-1 outline-none font-sans font-bold"
-                                  title="Auto-fill constants from ICDD Library"
-                                >
-                                  <option value="" disabled>⚡ DB Fill...</option>
-                                  {DATABASE_PRESETS.map((db, dbIdx) => (
-                                    <option key={dbIdx} value={db.name}>
-                                      {db.name} (RIR: {db.rir})
-                                    </option>
-                                  ))}
-                                </select>
-
-                                {phases.length > 1 && (
-                                  <button
-                                    onClick={() => removePhase(phase.id)}
-                                    className="text-slate-500 hover:text-rose-400 p-1.5 rounded-lg hover:bg-rose-500/10 transition-colors"
-                                  >
-                                    <Trash2 className="w-4 h-4" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-
-                            {/* Preferred orientation warning if applicable */}
-                            {isCleavageProne && (
-                              <div className="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/20 px-2.5 py-1 rounded-lg text-[10px] text-amber-300">
-                                <AlertTriangle className="w-3 h-3 text-amber-400 shrink-0" />
-                                <span>Plate/Cleavage Texture Warning: Consider side-loading or spray drying to avoid preferred orientation bias.</span>
-                              </div>
-                            )}
-
-                            <div className="grid grid-cols-2 sm:grid-cols-6 gap-2.5 text-xs">
-                              <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-400 block">Peak (hkl)</label>
-                                <input
-                                  type="text"
-                                  value={phase.hkl}
-                                  onChange={(e) => updatePhase(phase.id, 'hkl', e.target.value)}
-                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-indigo-300 flex items-center justify-between">
-                                  <span>Peak Int. (I)</span>
-                                  {(phase.intensity || 0) > 0 && (
-                                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" title="Intensity assigned — auto-calculating RIR" />
-                                  )}
-                                </label>
-                                <input
-                                  type="number"
-                                  min="0"
-                                  value={phase.intensity}
-                                  onChange={(e) => updatePhase(phase.id, 'intensity', Math.max(0, parseFloat(e.target.value) || 0))}
-                                  className="w-full bg-slate-900 border border-indigo-500/40 text-indigo-200 font-bold rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-400"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-400 block" title="Relative intensity of reflection on reference card (100% for primary peak)">
-                                  I_rel (%)
-                                </label>
-                                <input
-                                  type="number"
-                                  min="1"
-                                  max="100"
-                                  value={phase.relIntensity || 100}
-                                  onChange={(e) => updatePhase(phase.id, 'relIntensity', Math.min(100, Math.max(1, parseFloat(e.target.value) || 100)))}
-                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-400 block">RIR (I/Ic)</label>
-                                <input
-                                  type="number"
-                                  step="0.1"
-                                  value={phase.rir}
-                                  onChange={(e) => updatePhase(phase.id, 'rir', parseFloat(e.target.value) || 1.0)}
-                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-400 block">2θ Angle (°)</label>
-                                <input
-                                  type="number"
-                                  step="0.1"
-                                  value={phase.twoTheta}
-                                  onChange={(e) => updatePhase(phase.id, 'twoTheta', parseFloat(e.target.value) || 0)}
-                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                                />
-                              </div>
-
-                              <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-400 block">Density (g/cm³)</label>
-                                <input
-                                  type="number"
-                                  step="0.05"
-                                  value={phase.density || 3.0}
-                                  onChange={(e) => updatePhase(phase.id, 'density', parseFloat(e.target.value) || 3.0)}
-                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 font-mono text-xs outline-none focus:border-indigo-500/60"
-                                />
-                              </div>
-                            </div>
-
-                            {/* Live Per-Card Auto-Quantification Strip & Multi-Peak Drawer Toggle */}
-                            <div className="flex flex-wrap items-center justify-between gap-2 pt-2 border-t border-slate-800/70 text-[11px]">
-                              <div className="flex items-center gap-3 font-mono">
-                                <span className="text-slate-400">
-                                  Reduced I/RIR:{' '}
-                                  <strong className="text-cyan-300">
-                                    {(calculations.phaseResults[idx]?.reducedIntensity || 0).toFixed(1)}
-                                  </strong>
-                                </span>
-                                <span className="text-slate-400">
-                                  Auto Mass:{' '}
-                                  <strong className="text-indigo-300">
-                                    {(calculations.phaseResults[idx]?.crystallineFraction || 0).toFixed(2)} ± {(calculations.phaseResults[idx]?.errMarginCrystalline || 0).toFixed(2)} wt%
-                                  </strong>
-                                </span>
-                              </div>
-
-                              <button
-                                type="button"
-                                onClick={() => toggleMultiPeakDrawer(phase.id)}
-                                className="text-[10px] font-bold text-indigo-400 hover:text-indigo-300 flex items-center gap-1 bg-indigo-500/10 hover:bg-indigo-500/20 px-2.5 py-1 rounded-lg border border-indigo-500/20 transition-colors"
-                              >
-                                <Plus className="w-3 h-3" />
-                                <span>
-                                  {phase.peaks && phase.peaks.length > 0
-                                    ? `${phase.peaks.length} Assigned Peaks`
-                                    : 'Assign Multi-Peaks'}
-                                </span>
-                              </button>
-                            </div>
-
-                            {/* Optional Multi-Peak Intensity Assignment Sub-Table */}
-                            {expandedMultiPeakPhases[phase.id] && (
-                              <div className="bg-slate-900/80 border border-slate-800 rounded-xl p-3 space-y-2.5 animate-in fade-in">
-                                <div className="flex items-center justify-between">
-                                  <span className="text-[10px] font-bold uppercase tracking-wider text-indigo-300">
-                                    Multi-Reflection Peak Intensity Assignment (Auto-Averaged I₁₀₀)
-                                  </span>
-                                  <button
-                                    type="button"
-                                    onClick={() => addAssignedPeakToPhase(phase.id)}
-                                    className="px-2 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold flex items-center gap-1"
-                                  >
-                                    <Plus className="w-3 h-3" />
-                                    <span>Add Reflection</span>
-                                  </button>
-                                </div>
-
-                                {(!phase.peaks || phase.peaks.length === 0) ? (
-                                  <div className="text-[11px] text-slate-400 flex items-center justify-between bg-slate-950/60 p-2.5 rounded-lg border border-slate-800">
-                                    <span>Primary reflection {phase.hkl} ({phase.intensity} cps) active. Click "Add Reflection" to assign multiple peaks.</span>
-                                  </div>
-                                ) : (
-                                  <div className="space-y-1.5">
-                                    <div className="grid grid-cols-12 gap-2 text-[9px] uppercase font-bold text-slate-500 px-1">
-                                      <span className="col-span-3">Reflection (hkl)</span>
-                                      <span className="col-span-3">2θ Angle (°)</span>
-                                      <span className="col-span-3">Assigned Int. (cps)</span>
-                                      <span className="col-span-2">I_rel (%)</span>
-                                      <span className="col-span-1 text-center">Del</span>
-                                    </div>
-                                    {phase.peaks.map((pk) => (
-                                      <div key={pk.id} className="grid grid-cols-12 gap-2 items-center bg-slate-950/80 p-1.5 rounded-lg border border-slate-800 text-xs font-mono">
-                                        <input
-                                          type="text"
-                                          value={pk.hkl}
-                                          onChange={(e) => updateAssignedPeak(phase.id, pk.id, 'hkl', e.target.value)}
-                                          className="col-span-3 bg-slate-900 border border-slate-700 text-slate-200 rounded px-2 py-1 text-xs outline-none"
-                                        />
-                                        <input
-                                          type="number"
-                                          step="0.1"
-                                          value={pk.twoTheta}
-                                          onChange={(e) => updateAssignedPeak(phase.id, pk.id, 'twoTheta', parseFloat(e.target.value) || 0)}
-                                          className="col-span-3 bg-slate-900 border border-slate-700 text-slate-200 rounded px-2 py-1 text-xs outline-none"
-                                        />
-                                        <input
-                                          type="number"
-                                          min="0"
-                                          value={pk.intensity}
-                                          onChange={(e) => updateAssignedPeak(phase.id, pk.id, 'intensity', Math.max(0, parseFloat(e.target.value) || 0))}
-                                          className="col-span-3 bg-slate-900 border border-indigo-500/40 text-indigo-300 font-bold rounded px-2 py-1 text-xs outline-none"
-                                        />
-                                        <input
-                                          type="number"
-                                          min="1"
-                                          max="100"
-                                          value={pk.relIntensity}
-                                          onChange={(e) => updateAssignedPeak(phase.id, pk.id, 'relIntensity', Math.min(100, Math.max(1, parseFloat(e.target.value) || 100)))}
-                                          className="col-span-2 bg-slate-900 border border-slate-700 text-slate-200 rounded px-2 py-1 text-xs outline-none"
-                                        />
-                                        <button
-                                          type="button"
-                                          onClick={() => removeAssignedPeak(phase.id, pk.id)}
-                                          className="col-span-1 text-slate-500 hover:text-rose-400 flex justify-center"
-                                        >
-                                          <Trash2 className="w-3.5 h-3.5" />
-                                        </button>
-                                      </div>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {/* Internal Standard Spiking Engine */}
-                    <div className="pt-3 border-t border-slate-800 space-y-3">
-                      <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Scale className="w-4 h-4 text-amber-400" />
-                            <span className="text-xs font-bold text-slate-200">Internal Standard Spiking Method</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              playSynthTone('tick');
-                              setInternalStandardMode(!internalStandardMode);
-                            }}
-                            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                              internalStandardMode
-                                ? 'bg-amber-600 text-white shadow-md shadow-amber-500/20'
-                                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                            }`}
-                          >
-                            {internalStandardMode ? 'Active (Spiked)' : 'Disabled'}
-                          </button>
-                        </div>
-
-                        {internalStandardMode && (
-                          <div className="space-y-3 pt-2 border-t border-slate-800/80">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-xs">
-                              <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-slate-400 block">
-                                  Spiked Reference Phase
-                                </label>
-                                <select
-                                  value={standardPhaseId}
-                                  onChange={(e) => setStandardPhaseId(e.target.value)}
-                                  className="w-full bg-slate-900 border border-slate-700 text-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none focus:border-amber-500/60"
-                                >
-                                  {phases.map(p => (
-                                    <option key={p.id} value={p.id}>
-                                      {p.name} (RIR: {p.rir})
-                                    </option>
-                                  ))}
-                                </select>
-                              </div>
-
-                              <div className="space-y-1">
-                                <div className="flex justify-between items-center text-[10px] uppercase font-bold text-slate-400">
-                                  <span>Added Standard wt%</span>
-                                  <span className="font-mono text-amber-300 font-bold">{standardAddedWtPct}%</span>
-                                </div>
-                                <input
-                                  type="range"
-                                  min="1"
-                                  max="30"
-                                  step="0.5"
-                                  value={standardAddedWtPct}
-                                  onChange={(e) => setStandardAddedWtPct(parseFloat(e.target.value) || 10.0)}
-                                  className="w-full accent-amber-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                                />
-                              </div>
-                            </div>
-
-                            <div className="bg-amber-950/20 border border-amber-500/30 p-2.5 rounded-xl text-[11px] text-amber-200/90 flex items-center justify-between">
-                              <span>Experimentally Determined Amorphous:</span>
-                              <span className="font-mono font-bold text-amber-300 text-xs">
-                                {calculations.measuredAmorphousPct.toFixed(2)} wt%
-                              </span>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Brindley Microabsorption Quick Card */}
-                      <div className="bg-slate-950/70 p-4 rounded-2xl border border-slate-800 space-y-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Layers className="w-4 h-4 text-cyan-400" />
-                            <span className="text-xs font-bold text-slate-200">Brindley Microabsorption Correction</span>
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              playSynthTone('tick');
-                              setUseBrindley(!useBrindley);
-                            }}
-                            className={`px-3 py-1 rounded-xl text-xs font-bold transition-all ${
-                              useBrindley
-                                ? 'bg-cyan-600 text-white shadow-md shadow-cyan-500/20'
-                                : 'bg-slate-800 text-slate-400 hover:text-slate-200'
-                            }`}
-                          >
-                            {useBrindley ? 'Active' : 'Off'}
-                          </button>
-                        </div>
-
-                        {useBrindley && (
-                          <div className="space-y-2 pt-2 border-t border-slate-800/80">
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="text-slate-400 text-[11px]">Mean Particle Diameter (D):</span>
-                              <span className="font-mono text-cyan-300 font-bold">{particleDiameterUm} µm</span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0.5"
-                              max="45"
-                              step="0.5"
-                              value={particleDiameterUm}
-                              onChange={(e) => setParticleDiameterUm(parseFloat(e.target.value) || 5.0)}
-                              className="w-full accent-cyan-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                            />
-                            <div className="flex justify-between items-center text-[10px] text-slate-400">
-                              <span>Transmission factors applied to all Bragg intensities</span>
-                              <button
-                                onClick={() => setMainTab('microabsorption')}
-                                className="text-cyan-400 hover:underline font-bold"
-                              >
-                                View Detailed Inspector →
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Amorphous Matrix & Density Settings */}
-                      <div className="bg-slate-950/60 p-4 rounded-2xl border border-slate-800 space-y-3">
-                        {!internalStandardMode && (
-                          <div className="space-y-2">
-                            <div className="flex justify-between items-center text-xs">
-                              <span className="font-bold text-slate-300 flex items-center gap-1.5">
-                                <span className="w-2 h-2 rounded-full bg-rose-500" />
-                                Manual Amorphous Matrix Content:
-                              </span>
-                              <span className="font-mono tabular-nums font-bold text-rose-400 text-sm">
-                                {amorphousWtPct}%
-                              </span>
-                            </div>
-                            <input
-                              type="range"
-                              min="0"
-                              max="90"
-                              step="1"
-                              value={amorphousWtPct}
-                              onChange={e => setAmorphousWtPct(parseFloat(e.target.value) || 0)}
-                              className="w-full accent-rose-500 h-1.5 bg-slate-800 rounded-lg cursor-pointer"
-                            />
-                          </div>
-                        )}
-
-                        <div className="flex items-center justify-between text-xs pt-1 border-t border-slate-800/70">
-                          <span className="text-slate-400">Amorphous Skeleton Density ρ<sub>am</sub> (for vol%):</span>
-                          <div className="flex items-center gap-1.5">
-                            <input
-                              type="number"
-                              min="0.5"
-                              max="6.0"
-                              step="0.05"
-                              value={amorphousDensity}
-                              onChange={e => setAmorphousDensity(Math.max(0.5, parseFloat(e.target.value) || 2.2))}
-                              className="w-20 bg-slate-900 border border-slate-700 text-slate-200 rounded-lg px-2 py-1 text-right font-mono tabular-nums text-xs outline-none focus:border-rose-500/60"
-                            />
-                            <span className="text-[11px] font-mono text-slate-400">g/cm³</span>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 space-y-1">
-                          <div className="flex justify-between text-[11px] text-slate-400 font-medium">
-                            <span>Intensity Error (ΔI):</span>
-                            <span className="font-mono text-indigo-300 font-bold">±{intensityUncertaintyPct}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="15"
-                            step="0.5"
-                            value={intensityUncertaintyPct}
-                            onChange={(e) => setIntensityUncertaintyPct(parseFloat(e.target.value) || 3.0)}
-                            className="w-full accent-indigo-500 h-1 bg-slate-800 rounded-lg cursor-pointer"
-                          />
-                        </div>
-
-                        <div className="bg-slate-950/60 p-3 rounded-2xl border border-slate-800 space-y-1">
-                          <div className="flex justify-between text-[11px] text-slate-400 font-medium">
-                            <span>RIR Error (ΔK):</span>
-                            <span className="font-mono text-emerald-300 font-bold">±{rirUncertaintyPct}%</span>
-                          </div>
-                          <input
-                            type="range"
-                            min="0.5"
-                            max="20"
-                            step="0.5"
-                            value={rirUncertaintyPct}
-                            onChange={(e) => setRirUncertaintyPct(parseFloat(e.target.value) || 5.0)}
-                            className="w-full accent-emerald-500 h-1 bg-slate-800 rounded-lg cursor-pointer"
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column: Quantitative Distribution Chart & Results (5 cols) */}
-                <div className="lg:col-span-5 flex flex-col gap-6">
-                  {/* Results Chart Card */}
-                  <div className="bg-gradient-to-br from-slate-900/80 to-slate-900/40 border border-slate-800/80 rounded-3xl p-6 shadow-xl backdrop-blur-sm space-y-4">
-                    <div className="flex items-center justify-between border-b border-slate-800/80 pb-4">
-                      <div className="flex items-center gap-2">
-                        <PieChartIcon className="w-5 h-5 text-indigo-400" />
-                        <h3 className="font-bold text-slate-200 text-sm">Phase Fraction Distribution</h3>
-                      </div>
-
-                      {/* Weight vs Volume Toggle */}
-                      <div className="bg-slate-950 p-1 rounded-xl border border-slate-800 flex gap-1">
-                        <button
-                          onClick={() => { playSynthTone('tick'); setChartUnitMode('wt'); }}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                            chartUnitMode === 'wt' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          wt%
-                        </button>
-                        <button
-                          onClick={() => { playSynthTone('tick'); setChartUnitMode('vol'); }}
-                          className={`px-2.5 py-1 rounded-lg text-xs font-bold transition-all ${
-                            chartUnitMode === 'vol' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-slate-200'
-                          }`}
-                        >
-                          vol%
-                        </button>
-                      </div>
-                    </div>
-
-                    {/* Donut Chart */}
-                    <div className="h-56 w-full">
-                      <ResponsiveContainer width="100%" height="100%">
-                        <PieChart>
-                          <Pie
-                            data={pieChartData}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius={50}
-                            outerRadius={80}
-                            paddingAngle={3}
-                            dataKey="value"
-                          >
-                            {pieChartData.map((entry, index) => (
-                              <Cell key={`cell-${index}`} fill={entry.color} />
-                            ))}
-                          </Pie>
-                          <RechartsTooltip
-                            content={({ active, payload }) => {
-                              if (active && payload && payload.length) {
-                                const data = payload[0].payload;
-                                return (
-                                  <div className="bg-slate-900 border border-slate-700 p-2.5 rounded-xl text-xs font-mono text-slate-200 shadow-xl">
-                                    <div className="font-bold text-sm" style={{ color: data.color }}>{data.name}</div>
-                                    <div className="text-white mt-1 font-black">{data.value} {chartUnitMode}%</div>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            }}
-                          />
-                        </PieChart>
-                      </ResponsiveContainer>
-                    </div>
-
-                    {/* Breakdown Bars (Bulk Total Basis + Amorphous if present) */}
-                    <div className="space-y-2.5 pt-2 border-t border-slate-800/80">
-                      {calculations.phaseResults
-                        .filter(p => !(calculations.isInternalStandardActive && p.isInternalStandard))
-                        .map(p => {
-                          const val = chartUnitMode === 'wt' ? p.totalSampleFraction : p.totalSampleVolFraction;
-                          const err = chartUnitMode === 'wt' ? p.errMarginTotal : p.errMarginVol * calculations.amorphousFactor;
-                          return (
-                            <div key={p.id} className="space-y-1">
-                              <div className="flex justify-between items-center text-xs">
-                                <span className="font-bold text-slate-200 flex items-center gap-2 truncate max-w-[175px]">
-                                  <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                                  {p.name}
-                                </span>
-                                <span className="font-mono tabular-nums font-bold text-slate-200">
-                                  {val.toFixed(1)} <span className="text-slate-400 font-normal">± {err.toFixed(1)}%</span>
-                                </span>
-                              </div>
-                              <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                                <div
-                                  className="h-full rounded-full transition-all duration-300"
-                                  style={{ width: `${Math.min(100, Math.max(0, val))}%`, backgroundColor: p.color }}
-                                />
-                              </div>
-                            </div>
-                          );
-                        })}
-
-                      {calculations.effectiveAmorphousWtPct > 0 && (
-                        <div className="space-y-1 pt-1">
-                          <div className="flex justify-between items-center text-xs">
-                            <span className="font-bold text-slate-300 flex items-center gap-2">
-                              <span className="w-2 h-2 rounded-full shrink-0 bg-slate-500" />
-                              Amorphous Matrix
-                            </span>
-                            <span className="font-mono tabular-nums font-bold text-rose-300">
-                              {(chartUnitMode === 'wt' ? calculations.effectiveAmorphousWtPct : calculations.amorphousVolPct).toFixed(1)} {chartUnitMode}%
-                            </span>
-                          </div>
-                          <div className="h-1.5 bg-slate-950 rounded-full overflow-hidden border border-slate-800">
-                            <div
-                              className="h-full rounded-full transition-all duration-300 bg-slate-500"
-                              style={{ width: `${Math.min(100, Math.max(0, chartUnitMode === 'wt' ? calculations.effectiveAmorphousWtPct : calculations.amorphousVolPct))}%` }}
-                            />
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Summary Export Action Buttons */}
-                    <div className="grid grid-cols-3 gap-2 pt-3 border-t border-slate-800">
-                      <button
-                        onClick={copyReportToClipboard}
-                        className="py-2 px-2 bg-slate-950 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-800 transition-all"
-                      >
-                        {copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                        <span>{copiedReport ? 'Copied' : 'Report'}</span>
-                      </button>
-                      <button
-                        onClick={exportCSV}
-                        className="py-2 px-2 bg-slate-950 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-800 transition-all"
-                      >
-                        <Download className="w-3.5 h-3.5 text-cyan-400" />
-                        <span>CSV</span>
-                      </button>
-                      <button
-                        onClick={exportJSON}
-                        className="py-2 px-2 bg-slate-950 hover:bg-slate-800 text-slate-300 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 border border-slate-800 transition-all"
-                      >
-                        <Code2 className="w-3.5 h-3.5 text-purple-400" />
-                        <span>JSON</span>
-                      </button>
-                    </div>
+          {/* Dedicated Quantitative Phase Analysis Results Table */}
+          <div
+            id="rir-results-summary-table"
+            className={`bg-[#0B0F17] border rounded-2xl overflow-hidden transition-colors duration-300 ${
+              calculationFlash ? 'border-emerald-500/70' : 'border-slate-800'
+            }`}
+          >
+            <div className="px-5 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <FileSpreadsheet className="w-5 h-5 text-cyan-400 shrink-0" />
+                <div>
+                  <h3 className="text-sm font-semibold text-slate-100 tracking-tight">
+                    Quantitative Phase Analysis Results Table
+                  </h3>
+                  <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-slate-400 mt-0.5 tabular-nums">
+                    <span>{calculations.assignedPhasesCount}/{phases.length} active phases</span>
+                    <span aria-hidden="true">·</span>
+                    <span>{calculations.assignedPeaksCount} reflections</span>
+                    <span aria-hidden="true">·</span>
+                    <span>ΣI = {calculations.totalObservedIntensity.toLocaleString()} cps</span>
+                    <span aria-hidden="true">·</span>
+                    <span>Σ(I/K) = {calculations.totalReducedIntensity.toFixed(1)}</span>
                   </div>
                 </div>
               </div>
 
-              {/* DEDICATED AUTOMATIC QUANTITATIVE PHASE ANALYSIS RESULTS SUMMARY TABLE */}
-              <div
-                id="rir-results-summary-table"
-                className="bg-gradient-to-br from-slate-900/90 to-slate-950/90 border border-slate-800/90 rounded-3xl p-6 shadow-2xl backdrop-blur-md space-y-5"
-              >
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
-                  <div className="flex items-center gap-3.5">
-                    <div className="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 shadow-inner">
-                      <FileSpreadsheet className="w-6 h-6" />
-                    </div>
-                    <div>
-                      <div className="flex flex-wrap items-center gap-2">
-                        <h3 className="text-base font-black text-slate-100 tracking-tight">
-                          Quantitative Phase Analysis Results Summary Table
-                        </h3>
-                        <span className="px-2.5 py-0.5 rounded-md text-[10px] font-mono tabular-nums font-bold bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-                          Auto-Computed ({calculations.assignedPhasesCount}/{phases.length} Phases, {calculations.assignedPeaksCount} Peaks)
-                        </span>
-                      </div>
-                      <p className="text-xs text-slate-400 mt-0.5">
-                        Live Chung adiabatic / spiking mass fractions (wt%), density-adjusted volume fractions (vol%), reduced intensities, and propagated uncertainties.
-                      </p>
-                    </div>
-                  </div>
-
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <button
-                      onClick={copyReportToClipboard}
-                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5 transition-all"
-                    >
-                      {copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-                      <span>{copiedReport ? 'Copied Summary' : 'Copy Summary'}</span>
-                    </button>
-                    <button
-                      onClick={exportCSV}
-                      className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-bold border border-slate-700 flex items-center gap-1.5 transition-all"
-                    >
-                      <Download className="w-3.5 h-3.5 text-cyan-400" />
-                      <span>Export CSV</span>
-                    </button>
-                    <button
-                      onClick={() => { playSynthTone('tick'); setMainTab('matrix'); }}
-                      className="px-3 py-1.5 rounded-xl bg-indigo-600/20 hover:bg-indigo-600 text-indigo-300 hover:text-white text-xs font-bold border border-indigo-500/40 flex items-center gap-1.5 transition-all"
-                    >
-                      <Cpu className="w-3.5 h-3.5" />
-                      <span>Covariance Matrix</span>
-                    </button>
-                  </div>
-                </div>
-
-                {/* Live Quantitative KPI Strip */}
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Assigned Peak Sum (ΣI)</span>
-                    <span className="text-lg font-mono font-black text-slate-100 mt-0.5 block">
-                      {calculations.totalObservedIntensity.toLocaleString()} <span className="text-xs font-normal text-slate-400">cps</span>
-                    </span>
-                  </div>
-                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Reduced Sum (Σ I/RIR)</span>
-                    <span className="text-lg font-mono font-black text-cyan-400 mt-0.5 block">
-                      {calculations.totalReducedIntensity.toFixed(2)}
-                    </span>
-                  </div>
-                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Crystalline Total</span>
-                    <span className="text-lg font-mono font-black text-indigo-400 mt-0.5 block">
-                      {(100 - calculations.effectiveAmorphousWtPct).toFixed(2)} wt%
-                    </span>
-                  </div>
-                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">
-                      {calculations.isInternalStandardActive ? 'Spiked Amorphous' : 'Amorphous Matrix'}
-                    </span>
-                    <span className="text-lg font-mono font-black text-rose-400 mt-0.5 block">
-                      {calculations.effectiveAmorphousWtPct.toFixed(2)} wt%
-                    </span>
-                  </div>
-                  <div className="bg-slate-950/70 border border-slate-800/80 p-3.5 rounded-2xl col-span-2 sm:col-span-1">
-                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Mixture MAC (Cu Kα)</span>
-                    <span className="text-lg font-mono font-black text-emerald-400 mt-0.5 block">
-                      {calculations.totalSampleMAC.toFixed(1)} <span className="text-xs font-normal text-slate-400">cm²/g</span>
-                    </span>
-                  </div>
-                </div>
-
-                {/* Dedicated Quantitative Results Table */}
-                {!calculations.hasAssignedIntensities ? (
-                  <div className="bg-amber-950/20 border border-amber-500/30 rounded-2xl p-6 text-center space-y-3">
-                    <AlertTriangle className="w-7 h-7 text-amber-400 mx-auto" />
-                    <div className="text-sm font-bold text-slate-200">
-                      No Bragg Peak Intensities Assigned Yet
-                    </div>
-                    <p className="text-xs text-slate-400 max-w-md mx-auto">
-                      Enter a positive integrated peak intensity (cps) for one or more crystalline phases above to automatically compute quantitative phase fractions.
-                    </p>
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto rounded-2xl border border-slate-800 shadow-inner">
-                    <table className="w-full text-xs font-mono">
-                      <thead className="bg-slate-950 text-slate-400 uppercase tracking-wider border-b border-slate-800">
-                        <tr>
-                          <th className="px-4 py-3 text-left font-sans">Phase & Reflection</th>
-                          <th className="px-3 py-3 text-right">2θ (°)</th>
-                          <th className="px-3 py-3 text-right">Assigned Peak Int. (cps)</th>
-                          <th className="px-3 py-3 text-right">RIR (I/Ic)</th>
-                          <th className="px-3 py-3 text-right text-cyan-300">Reduced (I/RIR)</th>
-                          <th className="px-3 py-3 text-right text-indigo-300 font-bold">Crystalline (wt% ± σ)</th>
-                          <th className="px-3 py-3 text-right text-emerald-300 font-bold">Total Sample (wt% ± σ)</th>
-                          <th className="px-3 py-3 text-right text-amber-300">Volume (vol% ± σ)</th>
-                          <th className="px-3 py-3 text-right text-slate-400">LOD / Depth (τ₉₉)</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-800/60 bg-slate-950/40">
-                        {calculations.phaseResults.map((p) => (
-                          <tr key={p.id} className="hover:bg-slate-900/60 transition-colors">
-                            <td className="px-4 py-3 font-sans">
-                              <div className="flex items-center gap-2">
-                                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: p.color }} />
-                                <span className="font-bold text-slate-100">{p.name}</span>
-                                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-900 border border-slate-800 text-slate-300">
-                                  {p.hkl}
-                                </span>
-                                {(p.relIntensityPct && p.relIntensityPct !== 100) && (
-                                  <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-indigo-500/10 border border-indigo-500/30 text-indigo-300">
-                                    I_rel={p.relIntensityPct}%
-                                  </span>
-                                )}
-                                {internalStandardMode && p.isInternalStandard && (
-                                  <span className="text-[9px] uppercase font-bold px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                    Internal Std
-                                  </span>
-                                )}
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 text-right text-slate-300">{p.twoTheta.toFixed(2)}°</td>
-                            <td className="px-3 py-3 text-right">
-                              <input
-                                type="number"
-                                min="0"
-                                step="50"
-                                value={p.intensity}
-                                onChange={(e) => updatePhase(p.id, 'intensity', Math.max(0, parseFloat(e.target.value) || 0))}
-                                className="w-24 bg-slate-900 border border-slate-700 focus:border-indigo-500 text-right text-slate-100 font-bold rounded-lg px-2 py-1 text-xs outline-none"
-                                title="Edit assigned peak intensity directly"
-                              />
-                            </td>
-                            <td className="px-3 py-3 text-right text-slate-300">
-                              {p.rir.toFixed(2)}
-                              {useBrindley && (
-                                <span className="block text-[9px] text-cyan-400">τ={p.tau.toFixed(3)}</span>
-                              )}
-                            </td>
-                            <td className="px-3 py-3 text-right font-bold text-cyan-300">
-                              {p.reducedIntensity.toFixed(2)}
-                            </td>
-                            <td className="px-3 py-3 text-right">
-                              <div className="font-bold text-indigo-300">
-                                {p.crystallineFraction.toFixed(2)} <span className="text-slate-400 font-normal">± {p.errMarginCrystalline.toFixed(2)}%</span>
-                              </div>
-                              <div className="w-24 ml-auto h-1 bg-slate-900 rounded-full overflow-hidden mt-1">
-                                <div
-                                  className="h-full rounded-full"
-                                  style={{ width: `${Math.min(100, Math.max(0, p.crystallineFraction))}%`, backgroundColor: p.color }}
-                                />
-                              </div>
-                            </td>
-                            <td className="px-3 py-3 text-right font-bold text-emerald-300">
-                              {p.totalSampleFraction.toFixed(2)} <span className="text-slate-400 font-normal">± {p.errMarginTotal.toFixed(2)}%</span>
-                            </td>
-                            <td className="px-3 py-3 text-right font-bold text-amber-300">
-                              {p.crystallineVolFraction.toFixed(2)} <span className="text-slate-400 font-normal">± {p.errMarginVol.toFixed(2)}%</span>
-                            </td>
-                            <td className="px-3 py-3 text-right text-[11px] text-slate-400">
-                              <span className="text-rose-300">{p.lodWtPct} wt%</span> / <span className="text-cyan-300">{p.penetrationDepthUm} µm</span>
-                            </td>
-                          </tr>
-                        ))}
-
-                        {calculations.effectiveAmorphousWtPct > 0 && (
-                          <tr className="bg-rose-950/15 text-rose-300">
-                            <td className="px-4 py-3 font-bold font-sans flex items-center gap-2">
-                              <span className="w-2.5 h-2.5 rounded-full bg-rose-500" />
-                              <span>Amorphous / Non-Crystalline Matrix</span>
-                            </td>
-                            <td className="px-3 py-3 text-right text-slate-500">---</td>
-                            <td className="px-3 py-3 text-right text-slate-500">Diffuse Halo</td>
-                            <td className="px-3 py-3 text-right text-slate-500">---</td>
-                            <td className="px-3 py-3 text-right text-slate-500">---</td>
-                            <td className="px-3 py-3 text-right text-slate-500">0.00% (Cryst. Basis)</td>
-                            <td className="px-3 py-3 text-right font-bold text-rose-400">
-                              {calculations.effectiveAmorphousWtPct.toFixed(2)} wt%
-                            </td>
-                            <td className="px-3 py-3 text-right font-bold text-rose-400">
-                              {calculations.amorphousVolPct.toFixed(2)} vol% (bulk)
-                            </td>
-                            <td className="px-3 py-3 text-right text-slate-500">ρ={amorphousDensity.toFixed(2)}</td>
-                          </tr>
-                        )}
-                      </tbody>
-                      <tfoot className="bg-slate-950 border-t border-slate-800 text-slate-200 font-bold">
-                        <tr>
-                          <td className="px-4 py-3 font-sans text-xs uppercase tracking-wider text-slate-400">
-                            Total Mixture Summary ({calculations.assignedPhasesCount} Active Phases)
-                          </td>
-                          <td className="px-3 py-3 text-right text-slate-500">---</td>
-                          <td className="px-3 py-3 text-right text-slate-200">
-                            {calculations.totalObservedIntensity.toLocaleString()} cps
-                          </td>
-                          <td className="px-3 py-3 text-right text-slate-500">---</td>
-                          <td className="px-3 py-3 text-right text-cyan-300">
-                            {calculations.totalReducedIntensity.toFixed(2)}
-                          </td>
-                          <td className="px-3 py-3 text-right text-indigo-300">100.00 wt%</td>
-                          <td className="px-3 py-3 text-right text-emerald-300">100.00 wt%</td>
-                          <td className="px-3 py-3 text-right text-amber-300">100.00 vol%</td>
-                          <td className="px-3 py-3 text-right text-cyan-300">
-                            μ* = {calculations.totalSampleMAC.toFixed(1)} cm²/g
-                          </td>
-                        </tr>
-                      </tfoot>
-                    </table>
-                  </div>
-                )}
+              <div className="flex items-center gap-2 flex-wrap">
+                <button
+                  type="button"
+                  onClick={copyReportToClipboard}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-slate-800 flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                >
+                  {copiedReport ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5 text-slate-400" />}
+                  <span>{copiedReport ? 'Copied' : 'Copy Report'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={exportCSV}
+                  className="px-3 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 text-xs font-medium border border-slate-800 flex items-center gap-1.5 transition-colors whitespace-nowrap"
+                >
+                  <Download className="w-3.5 h-3.5 text-cyan-400" />
+                  <span>Export CSV</span>
+                </button>
               </div>
             </div>
-          )}
 
-          {/* TAB: PAWLEY & LE BAIL DECONVOLUTION BRIDGE */}
-          {mainTab === 'pawley_bridge' && (
-            <PawleyRIRBridge
-              currentPhases={phases}
-              onImportDecomposedPhase={handleImportPawleyPhase}
-              onUpdatePhaseIntensity={handleUpdatePawleyIntensity}
-            />
-          )}
+            {!calculations.hasAssignedIntensities ? (
+              <div className="p-8 text-center space-y-2">
+                <AlertTriangle className="w-6 h-6 text-amber-400 mx-auto" />
+                <div className="text-sm font-semibold text-slate-200">No Bragg Peak Intensities Assigned</div>
+                <p className="text-xs text-slate-400 max-w-md mx-auto">
+                  Enter a positive integrated peak intensity (cps) for one or more crystalline phases to compute quantitative phase fractions.
+                </p>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs font-mono tabular-nums">
+                  <thead className="bg-[#070B12] text-slate-400 border-b border-slate-800 text-[11px]">
+                    <tr>
+                      <th className="px-4 py-3 text-left font-sans font-semibold">Phase & Reflection</th>
+                      <th className="px-3 py-3 text-right font-medium">2θ / d (Å)</th>
+                      <th className="px-3 py-3 text-right font-medium">Int. (cps)</th>
+                      <th className="px-3 py-3 text-right font-medium">RIR (I/I<sub>c</sub>)</th>
+                      <th className="px-3 py-3 text-right text-cyan-400 font-medium">Reduced (I/K)</th>
+                      <th className="px-3 py-3 text-right text-indigo-300 font-semibold">Cryst. wt% ± σ</th>
+                      <th className="px-3 py-3 text-right text-emerald-300 font-semibold">Bulk wt% ± σ</th>
+                      <th className="px-3 py-3 text-right text-amber-300 font-semibold">Bulk vol% ± σ</th>
+                      <th className="px-4 py-3 text-right text-slate-400 font-medium">LOD / τ<sub>99</sub></th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/70">
+                    {calculations.phaseResults.map((p) => {
+                      const { dSpacingA } = computeBraggReciprocal(p.twoTheta, activeAnode.wavelengthA);
+                      return (
+                        <tr key={p.id} className="hover:bg-slate-900/50 transition-colors">
+                          <td className="px-4 py-3 font-sans">
+                            <div className="flex items-center gap-2">
+                              <span className="w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: p.color }} />
+                              <span className="font-semibold text-slate-100">{p.name}</span>
+                              <span className="text-[11px] font-mono text-slate-400">{p.hkl}</span>
+                              {p.isInternalStandard && (
+                                <span className="text-[10px] font-mono text-amber-400">· Internal Std</span>
+                              )}
+                              {p.textureCvPct > 0 && (
+                                <span className={`text-[10px] font-mono ${p.textureCvPct > 15 ? 'text-amber-400' : 'text-slate-500'}`}>
+                                  · CV {p.textureCvPct.toFixed(1)}%
+                                </span>
+                              )}
+                            </div>
+                          </td>
+                          <td className="px-3 py-3 text-right text-slate-300">
+                            <div>{p.twoTheta.toFixed(2)}°</div>
+                            <div className="text-[10px] text-slate-500">{dSpacingA.toFixed(3)} Å</div>
+                          </td>
+                          <td className="px-3 py-3 text-right">
+                            <input
+                              type="number"
+                              min="0"
+                              step="50"
+                              value={p.intensity}
+                              onChange={(e) => updatePhase(p.id, 'intensity', Math.max(0, parseFloat(e.target.value) || 0))}
+                              className="w-24 bg-[#070B12] border border-slate-800 focus:border-cyan-500 text-right text-slate-100 font-semibold rounded-md px-2 py-1 text-xs outline-none"
+                            />
+                          </td>
+                          <td className="px-3 py-3 text-right text-slate-300">
+                            <div>{p.rir.toFixed(2)}</div>
+                            {useBrindley && <div className="text-[10px] text-cyan-400">τ={p.tau.toFixed(3)}</div>}
+                          </td>
+                          <td className="px-3 py-3 text-right font-semibold text-cyan-300">
+                            {p.reducedIntensity.toFixed(1)}
+                          </td>
+                          <td className="px-3 py-3 text-right text-indigo-300 font-semibold">
+                            {p.isInternalStandard ? (
+                              <span className="text-slate-500 font-normal">Std</span>
+                            ) : (
+                              <>
+                                {p.crystallineFraction.toFixed(2)}
+                                <span className="text-slate-500 font-normal"> ± {p.errMarginCrystalline.toFixed(2)}%</span>
+                              </>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-right text-emerald-300 font-semibold">
+                            {p.isInternalStandard ? (
+                              <span className="text-amber-400 font-normal">{standardAddedWtPct.toFixed(1)}% spike</span>
+                            ) : (
+                              <>
+                                {p.totalSampleFraction.toFixed(2)}
+                                <span className="text-slate-500 font-normal"> ± {p.errMarginTotal.toFixed(2)}%</span>
+                              </>
+                            )}
+                          </td>
+                          <td className="px-3 py-3 text-right text-amber-300 font-semibold">
+                            {p.isInternalStandard ? (
+                              <span className="text-slate-500 font-normal">—</span>
+                            ) : (
+                              <>
+                                {p.totalSampleVolFraction.toFixed(2)}
+                                <span className="text-slate-500 font-normal"> ± {p.errMarginBulkVol.toFixed(2)}%</span>
+                              </>
+                            )}
+                          </td>
+                          <td className="px-4 py-3 text-right text-[11px] text-slate-400">
+                            <span className="text-rose-300">{p.lodWtPct} wt%</span>
+                            <span className="text-slate-600 mx-1">/</span>
+                            <span className="text-cyan-300">{p.penetrationDepthUm} µm</span>
+                          </td>
+                        </tr>
+                      );
+                    })}
 
-          {/* TAB 2: MATRIX ALGEBRA & COVARIANCE INSPECTOR */}
-          {mainTab === 'matrix' && (
-            <RIRMatrixInspector
-              phases={phases}
-              amorphousWtPct={calculations.effectiveAmorphousWtPct}
-              intensityUncertaintyPct={intensityUncertaintyPct}
-              rirUncertaintyPct={rirUncertaintyPct}
-            />
-          )}
+                    {calculations.effectiveAmorphousWtPct > 0 && (
+                      <tr className="bg-slate-900/40 text-rose-300">
+                        <td className="px-4 py-3 font-sans font-semibold flex items-center gap-2">
+                          <span className="w-2.5 h-2.5 rounded-sm bg-slate-500" />
+                          <span>Amorphous / Diffuse Matrix</span>
+                        </td>
+                        <td className="px-3 py-3 text-right text-slate-500">Halo</td>
+                        <td className="px-3 py-3 text-right text-slate-500">—</td>
+                        <td className="px-3 py-3 text-right text-slate-500">—</td>
+                        <td className="px-3 py-3 text-right text-slate-500">—</td>
+                        <td className="px-3 py-3 text-right text-slate-500">0.00%</td>
+                        <td className="px-3 py-3 text-right font-semibold text-rose-400">
+                          {calculations.effectiveAmorphousWtPct.toFixed(2)}
+                          {calculations.isInternalStandardActive && calculations.amorphousErrWtPct > 0
+                            ? ` ± ${calculations.amorphousErrWtPct.toFixed(2)}%`
+                            : '%'}
+                        </td>
+                        <td className="px-3 py-3 text-right font-semibold text-rose-400">
+                          {calculations.amorphousVolPct.toFixed(2)}%
+                        </td>
+                        <td className="px-4 py-3 text-right text-slate-400">ρ={amorphousDensity.toFixed(2)}</td>
+                      </tr>
+                    )}
+                  </tbody>
+                  <tfoot className="bg-[#070B12] border-t border-slate-800 text-slate-200 font-semibold">
+                    <tr>
+                      <td className="px-4 py-3 font-sans text-xs text-slate-300">
+                        Mixture Closure ({calculations.assignedPhasesCount} Active Phases)
+                      </td>
+                      <td className="px-3 py-3 text-right text-slate-500">—</td>
+                      <td className="px-3 py-3 text-right text-slate-200">
+                        {calculations.totalObservedIntensity.toLocaleString()}
+                      </td>
+                      <td className="px-3 py-3 text-right text-slate-500">—</td>
+                      <td className="px-3 py-3 text-right text-cyan-300">
+                        {calculations.totalReducedIntensity.toFixed(1)}
+                      </td>
+                      <td className="px-3 py-3 text-right text-indigo-300">
+                        {calculations.sumCrystallineWtPct.toFixed(2)}%
+                      </td>
+                      <td
+                        className={`px-3 py-3 text-right ${
+                          calculations.sumBulkWtPct > 100.5 ? 'text-rose-400' : 'text-emerald-300'
+                        }`}
+                      >
+                        {calculations.sumBulkWtPct.toFixed(2)}%
+                      </td>
+                      <td className="px-3 py-3 text-right text-amber-300">
+                        {calculations.sumBulkVolPct.toFixed(2)}%
+                      </td>
+                      <td className="px-4 py-3 text-right text-cyan-300">
+                        μ*={calculations.totalSampleMAC.toFixed(1)}
+                      </td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
-          {/* TAB 3: CALIBRATION STUDIO */}
-          {mainTab === 'calibration' && (
-            <RIRCalibrationStudio
-              phases={phases}
-              onApplyRIR={handleApplyCalibratedRIR}
-            />
-          )}
+      {/* TAB 2: PAWLEY & LE BAIL DECONVOLUTION BRIDGE */}
+      {mainTab === 'pawley_bridge' && (
+        <PawleyRIRBridge
+          currentPhases={phases}
+          onImportDecomposedPhase={handleImportPawleyPhase}
+          onUpdatePhaseIntensity={handleUpdatePawleyIntensity}
+        />
+      )}
 
-          {/* TAB 4: XRD SPECTRUM VISUALIZER */}
-          {mainTab === 'spectrum' && (
-            <RIRDiffractionVisualizer
-              phases={phases}
-              amorphousWtPct={calculations.effectiveAmorphousWtPct}
-              internalStandardPhaseId={internalStandardMode ? standardPhaseId : undefined}
-              onUpdatePhaseIntensity={(phaseId, newIntensity) => updatePhase(phaseId, 'intensity', newIntensity)}
-            />
-          )}
+      {/* TAB 3: MATRIX ALGEBRA & COVARIANCE INSPECTOR */}
+      {mainTab === 'matrix' && (
+        <RIRMatrixInspector
+          phases={phases}
+          amorphousWtPct={calculations.effectiveAmorphousWtPct}
+          intensityUncertaintyPct={intensityUncertaintyPct}
+          rirUncertaintyPct={rirUncertaintyPct}
+        />
+      )}
 
-          {/* TAB 5: ICDD REFERENCE LIBRARY */}
-          {mainTab === 'database' && (
-            <RIRDatabaseExplorer
-              onAddPhasePreset={addPresetPhase}
-            />
-          )}
+      {/* TAB 4: CALIBRATION STUDIO */}
+      {mainTab === 'calibration' && (
+        <RIRCalibrationStudio
+          phases={phases}
+          onApplyRIR={handleApplyCalibratedRIR}
+        />
+      )}
 
-          {/* TAB 7: BRINDLEY MICROABSORPTION INSPECTOR */}
-          {mainTab === 'microabsorption' && (
-            <RIRBrindleyInspector
-              phases={phases}
-              particleDiameterUm={particleDiameterUm}
-              onUpdateParticleDiameter={setParticleDiameterUm}
-              useBrindley={useBrindley}
-              onToggleBrindley={setUseBrindley}
-            />
-          )}
+      {/* TAB 5: XRD SPECTRUM VISUALIZER */}
+      {mainTab === 'spectrum' && (
+        <RIRDiffractionVisualizer
+          phases={phases}
+          amorphousWtPct={calculations.effectiveAmorphousWtPct}
+          internalStandardPhaseId={internalStandardMode ? standardPhaseId : undefined}
+          onUpdatePhaseIntensity={(phaseId, newIntensity) => updatePhase(phaseId, 'intensity', newIntensity)}
+        />
+      )}
 
-          {/* TAB 8: PYTHON & ORIGIN LAB SCRIPT EXPORT */}
-          {mainTab === 'script' && (
-            <RIRScriptExport
-              phases={phases}
-              amorphousWtPct={calculations.effectiveAmorphousWtPct}
-              intensityUncertaintyPct={intensityUncertaintyPct}
-              rirUncertaintyPct={rirUncertaintyPct}
-              quantMode={internalStandardMode ? 'spiking' : 'adiabatic'}
-              internalStandardPhaseId={internalStandardMode ? standardPhaseId : undefined}
-              standardAddedWtPct={internalStandardMode ? standardAddedWtPct : undefined}
-              useBrindley={useBrindley}
-              particleDiameterUm={particleDiameterUm}
-            />
-          )}
+      {/* TAB 6: ICDD REFERENCE LIBRARY */}
+      {mainTab === 'database' && (
+        <RIRDatabaseExplorer onAddPhasePreset={addPresetPhase} />
+      )}
 
-          {/* TAB 9: THEORY & EQUATIONS */}
-          {mainTab === 'theory' && (
-            <RIRTheoryGuide />
-          )}
+      {/* TAB 7: BRINDLEY MICROABSORPTION INSPECTOR */}
+      {mainTab === 'microabsorption' && (
+        <RIRBrindleyInspector
+          phases={phases}
+          particleDiameterUm={particleDiameterUm}
+          onUpdateParticleDiameter={setParticleDiameterUm}
+          useBrindley={useBrindley}
+          onToggleBrindley={setUseBrindley}
+        />
+      )}
+
+      {/* TAB 8: PYTHON & ORIGIN LAB SCRIPT EXPORT */}
+      {mainTab === 'script' && (
+        <RIRScriptExport
+          phases={phases}
+          amorphousWtPct={calculations.effectiveAmorphousWtPct}
+          intensityUncertaintyPct={intensityUncertaintyPct}
+          rirUncertaintyPct={rirUncertaintyPct}
+          quantMode={internalStandardMode ? 'spiking' : 'adiabatic'}
+          internalStandardPhaseId={internalStandardMode ? standardPhaseId : undefined}
+          standardAddedWtPct={internalStandardMode ? standardAddedWtPct : undefined}
+          useBrindley={useBrindley}
+          particleDiameterUm={particleDiameterUm}
+        />
+      )}
+
+      {/* TAB 9: THEORY & EQUATIONS */}
+      {mainTab === 'theory' && <RIRTheoryGuide />}
     </div>
   );
 };

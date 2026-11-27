@@ -7,6 +7,7 @@ import { DislocationMetricsVisualizer } from './DislocationMetricsVisualizer';
 import { WarrenAverbachMetricsSummary } from './WarrenAverbachMetricsSummary';
 import { WarrenAverbachPeakConverterModal } from './WarrenAverbachPeakConverterModal';
 import { WarrenAverbachHarmonicsManager } from './WarrenAverbachHarmonicsManager';
+import { WADeconvolutionConsole, WAInputMode, WAMaterialPresetItem } from './warren_averbach/WADeconvolutionConsole';
 import { WhatDoesThisMeanTooltip } from './common/WhatDoesThisMeanTooltip';
 import { GuidedWalkthroughWizard, WizardStep } from './common/GuidedWalkthroughWizard';
 import { PhysicalMeaningSummary } from './common/PhysicalMeaningSummary';
@@ -62,7 +63,10 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 
 interface MaterialPreset {
+  id: string;
   label: string;
+  system: string;
+  hklPair: string;
   d1: number;
   d2: number;
   d3?: number;
@@ -70,20 +74,25 @@ interface MaterialPreset {
   burgersVector: number; // nm
   youngsModulus: number; // GPa
   contrastFactor?: number;
+  densityGcm3: number; // g/cm^3
   desc: string;
   data: string;
 }
 
 const MATERIAL_PRESETS: MaterialPreset[] = [
-  { 
-    label: 'Gold (Au) Nanocrystals', 
-    d1: 2.3551, 
+  {
+    id: 'au_fcc',
+    label: 'Gold (Au) Nanocrystals',
+    system: 'FCC',
+    hklPair: '(111)/(222)',
+    d1: 2.3551,
     d2: 1.1776,
     d3: 0.7850,
     d4: 0.5888,
     burgersVector: 0.288,
     youngsModulus: 78,
     contrastFactor: 0.304,
+    densityGcm3: 19.32,
     desc: 'FCC (111), (222), (333), and (444) harmonics',
     data: `# L[nm], A(d1), A(d2), A(d3), A(d4)
 1, 0.985, 0.952, 0.910, 0.865
@@ -99,14 +108,18 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
 20, 0.360, 0.095, 0.015, 0.002
 25, 0.240, 0.035, 0.002, 0.000`
   },
-  { 
-    label: 'Copper (Cu) ECAP Deformed', 
-    d1: 2.0871, 
+  {
+    id: 'cu_ecap',
+    label: 'Copper (Cu) ECAP Deformed',
+    system: 'FCC',
+    hklPair: '(111)/(222)',
+    d1: 2.0871,
     d2: 1.0435,
     d3: 0.6957,
     burgersVector: 0.256,
     youngsModulus: 128,
     contrastFactor: 0.304,
+    densityGcm3: 8.96,
     desc: 'High dislocation density FCC (111)/(222)/(333)',
     data: `# L[nm], A(d1), A(d2), A(d3)
 1, 0.970, 0.885, 0.810
@@ -121,14 +134,18 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
 20, 0.200, 0.015, 0.001
 25, 0.110, 0.002, 0.000`
   },
-  { 
-    label: 'Titanium (Ti) Grade 2 (HCP)', 
-    d1: 2.5570, 
-    d2: 1.2785, 
+  {
+    id: 'ti_hcp',
+    label: 'Titanium (Ti) Grade 2 (HCP)',
+    system: 'HCP',
+    hklPair: '(100)/(200)',
+    d1: 2.5570,
+    d2: 1.2785,
     d3: 0.8523,
     burgersVector: 0.295,
     youngsModulus: 105,
     contrastFactor: 0.250,
+    densityGcm3: 4.51,
     desc: 'HCP prismatic (100), (200), (300) harmonics',
     data: `# L[nm], A(d1), A(d2), A(d3)
 1, 0.982, 0.930, 0.875
@@ -142,12 +159,17 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
 15, 0.430, 0.170, 0.035
 20, 0.285, 0.065, 0.005`
   },
-  { 
-    label: 'Silicon (Si) SRM 640', 
-    d1: 3.1355, 
-    d2: 1.5678, 
+  {
+    id: 'si_srm640',
+    label: 'Silicon (Si) SRM 640',
+    system: 'Diamond Cubic',
+    hklPair: '(111)/(222)',
+    d1: 3.1355,
+    d2: 1.5678,
     burgersVector: 0.384,
     youngsModulus: 130,
+    contrastFactor: 0.240,
+    densityGcm3: 2.33,
     desc: 'NIST Standard low-strain (111)/(222)',
     data: `# L[nm], A(d1), A(d2)
 1, 0.995, 0.988
@@ -162,12 +184,17 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
 25, 0.670, 0.440
 30, 0.585, 0.330`
   },
-  { 
-    label: 'Nickel (Ni) Ball-Milled', 
-    d1: 2.0340, 
-    d2: 1.0170, 
+  {
+    id: 'ni_milled',
+    label: 'Nickel (Ni) Ball-Milled',
+    system: 'FCC',
+    hklPair: '(111)/(222)',
+    d1: 2.0340,
+    d2: 1.0170,
     burgersVector: 0.249,
     youngsModulus: 200,
+    contrastFactor: 0.285,
+    densityGcm3: 8.91,
     desc: 'Nanocrystalline Ni (111) & (222)',
     data: `# L[nm], A(d1), A(d2)
 1, 0.965, 0.870
@@ -180,12 +207,17 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
 15, 0.300, 0.040
 20, 0.175, 0.008`
   },
-  { 
-    label: 'Stainless Steel 316L', 
-    d1: 2.0780, 
-    d2: 1.0390, 
+  {
+    id: 'ss_316l',
+    label: 'Stainless Steel 316L',
+    system: 'FCC Austenitic',
+    hklPair: '(111)/(222)',
+    d1: 2.0780,
+    d2: 1.0390,
     burgersVector: 0.254,
     youngsModulus: 193,
+    contrastFactor: 0.295,
+    densityGcm3: 7.98,
     desc: 'Austenitic work-hardened (111)/(222)',
     data: `# L[nm], A(d1), A(d2)
 1, 0.960, 0.880
@@ -198,12 +230,17 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
 15, 0.315, 0.055
 20, 0.190, 0.012`
   },
-  { 
-    label: 'Tungsten (W) Heavy Alloy', 
-    d1: 2.2380, 
-    d2: 1.1190, 
+  {
+    id: 'w_bcc',
+    label: 'Tungsten (W) Heavy Alloy',
+    system: 'BCC',
+    hklPair: '(110)/(220)',
+    d1: 2.2380,
+    d2: 1.1190,
     burgersVector: 0.274,
     youngsModulus: 411,
+    contrastFactor: 0.285,
+    densityGcm3: 19.25,
     desc: 'BCC Refractory (110) & (220)',
     data: `# L[nm], A(d1), A(d2)
 1, 0.975, 0.920
@@ -216,12 +253,17 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
 15, 0.420, 0.120
 20, 0.285, 0.040`
   },
-  { 
-    label: 'Ceria (CeO2) Catalyst', 
-    d1: 3.1240, 
-    d2: 1.5620, 
+  {
+    id: 'ceo2_fluorite',
+    label: 'Ceria (CeO2) Catalyst',
+    system: 'Cubic Fluorite',
+    hklPair: '(111)/(222)',
+    d1: 3.1240,
+    d2: 1.5620,
     burgersVector: 0.383,
     youngsModulus: 220,
+    contrastFactor: 0.250,
+    densityGcm3: 7.22,
     desc: 'Fluorite oxide nanocrystals (111)/(222)',
     data: `# L[nm], A(d1), A(d2)
 1, 0.975, 0.930
@@ -234,12 +276,17 @@ const MATERIAL_PRESETS: MaterialPreset[] = [
 15, 0.350, 0.105
 20, 0.215, 0.030`
   },
-  { 
-    label: 'Zinc Oxide (ZnO) Nanorods', 
-    d1: 2.8140, 
-    d2: 1.4070, 
+  {
+    id: 'zno_wurtzite',
+    label: 'Zinc Oxide (ZnO) Nanorods',
+    system: 'Hexagonal Wurtzite',
+    hklPair: '(100)/(200)',
+    d1: 2.8140,
+    d2: 1.4070,
     burgersVector: 0.325,
     youngsModulus: 140,
+    contrastFactor: 0.240,
+    densityGcm3: 5.61,
     desc: 'Wurtzite hexagonal (100)/(200)',
     data: `# L[nm], A(d1), A(d2)
 1, 0.970, 0.920
@@ -272,11 +319,12 @@ export const WarrenAverbachModule: React.FC = () => {
   const [shapeFactor, setShapeFactor] = useState<number>(1.0);
   const [instrumentalCorrection, setInstrumentalCorrection] = useState<string>('Stokes');
   const [backgroundModel, setBackgroundModel] = useState<string>('Linear');
-  const [strainModel, setStrainModel] = useState<string>('Dislocation (Wilkens)');
+  const [strainModel, setStrainModel] = useState<string>('Gaussian');
   const [hookCorrectionMode, setHookCorrectionMode] = useState<'linear_tangent' | 'polynomial' | 'spline_regularization' | 'none'>('linear_tangent');
   const [contrastFactorC, setContrastFactorC] = useState<number>(0.304);
-  const [contrastPreset, setContrastPreset] = useState<string>('fcc_111_edge');
-  
+  const [materialDensityGcm3, setMaterialDensityGcm3] = useState<number>(MATERIAL_PRESETS[0].densityGcm3);
+  const [activePresetId, setActivePresetId] = useState<string>(MATERIAL_PRESETS[0].id);
+
   // Advanced Refinement Parameters
   const [instrumentalFactor, setInstrumentalFactor] = useState<number>(0.005);
   const [backgroundOffset, setBackgroundOffset] = useState<number>(0.02);
@@ -288,19 +336,25 @@ export const WarrenAverbachModule: React.FC = () => {
   const [showNumberWeighted, setShowNumberWeighted] = useState<boolean>(true);
   const [showLogNormalFit, setShowLogNormalFit] = useState<boolean>(true);
   const [wilkensPlotMode, setWilkensPlotMode] = useState<'linearized' | 'rms_decay'>('linearized');
+  const [orderPlotViewMode, setOrderPlotViewMode] = useState<'single' | 'fan'>('single');
+  const [calculationFlash, setCalculationFlash] = useState<boolean>(false);
 
-  // Interactive Hook-Effect Fit Window [L_min, L_max] (nm)
-  const [hookMinL, setHookMinL] = useState<number>(2.0);
-  const [hookMaxL, setHookMaxL] = useState<number>(8.0);
+  // Interactive Hook-Effect Fit Window [L_min, L_max] (nm) - undefined = Auto Inflection Window
+  const [hookMinL, setHookMinL] = useState<number | undefined>(undefined);
+  const [hookMaxL, setHookMaxL] = useState<number | undefined>(undefined);
 
-  // User-friendly Direct Peak FWHM Workflow Mode
-  const [inputWorkflowMode, setInputWorkflowMode] = useState<'fourier_table' | 'direct_peaks'>('fourier_table');
+  // 3-Mode Input Workflow ('direct_peaks' | 'fourier_coeffs' | 'profile_dft')
+  const [inputWorkflowMode, setInputWorkflowMode] = useState<WAInputMode>('fourier_coeffs');
   const [directPeak1Pos, setDirectPeak1Pos] = useState<number>(38.18);
   const [directPeak1Fwhm, setDirectPeak1Fwhm] = useState<number>(0.42);
   const [directPeak1Eta, setDirectPeak1Eta] = useState<number>(0.62);
   const [directPeak2Pos, setDirectPeak2Pos] = useState<number>(81.72);
   const [directPeak2Fwhm, setDirectPeak2Fwhm] = useState<number>(0.88);
   const [directPeak2Eta, setDirectPeak2Eta] = useState<number>(0.45);
+  const [directUsePeak3, setDirectUsePeak3] = useState<boolean>(false);
+  const [directPeak3Pos, setDirectPeak3Pos] = useState<number>(135.42);
+  const [directPeak3Fwhm, setDirectPeak3Fwhm] = useState<number>(1.48);
+  const [directPeak3Eta, setDirectPeak3Eta] = useState<number>(0.38);
   const [directInstFwhm, setDirectInstFwhm] = useState<number>(0.07);
   const [directHookStrength, setDirectHookStrength] = useState<number>(0.03);
   const [directComparativeMetrics, setDirectComparativeMetrics] = useState<{
@@ -334,6 +388,57 @@ export const WarrenAverbachModule: React.FC = () => {
   const [calcLatticeA, setCalcLatticeA] = useState(4.078);
   const [calcHKL1, setCalcHKL1] = useState('1 1 1');
   const [calcHKL2, setCalcHKL2] = useState('2 2 2');
+
+  const consolePresets: WAMaterialPresetItem[] = useMemo(
+    () =>
+      MATERIAL_PRESETS.map(m => ({
+        id: m.id,
+        name: m.label,
+        system: m.system,
+        hklPair: m.hklPair,
+        d1: m.d1,
+        d2: m.d2,
+        d3: m.d3,
+        d4: m.d4,
+        burgersNm: m.burgersVector,
+        youngsGPa: m.youngsModulus,
+        contrastC: m.contrastFactor ?? 0.285,
+        cutoffRadius: 50,
+        densityGcm3: m.densityGcm3,
+        data: m.data,
+        description: m.desc
+      })),
+    []
+  );
+
+  const parsedInputPoints = useMemo(() => parseWAInput(inputData), [inputData]);
+
+  const handleLoadMaterialPreset = (m: MaterialPreset) => {
+    setInputWorkflowMode('fourier_coeffs');
+    setActivePresetId(m.id);
+    setSelectedMaterial(m.label);
+    setD1(m.d1);
+    setD2(m.d2);
+    if (m.d3) {
+      setD3(m.d3);
+      setShowOrder3(true);
+    } else {
+      setD3(undefined);
+      setShowOrder3(false);
+    }
+    if (m.d4) {
+      setD4(m.d4);
+      setShowOrder4(true);
+    } else {
+      setD4(undefined);
+      setShowOrder4(false);
+    }
+    setBurgersVector(m.burgersVector);
+    setYoungsModulus(m.youngsModulus);
+    setMaterialDensityGcm3(m.densityGcm3);
+    if (m.contrastFactor) setContrastFactorC(m.contrastFactor);
+    setInputData(m.data);
+  };
 
   useCustomMaterialApply('wa', (mat) => {
     const p1 = mat.peaks[0];
@@ -378,23 +483,14 @@ export const WarrenAverbachModule: React.FC = () => {
 
   const handleReset = () => {
     const defaultPreset = MATERIAL_PRESETS[0];
-    setD1(defaultPreset.d1);
-    setD2(defaultPreset.d2);
-    setD3(defaultPreset.d3);
-    setD4(defaultPreset.d4);
-    setShowOrder3(true);
-    setShowOrder4(true);
-    setSelectedMaterial(defaultPreset.label);
-    setInputData(defaultPreset.data);
-    setBurgersVector(defaultPreset.burgersVector);
-    setYoungsModulus(defaultPreset.youngsModulus);
-    setContrastFactorC(defaultPreset.contrastFactor || 0.304);
-    setContrastPreset('fcc_111_edge');
+    handleLoadMaterialPreset(defaultPreset);
     setShapeFactor(1.0);
-    setStrainModel('Dislocation (Wilkens)');
+    setStrainModel('Gaussian');
     setInstrumentalCorrection('Stokes');
     setBackgroundModel('Linear');
     setHookCorrectionMode('linear_tangent');
+    setHookMinL(undefined);
+    setHookMaxL(undefined);
     setInstrumentalFactor(0.005);
     setBackgroundOffset(0.02);
     setCutoffRadiusValue(50.0);
@@ -431,14 +527,16 @@ export const WarrenAverbachModule: React.FC = () => {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  // Synchronize Direct Peak FWHM sliders -> Fourier Harmonics table when in direct_peaks mode
-  useEffect(() => {
-    if (inputWorkflowMode !== 'direct_peaks') return;
+  const synthesizeFromDirectPeaks = () => {
+    const peakList = [
+      { order: 1, twoTheta: directPeak1Pos, fwhmObs: directPeak1Fwhm, etaObs: directPeak1Eta },
+      { order: 2, twoTheta: directPeak2Pos, fwhmObs: directPeak2Fwhm, etaObs: directPeak2Eta },
+      ...(directUsePeak3
+        ? [{ order: 3, twoTheta: directPeak3Pos, fwhmObs: directPeak3Fwhm, etaObs: directPeak3Eta }]
+        : [])
+    ];
     const synth = synthesizeWAHarmonicsFromPeaks({
-      peaks: [
-        { order: 1, twoTheta: directPeak1Pos, fwhmObs: directPeak1Fwhm, etaObs: directPeak1Eta },
-        { order: 2, twoTheta: directPeak2Pos, fwhmObs: directPeak2Fwhm, etaObs: directPeak2Eta }
-      ],
+      peaks: peakList,
       fwhmInst: directInstFwhm,
       wavelength: calcLambda,
       maxL_nm: 25,
@@ -447,13 +545,24 @@ export const WarrenAverbachModule: React.FC = () => {
     setInputData(synth.dataString);
     setD1(synth.d1);
     setD2(synth.d2);
-    setShowOrder3(false);
+    if (synth.d3) {
+      setD3(synth.d3);
+      setShowOrder3(true);
+    } else {
+      setShowOrder3(false);
+    }
     setShowOrder4(false);
     setDirectComparativeMetrics({
       apparentScherrerSizeNm: synth.apparentScherrerSizeNm,
       williamsonHallSizeNm: synth.williamsonHallSizeNm,
       williamsonHallStrain: synth.williamsonHallStrain
     });
+  };
+
+  // Synchronize Direct Peak FWHM sliders -> Fourier Harmonics table when in direct_peaks mode
+  useEffect(() => {
+    if (inputWorkflowMode !== 'direct_peaks') return;
+    synthesizeFromDirectPeaks();
   }, [
     inputWorkflowMode,
     calcLambda,
@@ -463,9 +572,22 @@ export const WarrenAverbachModule: React.FC = () => {
     directPeak2Pos,
     directPeak2Fwhm,
     directPeak2Eta,
+    directUsePeak3,
+    directPeak3Pos,
+    directPeak3Fwhm,
+    directPeak3Eta,
     directInstFwhm,
     directHookStrength
   ]);
+
+  const handleSwitchInputMode = (nextMode: WAInputMode) => {
+    setInputWorkflowMode(nextMode);
+    if (nextMode === 'direct_peaks') {
+      // Prevent double instrumental/background subtraction when Voigt deconvolution is already applied
+      setInstrumentalCorrection('None');
+      setBackgroundModel('None');
+    }
+  };
 
   const runWarrenAverbachCalculation = (scrollToResults = false) => {
     const points = parseWAInput(inputData);
@@ -488,7 +610,9 @@ export const WarrenAverbachModule: React.FC = () => {
       youngsModulus,
       contrastFactorC,
       { minL: hookMinL, maxL: hookMaxL },
-      inputWorkflowMode === 'direct_peaks' && directComparativeMetrics ? directComparativeMetrics : undefined
+      inputWorkflowMode === 'direct_peaks' && directComparativeMetrics ? directComparativeMetrics : undefined,
+      materialDensityGcm3,
+      calcLambda
     );
     setResult(computed);
 
@@ -501,6 +625,8 @@ export const WarrenAverbachModule: React.FC = () => {
     }
 
     if (scrollToResults) {
+      setCalculationFlash(true);
+      setTimeout(() => setCalculationFlash(false), 1400);
       setTimeout(() => {
         document.getElementById('wa-results-section')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
@@ -537,6 +663,8 @@ export const WarrenAverbachModule: React.FC = () => {
     burgersVector,
     youngsModulus,
     contrastFactorC,
+    materialDensityGcm3,
+    calcLambda,
     hookMinL,
     hookMaxL,
     inputWorkflowMode,
@@ -761,19 +889,19 @@ plt.show()
               <Binary className="w-5 h-5" />
             </div>
             <div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
                 <h2 className="text-lg font-bold text-slate-100 tracking-tight font-sans">
-                  Warren-Averbach Fourier Microstructure Workbench
+                  Warren-Averbach 1/d Fourier Microstructure Workbench
                 </h2>
-                <span className="px-2.5 py-0.5 rounded-md bg-rose-500/10 border border-rose-500/25 text-rose-400 text-[11px] font-mono font-bold">
+                <span className="text-xs font-mono font-semibold text-sky-400">
                   {selectedMaterial}
                 </span>
-                <span className="px-2 py-0.5 rounded-md bg-slate-900 border border-slate-800 text-slate-400 text-[10px] font-mono tabular-nums">
-                  {showOrder4 ? '4 Harmonic Orders' : showOrder3 ? '3 Harmonic Orders' : '2 Harmonic Orders'} (d₁/d₂ = {(d1 / Math.max(0.0001, d2)).toFixed(2)}×)
+                <span className="text-[11px] font-mono tabular-nums text-slate-400">
+                  1/d₁ = {(d1 > 0 ? 1 / d1 : 0).toFixed(4)} Å⁻¹ · s₂/s₁ = {(d1 / Math.max(0.0001, d2)).toFixed(3)}× ({showOrder4 ? '4 Orders' : showOrder3 ? '3 Orders' : '2 Orders'})
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-1">
-                Model-independent separation of coherent column-length distribution P(L), distance-dependent microstrain ⟨ε²(L)⟩¹/², and Krivoglaz-Wilkens dislocation screening.
+                Reciprocal-space harmonic separation in s² = 1/d² for column-length distribution P(L), length-dependent microstrain ⟨ε²(L)⟩¹/², and exact Wilkens f*(L/R_e) dislocation screening.
               </p>
             </div>
           </div>
@@ -834,36 +962,15 @@ plt.show()
               return (
                 <button
                   key={m.label}
-                  onClick={() => {
-                    setInputWorkflowMode('fourier_table');
-                    setSelectedMaterial(m.label);
-                    setD1(m.d1);
-                    setD2(m.d2);
-                    if (m.d3) {
-                      setD3(m.d3);
-                      setShowOrder3(true);
-                    } else {
-                      setShowOrder3(false);
-                    }
-                    if (m.d4) {
-                      setD4(m.d4);
-                      setShowOrder4(true);
-                    } else {
-                      setShowOrder4(false);
-                    }
-                    setBurgersVector(m.burgersVector);
-                    setYoungsModulus(m.youngsModulus);
-                    if (m.contrastFactor) setContrastFactorC(m.contrastFactor);
-                    setInputData(m.data);
-                  }}
+                  onClick={() => handleLoadMaterialPreset(m)}
                   className={`px-2.5 py-1.5 rounded-lg text-[11px] font-mono transition-all border flex items-center gap-1.5 ${
                     isSelected
-                      ? 'bg-rose-500/20 border-rose-500/50 text-rose-300 font-bold shadow-sm'
+                      ? 'bg-sky-500/15 border-sky-500/50 text-sky-300 font-bold shadow-sm'
                       : 'bg-slate-950/90 border-slate-800/90 text-slate-400 hover:text-slate-200 hover:border-slate-700'
                   }`}
                   title={`${m.label} — ${m.desc}`}
                 >
-                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-rose-400' : 'bg-slate-600'}`} />
+                  <span className={`w-1.5 h-1.5 rounded-full ${isSelected ? 'bg-sky-400' : 'bg-slate-600'}`} />
                   <span>{shortLabel}</span>
                 </button>
               );
@@ -1031,7 +1138,11 @@ plt.show()
             <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90">
               <span className="text-[9px] text-slate-400 uppercase block">⟨D⟩_A Area Size</span>
               <div className="text-base font-bold text-rose-400 mt-0.5">
-                {result.metrics.areaWeightedColumnLengthNm.toFixed(1)} <span className="text-[10px] text-slate-500">nm</span>
+                {result.metrics.areaWeightedColumnLengthNm.toFixed(1)}
+                {result.metrics.areaWeightedErrorNm !== undefined && (
+                  <span className="text-[11px] font-normal text-rose-300/80 ml-1">±{result.metrics.areaWeightedErrorNm.toFixed(1)}</span>
+                )}{' '}
+                <span className="text-[10px] text-slate-500">nm</span>
               </div>
               <span className="text-[9px] text-slate-500 block mt-0.5">
                 Slope: {result.metrics.initialSlope.toFixed(3)} nm⁻¹
@@ -1049,12 +1160,12 @@ plt.show()
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90">
-              <span className="text-[9px] text-slate-400 uppercase block">Polydispersity PDI</span>
+              <span className="text-[9px] text-slate-400 uppercase block">Reciprocal 1/d₁</span>
               <div className="text-base font-bold text-emerald-400 mt-0.5">
-                {(result.metrics.polydispersityIndex || (result.metrics.volumeWeightedColumnLengthNm / Math.max(0.1, result.metrics.areaWeightedColumnLengthNm))).toFixed(2)}
+                {(d1 > 0 ? 1 / d1 : 0).toFixed(4)} <span className="text-[10px] text-slate-500">Å⁻¹</span>
               </div>
               <span className="text-[9px] text-slate-500 block mt-0.5">
-                ⟨D⟩_V / ⟨D⟩_A ratio
+                s₁² = {(d1 > 0 ? 1 / (d1 * d1) : 0).toFixed(3)} · PDI {(result.metrics.polydispersityIndex || 1).toFixed(2)}
               </span>
             </div>
 
@@ -1074,17 +1185,17 @@ plt.show()
                 {result.metrics.dislocationDensity10_14.toFixed(2)} <span className="text-[10px] text-slate-500">×10¹⁴</span>
               </div>
               <span className="text-[9px] text-slate-500 block mt-0.5">
-                lines / m² (C̄={contrastFactorC.toFixed(2)})
+                {result.metrics.taylorFlowStressMPa ? `Δσ_T ≈ ${result.metrics.taylorFlowStressMPa.toFixed(0)} MPa` : `lines/m² (C̄=${contrastFactorC.toFixed(2)})`}
               </span>
             </div>
 
             <div className="p-3 rounded-xl bg-slate-950/90 border border-slate-800/90">
-              <span className="text-[9px] text-slate-400 uppercase block">Wilkens Param M</span>
+              <span className="text-[9px] text-slate-400 uppercase block">Wilkens M / L_d</span>
               <div className="text-base font-bold text-purple-400 mt-0.5">
                 {result.metrics.wilkensArrangementParameterM.toFixed(2)}
               </div>
               <span className="text-[9px] text-slate-500 block mt-0.5">
-                R_e = {result.metrics.wilkensCutoffRadiusNm.toFixed(1)} nm
+                R_e={result.metrics.wilkensCutoffRadiusNm.toFixed(0)}nm · L_d={result.metrics.meanDislocationSpacingNm ? `${result.metrics.meanDislocationSpacingNm.toFixed(0)}nm` : '—'}
               </span>
             </div>
           </div>
@@ -1095,658 +1206,166 @@ plt.show()
       
       {/* Input Configuration Column */}
       <div className="lg:col-span-4 space-y-5">
-        <div className="bg-[#0B0F17] p-5 rounded-2xl border border-slate-800 shadow-2xl relative z-20">
-          
-          {/* Header */}
-          <div className="flex justify-between items-center mb-4 pb-3 border-b border-slate-800">
-            <div className="flex items-center gap-2.5">
-              <div className="p-2 bg-rose-500/15 rounded-xl border border-rose-500/30 text-rose-400">
-                <Settings className="w-4 h-4" />
-              </div>
-              <div>
-                <h3 className="text-sm font-bold text-slate-100 tracking-tight font-sans">
-                  Deconvolution Parameters
-                </h3>
-                <p className="text-[10px] text-slate-400 font-mono">
-                  Harmonic Orders, Hook Window & Input
-                </p>
-              </div>
-            </div>
+        <WADeconvolutionConsole
+          presets={consolePresets}
+          activePresetId={activePresetId}
+          onLoadPreset={(preset) => {
+            const match = MATERIAL_PRESETS.find((m) => m.id === preset.id);
+            if (match) {
+              handleLoadMaterialPreset(match);
+            } else {
+              setActivePresetId(preset.id);
+              setSelectedMaterial(preset.name);
+              setD1(preset.d1);
+              setD2(preset.d2);
+              setD3(preset.d3);
+              setShowOrder3(Boolean(preset.d3));
+              setD4(preset.d4);
+              setShowOrder4(Boolean(preset.d4));
+              setBurgersVector(preset.burgersNm);
+              setYoungsModulus(preset.youngsGPa);
+              setContrastFactorC(preset.contrastC);
+              setMaterialDensityGcm3(preset.densityGcm3);
+              setInputData(preset.data);
+            }
+          }}
+          inputMode={inputWorkflowMode}
+          setInputMode={handleSwitchInputMode}
+          d1={d1}
+          setD1={(v) => {
+            setD1(v);
+            setSelectedMaterial('Custom');
+            setActivePresetId('custom');
+          }}
+          d2={d2}
+          setD2={(v) => {
+            setD2(v);
+            setSelectedMaterial('Custom');
+            setActivePresetId('custom');
+          }}
+          d3={d3}
+          setD3={(v) => {
+            setD3(v);
+            setSelectedMaterial('Custom');
+            setActivePresetId('custom');
+          }}
+          d4={d4}
+          setD4={(v) => {
+            setD4(v);
+            setSelectedMaterial('Custom');
+            setActivePresetId('custom');
+          }}
+          enableOrder3={showOrder3}
+          setEnableOrder3={setShowOrder3}
+          enableOrder4={showOrder4}
+          setEnableOrder4={setShowOrder4}
+          directWavelength={calcLambda}
+          setDirectWavelength={setCalcLambda}
+          directFwhmInst={directInstFwhm}
+          setDirectFwhmInst={setDirectInstFwhm}
+          directPeak1TwoTheta={directPeak1Pos}
+          setDirectPeak1TwoTheta={setDirectPeak1Pos}
+          directPeak1Fwhm={directPeak1Fwhm}
+          setDirectPeak1Fwhm={setDirectPeak1Fwhm}
+          directPeak1Eta={directPeak1Eta}
+          setDirectPeak1Eta={setDirectPeak1Eta}
+          directPeak2TwoTheta={directPeak2Pos}
+          setDirectPeak2TwoTheta={setDirectPeak2Pos}
+          directPeak2Fwhm={directPeak2Fwhm}
+          setDirectPeak2Fwhm={setDirectPeak2Fwhm}
+          directPeak2Eta={directPeak2Eta}
+          setDirectPeak2Eta={setDirectPeak2Eta}
+          directUsePeak3={directUsePeak3}
+          setDirectUsePeak3={setDirectUsePeak3}
+          directPeak3TwoTheta={directPeak3Pos}
+          setDirectPeak3TwoTheta={setDirectPeak3Pos}
+          directPeak3Fwhm={directPeak3Fwhm}
+          setDirectPeak3Fwhm={setDirectPeak3Fwhm}
+          directPeak3Eta={directPeak3Eta}
+          setDirectPeak3Eta={setDirectPeak3Eta}
+          directHookSim={directHookStrength}
+          setDirectHookSim={setDirectHookStrength}
+          onSynthesizeFromPeaks={synthesizeFromDirectPeaks}
+          onOpenPeakConverterModal={() => setIsConverterOpen(true)}
+          dataInput={inputData}
+          setDataInput={(v) => {
+            setInputData(v);
+            setSelectedMaterial('Custom');
+            setActivePresetId('custom');
+          }}
+          parsedPoints={parsedInputPoints}
+          onApplyDFTResult={(res) => {
+            setInputData(res.dataString);
+            setD1(res.d1);
+            setD2(res.d2);
+            setShowOrder3(false);
+            setShowOrder4(false);
+            setSelectedMaterial('Stokes DFT Scan');
+            setActivePresetId('custom');
+            if (res.hasInstStandard) {
+              setInstrumentalCorrection('None');
+            }
+            setBackgroundModel('None');
+          }}
+          shapeFactor={shapeFactor}
+          setShapeFactor={setShapeFactor}
+          strainModel={strainModel}
+          setStrainModel={setStrainModel}
+          instrumentalCorrection={instrumentalCorrection}
+          setInstrumentalCorrection={setInstrumentalCorrection}
+          backgroundModel={backgroundModel}
+          setBackgroundModel={setBackgroundModel}
+          instrumentalFactor={instrumentalFactor}
+          setInstrumentalFactor={setInstrumentalFactor}
+          backgroundOffset={backgroundOffset}
+          setBackgroundOffset={setBackgroundOffset}
+          cutoffRadiusValue={cutoffRadiusValue}
+          setCutoffRadiusValue={setCutoffRadiusValue}
+          hookEffectCorrection={hookCorrectionMode}
+          setHookEffectCorrection={setHookCorrectionMode}
+          hookMinL={hookMinL}
+          setHookMinL={setHookMinL}
+          hookMaxL={hookMaxL}
+          setHookMaxL={setHookMaxL}
+          burgersVectorNm={burgersVector}
+          setBurgersVectorNm={setBurgersVector}
+          youngsModulusGPa={youngsModulus}
+          setYoungsModulusGPa={setYoungsModulus}
+          contrastFactorC={contrastFactorC}
+          setContrastFactorC={setContrastFactorC}
+          materialDensityGcm3={materialDensityGcm3}
+          setMaterialDensityGcm3={setMaterialDensityGcm3}
+          reciprocalOrders={result?.metrics?.reciprocalOrders}
+          harmonicRatioD1D2={result?.metrics?.harmonicRatioD1D2}
+          harmonicCheckPassed={result?.metrics?.harmonicCheckPassed}
+          diagnosticWarnings={result?.metrics?.diagnosticWarnings}
+          onTriggerCalculation={handleCalculate}
+          calculationFlash={calculationFlash}
+        />
 
-            <div className="relative" ref={menuRef}>
-              <button
-                onClick={() => setIsMaterialMenuOpen(!isMaterialMenuOpen)}
-                className="px-2.5 py-1.5 bg-slate-900 border border-slate-800 hover:border-rose-500/40 rounded-lg text-[10px] font-mono text-rose-400 font-bold flex items-center gap-1.5"
-              >
-                <span className="max-w-[110px] truncate">{selectedMaterial.split(' (')[0]}</span>
-                <ChevronDown className={`w-3.5 h-3.5 text-slate-400 transition-transform ${isMaterialMenuOpen ? 'rotate-180' : ''}`} />
-              </button>
-
-              <AnimatePresence>
-                {isMaterialMenuOpen && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -8, scale: 0.96 }}
-                    animate={{ opacity: 1, y: 0, scale: 1 }}
-                    exit={{ opacity: 0, y: -8, scale: 0.96 }}
-                    className="absolute top-[calc(100%+6px)] right-0 w-72 bg-[#0A101C] border border-slate-800 rounded-xl shadow-2xl overflow-hidden z-[100] py-1.5"
-                  >
-                    <div className="max-h-[260px] overflow-y-auto custom-scrollbar">
-                      {MATERIAL_PRESETS.map((m) => (
-                        <button
-                          key={m.label}
-                          onClick={() => {
-                            setSelectedMaterial(m.label);
-                            setD1(m.d1);
-                            setD2(m.d2);
-                            if (m.d3) {
-                              setD3(m.d3);
-                              setShowOrder3(true);
-                            } else {
-                              setShowOrder3(false);
-                            }
-                            if (m.d4) {
-                              setD4(m.d4);
-                              setShowOrder4(true);
-                            } else {
-                              setShowOrder4(false);
-                            }
-                            setBurgersVector(m.burgersVector);
-                            setYoungsModulus(m.youngsModulus);
-                            setInputData(m.data);
-                            setIsMaterialMenuOpen(false);
-                          }}
-                          className={`w-full px-3.5 py-2 flex flex-col items-start hover:bg-slate-900 transition-colors text-left ${selectedMaterial === m.label ? 'bg-rose-500/10' : ''}`}
-                        >
-                          <span className={`text-xs font-bold ${selectedMaterial === m.label ? 'text-rose-400' : 'text-slate-200'}`}>
-                            {m.label}
-                          </span>
-                          <span className="text-[9px] text-slate-500 font-mono mt-0.5">
-                            {m.desc} (E={m.youngsModulus}GPa, b={m.burgersVector}nm)
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </div>
-
-          <div className="space-y-4 relative z-10">
-            {/* AI Synthesizer */}
-            <div className="bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-2">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Database className="w-3.5 h-3.5 text-rose-400" />
-                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider font-mono">
-                    AI Material Generator
-                  </label>
-                </div>
-                <span className="text-[9px] font-mono text-slate-500">Synthesize any alloy</span>
-              </div>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="e.g., Cold-rolled Brass (70/30)"
-                  className="flex-1 px-3 py-1.5 bg-slate-900 text-slate-200 placeholder:text-slate-600 border border-slate-800 rounded-lg text-xs font-sans outline-none focus:border-rose-500/50 transition-colors"
-                  onKeyDown={(e) => e.key === 'Enter' && handleSmartLoad()}
-                />
-                <button
-                  onClick={handleSmartLoad}
-                  disabled={isThinking || !searchQuery.trim()}
-                  className="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 disabled:opacity-40 text-white font-bold rounded-lg text-xs transition-all flex items-center gap-1"
-                >
-                  {isThinking ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Zap className="w-3.5 h-3.5" />}
-                </button>
-              </div>
-            </div>
-
-            {/* Reflection Orders d-Spacings with Harmonic Ratio Lock */}
-            <div className="bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-3">
-              <div className="flex justify-between items-center">
-                <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider font-mono flex items-center gap-1.5">
-                  <Ruler className="w-3.5 h-3.5 text-rose-400" />
-                  Reflection Orders (dₙ)
-                </label>
-                <div className="flex gap-1.5 text-[9px] font-mono">
-                  <button
-                    onClick={() => setShowOrder3(!showOrder3)}
-                    className={`px-2 py-0.5 rounded border transition-colors ${showOrder3 ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold' : 'bg-slate-900 border-slate-800 text-slate-500'}`}
-                  >
-                    +Order 3
-                  </button>
-                  <button
-                    onClick={() => setShowOrder4(!showOrder4)}
-                    className={`px-2 py-0.5 rounded border transition-colors ${showOrder4 ? 'bg-rose-500/20 border-rose-500/40 text-rose-300 font-bold' : 'bg-slate-900 border-slate-800 text-slate-500'}`}
-                  >
-                    +Order 4
-                  </button>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5 font-mono tabular-nums">
-                <div className="space-y-1">
-                  <label className="text-[9px] text-slate-400">d₁ (Order 1, Å)</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={d1}
-                    onChange={(e) => {
-                      setD1(parseFloat(e.target.value) || 2.3551);
-                      setSelectedMaterial('Custom');
-                    }}
-                    className="w-full px-2.5 py-1.5 bg-slate-900 text-sky-300 border border-slate-800 rounded-lg text-xs font-bold outline-none focus:border-sky-500/50"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] text-slate-400">d₂ (Order 2, Å)</label>
-                  <input
-                    type="number"
-                    step="0.0001"
-                    value={d2}
-                    onChange={(e) => {
-                      setD2(parseFloat(e.target.value) || 1.1776);
-                      setSelectedMaterial('Custom');
-                    }}
-                    className="w-full px-2.5 py-1.5 bg-slate-900 text-purple-300 border border-slate-800 rounded-lg text-xs font-bold outline-none focus:border-purple-500/50"
-                  />
-                </div>
-
-                {showOrder3 && (
-                  <div className="space-y-1">
-                    <label className="text-[9px] text-slate-400">d₃ (Order 3, Å)</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={d3 || ''}
-                      placeholder="e.g. 0.7850"
-                      onChange={(e) => {
-                        setD3(parseFloat(e.target.value) || undefined);
-                        setSelectedMaterial('Custom');
-                      }}
-                      className="w-full px-2.5 py-1.5 bg-slate-900 text-emerald-300 border border-slate-800 rounded-lg text-xs font-bold outline-none focus:border-emerald-500/50"
-                    />
-                  </div>
-                )}
-
-                {showOrder4 && (
-                  <div className="space-y-1">
-                    <label className="text-[9px] text-slate-400">d₄ (Order 4, Å)</label>
-                    <input
-                      type="number"
-                      step="0.0001"
-                      value={d4 || ''}
-                      placeholder="e.g. 0.5888"
-                      onChange={(e) => {
-                        setD4(parseFloat(e.target.value) || undefined);
-                        setSelectedMaterial('Custom');
-                      }}
-                      className="w-full px-2.5 py-1.5 bg-slate-900 text-amber-300 border border-slate-800 rounded-lg text-xs font-bold outline-none focus:border-amber-500/50"
-                    />
-                  </div>
-                )}
-              </div>
-
-              {/* Harmonic Ratio Status & 1-Click Auto-Lock */}
-              <div className="flex items-center justify-between pt-2 border-t border-slate-800/80 text-[10px] font-mono tabular-nums">
-                <span className={Math.abs(d1 / Math.max(0.0001, d2) - 2.0) < 0.08 ? 'text-emerald-400' : 'text-amber-400'}>
-                  Ratio d₁/d₂ = {(d1 / Math.max(0.0001, d2)).toFixed(3)}×
-                </span>
-                <button
-                  onClick={() => {
-                    setD2(Number((d1 / 2).toFixed(4)));
-                    if (showOrder3) setD3(Number((d1 / 3).toFixed(4)));
-                    if (showOrder4) setD4(Number((d1 / 4).toFixed(4)));
-                  }}
-                  className="px-2 py-0.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 text-[9px] uppercase tracking-wider transition-colors"
-                  title="Set d₂ = d₁/2, d₃ = d₁/3, d₄ = d₁/4 for exact harmonic planes"
-                >
-                  Lock Exact d₁/n
-                </button>
-              </div>
-            </div>
-
-            {/* Dislocation Contrast Factor & Physics Controls */}
-            <div className="bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between pb-2 border-b border-slate-800">
-                <div className="flex items-center gap-1.5">
-                  <Sliders className="w-3.5 h-3.5 text-rose-400" />
-                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider font-mono">
-                    Contrast & Hook Physics
-                  </label>
-                </div>
-                <span className="text-[9px] font-mono text-cyan-400 font-semibold">Krivoglaz-Wilkens</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2.5">
-                <div className="space-y-1">
-                  <label className="text-[9px] text-slate-400 font-mono uppercase">Contrast Preset (C̄)</label>
-                  <select
-                    value={contrastPreset}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setContrastPreset(val);
-                      if (val === 'fcc_111_edge') setContrastFactorC(0.304);
-                      else if (val === 'fcc_111_screw') setContrastFactorC(0.165);
-                      else if (val === 'bcc_110_edge') setContrastFactorC(0.285);
-                      else if (val === 'bcc_110_screw') setContrastFactorC(0.145);
-                      else if (val === 'hcp_ti') setContrastFactorC(0.250);
-                    }}
-                    className="w-full px-2 py-1.5 bg-slate-900 text-slate-200 border border-slate-800 rounded-lg text-[11px] font-mono outline-none"
-                  >
-                    <option value="fcc_111_edge">FCC (111) Edge (0.304)</option>
-                    <option value="fcc_111_screw">FCC (111) Screw (0.165)</option>
-                    <option value="bcc_110_edge">BCC (110) Edge (0.285)</option>
-                    <option value="bcc_110_screw">BCC (110) Screw (0.145)</option>
-                    <option value="hcp_ti">HCP (100) Ti (0.250)</option>
-                    <option value="custom">Custom C̄</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] text-slate-400 font-mono uppercase">Avg Contrast C̄</label>
-                  <input
-                    type="number"
-                    step="0.005"
-                    min="0.05"
-                    max="1.0"
-                    value={contrastFactorC}
-                    onChange={(e) => {
-                      setContrastFactorC(parseFloat(e.target.value) || 0.304);
-                      setContrastPreset('custom');
-                    }}
-                    className="w-full px-2.5 py-1.5 bg-slate-900 text-rose-400 border border-slate-800 rounded-lg text-xs font-mono tabular-nums font-bold outline-none"
-                  />
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] text-slate-400 font-mono uppercase">Hook Correction</label>
-                  <select
-                    value={hookCorrectionMode}
-                    onChange={(e) => setHookCorrectionMode(e.target.value as any)}
-                    className="w-full px-2 py-1.5 bg-slate-900 text-slate-200 border border-slate-800 rounded-lg text-[11px] font-mono outline-none"
-                  >
-                    <option value="linear_tangent">Tangent Linearization</option>
-                    <option value="spline_regularization">Spline Regularization</option>
-                    <option value="polynomial">Monotonic Regularization</option>
-                    <option value="none">Raw (No Hook Corr.)</option>
-                  </select>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-[9px] text-slate-400 font-mono uppercase">Strain Model</label>
-                  <select
-                    value={strainModel}
-                    onChange={(e) => setStrainModel(e.target.value)}
-                    className="w-full px-2 py-1.5 bg-slate-900 text-slate-200 border border-slate-800 rounded-lg text-[11px] font-mono outline-none"
-                  >
-                    <option value="Dislocation (Wilkens)">Wilkens Dislocation</option>
-                    <option value="Gaussian">Gaussian Model</option>
-                    <option value="Lorentzian">Lorentzian Model</option>
-                  </select>
-                </div>
-              </div>
-
-              {hookCorrectionMode === 'linear_tangent' && (
-                <div className="pt-2 border-t border-slate-800 space-y-2 font-mono tabular-nums">
-                  <div className="flex items-center justify-between text-[9px] text-slate-400">
-                    <span className="uppercase text-rose-300 font-bold">Hook Tangent Window [L_min, L_max]</span>
-                    <span className="text-emerald-400 font-bold">[{hookMinL.toFixed(1)}, {hookMaxL.toFixed(1)}] nm</span>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <div>
-                      <div className="flex justify-between text-[9px] text-slate-400 mb-0.5">
-                        <span>L_min (skip hook)</span>
-                        <span className="text-slate-200">{hookMinL.toFixed(1)} nm</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.5"
-                        max="6.0"
-                        step="0.5"
-                        value={hookMinL}
-                        onChange={(e) => {
-                          const v = parseFloat(e.target.value);
-                          setHookMinL(Math.min(v, hookMaxL - 1.0));
-                        }}
-                        className="w-full accent-rose-500 h-1 bg-slate-900 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                    <div>
-                      <div className="flex justify-between text-[9px] text-slate-400 mb-0.5">
-                        <span>L_max (tangent end)</span>
-                        <span className="text-slate-200">{hookMaxL.toFixed(1)} nm</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="3.0"
-                        max="15.0"
-                        step="0.5"
-                        value={hookMaxL}
-                        onChange={(e) => {
-                          const v = parseFloat(e.target.value);
-                          setHookMaxL(Math.max(v, hookMinL + 1.0));
-                        }}
-                        className="w-full accent-rose-500 h-1 bg-slate-900 rounded-lg cursor-pointer"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            {/* Workflow Input Switcher: Fourier Table vs Direct Peak FWHM Sliders */}
-            <div className="bg-slate-950/90 p-3.5 rounded-xl border border-slate-800 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-1.5">
-                  <Binary className="w-3.5 h-3.5 text-rose-400" />
-                  <label className="text-[10px] font-bold text-slate-300 uppercase tracking-wider font-mono">
-                    Input Mode
-                  </label>
-                </div>
-                <div className="flex bg-slate-900 p-0.5 rounded-lg border border-slate-800 text-[9px] font-mono">
-                  <button
-                    onClick={() => setInputWorkflowMode('fourier_table')}
-                    className={`px-2.5 py-1 rounded-md transition-all ${
-                      inputWorkflowMode === 'fourier_table'
-                        ? 'bg-rose-500 text-white font-bold'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    Fourier A(L)
-                  </button>
-                  <button
-                    onClick={() => {
-                      setInputWorkflowMode('direct_peaks');
-                      setSelectedMaterial('Live Peak Deconvolution');
-                    }}
-                    className={`px-2.5 py-1 rounded-md transition-all ${
-                      inputWorkflowMode === 'direct_peaks'
-                        ? 'bg-emerald-500 text-slate-950 font-bold'
-                        : 'text-slate-400 hover:text-slate-200'
-                    }`}
-                  >
-                    Direct Peaks (FWHM)
-                  </button>
-                </div>
-              </div>
-
-              {inputWorkflowMode === 'direct_peaks' ? (
-                <div className="space-y-3 pt-1 font-mono tabular-nums">
-                  {/* Live Dual-Order Bragg Peak Profile SVG Visualizer */}
-                  <div className="p-2.5 rounded-xl bg-slate-900/90 border border-slate-800 space-y-1.5">
-                    <div className="flex items-center justify-between text-[9px] text-slate-400">
-                      <span className="uppercase font-bold text-emerald-400">Live Bragg Peak Broadening Preview</span>
-                      <span>Inst. g(2θ) = {directInstFwhm.toFixed(2)}°</span>
-                    </div>
-                    <svg viewBox="0 0 320 96" className="w-full h-24 rounded-lg bg-[#070B12] border border-slate-800/80">
-                      {/* Grid Lines */}
-                      <line x1="0" y1="80" x2="320" y2="80" stroke="#1e293b" strokeWidth="1" />
-                      <line x1="160" y1="8" x2="160" y2="80" stroke="#1e293b" strokeDasharray="2 2" strokeWidth="1" />
-                      {(() => {
-                        const evalPV = (x: number, fwhm: number, eta: number) => {
-                          const w = Math.max(0.05, fwhm * 28);
-                          const u = x / (w * 0.5);
-                          const gauss = Math.exp(-Math.LN2 * u * u);
-                          const lor = 1 / (1 + u * u);
-                          return eta * lor + (1 - eta) * gauss;
-                        };
-                        const pts1: string[] = [];
-                        const pts2: string[] = [];
-                        const ptsInst1: string[] = [];
-                        for (let px = 10; px <= 150; px += 2) {
-                          const dx = px - 80;
-                          const y = 80 - evalPV(dx, directPeak1Fwhm, directPeak1Eta) * 62;
-                          const yInst = 80 - evalPV(dx, Math.max(0.04, directInstFwhm), 0.2) * 52;
-                          pts1.push(`${px},${y.toFixed(1)}`);
-                          ptsInst1.push(`${px},${yInst.toFixed(1)}`);
-                        }
-                        for (let px = 170; px <= 310; px += 2) {
-                          const dx = px - 240;
-                          const y = 80 - evalPV(dx, directPeak2Fwhm, directPeak2Eta) * 58;
-                          pts2.push(`${px},${y.toFixed(1)}`);
-                        }
-                        return (
-                          <>
-                            <polyline
-                              fill="none"
-                              stroke="#10b981"
-                              strokeWidth="1.2"
-                              strokeDasharray="2 2"
-                              points={ptsInst1.join(' ')}
-                            />
-                            <polygon
-                              fill="rgba(56, 189, 248, 0.16)"
-                              points={`10,80 ${pts1.join(' ')} 150,80`}
-                            />
-                            <polyline
-                              fill="none"
-                              stroke="#38bdf8"
-                              strokeWidth="2"
-                              points={pts1.join(' ')}
-                            />
-                            <polygon
-                              fill="rgba(168, 85, 247, 0.16)"
-                              points={`170,80 ${pts2.join(' ')} 310,80`}
-                            />
-                            <polyline
-                              fill="none"
-                              stroke="#a855f7"
-                              strokeWidth="2"
-                              points={pts2.join(' ')}
-                            />
-                            <text x="80" y="92" textAnchor="middle" fill="#38bdf8" fontSize="8" fontFamily="monospace">
-                              Order 1 ({directPeak1Pos.toFixed(1)}°, β={directPeak1Fwhm.toFixed(2)}°)
-                            </text>
-                            <text x="240" y="92" textAnchor="middle" fill="#a855f7" fontSize="8" fontFamily="monospace">
-                              Order 2 ({directPeak2Pos.toFixed(1)}°, β={directPeak2Fwhm.toFixed(2)}°)
-                            </text>
-                          </>
-                        );
-                      })()}
-                    </svg>
-                  </div>
-
-                  {/* Peak 1 Controls */}
-                  <div className="p-3 rounded-xl bg-slate-900/80 border border-sky-500/25 space-y-2">
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="text-sky-400 font-bold uppercase">Order 1 Peak (2θ₁ = {directPeak1Pos.toFixed(2)}°)</span>
-                      <span className="text-slate-400">d₁ = {d1.toFixed(4)} Å</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <div className="flex justify-between text-[9px] text-slate-400">
-                          <span>FWHM₁</span>
-                          <span className="text-sky-300 font-bold">{directPeak1Fwhm.toFixed(3)}°</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.10"
-                          max="1.50"
-                          step="0.01"
-                          value={directPeak1Fwhm}
-                          onChange={(e) => setDirectPeak1Fwhm(parseFloat(e.target.value))}
-                          className="w-full accent-sky-400 h-1 bg-slate-950 rounded-lg cursor-pointer"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-[9px] text-slate-400">
-                          <span>Lorentz η₁</span>
-                          <span className="text-sky-300 font-bold">{directPeak1Eta.toFixed(2)}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.05"
-                          max="0.95"
-                          step="0.05"
-                          value={directPeak1Eta}
-                          onChange={(e) => setDirectPeak1Eta(parseFloat(e.target.value))}
-                          className="w-full accent-sky-400 h-1 bg-slate-950 rounded-lg cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Peak 2 Controls */}
-                  <div className="p-3 rounded-xl bg-slate-900/80 border border-purple-500/25 space-y-2">
-                    <div className="flex justify-between items-center text-[10px]">
-                      <span className="text-purple-400 font-bold uppercase">Order 2 Peak (2θ₂ = {directPeak2Pos.toFixed(2)}°)</span>
-                      <span className="text-slate-400">d₂ = {d2.toFixed(4)} Å</span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <div className="flex justify-between text-[9px] text-slate-400">
-                          <span>FWHM₂</span>
-                          <span className="text-purple-300 font-bold">{directPeak2Fwhm.toFixed(3)}°</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.15"
-                          max="2.50"
-                          step="0.01"
-                          value={directPeak2Fwhm}
-                          onChange={(e) => setDirectPeak2Fwhm(parseFloat(e.target.value))}
-                          className="w-full accent-purple-400 h-1 bg-slate-950 rounded-lg cursor-pointer"
-                        />
-                      </div>
-                      <div>
-                        <div className="flex justify-between text-[9px] text-slate-400">
-                          <span>Lorentz η₂</span>
-                          <span className="text-purple-300 font-bold">{directPeak2Eta.toFixed(2)}</span>
-                        </div>
-                        <input
-                          type="range"
-                          min="0.05"
-                          max="0.95"
-                          step="0.05"
-                          value={directPeak2Eta}
-                          onChange={(e) => setDirectPeak2Eta(parseFloat(e.target.value))}
-                          className="w-full accent-purple-400 h-1 bg-slate-950 rounded-lg cursor-pointer"
-                        />
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Instrumental & Hook Sliders */}
-                  <div className="grid grid-cols-2 gap-2 pt-1">
-                    <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800">
-                      <div className="flex justify-between text-[9px] text-slate-400">
-                        <span>Inst. FWHM</span>
-                        <span className="text-emerald-400 font-bold">{directInstFwhm.toFixed(3)}°</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.00"
-                        max="0.20"
-                        step="0.005"
-                        value={directInstFwhm}
-                        onChange={(e) => setDirectInstFwhm(parseFloat(e.target.value))}
-                        className="w-full accent-emerald-400 h-1 bg-slate-950 rounded-lg cursor-pointer mt-1"
-                      />
-                    </div>
-                    <div className="p-2.5 rounded-xl bg-slate-900/70 border border-slate-800">
-                      <div className="flex justify-between text-[9px] text-slate-400">
-                        <span>Hook Drop</span>
-                        <span className="text-amber-400 font-bold">{(directHookStrength * 100).toFixed(1)}%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0.00"
-                        max="0.12"
-                        step="0.005"
-                        value={directHookStrength}
-                        onChange={(e) => setDirectHookStrength(parseFloat(e.target.value))}
-                        className="w-full accent-amber-400 h-1 bg-slate-950 rounded-lg cursor-pointer mt-1"
-                      />
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                <>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[9px] font-mono text-slate-400">Format: L[nm], A(d₁), A(d₂)...</span>
-                    <div className="flex items-center gap-2">
-                      <button
-                        onClick={() => setActiveAnalysisTab('harmonics_editor')}
-                        className="text-[9px] font-mono text-indigo-400 hover:text-indigo-300 flex items-center gap-1 uppercase"
-                        title="Open Full Harmonics Spreadsheet Manager"
-                      >
-                        <Sliders className="w-3 h-3" /> Grid Editor
-                      </button>
-                      <button
-                        onClick={handleClear}
-                        className="text-[9px] font-mono text-rose-400 hover:text-rose-300 flex items-center gap-1 uppercase"
-                      >
-                        <Trash2 className="w-3 h-3" /> Clear
-                      </button>
-                    </div>
-                  </div>
-
-                  <textarea
-                    value={inputData}
-                    onChange={(e) => {
-                      setInputData(e.target.value);
-                      setSelectedMaterial('Custom');
-                    }}
-                    className="w-full h-28 px-3 py-2 bg-slate-900 text-rose-300 border border-slate-800 rounded-xl font-mono tabular-nums text-xs leading-relaxed resize-none focus:outline-none focus:border-rose-500/40 custom-scrollbar"
-                    spellCheck={false}
-                    placeholder="# L[nm], A(d1), A(d2)&#10;1, 0.985, 0.952"
-                  />
-
-                  <div className="flex items-center justify-between pt-1">
-                    <button
-                      onClick={() => setIsConverterOpen(true)}
-                      className="text-[10px] text-emerald-400 hover:text-emerald-300 flex items-center gap-1 font-mono"
-                    >
-                      <Wand2 className="w-3 h-3" /> Stokes Synthesizer
-                    </button>
-                    <span className="text-[10px] text-slate-500 font-mono">
-                      Prefix <code className="text-rose-400">!</code> to exclude row
-                    </span>
-                  </div>
-                </>
-              )}
-            </div>
-
-            {/* Analyze Action Button */}
-            {!isAnalyzing ? (
-              <button
-                onClick={handleCalculate}
-                className="w-full py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold font-mono text-xs uppercase tracking-widest rounded-xl shadow-lg transition-all flex items-center justify-center gap-2 cursor-pointer"
-              >
-                <FlaskConical className="w-4 h-4" />
-                <span>Recompute & Focus Charts</span>
-              </button>
-            ) : (
-              <div className="bg-slate-900 p-3 rounded-xl border border-rose-500/40 text-center">
-                <p className="text-[10px] font-bold font-mono text-rose-400 uppercase tracking-widest flex items-center justify-center gap-2">
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" /> Computing Harmonics...
-                </p>
-              </div>
-            )}
-
-          </div>
-        </div>
-
-        {/* Scientific Formulation Card */}
+        {/* Scientific 1/d Warren–Averbach & Wilkens Formalism Card */}
         <div className="bg-[#0B0F17] p-5 rounded-2xl border border-slate-800 space-y-3">
-          <div className="flex items-center gap-2.5">
-            <BookOpen className="w-4 h-4 text-rose-400" />
-            <h3 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">
-              Warren-Averbach Formalism
-            </h3>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <BookOpen className="w-4 h-4 text-rose-400" />
+              <h3 className="text-xs font-bold text-slate-200 font-mono uppercase tracking-wider">
+                1/d Reciprocal Formalism
+              </h3>
+            </div>
+            <span className="text-[10px] font-mono text-slate-500">s = 1/d = 2sinθ/λ</span>
           </div>
-          <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 text-center font-mono text-xs text-emerald-400">
-            ln A(L, s) = ln A_S(L) - 2π² L² ⟨ε²⟩_L s²
+          <div className="p-3 bg-slate-950 rounded-xl border border-slate-800 space-y-1.5 font-mono text-[11px] tabular-nums">
+            <div className="text-emerald-400 text-center">
+              ln A(L, s) = ln A<sub>S</sub>(L) − 2π² L² ⟨ε²⟩<sub>L</sub> s²
+            </div>
+            <div className="text-cyan-400 text-center text-[10px]">
+              ⟨ε²⟩<sub>L</sub> = (ρ C̄ b² / 4π) · f(L / R<sub>e</sub>*)
+            </div>
           </div>
           <p className="text-[11px] text-slate-400 font-sans leading-relaxed">
-            Plotting <span className="font-mono text-slate-200">ln A(L)</span> against <span className="font-mono text-slate-200">s² = 1/d²</span> at each column length <span className="font-mono text-slate-200">L</span> yields pure size <span className="font-mono text-rose-400">A_S(L)</span> from the intercept and microstrain <span className="font-mono text-cyan-400">⟨ε_L²⟩¹/²</span> from the slope.
+            Regressing <span className="font-mono text-slate-200">ln A(L, s)</span> against <span className="font-mono text-sky-300">s² = 1/d²</span> across harmonic reflections (<span className="font-mono text-slate-200">s₂/s₁ = 2</span>) cleanly decouples column-length size <span className="font-mono text-rose-400">A<sub>S</sub>(L)</span> from Krivoglaz–Wilkens dislocation strain <span className="font-mono text-cyan-400">⟨ε<sub>L</sub>²⟩<sup>1/2</sup></span>.
           </p>
         </div>
-
       </div>
 
       {/* Results & Visual Analysis Column */}
@@ -2262,7 +1881,7 @@ plt.show()
                           </text>
 
                           <text x="0" y="75" fill="#10b981" fontSize="9">
-                            • d₁ = {d1.toFixed(4)} Å, d₂ = {d2.toFixed(4)} Å | Hook Window: [{hookMinL.toFixed(1)}, {hookMaxL.toFixed(1)}] nm
+                            • 1/d₁ = {(1 / d1).toFixed(4)} Å⁻¹, 1/d₂ = {(1 / d2).toFixed(4)} Å⁻¹ | Hook Window: [{(result.metrics.hookFitWindowMinNm ?? hookMinL ?? 1).toFixed(1)}, {(result.metrics.hookFitWindowMaxNm ?? hookMaxL ?? 5).toFixed(1)}] nm
                           </text>
                         </g>
                       </svg>
@@ -2454,70 +2073,161 @@ plt.show()
                 <div>
                   <h3 className="text-lg font-semibold text-slate-100 flex items-center gap-2.5 font-sans">
                     <BarChart3 className="w-5 h-5 text-purple-400" />
-                    Multi-Reflection Order Regression: ln A(L) vs 1/d²
+                    1/d² Reciprocal Order Regression: ln A(L, s) vs s² = 1/d²
                   </h3>
                   <p className="text-[10px] text-slate-400 font-mono uppercase tracking-widest mt-1">
-                    Isolate Size (intercept at 1/d² → 0) and Microstrain (slope) across column length L
+                    Size intercept ln A_S(L) at 1/d² → 0 · Microstrain slope −2π²L²⟨ε_L²⟩ across s² = 1/d²
                   </p>
                 </div>
 
-                {result?.orderPlots && result.orderPlots.length > 0 && (
-                  <div className="flex items-center gap-3 bg-slate-950 px-3.5 py-2 rounded-xl border border-slate-800">
-                    <span className="text-[10px] font-mono text-slate-400 uppercase">Scrub L:</span>
-                    <input
-                      type="range"
-                      min={0}
-                      max={result.orderPlots.length - 1}
-                      step={1}
-                      value={Math.max(0, result.orderPlots.findIndex(op => Math.abs(op.L_nm - selectedOrderPlotL) < 0.1))}
-                      onChange={(e) => {
-                        const idx = parseInt(e.target.value, 10);
-                        if (result.orderPlots[idx]) {
-                          setSelectedOrderPlotL(result.orderPlots[idx].L_nm);
-                        }
-                      }}
-                      className="w-28 accent-rose-500 h-1 bg-slate-800 rounded-lg cursor-pointer"
-                    />
-                    <select
-                      value={selectedOrderPlotL}
-                      onChange={(e) => setSelectedOrderPlotL(parseFloat(e.target.value))}
-                      className="bg-transparent text-rose-400 text-xs font-mono tabular-nums font-bold outline-none cursor-pointer"
+                <div className="flex flex-wrap items-center gap-2">
+                  {/* Single-L vs Multi-L Fan Overlay Switcher */}
+                  <div className="inline-flex bg-slate-950 p-1 rounded-xl border border-slate-800 text-[10.5px] font-mono">
+                    <button
+                      type="button"
+                      onClick={() => setOrderPlotViewMode('single')}
+                      className={`px-2.5 py-1 rounded-lg transition-colors ${
+                        orderPlotViewMode === 'single'
+                          ? 'bg-purple-500/20 text-purple-300 font-bold border border-purple-500/40'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
                     >
-                      {result.orderPlots.map((op, opIdx) => (
-                        <option key={`opt-${op.L_nm}-${opIdx}`} value={op.L_nm} className="bg-[#0b1120] text-white">
-                          L = {op.L_nm.toFixed(1)} nm
-                        </option>
-                      ))}
-                    </select>
+                      Single-L Slice
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setOrderPlotViewMode('fan')}
+                      className={`px-2.5 py-1 rounded-lg transition-colors ${
+                        orderPlotViewMode === 'fan'
+                          ? 'bg-sky-500/20 text-sky-300 font-bold border border-sky-500/40'
+                          : 'text-slate-400 hover:text-slate-200'
+                      }`}
+                    >
+                      Multi-L Fan Overlay
+                    </button>
                   </div>
-                )}
+
+                  {orderPlotViewMode === 'single' && result?.orderPlots && result.orderPlots.length > 0 && (
+                    <div className="flex items-center gap-2.5 bg-slate-950 px-3 py-1.5 rounded-xl border border-slate-800">
+                      <span className="text-[10px] font-mono text-slate-400 uppercase">L:</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={result.orderPlots.length - 1}
+                        step={1}
+                        value={Math.max(0, result.orderPlots.findIndex(op => Math.abs(op.L_nm - selectedOrderPlotL) < 0.1))}
+                        onChange={(e) => {
+                          const idx = parseInt(e.target.value, 10);
+                          if (result.orderPlots[idx]) {
+                            setSelectedOrderPlotL(result.orderPlots[idx].L_nm);
+                          }
+                        }}
+                        className="w-24 accent-rose-500 h-1 bg-slate-800 rounded-lg cursor-pointer"
+                      />
+                      <select
+                        value={selectedOrderPlotL}
+                        onChange={(e) => setSelectedOrderPlotL(parseFloat(e.target.value))}
+                        className="bg-transparent text-rose-400 text-xs font-mono tabular-nums font-bold outline-none cursor-pointer"
+                      >
+                        {result.orderPlots.map((op, opIdx) => (
+                          <option key={`opt-${op.L_nm}-${opIdx}`} value={op.L_nm} className="bg-[#0b1120] text-white">
+                            {op.L_nm.toFixed(1)} nm
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
               </div>
 
-              {/* 1-Click Quick L-Slice Selector Pills */}
-              {result?.orderPlots && result.orderPlots.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5 mb-4 pb-3 border-b border-slate-800/80 font-mono tabular-nums text-[10px]">
-                  <span className="text-slate-500 uppercase mr-1">Column L Slices:</span>
-                  {result.orderPlots.map((op, opIdx) => {
-                    const isSel = Math.abs(op.L_nm - selectedOrderPlotL) < 0.1;
-                    return (
-                      <button
-                        key={`pill-${op.L_nm}-${opIdx}`}
-                        onClick={() => setSelectedOrderPlotL(op.L_nm)}
-                        className={`px-2 py-1 rounded-md border transition-all ${
-                          isSel
-                            ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 font-bold'
-                            : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
-                        }`}
-                      >
-                        {op.L_nm.toFixed(0)}nm
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-
-              {activeOrderPlot ? (
+              {orderPlotViewMode === 'fan' && result?.orderPlots && result.orderPlots.length > 0 ? (
+                (() => {
+                  // Pick up to 6 well-spaced L slices across the harmonic range
+                  const allPlots = result.orderPlots;
+                  const step = Math.max(1, Math.floor(allPlots.length / 6));
+                  const fanPlots = allPlots.filter((_, i) => i % step === 0).slice(0, 6);
+                  const fanColors = ['#38bdf8', '#818cf8', '#a855f7', '#f43f5e', '#f59e0b', '#10b981'];
+                  const s2Coords = [0, ...(fanPlots[0]?.points.map(pt => pt.s2) || [])];
+                  const fanChartData = s2Coords.map(s2Val => {
+                    const row: Record<string, number> = { s2: Number(s2Val.toFixed(4)) };
+                    fanPlots.forEach((op, idx) => {
+                      row[`L_${idx}`] = Number((op.intercept + op.slope * s2Val).toFixed(4));
+                    });
+                    return row;
+                  });
+                  return (
+                    <div className="space-y-4 relative z-10">
+                      <div className="p-3 bg-slate-950/90 rounded-xl border border-slate-800 flex flex-wrap items-center justify-between gap-2 text-[10.5px] font-mono text-slate-400">
+                        <span>
+                          Warren–Averbach Fan: Each isotherm intercepts <span className="text-rose-400 font-semibold">s² = 0</span> at <span className="text-rose-400 font-semibold">ln A_S(L)</span> while fanning steeper with L²⟨ε_L²⟩.
+                        </span>
+                        <span className="text-sky-400 tabular-nums">
+                          Orders: {fanPlots[0]?.points.map(p => `1/d=${(p.s ?? Math.sqrt(p.s2)).toFixed(3)}`).join(' · ')} Å⁻¹
+                        </span>
+                      </div>
+                      <div className="h-[380px] w-full">
+                        <ResponsiveContainer width="100%" height="100%">
+                          <LineChart data={fanChartData} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
+                            <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
+                            <XAxis
+                              dataKey="s2"
+                              type="number"
+                              domain={[0, 'dataMax']}
+                              tickFormatter={(val) => Number(val).toFixed(2)}
+                              label={{ value: 's² = (1 / d)² [Å⁻²]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                              tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                            />
+                            <YAxis
+                              label={{ value: 'ln A(L, s)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                              tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                            />
+                            <Tooltip
+                              contentStyle={{ backgroundColor: '#0b1120', border: '1px solid #1e293b', borderRadius: '12px', padding: '10px', fontFamily: 'monospace', fontSize: '11px' }}
+                            />
+                            <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                            <ReferenceLine x={0} stroke="#f43f5e" strokeDasharray="3 3" />
+                            {fanPlots.map((op, idx) => (
+                              <Line
+                                key={`fan-${op.L_nm}`}
+                                type="linear"
+                                dataKey={`L_${idx}`}
+                                stroke={fanColors[idx % fanColors.length]}
+                                strokeWidth={2.2}
+                                dot={{ r: 3.5 }}
+                                name={`L=${op.L_nm.toFixed(0)}nm (A_S=${op.A_size.toFixed(2)})`}
+                              />
+                            ))}
+                          </LineChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : activeOrderPlot ? (
                 <div className="space-y-4 relative z-10">
+                  {/* 1-Click Quick L-Slice Selector Strip */}
+                  {result?.orderPlots && result.orderPlots.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-1.5 pb-3 border-b border-slate-800/80 font-mono tabular-nums text-[10px]">
+                      <span className="text-slate-500 uppercase mr-1">Column L Slices:</span>
+                      {result.orderPlots.map((op, opIdx) => {
+                        const isSel = Math.abs(op.L_nm - selectedOrderPlotL) < 0.1;
+                        return (
+                          <button
+                            key={`pill-${op.L_nm}-${opIdx}`}
+                            onClick={() => setSelectedOrderPlotL(op.L_nm)}
+                            className={`px-2 py-1 rounded-md border transition-all ${
+                              isSel
+                                ? 'bg-purple-500/20 border-purple-500/50 text-purple-300 font-bold'
+                                : 'bg-slate-950 border-slate-800 text-slate-400 hover:text-slate-200'
+                            }`}
+                          >
+                            {op.L_nm.toFixed(0)}nm
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-4 bg-slate-950/90 rounded-xl border border-slate-800 font-mono tabular-nums text-xs">
                     <div>
                       <span className="text-slate-500 block text-[10px] uppercase">Column Length L:</span>
@@ -2529,11 +2239,16 @@ plt.show()
                     </div>
                     <div>
                       <span className="text-slate-500 block text-[10px] uppercase">RMS Microstrain ⟨ε_L²⟩¹/²:</span>
-                      <span className="text-cyan-400 font-bold text-sm">{activeOrderPlot.rms_strain.toExponential(3)} ({(activeOrderPlot.rms_strain * 100).toFixed(3)}%)</span>
+                      <span className="text-cyan-400 font-bold text-sm">
+                        {(activeOrderPlot.rms_strain * 100).toFixed(3)}%
+                        {activeOrderPlot.rms_strain_error !== undefined ? ` ±${(activeOrderPlot.rms_strain_error * 100).toFixed(3)}%` : ''}
+                      </span>
                     </div>
                     <div>
-                      <span className="text-slate-500 block text-[10px] uppercase">Linearity R²:</span>
-                      <span className="text-emerald-400 font-bold text-sm">{activeOrderPlot.r2.toFixed(4)}</span>
+                      <span className="text-slate-500 block text-[10px] uppercase">Linearity R² / Slope:</span>
+                      <span className="text-emerald-400 font-bold text-sm">
+                        {activeOrderPlot.r2.toFixed(4)} ({activeOrderPlot.slope.toFixed(3)})
+                      </span>
                     </div>
                   </div>
 
@@ -2541,22 +2256,23 @@ plt.show()
                     <ResponsiveContainer width="100%" height="100%">
                       <ComposedChart data={activeOrderPlot.points} margin={{ top: 20, right: 30, left: 10, bottom: 20 }}>
                         <CartesianGrid strokeDasharray="3 3" stroke="#334155" opacity={0.3} />
-                        <XAxis 
-                          dataKey="s2" 
+                        <XAxis
+                          dataKey="s2"
                           type="number"
                           domain={[0, 'dataMax + 0.1']}
                           tickFormatter={(val) => Number(val).toFixed(2)}
-                          label={{ value: 's² = 1 / d² [Å⁻²]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
+                          label={{ value: 's² = (1 / d)² [Å⁻²]', position: 'bottom', offset: 0, fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                           tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                         />
-                        <YAxis 
+                        <YAxis
                           label={{ value: 'ln A(L, s)', angle: -90, position: 'insideLeft', fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                           tick={{ fill: '#64748b', fontSize: 10, fontFamily: 'monospace' }}
                         />
                         <Tooltip
-                          contentStyle={{ backgroundColor: '#0b1120', border: '1px solid #1e293b', borderRadius: '12px', padding: '10px' }}
+                          contentStyle={{ backgroundColor: '#0b1120', border: '1px solid #1e293b', borderRadius: '12px', padding: '10px', fontFamily: 'monospace', fontSize: '11px' }}
                         />
                         <Legend verticalAlign="top" height={36} wrapperStyle={{ fontSize: '11px', fontFamily: 'monospace' }} />
+                        <ReferenceLine x={0} stroke="#f43f5e" strokeDasharray="3 3" />
                         <Scatter dataKey="lnA" fill="#f43f5e" name="Observed Harmonic ln A(L, s_n)" />
                         <Line
                           type="linear"

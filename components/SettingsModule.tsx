@@ -13,9 +13,10 @@ import { CalibrationSettingsTab } from './settings/CalibrationSettingsTab';
 import { IdentitySettingsTab } from './settings/IdentitySettingsTab';
 import { DatabasesApiTab } from './settings/DatabasesApiTab';
 import { SystemSettingsTab } from './settings/SystemSettingsTab';
+import type { ThemeId } from '../utils/themeSystem';
 
 interface SettingsModuleProps {
-  theme: 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai';
+  theme: ThemeId;
   setTheme: (theme: any) => void;
   precision: number;
   setPrecision: (precision: number) => void;

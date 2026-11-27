@@ -3,12 +3,21 @@ import { useTranslation } from 'react-i18next';
 import { 
   Monitor, Sparkles, Volume2, Cpu, Terminal, 
   Beaker, Check, RefreshCw, FileCode, ShieldCheck,
-  Play
+  Play, Sun, Moon, Contrast, Eye
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { playSynthTone } from '../../utils/sound';
 import LanguageSelector from '../LanguageSelector';
-import { LengthUnit } from '../SettingsContext';
+import { LengthUnit, useSettings } from '../SettingsContext';
+import {
+  THEME_REGISTRY,
+  COLOR_VISION_MODES,
+  ContrastLevel,
+  ColorVisionMode,
+  getThemeContrastAudit,
+  getThemeSpec,
+  isDarkTheme,
+} from '../../utils/themeSystem';
 
 interface GeneralSettingsTabProps {
   theme: string;
@@ -58,17 +67,17 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
   const [converterInput, setConverterInput] = useState<number>(1.5406);
   const [soundTestTone, setSoundTestTone] = useState<string | null>(null);
 
-  const themeOptions = [
-    { id: 'light', label: 'Light Lux', desc: 'Clean high-contrast light layout', bgBg: 'bg-slate-100', cardBg: 'bg-white', accentBg: 'bg-indigo-600', textCol: 'text-slate-900', borderCol: 'border-slate-300' },
-    { id: 'dark', label: 'Dark Matter', desc: 'Sleek dark slate workspace', bgBg: 'bg-slate-950', cardBg: 'bg-slate-900', accentBg: 'bg-indigo-500', textCol: 'text-white', borderCol: 'border-slate-700' },
-    { id: 'cyberpunk', label: 'Cyber Net', desc: 'High contrast yellow & dark', bgBg: 'bg-black', cardBg: 'bg-zinc-900', accentBg: 'bg-yellow-400', textCol: 'text-yellow-400', borderCol: 'border-yellow-500' },
-    { id: 'terminal', label: 'Mainframe', desc: 'Matrix green phosphor terminal', bgBg: 'bg-black', cardBg: 'bg-zinc-950', accentBg: 'bg-emerald-500', textCol: 'text-emerald-400', borderCol: 'border-emerald-500' },
-    { id: 'synthwave', label: 'Neon City', desc: 'Vibrant neon purple & magenta', bgBg: 'bg-indigo-950', cardBg: 'bg-purple-900/60', accentBg: 'bg-pink-500', textCol: 'text-pink-400', borderCol: 'border-pink-500' },
-    { id: 'dracula', label: 'Vampire Night', desc: 'Popular purple dark palette', bgBg: 'bg-[#1e1f29]', cardBg: 'bg-[#282a36]', accentBg: 'bg-[#ff79c6]', textCol: 'text-[#bd93f9]', borderCol: 'border-[#ff79c6]' },
-    { id: 'oceanic', label: 'Deep Ocean', desc: 'Calming navy and cyan hues', bgBg: 'bg-[#0b132b]', cardBg: 'bg-[#0f172a]', accentBg: 'bg-[#38bdf8]', textCol: 'text-[#38bdf8]', borderCol: 'border-[#38bdf8]' },
-    { id: 'gruvbox', label: 'Gruvbox', desc: 'Retro warm earthy tones', bgBg: 'bg-[#1d2021]', cardBg: 'bg-[#282828]', accentBg: 'bg-[#fe8019]', textCol: 'text-[#ebdbb2]', borderCol: 'border-[#fe8019]' },
-    { id: 'monokai', label: 'Monokai', desc: 'Rich contrast code editor theme', bgBg: 'bg-[#1e1f1c]', cardBg: 'bg-[#272822]', accentBg: 'bg-[#f92672]', textCol: 'text-[#f8f8f2]', borderCol: 'border-[#f92672]' }
-  ];
+  const {
+    contrastBoost = 'standard',
+    setContrastBoost,
+    colorVisionMode = 'normal',
+    setColorVisionMode,
+    followSystemTheme = false,
+    setFollowSystemTheme,
+  } = useSettings();
+  const activeSpec = getThemeSpec(theme);
+  const activeAudit = getThemeContrastAudit(theme, contrastBoost);
+  const activeCvdObj = COLOR_VISION_MODES.find((m) => m.id === colorVisionMode) || COLOR_VISION_MODES[0];
 
   return (
     <motion.div 
@@ -234,56 +243,356 @@ export const GeneralSettingsTab: React.FC<GeneralSettingsTabProps> = ({
             </div>
           </div>
 
-          {/* Theme Configuration */}
-          <div>
-            <div className="mb-4">
-              <label className="text-sm font-medium text-slate-900 dark:text-slate-200 block mb-1">{t('Workspace Theme')}</label>
-              <p className="text-xs text-slate-500 dark:text-slate-400">{t('Choose a color palette for your environment')}</p>
+          {/* Visual Theme & WCAG 2.1 Contrast Calibration Studio */}
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <label className="text-sm font-semibold text-slate-900 dark:text-slate-100 block mb-1">
+                  {t('Visual Theme & Contrast Calibration', 'Visual Theme & Contrast Calibration')}
+                </label>
+                <p className="text-xs text-slate-600 dark:text-slate-400">
+                  {t('Calibrated light/publication and dark/laboratory palettes with real-time WCAG 2.1 contrast auditing and CVD-safe trace profiles.')}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setTheme(isDarkTheme(theme) ? 'light' : 'dark');
+                    playSynthTone('switch');
+                  }}
+                  className="px-3 py-1.5 rounded-md border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs font-mono font-semibold text-slate-800 dark:text-slate-100 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors flex items-center gap-1.5 cursor-pointer"
+                >
+                  {isDarkTheme(theme) ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                  <span>{isDarkTheme(theme) ? 'Switch to Light' : 'Switch to Dark'}</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setFollowSystemTheme?.(!followSystemTheme);
+                    playSynthTone('switch');
+                  }}
+                  className={`px-3 py-1.5 rounded-md border text-xs font-mono font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
+                    followSystemTheme
+                      ? 'bg-emerald-600 text-white border-emerald-600'
+                      : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  <Monitor className="w-3.5 h-3.5" />
+                  <span>{followSystemTheme ? 'OS Sync: On' : 'OS Sync: Off'}</span>
+                </button>
+              </div>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3.5">
-              {themeOptions.map((tOption) => {
-                const isSelected = theme === tOption.id;
-                return (
-                  <button
-                    key={tOption.id}
-                    onClick={() => {
-                      setTheme(tOption.id as any);
-                      playSynthTone('switch');
-                    }}
-                    className={`flex flex-col p-3.5 rounded-2xl border text-left transition-all relative overflow-hidden group ${
-                      isSelected
-                        ? 'border-indigo-600 bg-indigo-50/90 dark:bg-indigo-950/40 ring-2 ring-indigo-500/30 shadow-md'
-                        : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900/50 hover:border-indigo-400 dark:hover:border-indigo-700'
-                    }`}
-                  >
-                    {/* Mini UI Palette Bar Preview */}
-                    <div className={`w-full h-8 rounded-xl ${tOption.bgBg} ${tOption.borderCol} border p-1.5 flex items-center justify-between mb-3 shadow-inner`}>
-                      <div className="flex items-center gap-1.5">
-                        <div className={`w-3.5 h-3.5 rounded-full ${tOption.cardBg} border border-white/20`} />
-                        <div className={`w-3.5 h-3.5 rounded-full ${tOption.accentBg}`} />
-                      </div>
-                      <span className={`text-xs font-serif font-bold tracking-normal ${tOption.textCol}`}>Aa</span>
-                    </div>
 
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <h4 className={`text-xs font-bold ${isSelected ? 'text-indigo-900 dark:text-indigo-200' : 'text-slate-800 dark:text-slate-200'}`}>
-                          {t(tOption.label)}
-                        </h4>
-                        <p className="text-[10px] text-slate-500 dark:text-slate-400 mt-0.5">
-                          {t(tOption.desc)}
-                        </p>
-                      </div>
-                      {isSelected && (
-                        <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
-                          <Check className="w-3 h-3 stroke-[3]" />
-                        </span>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
+            {/* Live WCAG 2.1 Contrast Telemetry & Optical Specimen Preview */}
+            <div className="rounded-lg border border-slate-200 dark:border-slate-700 overflow-hidden bg-slate-50 dark:bg-slate-950/60">
+              <div className="grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x divide-slate-200 dark:divide-slate-800 font-mono tabular-nums">
+                <div className="px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Primary Ink Contrast
+                  </div>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-lg font-bold text-slate-900 dark:text-white">
+                      {activeAudit.primaryRatio.toFixed(2)}:1
+                    </span>
+                    <span className={`text-[11px] font-semibold ${
+                      activeAudit.primaryGrade === 'AAA'
+                        ? 'text-emerald-700 dark:text-emerald-400'
+                        : 'text-amber-700 dark:text-amber-400'
+                    }`}>
+                      WCAG {activeAudit.primaryGrade}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Secondary / Muted Contrast
+                  </div>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-lg font-bold text-slate-900 dark:text-white">
+                      {activeAudit.mutedRatio.toFixed(2)}:1
+                    </span>
+                    <span className={`text-[11px] font-semibold ${
+                      activeAudit.mutedGrade === 'AAA'
+                        ? 'text-emerald-700 dark:text-emerald-400'
+                        : activeAudit.mutedGrade === 'AA'
+                        ? 'text-cyan-700 dark:text-cyan-400'
+                        : 'text-amber-700 dark:text-amber-400'
+                    }`}>
+                      WCAG {activeAudit.mutedGrade}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="px-4 py-3">
+                  <div className="text-[10px] uppercase tracking-wider text-slate-500 dark:text-slate-400">
+                    Accent Signal Contrast
+                  </div>
+                  <div className="mt-1 flex items-baseline justify-between">
+                    <span className="text-lg font-bold text-slate-900 dark:text-white">
+                      {activeAudit.accentRatio.toFixed(2)}:1
+                    </span>
+                    <span className={`text-[11px] font-semibold ${
+                      activeAudit.accentGrade === 'AAA' || activeAudit.accentGrade === 'AA'
+                        ? 'text-emerald-700 dark:text-emerald-400'
+                        : 'text-amber-700 dark:text-amber-400'
+                    }`}>
+                      WCAG {activeAudit.accentGrade}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Interactive Live Optical Specimen Card */}
+              <div
+                className="p-4 border-t border-slate-200 dark:border-slate-800 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4"
+                style={{
+                  backgroundColor: contrastBoost === 'maximum' ? (activeSpec.isDark ? '#000000' : '#FFFFFF') : activeSpec.tokens.canvas,
+                }}
+              >
+                <div
+                  className="flex-1 rounded-md border p-3.5"
+                  style={{
+                    backgroundColor: contrastBoost === 'maximum' ? (activeSpec.isDark ? '#070A12' : '#FFFFFF') : activeSpec.tokens.surface,
+                    borderColor: contrastBoost === 'maximum' ? (activeSpec.isDark ? '#64748B' : '#1E293B') : activeSpec.tokens.border,
+                  }}
+                >
+                  <div className="flex items-center justify-between gap-2 mb-1.5">
+                    <span
+                      className="text-xs font-mono font-bold tracking-tight"
+                      style={{ color: contrastBoost !== 'standard' ? (activeSpec.isDark ? '#FFFFFF' : '#000000') : activeSpec.tokens.textPrimary }}
+                    >
+                      {activeSpec.label} · Optical Specimen (Cu Kα₁)
+                    </span>
+                    <span
+                      className="text-[10px] font-mono tabular-nums"
+                      style={{ color: contrastBoost === 'maximum' ? (activeSpec.isDark ? '#E2E8F0' : '#0F172A') : activeSpec.tokens.textMuted }}
+                    >
+                      R_wp 4.18% · d₁₁₁ 2.359 Å
+                    </span>
+                  </div>
+                  <p
+                    className="text-[11px] leading-relaxed mb-2.5"
+                    style={{ color: contrastBoost === 'maximum' ? (activeSpec.isDark ? '#E2E8F0' : '#0F172A') : activeSpec.tokens.textMuted }}
+                  >
+                    Live legibility verification for headings, muted telemetry captions, hairline boundaries, and Rietveld peak traces.
+                  </p>
+                  <div className="flex items-center gap-3">
+                    <span
+                      className="px-2.5 py-1 rounded-sm text-[10px] font-mono font-semibold"
+                      style={{
+                        backgroundColor: activeSpec.tokens.accent,
+                        color: activeSpec.tokens.accentOnAccent,
+                      }}
+                    >
+                      Run Refinement
+                    </span>
+                    <svg viewBox="0 0 180 26" className="flex-1 h-6 max-w-[200px]" aria-hidden="true">
+                      <line x1="0" y1="23" x2="180" y2="23" stroke={activeSpec.tokens.border} strokeWidth="1" />
+                      <path
+                        d="M 4 22 L 32 22 L 42 5 L 52 22 L 84 22 L 94 10 L 104 22 L 136 22 L 146 14 L 156 22 L 176 22"
+                        fill="none"
+                        stroke={colorVisionMode === 'normal' ? activeSpec.tokens.chartObs : activeCvdObj.swatches[0]}
+                        strokeWidth="1.8"
+                      />
+                      <path
+                        d="M 4 22 L 33 22 L 42 7 L 51 22 L 85 22 L 94 12 L 103 22 L 137 22 L 146 15 L 155 22 L 176 22"
+                        fill="none"
+                        stroke={colorVisionMode === 'normal' ? activeSpec.tokens.chartCalc : activeCvdObj.swatches[1]}
+                        strokeWidth="1.2"
+                        strokeDasharray="3 2"
+                      />
+                    </svg>
+                  </div>
+                </div>
+              </div>
             </div>
+
+            {/* Contrast Enhancement & CVD Palette Controls */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Contrast Enhancement Level */}
+              <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60">
+                <div className="flex items-center gap-2 mb-1">
+                  <Contrast className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                    Contrast Enhancement Level
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3">
+                  Boost muted label legibility, border sharpness, and keyboard focus outlines across all modules.
+                </p>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {([
+                    { id: 'standard', label: 'Standard', desc: 'Balanced AA/AAA' },
+                    { id: 'enhanced', label: 'Enhanced', desc: 'AAA Muted Text' },
+                    { id: 'maximum', label: 'Maximum', desc: '21:1 High-Ink' },
+                  ] as Array<{ id: ContrastLevel; label: string; desc: string }>).map((opt) => {
+                    const active = contrastBoost === opt.id;
+                    return (
+                      <button
+                        key={opt.id}
+                        type="button"
+                        onClick={() => {
+                          setContrastBoost?.(opt.id);
+                          playSynthTone('tick');
+                        }}
+                        className={`p-2 rounded-md border text-left transition-colors cursor-pointer ${
+                          active
+                            ? 'border-indigo-600 bg-indigo-600 text-white'
+                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 hover:border-indigo-400'
+                        }`}
+                      >
+                        <div className="text-xs font-mono font-semibold">{opt.label}</div>
+                        <div className={`text-[10px] mt-0.5 ${active ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                          {opt.desc}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Color-Vision Deficiency (CVD) Safe Chart Palette */}
+              <div className="p-4 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60">
+                <div className="flex items-center gap-2 mb-1">
+                  <Eye className="w-4 h-4 text-indigo-600 dark:text-indigo-400" />
+                  <span className="text-xs font-semibold text-slate-900 dark:text-slate-100">
+                    Color-Vision Safe Trace Palette (Okabe-Ito)
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-600 dark:text-slate-400 mb-3">
+                  Calibrate observed, calculated, and residual diffraction trace hues for color-vision accessibility.
+                </p>
+                <div className="grid grid-cols-2 gap-1.5">
+                  {COLOR_VISION_MODES.map((mode) => {
+                    const active = colorVisionMode === mode.id;
+                    return (
+                      <button
+                        key={mode.id}
+                        type="button"
+                        onClick={() => {
+                          setColorVisionMode?.(mode.id as ColorVisionMode);
+                          playSynthTone('tick');
+                        }}
+                        className={`p-2 rounded-md border text-left transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                          active
+                            ? 'border-indigo-600 bg-indigo-600 text-white'
+                            : 'border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-950 text-slate-800 dark:text-slate-200 hover:border-indigo-400'
+                        }`}
+                      >
+                        <div className="min-w-0">
+                          <div className="text-[11px] font-mono font-semibold truncate">{mode.label}</div>
+                          <div className={`text-[9.5px] truncate ${active ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>
+                            {mode.desc}
+                          </div>
+                        </div>
+                        <div className="flex flex-col gap-0.5 shrink-0">
+                          {mode.swatches.map((hex, idx) => (
+                            <span key={idx} className="w-3.5 h-1 rounded-[1px]" style={{ backgroundColor: hex }} />
+                          ))}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Categorized Theme Gallery */}
+            {(['light', 'dark'] as const).map((groupPolarity) => {
+              const items = THEME_REGISTRY.filter((item) => item.polarity === groupPolarity);
+              return (
+                <div key={groupPolarity} className="space-y-2.5">
+                  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 pb-1.5">
+                    <span className="text-xs font-mono font-semibold uppercase tracking-wider text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                      {groupPolarity === 'light' ? <Sun className="w-3.5 h-3.5" /> : <Moon className="w-3.5 h-3.5" />}
+                      <span>{groupPolarity === 'light' ? 'Light & Publication Themes' : 'Dark & Laboratory Themes'}</span>
+                    </span>
+                    <span className="text-[10px] font-mono tabular-nums text-slate-500 dark:text-slate-400">
+                      {items.length} calibrated presets
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-3">
+                    {items.map((spec) => {
+                      const isSelected = theme === spec.id;
+                      const audit = getThemeContrastAudit(spec.id, contrastBoost);
+                      return (
+                        <button
+                          key={spec.id}
+                          type="button"
+                          onClick={() => {
+                            setTheme(spec.id);
+                            playSynthTone('switch');
+                          }}
+                          className={`flex flex-col p-3 rounded-lg border text-left transition-colors relative cursor-pointer ${
+                            isSelected
+                              ? 'border-indigo-600 bg-indigo-50/70 dark:bg-indigo-950/30 ring-1 ring-indigo-500/40'
+                              : 'border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/60 hover:border-slate-400 dark:hover:border-slate-600'
+                          }`}
+                        >
+                          {/* Calibrated Surface & Ink Mini Preview */}
+                          <div
+                            className="w-full h-9 rounded-md border px-2.5 flex items-center justify-between mb-2.5"
+                            style={{
+                              backgroundColor: spec.tokens.canvas,
+                              borderColor: spec.tokens.border,
+                            }}
+                          >
+                            <div className="flex items-center gap-1.5">
+                              <span
+                                className="w-4 h-4 rounded-sm border"
+                                style={{
+                                  backgroundColor: spec.tokens.surface,
+                                  borderColor: spec.tokens.border,
+                                }}
+                              />
+                              <span
+                                className="w-4 h-4 rounded-sm"
+                                style={{ backgroundColor: spec.tokens.accent }}
+                              />
+                              <span
+                                className="w-2.5 h-4 rounded-sm"
+                                style={{ backgroundColor: spec.tokens.chartCalc }}
+                              />
+                            </div>
+                            <span
+                              className="text-xs font-mono font-bold"
+                              style={{ color: spec.tokens.textPrimary }}
+                            >
+                              Aa
+                            </span>
+                          </div>
+
+                          <div className="flex items-start justify-between gap-2">
+                            <div className="min-w-0">
+                              <h4 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                                {t(spec.label, spec.label)}
+                              </h4>
+                              <p className="text-[10.5px] text-slate-600 dark:text-slate-400 mt-0.5 truncate">
+                                {t(spec.subtitle, spec.subtitle)}
+                              </p>
+                              <div className="text-[10px] font-mono tabular-nums text-slate-500 dark:text-slate-400 mt-1">
+                                Ink {audit.primaryRatio.toFixed(1)}:1 · Muted {audit.mutedRatio.toFixed(1)}:1 ·{' '}
+                                <span className="font-semibold text-emerald-700 dark:text-emerald-400">
+                                  {audit.overallGrade}
+                                </span>
+                              </div>
+                            </div>
+                            {isSelected && (
+                              <span className="w-5 h-5 rounded-md bg-indigo-600 text-white flex items-center justify-center shrink-0 mt-0.5">
+                                <Check className="w-3 h-3 stroke-[3]" />
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

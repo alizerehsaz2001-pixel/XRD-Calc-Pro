@@ -29,6 +29,9 @@ export const WarrenAverbachMetricsSummary: React.FC<WarrenAverbachMetricsSummary
 }) => {
   const [copiedLatex, setCopiedLatex] = useState(false);
 
+  const s1 = d1 > 0 ? 1 / d1 : 0;
+  const s2 = d2 > 0 ? 1 / d2 : 0;
+
   const generateLatex = () => {
     const tex = `\\begin{table}[htbp]
 \\centering
@@ -37,13 +40,18 @@ export const WarrenAverbachMetricsSummary: React.FC<WarrenAverbachMetricsSummary
 \\hline
 \\textbf{Crystallographic Parameter} & \\textbf{Symbol} & \\textbf{Value} \\\\
 \\hline
-Area-Weighted Column Length & $\\langle D \\rangle_A$ & ${metrics.areaWeightedColumnLengthNm.toFixed(2)}~\\text{nm} \\\\
+Reciprocal Lattice Vector (Order 1) & $s_1 = 1/d_1$ & ${s1.toFixed(4)}~\\text{\\AA}^{-1}~(d_1=${d1.toFixed(4)}~\\text{\\AA}) \\\\
+Reciprocal Lattice Vector (Order 2) & $s_2 = 1/d_2$ & ${s2.toFixed(4)}~\\text{\\AA}^{-1}~(d_2=${d2.toFixed(4)}~\\text{\\AA}) \\\\
+Harmonic Ratio & $s_2 / s_1$ & ${(metrics.harmonicRatioD1D2 ?? (d1 / Math.max(1e-4, d2))).toFixed(3)} \\\\
+Area-Weighted Column Length & $\\langle D \\rangle_A$ & ${metrics.areaWeightedColumnLengthNm.toFixed(2)}${metrics.areaWeightedErrorNm ? ` \\pm ${metrics.areaWeightedErrorNm.toFixed(2)}` : ''}~\\text{nm} \\\\
 Volume-Weighted Column Length & $\\langle D \\rangle_V$ & ${metrics.volumeWeightedColumnLengthNm.toFixed(2)}~\\text{nm} \\\\
 Number-Weighted Column Length & $\\langle D \\rangle_N$ & ${metrics.numberWeightedColumnLengthNm ? metrics.numberWeightedColumnLengthNm.toFixed(2) : '---'}~\\text{nm} \\\\
 Crystallite Size Mode ($P_V$) & $D_{\\text{mode}}$ & ${metrics.crystalliteSizeDistributionModeNm.toFixed(2)}~\\text{nm} \\\\
 Log-Normal Median Diameter & $D_0$ & ${metrics.logNormalMedianNm ? metrics.logNormalMedianNm.toFixed(2) : '---'}~\\text{nm} \\\\
 Log-Normal Dispersion & $\\sigma$ & ${metrics.logNormalSigma ? metrics.logNormalSigma.toFixed(3) : '---'} \\\\
-Dislocation Line Density & $\\rho$ & ${metrics.dislocationDensity10_14.toFixed(3)} \\times 10^{14}~\\text{m}^{-2} \\\\
+Dislocation Line Density & $\\rho$ & ${metrics.dislocationDensity10_14.toFixed(3)}${metrics.dislocationDensityError10_14 ? ` \\pm ${metrics.dislocationDensityError10_14.toFixed(3)}` : ''} \\times 10^{14}~\\text{m}^{-2} \\\\
+Mean Dislocation Spacing & $L_d = \\rho^{-1/2}$ & ${metrics.meanDislocationSpacingNm ? metrics.meanDislocationSpacingNm.toFixed(1) : '---'}~\\text{nm} \\\\
+Taylor Work-Hardening Stress & $\\Delta\\sigma_T$ & ${metrics.taylorFlowStressMPa ? metrics.taylorFlowStressMPa.toFixed(1) : '---'}~\\text{MPa} \\\\
 Wilkens Cutoff Radius & $R_e$ & ${metrics.wilkensCutoffRadiusNm.toFixed(1)}~\\text{nm} \\\\
 Wilkens Arrangement Parameter & $M = R_e \\sqrt{\\rho}$ & ${metrics.wilkensArrangementParameterM.toFixed(2)} \\\\
 Dislocation Contrast Factor & $\\bar{C}_{hkl}$ & ${metrics.contrastFactorC ? metrics.contrastFactorC.toFixed(3) : '0.285'} \\\\
@@ -156,14 +164,17 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
             <span>⟨D⟩_A (Area Mean)</span>
             <Ruler className="w-4 h-4 text-rose-400" />
           </div>
-          <div className="flex items-baseline gap-2 font-mono tabular-nums">
+          <div className="flex items-baseline gap-1.5 font-mono tabular-nums">
             <span className="text-2xl font-bold text-rose-400">
               {metrics.areaWeightedColumnLengthNm.toFixed(1)}
             </span>
+            {metrics.areaWeightedErrorNm !== undefined && (
+              <span className="text-xs text-rose-300/80">±{metrics.areaWeightedErrorNm.toFixed(1)}</span>
+            )}
             <span className="text-xs text-slate-400">nm</span>
           </div>
           <p className="text-[10px] text-slate-500 font-mono tabular-nums">
-            Initial slope: {metrics.initialSlope.toFixed(4)} nm⁻¹
+            Slope: {metrics.initialSlope.toFixed(4)} nm⁻¹{metrics.equivalentDomainDiameterNm && Math.abs(metrics.equivalentDomainDiameterNm - metrics.areaWeightedColumnLengthNm) > 0.2 ? ` · D_eq=${metrics.equivalentDomainDiameterNm.toFixed(1)} nm` : ''}
           </p>
         </div>
 
@@ -194,10 +205,13 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
             <span className="text-2xl font-bold text-cyan-400">
               {metrics.dislocationDensity10_14.toFixed(2)}
             </span>
+            {metrics.dislocationDensityError10_14 !== undefined && (
+              <span className="text-xs text-cyan-300/80">±{metrics.dislocationDensityError10_14.toFixed(2)}</span>
+            )}
             <span className="text-xs text-slate-400">×10¹⁴ m⁻²</span>
           </div>
-          <p className="text-[10px] text-slate-500 font-mono">
-            Krivoglaz-Wilkens log-strain fit
+          <p className="text-[10px] text-slate-500 font-mono tabular-nums">
+            {metrics.taylorFlowStressMPa ? `Taylor Δσ_T ≈ ${metrics.taylorFlowStressMPa.toFixed(0)} MPa` : 'Krivoglaz-Wilkens f*(L/R_e) fit'}
           </p>
         </div>
 
@@ -236,25 +250,31 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
         <div className="grid grid-cols-1 md:grid-cols-2 divide-y md:divide-y-0 md:divide-x divide-slate-800 text-xs font-mono tabular-nums">
           <div className="divide-y divide-slate-800/70 p-2">
             <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Primary Reflection Spacing (d₁):</span>
-              <span className="text-slate-200 font-bold">{d1.toFixed(4)} Å</span>
+              <span className="text-slate-400">Order 1 Reciprocal s₁ = 1/d₁ (d₁):</span>
+              <span className="text-sky-300 font-bold">{s1.toFixed(4)} Å⁻¹ <span className="text-slate-400 font-normal">({d1.toFixed(4)} Å · s₁²={(s1 * s1).toFixed(3)})</span></span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Secondary Reflection Spacing (d₂):</span>
-              <span className="text-slate-200 font-bold">{d2.toFixed(4)} Å</span>
+              <span className="text-slate-400">Order 2 Reciprocal s₂ = 1/d₂ (d₂):</span>
+              <span className="text-purple-300 font-bold">{s2.toFixed(4)} Å⁻¹ <span className="text-slate-400 font-normal">({d2.toFixed(4)} Å · s₂²={(s2 * s2).toFixed(3)})</span></span>
             </div>
             {d3 && (
               <div className="flex justify-between py-2.5 px-3">
-                <span className="text-slate-400">Third Reflection Spacing (d₃):</span>
-                <span className="text-slate-200 font-bold">{d3.toFixed(4)} Å</span>
+                <span className="text-slate-400">Order 3 Reciprocal s₃ = 1/d₃ (d₃):</span>
+                <span className="text-emerald-300 font-bold">{(1 / d3).toFixed(4)} Å⁻¹ <span className="text-slate-400 font-normal">({d3.toFixed(4)} Å)</span></span>
               </div>
             )}
             {d4 && (
               <div className="flex justify-between py-2.5 px-3">
-                <span className="text-slate-400">Fourth Reflection Spacing (d₄):</span>
-                <span className="text-slate-200 font-bold">{d4.toFixed(4)} Å</span>
+                <span className="text-slate-400">Order 4 Reciprocal s₄ = 1/d₄ (d₄):</span>
+                <span className="text-amber-300 font-bold">{(1 / d4).toFixed(4)} Å⁻¹ <span className="text-slate-400 font-normal">({d4.toFixed(4)} Å)</span></span>
               </div>
             )}
+            <div className="flex justify-between py-2.5 px-3">
+              <span className="text-slate-400">Harmonic Ratio s₂/s₁ (d₁/d₂):</span>
+              <span className={`font-bold ${metrics.harmonicCheckPassed === false ? 'text-amber-400' : 'text-emerald-400'}`}>
+                {(metrics.harmonicRatioD1D2 ?? (d1 / Math.max(1e-4, d2))).toFixed(3)}× {metrics.harmonicCheckPassed === false ? '(Non-Harmonic)' : '(Parallel)'}
+              </span>
+            </div>
             <div className="flex justify-between py-2.5 px-3">
               <span className="text-slate-400">Number-Weighted Length ⟨D⟩_N:</span>
               <span className="text-amber-400 font-bold">{metrics.numberWeightedColumnLengthNm ? `${metrics.numberWeightedColumnLengthNm.toFixed(1)} nm` : '---'}</span>
@@ -273,35 +293,37 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
 
           <div className="divide-y divide-slate-800/70 p-2">
             <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Burgers Vector Magnitude (b):</span>
-              <span className="text-slate-200 font-bold">{burgersVector.toFixed(3)} nm</span>
+              <span className="text-slate-400">Burgers Vector (b) / Young&apos;s (E):</span>
+              <span className="text-slate-200 font-bold">{burgersVector.toFixed(3)} nm / {youngsModulus} GPa</span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
               <span className="text-slate-400">Dislocation Contrast Factor (C̄):</span>
               <span className="text-cyan-400 font-bold">{metrics.contrastFactorC ? metrics.contrastFactorC.toFixed(3) : '0.285'}</span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Wilkens Linear Fit R²:</span>
-              <span className="text-emerald-400 font-bold">{metrics.wilkensR2 ? metrics.wilkensR2.toFixed(4) : '0.99'}</span>
+              <span className="text-slate-400">Mean Dislocation Spacing L_d = ρ⁻¹/²:</span>
+              <span className="text-sky-400 font-bold">
+                {metrics.meanDislocationSpacingNm ? `${metrics.meanDislocationSpacingNm.toFixed(1)} nm` : '---'}
+              </span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Young's Modulus (E):</span>
-              <span className="text-slate-200 font-bold">{youngsModulus} GPa</span>
+              <span className="text-slate-400">Taylor Work-Hardening Stress (Δσ_T):</span>
+              <span className="text-amber-400 font-bold">
+                {metrics.taylorFlowStressMPa ? `${metrics.taylorFlowStressMPa.toFixed(1)} MPa` : '---'}
+              </span>
+            </div>
+            <div className="flex justify-between py-2.5 px-3">
+              <span className="text-slate-400">Wilkens Fit Quality (R²):</span>
+              <span className="text-emerald-400 font-bold">{metrics.wilkensR2 ? metrics.wilkensR2.toFixed(4) : '0.99'}</span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
               <span className="text-slate-400">Apparent Strain Energy Density (W_H):</span>
               <span className="text-cyan-400 font-bold">{metrics.apparentStrainEnergyKJm3.toFixed(2)} kJ/m³</span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Estimated Specific Surface Area (S_V):</span>
+              <span className="text-slate-400">Specific Surface Area (S_V, ρ={metrics.materialDensityGcm3?.toFixed(2) ?? '8.00'} g/cm³):</span>
               <span className="text-emerald-400 font-bold">
                 {metrics.specificSurfaceAreaM2g ? `${metrics.specificSurfaceAreaM2g.toFixed(1)} m²/g` : '---'}
-              </span>
-            </div>
-            <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Polydispersity Index (⟨D⟩_V / ⟨D⟩_A):</span>
-              <span className="text-indigo-400 font-bold">
-                {metrics.polydispersityIndex ? metrics.polydispersityIndex.toFixed(2) : (metrics.volumeWeightedColumnLengthNm / Math.max(1, metrics.areaWeightedColumnLengthNm)).toFixed(2)}
               </span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
@@ -311,8 +333,11 @@ Harmonic Regression Fit Quality & $\\bar{R}^2$ & ${metrics.r2_average.toFixed(4)
               </span>
             </div>
             <div className="flex justify-between py-2.5 px-3">
-              <span className="text-slate-400">Hook Tangent Intercept (A₀*):</span>
-              <span className="text-amber-400 font-bold">{metrics.hookEffectExtrapolatedIntercept.toFixed(4)}</span>
+              <span className="text-slate-400">Hook Tangent Intercept (A₀* / R²):</span>
+              <span className="text-amber-400 font-bold">
+                {metrics.hookEffectExtrapolatedIntercept.toFixed(4)}
+                {metrics.hookRegressionR2 !== undefined ? ` (R²=${metrics.hookRegressionR2.toFixed(3)})` : ''}
+              </span>
             </div>
           </div>
         </div>

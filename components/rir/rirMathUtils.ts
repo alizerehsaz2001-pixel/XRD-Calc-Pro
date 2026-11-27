@@ -6,10 +6,40 @@ export interface CovarianceResult {
   vectorW: number[];
   vectorV: number[];
   stdDevW: number[]; // in fractional units (0 to 1)
+  stdDevV: number[]; // exact propagated volume-fraction std dev (0 to 1)
   conditionNumber: number;
   maxSensitivity: number;
   jacobianI: number[][];
   jacobianK: number[][];
+}
+
+export interface RadiationAnode {
+  id: 'Cu' | 'Co' | 'Mo' | 'Cr';
+  label: string;
+  wavelengthA: number;
+  energyKeV: number;
+  fluorescenceNote: string;
+}
+
+export const RADIATION_ANODES: RadiationAnode[] = [
+  { id: 'Cu', label: 'Cu Kα₁', wavelengthA: 1.5406, energyKeV: 8.048, fluorescenceNote: 'Excites Fe, Co, Mn K-edge fluorescence' },
+  { id: 'Co', label: 'Co Kα₁', wavelengthA: 1.7890, energyKeV: 6.930, fluorescenceNote: 'Eliminates Fe fluorescence; excites Mn/Cr' },
+  { id: 'Mo', label: 'Mo Kα₁', wavelengthA: 0.7107, energyKeV: 17.479, fluorescenceNote: 'Deep penetration; compresses 2θ range' },
+  { id: 'Cr', label: 'Cr Kα₁', wavelengthA: 2.2897, energyKeV: 5.415, fluorescenceNote: 'High angular dispersion; shallow penetration' }
+];
+
+export interface HubbardSnyderResult {
+  equivI100: number;
+  textureCvPct: number;
+  peakCount: number;
+  perPeakI100: { hkl: string; impliedI100: number; deviationPct: number }[];
+}
+
+export interface RIRDiagnosticItem {
+  id: string;
+  severity: 'info' | 'warning' | 'critical';
+  category: string;
+  message: string;
 }
 
 export interface MonteCarloHistogramBin {
@@ -120,8 +150,20 @@ export function solveSelfConsistentBrindley(
   const sumUncorrReduced = props.reduce((s, p) => s + p.uncorrectedReducedI, 0);
   const uncorrWt = props.map(p => (sumUncorrReduced > 0 ? (p.uncorrectedReducedI / sumUncorrReduced) * 100 : 100 / props.length));
 
+  const computeVolumeWeightedMuBar = (wtFractions: number[]): number => {
+    let sumVol = 0;
+    let sumVolMu = 0;
+    for (let i = 0; i < props.length; i++) {
+      const vRaw = wtFractions[i] / props[i].rho;
+      sumVol += vRaw;
+      sumVolMu += vRaw * props[i].muLinear;
+    }
+    return sumVol > 0 ? sumVolMu / sumVol : props.reduce((s, p) => s + p.muLinear, 0) / Math.max(1, props.length);
+  };
+
   let weights = uncorrWt.map(w => w / 100);
-  let muBar = weights.reduce((s, w, i) => s + w * props[i].muLinear, 0);
+  // Exact Brindley (1945) volume-fraction weighted matrix linear absorption coefficient: muBar = sum(v_i * mu_i)
+  let muBar = computeVolumeWeightedMuBar(weights);
   let taus = props.map(() => 1.0);
   let converged = false;
   let iterations = 0;
@@ -132,7 +174,7 @@ export function solveSelfConsistentBrindley(
     const corrReduced = props.map((p, i) => (p.normI100 / nextTaus[i]) / p.rir);
     const sumCorr = corrReduced.reduce((s, val) => s + val, 0);
     const nextWeights = sumCorr > 0 ? corrReduced.map(r => r / sumCorr) : weights;
-    const nextMuBar = nextWeights.reduce((s, w, i) => s + w * props[i].muLinear, 0);
+    const nextMuBar = computeVolumeWeightedMuBar(nextWeights);
 
     const maxStepDiff = nextWeights.reduce((m, w, i) => Math.max(m, Math.abs(w - weights[i])), 0);
     weights = nextWeights;
@@ -201,6 +243,7 @@ export function computeRIRCovariance(
       vectorW: [],
       vectorV: [],
       stdDevW: [],
+      stdDevV: [],
       conditionNumber: 1,
       maxSensitivity: 0,
       jacobianI: [],
@@ -284,6 +327,23 @@ export function computeRIRCovariance(
 
   const stdDevW = covarW.map((row, idx) => Math.sqrt(Math.max(0, row[idx] || 0)));
 
+  // Exact analytical volume-fraction covariance via density Jacobian:
+  // v_i = (w_i / rho_i) / S_v  =>  dv_i / dw_j = (delta_ij - v_i) / (S_v * rho_j)
+  const stdDevV: number[] = [];
+  for (let i = 0; i < n; i++) {
+    let varVi = 0;
+    if (totalVolFactor > 0) {
+      for (let a = 0; a < n; a++) {
+        const jia = ((i === a ? 1 : 0) - vectorV[i]) / (totalVolFactor * vectorDensities[a]);
+        for (let b = 0; b < n; b++) {
+          const jib = ((i === b ? 1 : 0) - vectorV[i]) / (totalVolFactor * vectorDensities[b]);
+          varVi += jia * covarW[a][b] * jib;
+        }
+      }
+    }
+    stdDevV.push(Math.sqrt(Math.max(0, varVi)));
+  }
+
   // Condition proxy: dynamic range across normalized reduced intensities & sensitivity spread
   const validReduced = vectorReducedI.filter(v => v > 0);
   const maxReduced = validReduced.length > 0 ? Math.max(...validReduced) : 1;
@@ -303,6 +363,7 @@ export function computeRIRCovariance(
     vectorW,
     vectorV,
     stdDevW,
+    stdDevV,
     conditionNumber,
     maxSensitivity,
     jacobianI,
@@ -498,3 +559,194 @@ export function computeDetectionLimits(
     };
   });
 }
+
+/**
+ * Hubbard & Snyder (1988) multi-reflection RIR estimator:
+ * Uses intensity-summed scaling I_100 = sum(I_j) / sum(I_rel_j / 100) so weak reflections
+ * do not amplify Poisson counting noise, and computes a preferred-orientation / texture CV%.
+ */
+export function computeHubbardSnyderI100(
+  peaks: { hkl: string; intensity: number; relIntensity: number }[]
+): HubbardSnyderResult {
+  const active = peaks.filter(pk => (pk.intensity || 0) > 0 && (pk.relIntensity || 0) > 0);
+  if (active.length === 0) {
+    return { equivI100: 0, textureCvPct: 0, peakCount: 0, perPeakI100: [] };
+  }
+
+  let sumInt = 0;
+  let sumRelFrac = 0;
+  const impliedList = active.map(pk => {
+    const relFrac = Math.min(1.0, Math.max(0.01, pk.relIntensity / 100));
+    sumInt += pk.intensity;
+    sumRelFrac += relFrac;
+    return {
+      hkl: pk.hkl,
+      relFrac,
+      impliedI100: pk.intensity / relFrac
+    };
+  });
+
+  const equivI100 = sumRelFrac > 0 ? sumInt / sumRelFrac : 0;
+
+  let weightedVar = 0;
+  if (active.length > 1 && equivI100 > 0) {
+    impliedList.forEach(item => {
+      const diff = item.impliedI100 - equivI100;
+      weightedVar += (item.relFrac / sumRelFrac) * diff * diff;
+    });
+  }
+  const textureCvPct = equivI100 > 0 ? (Math.sqrt(weightedVar) / equivI100) * 100 : 0;
+
+  return {
+    equivI100: Math.round(equivI100),
+    textureCvPct: Number(textureCvPct.toFixed(1)),
+    peakCount: active.length,
+    perPeakI100: impliedList.map(item => ({
+      hkl: item.hkl,
+      impliedI100: Math.round(item.impliedI100),
+      deviationPct: equivI100 > 0 ? Number((((item.impliedI100 - equivI100) / equivI100) * 100).toFixed(1)) : 0
+    }))
+  };
+}
+
+/**
+ * Computes analytical standard uncertainty of the amorphous fraction in Internal Standard Spiking mode,
+ * accounting for shared standard peak/RIR/weighing correlation across all analyte phases.
+ */
+export function computeSpikingAmorphousUncertainty(
+  analyteWeightsPct: number[],
+  standardAddedWtPct: number,
+  relErrIPct: number,
+  relErrKPct: number,
+  weighingErrAbsPct: number = 0.2
+): number {
+  const sumW = analyteWeightsPct.reduce((s, w) => s + Math.max(0, w), 0);
+  if (sumW <= 0) return 0;
+
+  const ws = Math.min(0.95, Math.max(0.01, standardAddedWtPct / 100));
+  const relI = (relErrIPct || 0) / 100;
+  const relK = (relErrKPct || 0) / 100;
+  const relWs = (weighingErrAbsPct / 100) / (ws * (1 - ws));
+
+  // Shared standard terms (I_s, K_s, W_s) scale sumW coherently; individual analyte terms add in quadrature
+  const sharedVar = sumW * sumW * (relI * relI + relK * relK + relWs * relWs);
+  const indepVar = analyteWeightsPct.reduce((acc, w) => acc + w * w * (relI * relI + relK * relK), 0);
+  return Math.sqrt(Math.max(0, sharedVar + indepVar));
+}
+
+/**
+ * Bragg d-spacing (Angstroms) and reciprocal vector s = 1/d (A^-1) from 2Theta and wavelength.
+ */
+export function computeBraggReciprocal(twoThetaDeg: number, wavelengthA: number): { dSpacingA: number; invD: number } {
+  const thetaRad = (Math.max(0.5, Math.min(179, twoThetaDeg)) / 2) * (Math.PI / 180);
+  const sinT = Math.sin(thetaRad);
+  if (sinT <= 1e-6 || wavelengthA <= 0) return { dSpacingA: 0, invD: 0 };
+  const dSpacingA = wavelengthA / (2 * sinT);
+  return {
+    dSpacingA,
+    invD: dSpacingA > 0 ? 1 / dSpacingA : 0
+  };
+}
+
+/**
+ * Automated scientific diagnostics for RIR quantitative phase analysis:
+ * checks Fe/Co fluorescence, Brindley microabsorption contrast, peak overlap proximity,
+ * preferred orientation texture CV%, below-LOD trace phases, and spiking mass-balance excess.
+ */
+export function computeRIRDiagnostics(params: {
+  phases: (RIRMatrixPhase & {
+    totalSampleFraction: number;
+    lodWtPct: number;
+    textureCvPct?: number;
+    isInternalStandard?: boolean;
+  })[];
+  anodeId: 'Cu' | 'Co' | 'Mo' | 'Cr';
+  useBrindley: boolean;
+  particleDiameterUm: number;
+  isInternalStandardActive: boolean;
+  rawOriginalSampleCrystSum: number;
+}): RIRDiagnosticItem[] {
+  const diagnostics: RIRDiagnosticItem[] = [];
+  const { phases, anodeId, useBrindley, particleDiameterUm, isInternalStandardActive, rawOriginalSampleCrystSum } = params;
+
+  // 1. Spiking mass-balance closure excess
+  if (isInternalStandardActive && rawOriginalSampleCrystSum > 100.5) {
+    diagnostics.push({
+      id: 'spiking-excess',
+      severity: 'critical',
+      category: 'Mass Balance',
+      message: `Unclipped crystalline sum is ${rawOriginalSampleCrystSum.toFixed(1)} wt% (>100%). Check standard weighing, preferred orientation, or enable Brindley microabsorption.`
+    });
+  }
+
+  // 2. X-ray fluorescence check (Fe/Co/Mn under Cu K-alpha)
+  if (anodeId === 'Cu') {
+    const fePhases = phases.filter(p => /hematite|magnetite|fe2o3|fe3o4|ferrite|goethite|pyrite|siderite|iron|fe\b|c4af/i.test(p.name));
+    if (fePhases.length > 0) {
+      diagnostics.push({
+        id: 'cu-fluorescence',
+        severity: 'warning',
+        category: 'Fluorescence',
+        message: `Cu Kα excites Fe K-edge fluorescence in ${fePhases.map(p => p.name.split(' (')[0]).join(', ')}, elevating background & MAC. Consider Co Kα₁ (1.789 Å) or a secondary monochromator.`
+      });
+    }
+  }
+
+  // 3. Brindley microabsorption severity check (|mu_i - muBar| * D > 0.1)
+  if (phases.length >= 2) {
+    const sol = solveSelfConsistentBrindley(phases, particleDiameterUm);
+    const D_cm = Math.max(0.05, particleDiameterUm) * 1e-4;
+    const maxContrastProduct = sol.phaseStates.reduce((m, st) => Math.max(m, Math.abs(st.sigmaContrast) * D_cm), 0);
+    if (maxContrastProduct > 0.12 && !useBrindley) {
+      diagnostics.push({
+        id: 'brindley-needed',
+        severity: 'warning',
+        category: 'Microabsorption',
+        message: `High linear absorption contrast (max |Δμ|·D = ${maxContrastProduct.toFixed(2)} > 0.10 at D = ${particleDiameterUm} µm). Enable Brindley correction or micronize powder below ${Math.max(0.5, (0.1 / (maxContrastProduct / D_cm)) * 1e4).toFixed(1)} µm.`
+      });
+    }
+  }
+
+  // 4. Peak overlap proximity check (delta 2Theta < 0.35 deg)
+  for (let i = 0; i < phases.length; i++) {
+    for (let j = i + 1; j < phases.length; j++) {
+      const diff = Math.abs((phases[i].twoTheta || 0) - (phases[j].twoTheta || 0));
+      if (diff > 0 && diff < 0.35 && phases[i].intensity > 0 && phases[j].intensity > 0) {
+        diagnostics.push({
+          id: `overlap-${phases[i].id}-${phases[j].id}`,
+          severity: 'warning',
+          category: 'Peak Overlap',
+          message: `${phases[i].name.split(' (')[0]} (${phases[i].twoTheta.toFixed(2)}°) and ${phases[j].name.split(' (')[0]} (${phases[j].twoTheta.toFixed(2)}°) are separated by Δ2θ = ${diff.toFixed(2)}°. Use Pawley Bridge or select non-overlapping secondary reflections.`
+        });
+      }
+    }
+  }
+
+  // 5. Multi-peak preferred orientation dispersion check
+  phases.forEach(p => {
+    if ((p.textureCvPct || 0) > 15) {
+      diagnostics.push({
+        id: `texture-${p.id}`,
+        severity: 'warning',
+        category: 'Texture Bias',
+        message: `${p.name.split(' (')[0]} multi-reflection I₁₀₀ spread is ${p.textureCvPct?.toFixed(1)}% CV (>15%), indicating preferred orientation or hidden peak overlap.`
+      });
+    }
+  });
+
+  // 6. Trace phase below LOD
+  const tracePhases = phases.filter(
+    p => !p.isInternalStandard && p.intensity > 0 && p.totalSampleFraction < p.lodWtPct
+  );
+  if (tracePhases.length > 0) {
+    diagnostics.push({
+      id: 'below-lod',
+      severity: 'info',
+      category: 'Detection Limit',
+      message: `${tracePhases.map(p => p.name.split(' (')[0]).join(', ')} falls below the 3σ LOD threshold; increase counting time for quantitative reliability.`
+    });
+  }
+
+  return diagnostics;
+}
+

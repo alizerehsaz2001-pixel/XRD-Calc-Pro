@@ -377,6 +377,316 @@ const CANONICAL_PDF2_METADATA: Record<
     subfileCodes: ['Inorganic', 'Mineral', 'Metals & Alloys', 'NBS/NIST Standard'],
     referenceCitation: 'Swanson, Tatge, Natl. Bur. Stand. (U.S.), Circ. 539, I, 15 (1953)',
   },
+  silver_ag: {
+    pdfCardNumber: '00-004-0783',
+    qualityMark: '*',
+    rirValue: 18.60,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 4.0862, b: 4.0862, c: 4.0862, alpha: 90, beta: 90, gamma: 90, volume: 68.23, z: 4 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Metals & Alloys', 'NBS/NIST Standard', 'Common Phases'],
+    referenceCitation: 'Swanson, Tatge, Natl. Bur. Stand. (U.S.), Circ. 539, I, 23 (1953) — Pure FCC Silver (Ag)',
+  },
+  sterling_silver: {
+    pdfCardNumber: '04-003-2141',
+    qualityMark: 'I',
+    rirValue: 16.80,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 4.075, b: 4.075, c: 4.075, alpha: 90, beta: 90, gamma: 90, volume: 67.67, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Silver Alloys', 'Precious Metals'],
+    referenceCitation: 'Subramanian, P.R., Perepezko, J.H., J. Phase Equilib., 14, 62 (1993) — Ag-7.5wt%Cu Sterling Silver',
+  },
+  ag_cu_eutectic: {
+    pdfCardNumber: '04-004-8742',
+    qualityMark: 'I',
+    rirValue: 13.40,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 4.074, b: 4.074, c: 4.074, alpha: 90, beta: 90, gamma: 90, volume: 67.62, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Silver Alloys', 'Brazing & Joining'],
+    referenceCitation: 'ASM Alloy Phase Diagrams (Ag-Cu System) — BAg-8 / Cusil Eutectic (72Ag-28Cu)',
+  },
+  electrum_au50ag50: {
+    pdfCardNumber: '04-003-5398',
+    qualityMark: '*',
+    rirValue: 21.50,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 4.0785, b: 4.0785, c: 4.0785, alpha: 90, beta: 90, gamma: 90, volume: 67.84, z: 4 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Metals & Alloys', 'Silver Alloys', 'Precious Metals'],
+    referenceCitation: 'Okamoto, H., Massalski, T.B., Bull. Alloy Phase Diagrams, 4, 30 (1983) — Au0.5Ag0.5 FCC Solid Solution',
+  },
+  ag70pd30: {
+    pdfCardNumber: '04-003-2392',
+    qualityMark: '*',
+    rirValue: 17.40,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 4.027, b: 4.027, c: 4.027, alpha: 90, beta: 90, gamma: 90, volume: 65.30, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Silver Alloys', 'Electronic Materials'],
+    referenceCitation: 'Karakaya, I., Thompson, W.T., Bull. Alloy Phase Diagrams, 9, 237 (1988) — Ag-Pd Continuous FCC Solid Solution',
+  },
+  ag3sn_imc: {
+    pdfCardNumber: '00-044-1300',
+    qualityMark: '*',
+    rirValue: 11.20,
+    spaceGroup: 'Pmmn',
+    spaceGroupNumber: 59,
+    unitCell: { a: 5.968, b: 4.780, c: 5.184, alpha: 90, beta: 90, gamma: 90, volume: 147.88, z: 2 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Silver Alloys', 'Lead-Free Solder IMCs', 'Dental Metallurgy'],
+    referenceCitation: 'Fairhurst, C.W., Cohen, J.B., Acta Crystallogr. B, 28, 371 (1972) — Orthorhombic ε-Ag3Sn',
+  },
+  agzn_betaprime: {
+    pdfCardNumber: '00-029-1155',
+    qualityMark: '*',
+    rirValue: 12.60,
+    spaceGroup: 'Pm-3m',
+    spaceGroupNumber: 221,
+    unitCell: { a: 3.156, b: 3.156, c: 3.156, alpha: 90, beta: 90, gamma: 90, volume: 31.43, z: 1 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Silver Alloys', 'Shape Memory'],
+    referenceCitation: 'Massalski, T.B., King, H.W., Prog. Mater. Sci., 10, 1 (1961) — Ordered B2 β\'-AgZn',
+  },
+  ag_in_cd: {
+    pdfCardNumber: '04-007-4812',
+    qualityMark: 'I',
+    rirValue: 16.90,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 4.142, b: 4.142, c: 4.142, alpha: 90, beta: 90, gamma: 90, volume: 71.06, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Silver Alloys', 'Nuclear Engineering'],
+    referenceCitation: 'Cohen, I., Losco, E.F., Eichenberg, J.D., Nucleonics, 16, 122 (1958) — PWR Ag-15In-5Cd Control Rod Alloy',
+  },
+  ag3mg_l12: {
+    pdfCardNumber: '00-029-0871',
+    qualityMark: 'I',
+    rirValue: 13.80,
+    spaceGroup: 'Pm-3m',
+    spaceGroupNumber: 221,
+    unitCell: { a: 4.111, b: 4.111, c: 4.111, alpha: 90, beta: 90, gamma: 90, volume: 69.48, z: 1 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Silver Alloys', 'Intermetallics'],
+    referenceCitation: 'Fujiwara, K. et al., J. Phys. Soc. Jpn., 13, 167 (1958) — Ordered L12 Ag3Mg Superlattice',
+  },
+  ag2hg3_amalgam: {
+    pdfCardNumber: '00-011-0067',
+    qualityMark: '*',
+    rirValue: 14.50,
+    spaceGroup: 'I23',
+    spaceGroupNumber: 197,
+    unitCell: { a: 10.051, b: 10.051, c: 10.051, alpha: 90, beta: 90, gamma: 90, volume: 1015.38, z: 10 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Metals & Alloys', 'Silver Alloys', 'Dental Metallurgy'],
+    referenceCitation: 'Fairhurst, C.W., Ryge, G., Adv. X-Ray Anal., 5, 64 (1962) — γ1-Ag2Hg3 Moschellandsbergite Dental Amalgam',
+  },
+  ag2al_zeta: {
+    pdfCardNumber: '00-014-0647',
+    qualityMark: '*',
+    rirValue: 12.10,
+    spaceGroup: 'P63/mmc',
+    spaceGroupNumber: 194,
+    unitCell: { a: 2.885, b: 2.885, c: 4.662, alpha: 90, beta: 90, gamma: 120, volume: 33.61, z: 1 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Silver Alloys', 'Aerospace Metallurgy'],
+    referenceCitation: 'Neumann, J.P., Acta Metall., 14, 505 (1966) — HCP ζ-Ag2Al Hume-Rothery Electron Phase',
+  },
+  agcl_chlorargyrite: {
+    pdfCardNumber: '00-031-1238',
+    qualityMark: '*',
+    rirValue: 7.50,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 5.5491, b: 5.5491, c: 5.5491, alpha: 90, beta: 90, gamma: 90, volume: 170.87, z: 4 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Halide Standard', 'Common Phases'],
+    referenceCitation: 'Swanson et al., Natl. Bur. Stand. (U.S.), Circ. 539, IV, 44 (1955) — AgCl Chlorargyrite',
+  },
+  agbr_bromargyrite: {
+    pdfCardNumber: '00-006-0438',
+    qualityMark: '*',
+    rirValue: 9.80,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 5.7745, b: 5.7745, c: 5.7745, alpha: 90, beta: 90, gamma: 90, volume: 192.55, z: 4 },
+    subfileCodes: ['Inorganic', 'Mineral', 'Halide Standard'],
+    referenceCitation: 'Swanson et al., Natl. Bur. Stand. (U.S.), Circ. 539, IV, 46 (1955) — AgBr Bromargyrite',
+  },
+  ag2o_cuprite: {
+    pdfCardNumber: '00-041-1104',
+    qualityMark: '*',
+    rirValue: 11.40,
+    spaceGroup: 'Pn-3m',
+    spaceGroupNumber: 224,
+    unitCell: { a: 4.728, b: 4.728, c: 4.728, alpha: 90, beta: 90, gamma: 90, volume: 105.69, z: 2 },
+    subfileCodes: ['Inorganic', 'Battery & Energy Storage', 'Silver Compounds'],
+    referenceCitation: 'Wyckoff, R.W.G., Crystal Structures, 1, 331 (1963) — Cubic Cuprite-type Ag2O',
+  },
+  ag2f_subfluoride: {
+    pdfCardNumber: '00-003-0794',
+    qualityMark: 'I',
+    rirValue: 9.20,
+    spaceGroup: 'P-3m1',
+    spaceGroupNumber: 164,
+    unitCell: { a: 2.996, b: 2.996, c: 5.691, alpha: 90, beta: 90, gamma: 120, volume: 44.24, z: 1 },
+    subfileCodes: ['Inorganic', 'Silver Compounds', 'Layered Conductors'],
+    referenceCitation: 'Argay, G., Naray-Szabo, I., Acta Chim. Acad. Sci. Hung., 49, 329 (1966) — Trigonal Anti-CdI2 Ag2F',
+  },
+  ss_304: {
+    pdfCardNumber: '00-033-0397',
+    qualityMark: '*',
+    rirValue: 7.40,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 3.591, b: 3.591, c: 3.591, alpha: 90, beta: 90, gamma: 90, volume: 46.31, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Austenitic'],
+    referenceCitation: 'Dyson, D.J., Holmes, B., J. Iron Steel Inst., 208, 469 (1970) — AISI 304 (18Cr-8Ni) FCC Austenite',
+  },
+  ss_316l: {
+    pdfCardNumber: '00-033-0397',
+    qualityMark: '*',
+    rirValue: 7.65,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 3.597, b: 3.597, c: 3.597, alpha: 90, beta: 90, gamma: 90, volume: 46.54, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Austenitic', 'Biomedical'],
+    referenceCitation: 'ASTM A240 / UNS S31603 — AISI 316L (17Cr-12Ni-2.5Mo) Mo-Expanded FCC Austenite',
+  },
+  ss_310s: {
+    pdfCardNumber: '04-004-4628',
+    qualityMark: 'I',
+    rirValue: 7.35,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 3.593, b: 3.593, c: 3.593, alpha: 90, beta: 90, gamma: 90, volume: 46.38, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Heat-Resistant'],
+    referenceCitation: 'ASTM A240 / UNS S31008 — AISI 310S (25Cr-20Ni) Heat-Resistant FCC Austenite',
+  },
+  ss_904l: {
+    pdfCardNumber: '04-006-1192',
+    qualityMark: 'I',
+    rirValue: 7.80,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 3.602, b: 3.602, c: 3.602, alpha: 90, beta: 90, gamma: 90, volume: 46.73, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Super-Austenitic'],
+    referenceCitation: 'ASTM B625 / UNS N08904 — Super-Austenitic 904L (20Cr-25Ni-4.5Mo-1.5Cu)',
+  },
+  ss_254smo: {
+    pdfCardNumber: '04-007-8410',
+    qualityMark: 'I',
+    rirValue: 7.95,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 3.608, b: 3.608, c: 3.608, alpha: 90, beta: 90, gamma: 90, volume: 46.97, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Super-Austenitic'],
+    referenceCitation: 'ASTM A240 / UNS S31254 — 6Mo Super-Austenitic 254 SMO',
+  },
+  ss_430: {
+    pdfCardNumber: '00-034-0396',
+    qualityMark: '*',
+    rirValue: 9.85,
+    spaceGroup: 'Im-3m',
+    spaceGroupNumber: 229,
+    unitCell: { a: 2.874, b: 2.874, c: 2.874, alpha: 90, beta: 90, gamma: 90, volume: 23.74, z: 2 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Ferritic'],
+    referenceCitation: 'ASTM A240 / UNS S43000 — AISI 430 (17Cr) BCC Ferritic Stainless Steel',
+  },
+  ss_410: {
+    pdfCardNumber: '00-044-1290',
+    qualityMark: 'I',
+    rirValue: 9.40,
+    spaceGroup: 'I4/mmm',
+    spaceGroupNumber: 139,
+    unitCell: { a: 2.869, b: 2.869, c: 2.885, alpha: 90, beta: 90, gamma: 90, volume: 23.75, z: 2 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Martensitic'],
+    referenceCitation: 'ASTM A240 / UNS S41000 — AISI 410 (12.5Cr-0.12C) BCT Martensitic Stainless Steel',
+  },
+  ss_440c: {
+    pdfCardNumber: '04-004-7218',
+    qualityMark: 'I',
+    rirValue: 8.90,
+    spaceGroup: 'I4/mmm',
+    spaceGroupNumber: 139,
+    unitCell: { a: 2.858, b: 2.858, c: 2.968, alpha: 90, beta: 90, gamma: 90, volume: 24.24, z: 2 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Martensitic', 'Bearings'],
+    referenceCitation: 'ASTM A276 / UNS S44004 — AISI 440C (17Cr-1.0C) High-Tetragonality BCT Martensite',
+  },
+  ss_17_4ph: {
+    pdfCardNumber: '04-003-8254',
+    qualityMark: 'I',
+    rirValue: 9.60,
+    spaceGroup: 'Im-3m',
+    spaceGroupNumber: 229,
+    unitCell: { a: 2.874, b: 2.874, c: 2.874, alpha: 90, beta: 90, gamma: 90, volume: 23.74, z: 2 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Precipitation Hardening'],
+    referenceCitation: 'ASTM A564 / UNS S17400 — 17-4PH (16.5Cr-4Ni-4Cu-0.3Nb) Lath Martensite Matrix',
+  },
+  ss_duplex_2205: {
+    pdfCardNumber: '04-005-5120',
+    qualityMark: '*',
+    rirValue: 8.55,
+    spaceGroup: 'Fm-3m / Im-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 3.601, b: 3.601, c: 3.601, alpha: 90, beta: 90, gamma: 90, volume: 46.69, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Duplex'],
+    referenceCitation: 'ASTM A240 / UNS S32205 — Duplex 2205 (50% γ-FCC a=3.601 Å + 50% α-BCC a=2.878 Å)',
+  },
+  ss_duplex_2507: {
+    pdfCardNumber: '04-006-7715',
+    qualityMark: '*',
+    rirValue: 8.70,
+    spaceGroup: 'Fm-3m / Im-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 3.606, b: 3.606, c: 3.606, alpha: 90, beta: 90, gamma: 90, volume: 46.89, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Super Duplex'],
+    referenceCitation: 'ASTM A240 / UNS S32750 — Super Duplex 2507 (50% γ-FCC a=3.606 Å + 50% α-BCC a=2.882 Å)',
+  },
+  m23c6_carbide: {
+    pdfCardNumber: '00-035-0783',
+    qualityMark: '*',
+    rirValue: 3.85,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 10.650, b: 10.650, c: 10.650, alpha: 90, beta: 90, gamma: 90, volume: 1207.95, z: 4 },
+    subfileCodes: ['Inorganic', 'Carbide', 'Stainless Steel Sensitization'],
+    referenceCitation: 'Bowman, A.L. et al., Acta Crystallogr. B, 28, 3102 (1972) — Cubic D84 Cr23C6',
+  },
+  chi_phase_ss: {
+    pdfCardNumber: '00-008-0200',
+    qualityMark: 'I',
+    rirValue: 4.90,
+    spaceGroup: 'I-43m',
+    spaceGroupNumber: 217,
+    unitCell: { a: 8.920, b: 8.920, c: 8.920, alpha: 90, beta: 90, gamma: 90, volume: 709.73, z: 1 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'TCP Intermetallic', 'Duplex Stainless'],
+    referenceCitation: 'Kasper, J.S., Acta Metall., 2, 456 (1954) — Cubic A12 χ-Fe36Cr12Mo10 Intermetallic',
+  },
+  epsilon_martensite: {
+    pdfCardNumber: '00-034-0529',
+    qualityMark: 'I',
+    rirValue: 6.20,
+    spaceGroup: 'P63/mmc',
+    spaceGroupNumber: 194,
+    unitCell: { a: 2.532, b: 2.532, c: 4.114, alpha: 90, beta: 90, gamma: 120, volume: 22.84, z: 2 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'TRIP Martensite'],
+    referenceCitation: 'Mangonon, P.L., Thomas, G., Metall. Trans., 1, 1577 (1970) — HCP ε-Martensite in 304 Stainless',
+  },
+  cr2n_nitride: {
+    pdfCardNumber: '00-035-0803',
+    qualityMark: '*',
+    rirValue: 4.60,
+    spaceGroup: 'P-31m',
+    spaceGroupNumber: 162,
+    unitCell: { a: 4.796, b: 4.796, c: 4.470, alpha: 90, beta: 90, gamma: 120, volume: 89.03, z: 3 },
+    subfileCodes: ['Inorganic', 'Nitride', 'Duplex Weld HAZ', 'Surface Metallurgy'],
+    referenceCitation: 'Kim, S.J. et al., J. Solid State Chem., 86, 179 (1990) — Trigonal Cr2N',
+  },
+  s_phase_gamma_n: {
+    pdfCardNumber: '04-008-9412',
+    qualityMark: 'I',
+    rirValue: 6.80,
+    spaceGroup: 'Fm-3m',
+    spaceGroupNumber: 225,
+    unitCell: { a: 3.760, b: 3.760, c: 3.760, alpha: 90, beta: 90, gamma: 90, volume: 53.16, z: 4 },
+    subfileCodes: ['Inorganic', 'Metals & Alloys', 'Stainless Steel', 'Plasma Nitriding'],
+    referenceCitation: 'Christiansen, T., Somers, M.A.J., Metall. Mater. Trans. A, 37, 675 (2006) — Expanded Austenite γN S-Phase',
+  },
   aluminum: {
     pdfCardNumber: '00-004-0787',
     qualityMark: '*',
@@ -3670,6 +3980,37 @@ export function convertMaterialToPDF2Card(mat: any, indexOffset: number = 0): PD
   else if (nameLower.includes('forsterite')) canonicalKey = 'forsterite_mg2sio4';
   else if (nameLower.includes('enstatite')) canonicalKey = 'enstatite_mgsio3';
   else if (nameLower === 'magnesium (mg)') canonicalKey = 'mg_hcp';
+  else if (nameLower === 'silver (ag)' || nameLower.includes('silver nanoparticles') || nameLower.includes('silver nanowires') || nameLower.includes('silver nanocubes')) canonicalKey = 'silver_ag';
+  else if (nameLower.includes('sterling silver')) canonicalKey = 'sterling_silver';
+  else if (nameLower.includes('ag-cu eutectic') || nameLower.includes('cusil')) canonicalKey = 'ag_cu_eutectic';
+  else if (nameLower.includes('electrum')) canonicalKey = 'electrum_au50ag50';
+  else if (nameLower.includes('silver-palladium') || formulaLower.includes('ag0.7pd0.3') || formulaLower.includes('ag0.5pd0.5')) canonicalKey = 'ag70pd30';
+  else if (nameLower.includes('ag3sn') || formulaLower === 'ag3sn') canonicalKey = 'ag3sn_imc';
+  else if (nameLower.includes('β\'-agzn') || formulaLower === 'agzn') canonicalKey = 'agzn_betaprime';
+  else if (nameLower.includes('ag-in-cd')) canonicalKey = 'ag_in_cd';
+  else if (nameLower.includes('ag3mg') || formulaLower === 'ag3mg') canonicalKey = 'ag3mg_l12';
+  else if (nameLower.includes('ag2hg3') || formulaLower === 'ag2hg3') canonicalKey = 'ag2hg3_amalgam';
+  else if (nameLower.includes('ag2al') || formulaLower === 'ag2al') canonicalKey = 'ag2al_zeta';
+  else if (nameLower.includes('silver chloride') || formulaLower === 'agcl') canonicalKey = 'agcl_chlorargyrite';
+  else if (nameLower.includes('silver bromide') || formulaLower === 'agbr') canonicalKey = 'agbr_bromargyrite';
+  else if (nameLower.includes('silver(i) oxide') || formulaLower === 'ag2o') canonicalKey = 'ag2o_cuprite';
+  else if (nameLower.includes('silver subfluoride') || formulaLower === 'ag2f') canonicalKey = 'ag2f_subfluoride';
+  else if (nameLower.includes('stainless steel 316l')) canonicalKey = 'ss_316l';
+  else if (nameLower.includes('stainless steel 304')) canonicalKey = 'ss_304';
+  else if (nameLower.includes('stainless steel 310')) canonicalKey = 'ss_310s';
+  else if (nameLower.includes('stainless steel 904l')) canonicalKey = 'ss_904l';
+  else if (nameLower.includes('254 smo')) canonicalKey = 'ss_254smo';
+  else if (nameLower.includes('stainless steel 430') || nameLower.includes('stainless steel 409') || nameLower.includes('stainless steel 444') || nameLower.includes('stainless steel 446')) canonicalKey = 'ss_430';
+  else if (nameLower.includes('stainless steel 410') || nameLower.includes('stainless steel 420')) canonicalKey = 'ss_410';
+  else if (nameLower.includes('stainless steel 440c')) canonicalKey = 'ss_440c';
+  else if (nameLower.includes('17-4ph') || nameLower.includes('15-5ph')) canonicalKey = 'ss_17_4ph';
+  else if (nameLower.includes('duplex stainless steel 2205') || nameLower.includes('duplex stainless steel 2304')) canonicalKey = 'ss_duplex_2205';
+  else if (nameLower.includes('super duplex stainless steel 2507')) canonicalKey = 'ss_duplex_2507';
+  else if (nameLower.includes('m23c6') || formulaLower === 'cr23c6') canonicalKey = 'm23c6_carbide';
+  else if (nameLower.includes('chi-phase') || formulaLower === 'fe36cr12mo10') canonicalKey = 'chi_phase_ss';
+  else if (nameLower.includes('epsilon-martensite')) canonicalKey = 'epsilon_martensite';
+  else if (nameLower.includes('dichromium nitride') || formulaLower === 'cr2n') canonicalKey = 'cr2n_nitride';
+  else if (nameLower.includes('expanded austenite') || nameLower.includes('s-phase')) canonicalKey = 's_phase_gamma_n';
 
   const canonical = canonicalKey ? CANONICAL_PDF2_METADATA[canonicalKey] : undefined;
 

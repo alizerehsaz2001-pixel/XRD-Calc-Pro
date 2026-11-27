@@ -6,6 +6,15 @@ import { motion, AnimatePresence } from 'motion/react';
 import { useCustomMaterialApply } from './components/CustomMaterialContext';
 import { CustomMaterialSectionBar } from './components/CustomMaterialSectionBar';
 import { CustomMaterialStudioModal } from './components/CustomMaterialStudioModal';
+import {
+  ALL_THEME_IDS,
+  ColorVisionMode,
+  ContrastLevel,
+  ThemeId,
+  getDocumentThemeClasses,
+  isDarkTheme,
+  normalizeThemeId,
+} from './utils/themeSystem';
 // Resilient helper for lazy dynamic component imports with auto-retry and flexible default/named export resolution
 function safeLazy<T extends React.ComponentType<any>>(
   importFn: () => Promise<any>,
@@ -324,8 +333,22 @@ const App: React.FC = () => {
   const [isExplained, setIsExplained] = useState<boolean>(true);
 
   // Load persistent configurations from localStorage with robust safety fallbacks
-  const [theme, setTheme] = useState<'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai'>(() => {
-    return (localStorage.getItem('xrd_theme') as any) || 'light';
+  const [theme, setThemeState] = useState<ThemeId>(() => {
+    return normalizeThemeId(localStorage.getItem('xrd_theme'));
+  });
+  const setTheme = React.useCallback((next: ThemeId | string) => {
+    setThemeState(normalizeThemeId(next));
+  }, []);
+  const [contrastBoost, setContrastBoost] = useState<ContrastLevel>(() => {
+    const val = localStorage.getItem('xrd_contrast_boost');
+    return val === 'enhanced' || val === 'maximum' ? val : 'standard';
+  });
+  const [colorVisionMode, setColorVisionMode] = useState<ColorVisionMode>(() => {
+    const val = localStorage.getItem('xrd_cvd_mode');
+    return val === 'deuteranopia' || val === 'protanopia' || val === 'tritanopia' ? val : 'normal';
+  });
+  const [followSystemTheme, setFollowSystemTheme] = useState<boolean>(() => {
+    return localStorage.getItem('xrd_follow_system_theme') === 'true';
   });
   const [precision, setPrecision] = useState<number>(() => {
     const val = localStorage.getItem('xrd_precision');
@@ -968,6 +991,35 @@ const App: React.FC = () => {
   }, [theme]);
 
   useEffect(() => {
+    localStorage.setItem('xrd_contrast_boost', contrastBoost);
+  }, [contrastBoost]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_cvd_mode', colorVisionMode);
+  }, [colorVisionMode]);
+
+  useEffect(() => {
+    localStorage.setItem('xrd_follow_system_theme', followSystemTheme.toString());
+  }, [followSystemTheme]);
+
+  // Optional OS prefers-color-scheme synchronization
+  useEffect(() => {
+    if (!followSystemTheme || typeof window === 'undefined' || !window.matchMedia) return;
+    const media = window.matchMedia('(prefers-color-scheme: dark)');
+    const syncOsTheme = (prefersDark: boolean) => {
+      setThemeState((prev) => {
+        if (prefersDark && !isDarkTheme(prev)) return 'dark';
+        if (!prefersDark && isDarkTheme(prev)) return 'light';
+        return prev;
+      });
+    };
+    syncOsTheme(media.matches);
+    const handler = (e: MediaQueryListEvent) => syncOsTheme(e.matches);
+    media.addEventListener?.('change', handler);
+    return () => media.removeEventListener?.('change', handler);
+  }, [followSystemTheme]);
+
+  useEffect(() => {
     localStorage.setItem('xrd_precision', precision.toString());
   }, [precision]);
 
@@ -1030,14 +1082,20 @@ const App: React.FC = () => {
     return () => window.removeEventListener('xrd-change-module', handleModuleChange);
   }, []);
 
-  // Apply theme classes to document element
+  // Apply unified theme classes & WCAG contrast attributes to document element
+  // CRITICAL: All dark-family themes ALWAYS include 'dark' so Tailwind dark:* utilities stay active
   useEffect(() => {
     const root = document.documentElement;
-    root.classList.remove('dark', 'cyberpunk', 'terminal', 'synthwave', 'dracula', 'oceanic', 'gruvbox', 'monokai');
-    if (theme !== 'light') {
-      root.classList.add(theme);
+    root.classList.remove('dark', ...ALL_THEME_IDS);
+    const classesToApply = getDocumentThemeClasses(theme);
+    if (classesToApply.length > 0) {
+      root.classList.add(...classesToApply);
     }
-  }, [theme]);
+    root.dataset.theme = theme;
+    root.dataset.contrast = contrastBoost;
+    root.dataset.cvd = colorVisionMode;
+    root.style.colorScheme = isDarkTheme(theme) ? 'dark' : 'light';
+  }, [theme, contrastBoost, colorVisionMode]);
 
   // Pure synchronous Bragg diffraction solver with pre-sort HKL pairing and Bragg-Brentano calibration
   const computeBraggResults = React.useCallback((
@@ -1497,8 +1555,29 @@ const App: React.FC = () => {
     soundEnabled,
     animationsEnabled,
     lengthUnit,
-    setLengthUnit
-  }), [precision, zeroShift, sampleDisplacement, goniometerRadius, soundEnabled, animationsEnabled, lengthUnit]);
+    setLengthUnit,
+    theme,
+    setTheme,
+    contrastBoost,
+    setContrastBoost,
+    colorVisionMode,
+    setColorVisionMode,
+    followSystemTheme,
+    setFollowSystemTheme,
+  }), [
+    precision,
+    zeroShift,
+    sampleDisplacement,
+    goniometerRadius,
+    soundEnabled,
+    animationsEnabled,
+    lengthUnit,
+    theme,
+    setTheme,
+    contrastBoost,
+    colorVisionMode,
+    followSystemTheme,
+  ]);
 
   const stateRef = useRef({
     activeModule,
@@ -1612,7 +1691,7 @@ const App: React.FC = () => {
 
   if (showWhyXrdPage) {
     return (
-      <div className={theme === 'light' ? '' : theme}>
+      <div className={getDocumentThemeClasses(theme).join(' ')}>
         <Suspense fallback={<PageLoadingFallback />}>
           <WhyXrdDisciplinePage
             onProceedToWelcome={() => {
@@ -1680,7 +1759,7 @@ const App: React.FC = () => {
 
   if (!hasEntered) {
     return (
-      <div className={theme === 'light' ? '' : theme}>
+      <div className={getDocumentThemeClasses(theme).join(' ')}>
         <Suspense fallback={<PageLoadingFallback />}>
           <LandingPage
             onOpenWhyXrd={() => {
@@ -1745,7 +1824,7 @@ const App: React.FC = () => {
 
   return (
     <SettingsContext.Provider value={settingsContextValue}>
-      <div className={`${theme === 'light' ? '' : theme} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
+      <div className={`${getDocumentThemeClasses(theme).join(' ')} h-full`} dir={isRTL ? 'rtl' : 'ltr'}>
         <div className={`flex h-screen ${theme === 'cyberpunk' ? 'bg-black' : 'bg-slate-50 dark:bg-slate-950'} text-slate-900 dark:text-slate-100 overflow-hidden animate-in fade-in duration-700 transition-colors`}>
         
         {/* Responsive Sidebar Navigation: Full Sidebar or Compact Mini Rail */}

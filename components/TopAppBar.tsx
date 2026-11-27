@@ -27,11 +27,24 @@ import {
   Settings2,
   FileDown,
   BookOpen,
-  Compass
+  Compass,
+  Sun,
+  Moon,
+  Contrast,
+  Monitor
 } from 'lucide-react';
 import LanguageSelector from './LanguageSelector';
 import { SAMPLE_PRESETS, SamplePreset } from './QuickWorkflowRibbon';
 import { DisplayModeSwitcher } from './DisplayModeSwitcher';
+import { useSettings } from './SettingsContext';
+import {
+  THEME_REGISTRY,
+  ThemeId,
+  ContrastLevel,
+  getThemeContrastAudit,
+  getThemeSpec,
+  isDarkTheme,
+} from '../utils/themeSystem';
 
 export type Module = string;
 
@@ -45,30 +58,23 @@ export interface ToastAlert {
   onAction?: () => void;
 }
 
-export type ThemeType = 'light' | 'dark' | 'cyberpunk' | 'terminal' | 'synthwave' | 'dracula' | 'oceanic' | 'gruvbox' | 'monokai';
+export type ThemeType = ThemeId;
 
 export interface ThemeOption {
   id: ThemeType;
   label: string;
   nativeLabel: string;
-  icon: string;
-  color: string;
-  bgPreview: string;
-  borderPreview: string;
+  polarity: 'light' | 'dark';
   swatchHex: [string, string, string];
 }
 
-export const THEME_OPTIONS: ThemeOption[] = [
-  { id: 'light', label: 'Light', nativeLabel: 'Clinical Lab Slate', icon: '☀️', color: 'text-amber-500', bgPreview: 'bg-slate-100', borderPreview: 'border-slate-300', swatchHex: ['#f8fafc', '#e2e8f0', '#4f46e5'] },
-  { id: 'dark', label: 'Dark', nativeLabel: 'Deep Obsidian', icon: '🌙', color: 'text-indigo-400', bgPreview: 'bg-slate-900', borderPreview: 'border-indigo-500/40', swatchHex: ['#0f172a', '#1e293b', '#6366f1'] },
-  { id: 'cyberpunk', label: 'Cyberpunk', nativeLabel: 'High-Contrast Laser', icon: '⚡', color: 'text-pink-500', bgPreview: 'bg-black', borderPreview: 'border-cyan-400', swatchHex: ['#050505', '#00f0ff', '#ff007f'] },
-  { id: 'terminal', label: 'Terminal', nativeLabel: 'Phosphor CRT', icon: '📟', color: 'text-emerald-400', bgPreview: 'bg-black', borderPreview: 'border-emerald-500', swatchHex: ['#040d06', '#064e3b', '#10b981'] },
-  { id: 'synthwave', label: 'Synthwave', nativeLabel: 'Reticle Horizon', icon: '🌆', color: 'text-purple-400', bgPreview: 'bg-[#1a102f]', borderPreview: 'border-pink-500', swatchHex: ['#1a102f', '#3b1d5e', '#ec4899'] },
-  { id: 'dracula', label: 'Dracula', nativeLabel: 'Vacuum Violet', icon: '🦇', color: 'text-purple-300', bgPreview: 'bg-[#282a36]', borderPreview: 'border-purple-500', swatchHex: ['#282a36', '#44475a', '#bd93f9'] },
-  { id: 'oceanic', label: 'Oceanic', nativeLabel: 'Cherenkov Blue', icon: '🌊', color: 'text-cyan-400', bgPreview: 'bg-[#0f172a]', borderPreview: 'border-cyan-500', swatchHex: ['#0b192c', '#1e3e62', '#06b6d4'] },
-  { id: 'gruvbox', label: 'Gruvbox', nativeLabel: 'Warm Tungsten', icon: '📦', color: 'text-amber-600', bgPreview: 'bg-[#282828]', borderPreview: 'border-amber-700', swatchHex: ['#282828', '#504945', '#fe8019'] },
-  { id: 'monokai', label: 'Monokai', nativeLabel: 'Spectrometer Dark', icon: '🎨', color: 'text-yellow-400', bgPreview: 'bg-[#272822]', borderPreview: 'border-yellow-600', swatchHex: ['#272822', '#3e3d32', '#a6e22e'] },
-];
+export const THEME_OPTIONS: ThemeOption[] = THEME_REGISTRY.map((spec) => ({
+  id: spec.id,
+  label: spec.label,
+  nativeLabel: spec.subtitle,
+  polarity: spec.polarity,
+  swatchHex: spec.swatchHex,
+}));
 
 interface AnodeSourceSpec {
   id: string;
@@ -430,6 +436,16 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
   onSignIn,
   onOpenWelcome
 }) => {
+  const {
+    contrastBoost = 'standard',
+    setContrastBoost,
+    followSystemTheme = false,
+    setFollowSystemTheme,
+  } = useSettings();
+  const activeContrastAudit = useMemo(
+    () => getThemeContrastAudit(theme, contrastBoost),
+    [theme, contrastBoost]
+  );
   const [showThemeMenu, setShowThemeMenu] = useState(false);
   const [showSystemMenu, setShowSystemMenu] = useState(false);
   const [showSyncTooltip, setShowSyncTooltip] = useState(false);
@@ -762,14 +778,14 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
 
           <button
             onClick={() => {
-              const nextIdx = (THEME_OPTIONS.findIndex((tItem) => tItem.id === theme) + 1) % THEME_OPTIONS.length;
-              setTheme(THEME_OPTIONS[nextIdx].id);
+              const nextTheme: ThemeId = isDarkTheme(theme) ? 'light' : 'dark';
+              setTheme(nextTheme);
               playSynthTone('switch');
             }}
-            className="p-1.5 rounded-lg text-xs font-bold"
-            title="Toggle Theme"
+            className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+            title={isDarkTheme(theme) ? 'Switch to Light Theme' : 'Switch to Dark Theme'}
           >
-            <span>{currentThemeObj.icon}</span>
+            {isDarkTheme(theme) ? <Moon className="w-4 h-4" /> : <Sun className="w-4 h-4" />}
           </button>
 
           <button
@@ -1535,7 +1551,7 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
           {/* 7. Language Selector */}
           <LanguageSelector compact={true} />
 
-          {/* 8. Theme Selector Popover with Color Swatch Previews */}
+          {/* 8. Visual Theme & Contrast Calibration Popover */}
           <div className="relative" ref={themeMenuRef}>
             <button
               id="topbar-theme-selector-btn"
@@ -1543,63 +1559,168 @@ const TopAppBarComponent: React.FC<TopAppBarProps> = ({
                 setShowThemeMenu(!showThemeMenu);
                 playSynthTone('switch');
               }}
-              className="p-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-300 hover:border-slate-300 dark:hover:border-slate-700 cursor-pointer transition-all flex items-center justify-center"
-              title={t('Change visual theme', 'Change visual theme')}
+              className={`px-2 py-1.5 rounded-lg border transition-all flex items-center gap-1.5 cursor-pointer ${
+                showThemeMenu
+                  ? 'border-indigo-500 bg-indigo-500/10 text-indigo-700 dark:text-indigo-300'
+                  : 'border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-slate-700 dark:text-slate-200 hover:border-slate-300 dark:hover:border-slate-700'
+              }`}
+              title={t('Visual Theme & WCAG Contrast Calibration', 'Visual Theme & WCAG Contrast Calibration')}
             >
-              <span className="text-sm leading-none">{currentThemeObj.icon}</span>
+              {isDarkTheme(theme) ? (
+                <Moon className="w-3.5 h-3.5 shrink-0" />
+              ) : (
+                <Sun className="w-3.5 h-3.5 shrink-0" />
+              )}
+              <svg viewBox="0 0 18 10" className="w-4 h-2.5 rounded-[2px] overflow-hidden border border-slate-400/40 shrink-0" aria-hidden="true">
+                <rect x="0" y="0" width="6" height="10" fill={currentThemeObj.swatchHex[0]} />
+                <rect x="6" y="0" width="6" height="10" fill={currentThemeObj.swatchHex[1]} />
+                <rect x="12" y="0" width="6" height="10" fill={currentThemeObj.swatchHex[2]} />
+              </svg>
+              {contrastBoost !== 'standard' && (
+                <Contrast className="w-3 h-3 text-amber-600 dark:text-amber-400 shrink-0" />
+              )}
             </button>
 
             <AnimatePresence>
               {showThemeMenu && (
                 <motion.div
-                  initial={{ opacity: 0, y: 6, scale: 0.97 }}
+                  initial={{ opacity: 0, y: 6, scale: 0.98 }}
                   animate={{ opacity: 1, y: 0, scale: 1 }}
-                  exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                  transition={{ duration: 0.15 }}
-                  className={`absolute right-0 mt-2 w-60 p-2 rounded-xl border shadow-2xl z-50 ${
-                    theme === 'cyberpunk'
-                      ? 'bg-black/95 border-cyber-accent text-cyber-accent'
-                      : 'bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 text-slate-800 dark:text-slate-100'
-                  }`}
+                  exit={{ opacity: 0, y: 6, scale: 0.98 }}
+                  transition={{ duration: 0.14 }}
+                  className="absolute right-0 mt-2 w-80 rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 shadow-xl z-50 overflow-hidden"
                 >
-                  <div className="px-2 py-1 text-[10px] font-mono font-bold uppercase tracking-wider text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-1.5 flex items-center justify-between">
-                    <span>{t('Optical Calibration', 'Optical Calibration')}</span>
-                    <Palette className="w-3 h-3 text-indigo-400" />
+                  {/* Popover Header + Quick Polarity Switch */}
+                  <div className="px-3 py-2.5 border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 flex items-center justify-between gap-2">
+                    <div>
+                      <div className="text-[11px] font-mono font-bold uppercase tracking-wider text-slate-800 dark:text-slate-100 flex items-center gap-1.5">
+                        <Palette className="w-3.5 h-3.5 text-indigo-600 dark:text-indigo-400" />
+                        <span>{t('Theme & Contrast', 'Theme & Contrast')}</span>
+                      </div>
+                      <div className="text-[10px] font-mono tabular-nums text-slate-500 dark:text-slate-400 mt-0.5">
+                        {getThemeSpec(theme).label} · {activeContrastAudit.primaryRatio.toFixed(1)}:1 WCAG {activeContrastAudit.primaryGrade}
+                      </div>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setTheme(isDarkTheme(theme) ? 'light' : 'dark');
+                        playSynthTone('switch');
+                      }}
+                      className="px-2 py-1 rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 hover:bg-slate-100 dark:hover:bg-slate-800 text-[10px] font-mono font-semibold flex items-center gap-1 shrink-0 cursor-pointer"
+                      title="Quick flip between Light and Dark"
+                    >
+                      {isDarkTheme(theme) ? <Sun className="w-3 h-3" /> : <Moon className="w-3 h-3" />}
+                      <span>{isDarkTheme(theme) ? 'Light' : 'Dark'}</span>
+                    </button>
                   </div>
 
-                  <div className="space-y-1 max-h-68 overflow-y-auto custom-scrollbar">
-                    {THEME_OPTIONS.map((th) => {
-                      const isSelected = theme === th.id;
+                  {/* Grouped Light & Dark Themes */}
+                  <div className="p-2 max-h-72 overflow-y-auto custom-scrollbar space-y-2.5">
+                    {(['light', 'dark'] as const).map((groupPolarity) => {
+                      const items = THEME_REGISTRY.filter((item) => item.polarity === groupPolarity);
                       return (
-                        <button
-                          key={th.id}
-                          onClick={() => {
-                            setTheme(th.id);
-                            setShowThemeMenu(false);
-                            playSynthTone('switch');
-                          }}
-                          className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                            isSelected
-                              ? 'bg-indigo-600 text-white shadow-xs'
-                              : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            {/* 3-Tone Palette Swatch SVG */}
-                            <svg viewBox="0 0 18 12" className="w-4.5 h-3 rounded-xs overflow-hidden border border-white/20 shrink-0">
-                              <rect x="0" y="0" width="6" height="12" fill={th.swatchHex[0]} />
-                              <rect x="6" y="0" width="6" height="12" fill={th.swatchHex[1]} />
-                              <rect x="12" y="0" width="6" height="12" fill={th.swatchHex[2]} />
-                            </svg>
-                            <span>{th.label}</span>
-                            <span className={`text-[9.5px] font-mono ${isSelected ? 'text-indigo-200' : 'text-slate-400'}`}>
-                              · {th.nativeLabel}
+                        <div key={groupPolarity}>
+                          <div className="px-2 py-1 text-[9.5px] font-mono font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center justify-between">
+                            <span>
+                              {groupPolarity === 'light' ? 'Light & Publication' : 'Dark & Laboratory'}
                             </span>
+                            <span className="tabular-nums">{items.length}</span>
                           </div>
-                          {isSelected && <Check className="w-3.5 h-3.5 text-white shrink-0" />}
-                        </button>
+                          <div className="space-y-0.5">
+                            {items.map((spec) => {
+                              const isSelected = theme === spec.id;
+                              const audit = getThemeContrastAudit(spec.id, contrastBoost);
+                              return (
+                                <button
+                                  key={spec.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setTheme(spec.id);
+                                    setShowThemeMenu(false);
+                                    playSynthTone('switch');
+                                  }}
+                                  className={`w-full flex items-center justify-between px-2 py-1.5 rounded-md text-xs transition-colors cursor-pointer ${
+                                    isSelected
+                                      ? 'bg-indigo-600 text-white'
+                                      : 'hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-800 dark:text-slate-200'
+                                  }`}
+                                >
+                                  <div className="flex items-center gap-2 min-w-0">
+                                    <svg viewBox="0 0 18 12" className="w-4.5 h-3 rounded-[2px] overflow-hidden border border-slate-400/40 shrink-0">
+                                      <rect x="0" y="0" width="6" height="12" fill={spec.swatchHex[0]} />
+                                      <rect x="6" y="0" width="6" height="12" fill={spec.swatchHex[1]} />
+                                      <rect x="12" y="0" width="6" height="12" fill={spec.swatchHex[2]} />
+                                    </svg>
+                                    <span className="font-semibold truncate">{spec.label}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 shrink-0 font-mono tabular-nums text-[10px]">
+                                    <span className={isSelected ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}>
+                                      {audit.primaryRatio.toFixed(1)}:1 {audit.primaryGrade}
+                                    </span>
+                                    {isSelected && <Check className="w-3.5 h-3.5 text-white" />}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
                       );
                     })}
+                  </div>
+
+                  {/* Quick Contrast Boost & OS Sync Footer */}
+                  <div className="p-2.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-950/60 space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-mono font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                        <Contrast className="w-3 h-3" />
+                        Contrast Boost
+                      </span>
+                      <div className="inline-flex rounded-md border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-900 p-0.5">
+                        {(['standard', 'enhanced', 'maximum'] as ContrastLevel[]).map((lvl) => {
+                          const active = contrastBoost === lvl;
+                          const label = lvl === 'standard' ? 'Std' : lvl === 'enhanced' ? 'AAA+' : 'Max';
+                          return (
+                            <button
+                              key={lvl}
+                              type="button"
+                              onClick={() => {
+                                setContrastBoost?.(lvl);
+                                playSynthTone('tick');
+                              }}
+                              className={`px-2 py-0.5 rounded-sm text-[10px] font-mono font-semibold transition-colors cursor-pointer ${
+                                active
+                                  ? 'bg-indigo-600 text-white'
+                                  : 'text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              {label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+
+                    <div className="flex items-center justify-between text-[10px] font-mono">
+                      <span className="text-slate-600 dark:text-slate-300 flex items-center gap-1">
+                        <Monitor className="w-3 h-3" />
+                        Follow OS Light/Dark
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setFollowSystemTheme?.(!followSystemTheme);
+                          playSynthTone('switch');
+                        }}
+                        className={`px-2 py-0.5 rounded-sm border font-semibold transition-colors cursor-pointer ${
+                          followSystemTheme
+                            ? 'bg-emerald-600 text-white border-emerald-600'
+                            : 'bg-white dark:bg-slate-900 text-slate-600 dark:text-slate-300 border-slate-300 dark:border-slate-700'
+                        }`}
+                      >
+                        {followSystemTheme ? 'Synced' : 'Manual'}
+                      </button>
+                    </div>
                   </div>
                 </motion.div>
               )}

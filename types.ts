@@ -328,18 +328,26 @@ export interface DoubleVoigtPoint {
 }
 
 export interface DoubleVoigtResult {
-  volumeSizeDvNm: number;     // D_V = 1 / beta_{C,S}* [nm]
+  volumeSizeDvNm: number;     // <D>_V = erfcx(k_S) / beta_{S,G}* [nm]
   volumeSizeUncertaintyNm?: number;
-  gaussianSizeDgNm: number;   // D_G = 1 / (pi * beta_{G,S}*) [nm]
-  areaSizeDaNm: number;       // D_A area-weighted crystallite size [nm]
-  numberSizeDnNm?: number;    // D_N number-weighted crystallite size [nm]
-  polydispersityRatio?: number; // D_V / D_A
+  gaussianSizeDgNm: number;   // D_G = 1 / beta_{S,G}* [nm]
+  areaSizeDaNm: number;       // <D>_A = 1 / (2 * beta_{S,C}*) [nm]
+  areaSizeUncertaintyNm?: number;
+  numberSizeDnNm?: number;    // <D>_N number-weighted crystallite size [nm]
+  polydispersityRatio?: number; // <D>_V / <D>_A
   logNormalSigma?: number;    // Log-normal standard deviation sigma_LN
-  logNormalMedianNm?: number; // Log-normal median size M [nm]
-  voigtParameterK?: number;   // k = beta_{C,S}* / (sqrt(pi) * beta_{G,S}*)
-  cauchyStrainEc: number;     // e_C = Slope_C / 2
-  gaussianStrainEg: number;   // e_G = sqrt(Slope_G / (8*pi))
-  rmsStrain: number;          // <e^2>^(1/2) = sqrt(e_C^2 + 2*pi*e_G^2)
+  logNormalMedianNm?: number; // Log-normal median size D_0 [nm]
+  voigtParameterK?: number;   // k_S = beta_{S,C}* / (sqrt(pi) * beta_{S,G}*)
+  voigtConvexityValid?: boolean; // k_S >= 1/sqrt(2) ensures non-negative analytical p_A(L)
+  betaCSStar?: number;        // Cauchy size intercept beta_{S,C}* [nm^-1]
+  betaGSStar?: number;        // Gaussian size intercept beta_{S,G}* [nm^-1]
+  betaSStar?: number;         // Combined Voigt size integral breadth beta_S* = 1/<D>_V [nm^-1]
+  cauchyInterceptClamped?: boolean;
+  gaussianInterceptClamped?: boolean;
+  cauchyStrainEc: number;     // Stokes-Wilson Cauchy max strain e_C = Slope_C / 2
+  gaussianStrainEg: number;   // Stokes-Wilson Gaussian max strain e_G = sqrt(Slope_G) / 2
+  gaussianRmsStrain?: number; // Gaussian RMS strain <e_G^2>^(1/2) = sqrt(Slope_G / (2*pi))
+  rmsStrain: number;          // Balzar characteristic RMS microstrain <e^2(L=<D>_A/2)>^(1/2)
   dislocationDensityM2?: number; // Williamson-Smallman dislocation density [m^-2]
   burgersVectorNm?: number;
   deconvKernelUsed?: 'deKeijser-1982' | 'Langford-1978' | 'Balzar-1993';
@@ -695,16 +703,31 @@ export interface WAColumnDistributionPoint {
 
 export interface WAOrderPlotLine {
   L_nm: number;
-  points: { s2: number; lnA: number; fittedLnA?: number; orderIndex: number; label: string }[];
+  points: { s: number; s2: number; d_A: number; lnA: number; fittedLnA?: number; orderIndex: number; label: string }[];
   slope: number;
   intercept: number;
+  slopeStdError?: number;
+  interceptStdError?: number;
   r2: number;
   rms_strain: number;
+  rms_strain_error?: number;
   A_size: number;
+}
+
+export interface WAReciprocalOrderInfo {
+  order: number;
+  d_A: number;
+  s_invA: number;       // 1 / d (Å^-1)
+  s2_invA2: number;     // 1 / d^2 (Å^-2)
+  q_invA: number;       // 2*pi / d (Å^-1)
+  harmonicRatio: number; // s_n / s_1 = d_1 / d_n
+  twoThetaCuDeg?: number;
 }
 
 export interface WAMetrics {
   areaWeightedColumnLengthNm: number; // <D>_A = -1 / (dA_S/dL)|_{L->0}
+  areaWeightedErrorNm?: number; // Standard error of <D>_A from Hook-window OLS
+  equivalentDomainDiameterNm?: number; // K_shape * <D>_A (true sphere/cube diameter)
   volumeWeightedColumnLengthNm: number; // <D>_V = 2 ∫ A_S(L) dL
   numberWeightedColumnLengthNm?: number; // <D>_N = ∫ L P_N(L) dL / ∫ P_N(L) dL
   polydispersityIndex?: number; // PDI = <D>_V / <D>_A
@@ -713,10 +736,14 @@ export interface WAMetrics {
   logNormalMedianNm?: number; // D_0 = exp(mu)
   logNormalSigma?: number; // sigma parameter
   initialSlope: number; // dA_S/dL at L=0
+  hookRegressionR2?: number; // R^2 of the low-L tangent fit
   rmsStrainAt5nm?: number; // Characteristic RMS microstrain at L = 5 nm
   rmsStrainAtHalfDa?: number; // Characteristic RMS microstrain at L = <D>_A / 2
   dislocationDensityM2: number; // ρ (m^-2)
   dislocationDensity10_14: number; // ρ (10^14 m^-2)
+  dislocationDensityError10_14?: number; // Uncertainty in ρ (10^14 m^-2)
+  meanDislocationSpacingNm?: number; // L_d = 1 / sqrt(rho) in nm
+  taylorFlowStressMPa?: number; // Δσ_T = α M_T G b sqrt(ρ)
   williamsonSmallmanDislocation10_14?: number; // ρ_WS = 2√3 <ε²>^1/2 / (<D>_V * b)
   wilkensCutoffRadiusNm: number; // Re (nm)
   wilkensArrangementParameterM: number; // M = Re * sqrt(rho)
@@ -727,6 +754,7 @@ export interface WAMetrics {
   contrastFactorC?: number; // Average dislocation contrast factor C_hkl
   apparentStrainEnergyKJm3: number; // W_H
   specificSurfaceAreaM2g?: number; // S_V
+  materialDensityGcm3?: number;
   hookEffectDetected: boolean;
   hookEffectExtrapolatedIntercept: number;
   hookEffectParameter?: number;
@@ -734,6 +762,10 @@ export interface WAMetrics {
   hookFitWindowMaxNm?: number;
   r2_average: number;
   activeOrdersCount?: number;
+  harmonicRatioD1D2?: number; // s2 / s1 = d1 / d2
+  harmonicCheckPassed?: boolean;
+  diagnosticWarnings?: string[];
+  reciprocalOrders?: WAReciprocalOrderInfo[];
   apparentScherrerSizeNm?: number; // Equivalent single-peak apparent size for comparison
   williamsonHallSizeNm?: number; // Equivalent WH size for comparison
   williamsonHallStrain?: number; // Equivalent WH strain for comparison
@@ -748,6 +780,7 @@ export interface WAResult {
     wilkens_fit_rms?: number;
     wilkens_fit_ms?: number;
     wilkensLnTerm?: number;
+    wilkensFStar?: number; // Exact Wilkens f*(L / R_e)
   }[];
   orderPlots?: WAOrderPlotLine[];
   metrics?: WAMetrics;
